@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Apps</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:monospace;}
+html,body{width:100%;height:100%;color:#00FFFF;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:14px;padding:16px;}
+.tile{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;text-align:center;font-size:11px;}
+.tile .icon{width:52px;height:52px;border:1px solid #00FFFF;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.tile:active .icon{background:#00FFFF;color:#000;}
+</style>
+</head>
+<body>
+<div class="grid" id="grid"></div>
+<script>
+const apps=[
+    {name:"File Manager",icon:"🗂"},
+    {name:"Clock",icon:"🕒"},
+    {name:"Calculator",icon:"🧮"},
+    {name:"Notepad",icon:"📝"},
+    {name:"Paint",icon:"🎨"},
+    {name:"tictactoe",label:"Tic Tac Toe",icon:"⭕"},
+    {name:"snake",label:"Snake",icon:"🐍"},
+    {name:"Messenger",icon:"💬"}
+];
+
+const grid=document.getElementById("grid");
+
+apps.forEach(a=>{
+    const tile=document.createElement("div");
+    tile.className="tile";
+    tile.innerHTML="<div class=\"icon\">"+a.icon+"</div><div>"+(a.label||a.name)+"</div>";
+    tile.addEventListener("click",()=>{
+        parent.Apps.openApp(a.name);
+    });
+    grid.appendChild(tile);
+});
+</script>
+</body>
+</html>

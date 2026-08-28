@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Snake</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:monospace;}
+html,body{width:100%;height:100%;background:#000d0d;color:#00FFFF;}
+.wrap{display:flex;flex-direction:column;align-items:center;height:100%;padding:8px;gap:8px;}
+.hud{display:flex;justify-content:space-between;width:100%;max-width:340px;font-size:12px;}
+canvas{background:#000;border:1px solid #00FFFF;touch-action:none;}
+.pad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,44px);gap:4px;}
+.pad button{border:1px solid #00FFFF;background:transparent;color:#00FFFF;font-size:16px;cursor:pointer;}
+.pad button:active{background:#00FFFF;color:#000;}
+.spacer{visibility:hidden;}
+</style>
+</head>
+<body>
+<div class="wrap">
+    <div class="hud"><span id="score">Score: 0</span><button id="resetBtn" style="border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:2px 8px;cursor:pointer;">RESET</button></div>
+    <canvas id="game" width="320" height="320"></canvas>
+    <div class="pad">
+        <div class="spacer"></div><button data-d="up">▲</button><div class="spacer"></div>
+        <button data-d="left">◀</button><div class="spacer"></div><button data-d="right">▶</button>
+        <div class="spacer"></div><button data-d="down">▼</button><div class="spacer"></div>
+    </div>
+</div>
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const cell=16;
+const cols=canvas.width/cell, rows=canvas.height/cell;
+const scoreEl=document.getElementById("score");
+
+let snake, dir, nextDir, food, score, alive, loopId;
+
+function reset(){
+    snake=[{x:8,y:8},{x:7,y:8},{x:6,y:8}];
+    dir={x:1,y:0};
+    nextDir={x:1,y:0};
+    score=0;
+    alive=true;
+    placeFood();
+    scoreEl.textContent="Score: 0";
+    if(loopId) clearInterval(loopId);
+    loopId=setInterval(tick,120);
+}
+
+function placeFood(){
+    food={x:Math.floor(Math.random()*cols),y:Math.floor(Math.random()*rows)};
+}
+
+function tick(){
+    if(!alive) return;
+    dir=nextDir;
+    const head={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
+
+    if(head.x<0||head.y<0||head.x>=cols||head.y>=rows||snake.some(s=>s.x===head.x&&s.y===head.y)){
+        alive=false;
+        clearInterval(loopId);
+        draw();
+        ctx.fillStyle="#00FFFF";
+        ctx.font="20px monospace";
+        ctx.textAlign="center";
+        ctx.fillText("GAME OVER",canvas.width/2,canvas.height/2);
+        return;
+    }
+
+    snake.unshift(head);
+
+    if(head.x===food.x&&head.y===food.y){
+        score+=10;
+        scoreEl.textContent="Score: "+score;
+        placeFood();
+    }else{
+        snake.pop();
+    }
+
+    draw();
+}
+
+function draw(){
+    ctx.fillStyle="#000";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle="#FF00FF";
+    ctx.fillRect(food.x*cell,food.y*cell,cell-1,cell-1);
+    ctx.fillStyle="#00FFFF";
+    snake.forEach(s=>ctx.fillRect(s.x*cell,s.y*cell,cell-1,cell-1));
+}
+
+function setDir(d){
+    if(d==="up"&&dir.y===0) nextDir={x:0,y:-1};
+    if(d==="down"&&dir.y===0) nextDir={x:0,y:1};
+    if(d==="left"&&dir.x===0) nextDir={x:-1,y:0};
+    if(d==="right"&&dir.x===0) nextDir={x:1,y:0};
+}
+
+document.querySelectorAll(".pad button[data-d]").forEach(b=>{
+    b.addEventListener("click",()=>setDir(b.dataset.d));
+});
+
+document.addEventListener("keydown",e=>{
+    const map={ArrowUp:"up",ArrowDown:"down",ArrowLeft:"left",ArrowRight:"right"};
+    if(map[e.key]) setDir(map[e.key]);
+});
+
+document.getElementById("resetBtn").addEventListener("click",reset);
+
+reset();
+</script>
+</body>
+</html>

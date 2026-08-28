@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><title>Notepad</title>
+<style>*{box-sizing:border-box;margin:0;padding:0;font-family:monospace}html,body{width:100%;height:100%;background:#000d0d;color:#00FFFF}.wrap{display:flex;flex-direction:column;height:100%}.toolbar{display:flex;gap:6px;padding:8px;border-bottom:1px solid #00FFFF;flex-wrap:wrap}.toolbar input,.toolbar select{flex:1 1 145px;background:#001010;border:1px solid #00FFFF;color:#00FFFF;padding:6px;font-family:monospace}.toolbar button{border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:6px 9px;cursor:pointer;font-family:monospace;font-size:11px}.toolbar button:active{background:#00FFFF;color:#000}textarea{flex:1;border:none;background:transparent;color:#00FFFF;font-family:monospace;font-size:13px;padding:10px;resize:none;outline:none}.status{padding:5px 10px;border-top:1px solid #00FFFF;font-size:11px;opacity:.75}</style>
+</head>
+<body><div class="wrap"><div class="toolbar"><input id="path" value="chxd:/local/notes.txt"><select id="language"><option value="javascript">JavaScript</option><option value="python">Python</option><option value="html">HTML</option><option value="css">CSS</option><option value="typescript">TypeScript</option><option value="java">Java</option><option value="cpp">C++</option><option value="csharp">C#</option><option value="php">PHP</option><option value="c">C</option></select><button id="openBtn">OPEN</button><button id="pickBtn">FILE…</button><button id="saveBtn">SAVE</button><button id="newBtn">NEW</button><button id="runBtn">RUN IN ONECOMPILER</button></div><textarea id="editor" placeholder="Start typing..."></textarea><div class="status" id="status">Ready.</div></div>
+<script>
+const pathInput=document.getElementById("path"),editor=document.getElementById("editor"),status=document.getElementById("status"),language=document.getElementById("language");
+const params=new URLSearchParams(location.search); if(params.get("path"))pathInput.value=params.get("path"); if(params.get("text")!==null)editor.value=params.get("text");
+function setStatus(s){status.textContent=s;}
+async function load(){const p=pathInput.value.trim();if(!p)return;const r=await parent.FS.read(p);if(r.ok){editor.value=r.content;setStatus("Loaded "+p+".");}else setStatus(r.error)}
+async function save(){const p=pathInput.value.trim();const r=await parent.FS.write(p,editor.value,true);setStatus(r.ok?"Saved "+p+".":r.error)}
+document.getElementById("openBtn").onclick=load; document.getElementById("saveBtn").onclick=save;
+document.getElementById("newBtn").onclick=()=>{editor.value="";setStatus("New document.")};
+document.getElementById("pickBtn").onclick=()=>parent.Apps.openApp("File Manager",{selectMode:true,allowMultiple:true});
+document.getElementById("runBtn").onclick=()=>{
+    const name=pathInput.value.split("/").pop()||"main.js";
+    parent.Apps.openOneCompiler({language:language.value,files:[{name,content:editor.value}],run:true});
+    setStatus("Opened OneCompiler.");
+};
+window.addEventListener("message",e=>{const d=e.data||{};if(d.type!=="LH_FILE_SELECTED")return;pathInput.value=d.path;load();});
+if(params.get("path"))load(); editor.focus();
+</script></body></html>

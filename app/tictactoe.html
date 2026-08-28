@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tic Tac Toe</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:monospace;}
+html,body{width:100%;height:100%;background:#000d0d;color:#00FFFF;}
+.wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;}
+.board{display:grid;grid-template-columns:repeat(3,70px);grid-template-rows:repeat(3,70px);gap:6px;}
+.cell{border:1px solid #00FFFF;display:flex;align-items:center;justify-content:center;font-size:32px;cursor:pointer;}
+.cell:active{background:rgba(0,255,255,0.15);}
+.status{font-size:14px;}
+button{border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:6px 14px;cursor:pointer;font-family:monospace;}
+button:active{background:#00FFFF;color:#000;}
+</style>
+</head>
+<body>
+<div class="wrap">
+    <div class="status" id="status">Your turn (X)</div>
+    <div class="board" id="board"></div>
+    <button id="resetBtn">RESET</button>
+</div>
+<script>
+let board=Array(9).fill(null);
+let over=false;
+const boardEl=document.getElementById("board");
+const statusEl=document.getElementById("status");
+
+const LINES=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+function winner(b){
+    for(const [a,c,d] of LINES){
+        if(b[a]&&b[a]===b[c]&&b[a]===b[d]) return b[a];
+    }
+    return b.every(v=>v)?"draw":null;
+}
+
+function render(){
+    boardEl.innerHTML="";
+    board.forEach((v,i)=>{
+        const cell=document.createElement("div");
+        cell.className="cell";
+        cell.textContent=v||"";
+        cell.addEventListener("click",()=>playerMove(i));
+        boardEl.appendChild(cell);
+    });
+}
+
+function playerMove(i){
+    if(over||board[i]) return;
+    board[i]="X";
+    checkEnd();
+    if(!over) setTimeout(aiMove,300);
+    render();
+}
+
+function aiMove(){
+    if(over) return;
+    // try win, then block, then center, then random
+    const empty=board.map((v,i)=>v?null:i).filter(v=>v!==null);
+    let move=findWinningMove("O")??findWinningMove("X")??(board[4]?null:4)??empty[Math.floor(Math.random()*empty.length)];
+    if(move==null||board[move]) move=empty[Math.floor(Math.random()*empty.length)];
+    if(move!=null){ board[move]="O"; }
+    checkEnd();
+    render();
+}
+
+function findWinningMove(sym){
+    for(const [a,c,d] of LINES){
+        const line=[a,c,d];
+        const vals=line.map(i=>board[i]);
+        const empties=line.filter(i=>!board[i]);
+        if(empties.length===1&&vals.filter(v=>v===sym).length===2) return empties[0];
+    }
+    return null;
+}
+
+function checkEnd(){
+    const w=winner(board);
+    if(w){
+        over=true;
+        statusEl.textContent=w==="draw"?"Draw!":(w==="X"?"You win!":"Little Hollow wins!");
+    }else{
+        statusEl.textContent="Your turn (X)";
+    }
+}
+
+document.getElementById("resetBtn").addEventListener("click",()=>{
+    board=Array(9).fill(null);
+    over=false;
+    statusEl.textContent="Your turn (X)";
+    render();
+});
+
+render();
+</script>
+</body>
+</html>

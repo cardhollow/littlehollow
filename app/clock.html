@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Clock</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:monospace;}
+html,body{width:100%;height:100%;background:#000d0d;color:#00FFFF;display:flex;align-items:center;justify-content:center;}
+.wrap{display:flex;flex-direction:column;align-items:center;gap:14px;}
+canvas{display:block;}
+.digital{font-size:22px;letter-spacing:2px;}
+.date{font-size:12px;opacity:0.7;}
+</style>
+</head>
+<body>
+<div class="wrap">
+    <canvas id="face" width="220" height="220"></canvas>
+    <div class="digital" id="digital">--:--:--</div>
+    <div class="date" id="dateStr"></div>
+</div>
+<script>
+const canvas=document.getElementById("face");
+const ctx=canvas.getContext("2d");
+const digital=document.getElementById("digital");
+const dateStr=document.getElementById("dateStr");
+const R=100, CX=110, CY=110;
+
+function drawFace(now){
+    ctx.clearRect(0,0,220,220);
+    ctx.strokeStyle="#00FFFF";
+    ctx.fillStyle="#00FFFF";
+    ctx.lineWidth=2;
+
+    ctx.beginPath();
+    ctx.arc(CX,CY,R,0,Math.PI*2);
+    ctx.stroke();
+
+    for(let i=0;i<12;i++){
+        const a=(i/12)*Math.PI*2;
+        const x1=CX+Math.sin(a)*(R-10), y1=CY-Math.cos(a)*(R-10);
+        const x2=CX+Math.sin(a)*R, y2=CY-Math.cos(a)*R;
+        ctx.beginPath();
+        ctx.moveTo(x1,y1);
+        ctx.lineTo(x2,y2);
+        ctx.stroke();
+    }
+
+    const h=now.getHours()%12, m=now.getMinutes(), s=now.getSeconds();
+    drawHand((h+m/60)/12*Math.PI*2, R*0.5, 4);
+    drawHand((m+s/60)/60*Math.PI*2, R*0.75, 3);
+    drawHand(s/60*Math.PI*2, R*0.85, 1.5);
+
+    ctx.beginPath();
+    ctx.arc(CX,CY,4,0,Math.PI*2);
+    ctx.fill();
+}
+
+function drawHand(angle,length,width){
+    ctx.lineWidth=width;
+    ctx.beginPath();
+    ctx.moveTo(CX,CY);
+    ctx.lineTo(CX+Math.sin(angle)*length,CY-Math.cos(angle)*length);
+    ctx.stroke();
+}
+
+function tick(){
+    const now=new Date();
+    drawFace(now);
+    digital.textContent=now.toLocaleTimeString();
+    dateStr.textContent=now.toLocaleDateString(undefined,{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+    requestAnimationFrame(()=>setTimeout(tick,200));
+}
+tick();
+</script>
+</body>
+</html>
