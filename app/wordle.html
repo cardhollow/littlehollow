@@ -11,7 +11,6 @@
 			padding: 0;
 			font-family: monospace;
 		}
-
 		html,
 		body {
 			width: 100%;
@@ -20,12 +19,10 @@
 			background: #000d0d;
 			color: #00FFFF;
 		}
-
 		body {
 			display: flex;
 			justify-content: center;
 		}
-
 		button {
 			font-family: monospace;
 			color: #00FFFF;
@@ -34,91 +31,122 @@
 			cursor: pointer;
 			touch-action: manipulation;
 		}
-
 		button:active {
 			background: #00FFFF;
 			color: #000;
 		}
-
 		.app {
 			width: 100%;
 			max-width: 430px;
-			height: 100%;
+			height: 100svh;
 			display: flex;
 			flex-direction: column;
-			padding: 8px;
-			gap: 7px;
+			padding: clamp(3px,1.5svh,8px);
+			gap: clamp(3px,1svh,7px);
+			overflow: hidden;
 		}
-
 		.tabs {
 			width: 100%;
 			display: flex;
 			border-bottom: 1px solid #00FFFF;
 			flex-shrink: 0;
 		}
-
 		.tab {
 			flex: 1;
-			min-height: 34px;
+			min-height: clamp(28px,5svh,34px);
 			border: none;
 			border-right: 1px solid #00FFFF;
-			font-size: 12px;
+			font-size: clamp(10px,2.5vw,12px);
 		}
-
 		.tab:last-child {
 			border-right: none;
 		}
-
 		.tab.active {
 			background: #00FFFF;
 			color: #000;
 		}
-
 		.page {
 			display: none;
 			flex: 1;
 			min-height: 0;
+			width: 100%;
 			flex-direction: column;
 			align-items: center;
-			gap: 7px;
-			overflow: auto;
-			padding-bottom: 4px;
+			gap: clamp(3px,1svh,7px);
+			overflow: hidden;
 		}
-
 		.page.active {
 			display: flex;
 		}
-
+		.game-page {
+			justify-content: flex-start;
+		}
 		.hud {
 			width: 100%;
 			display: grid;
 			grid-template-columns: repeat(4,1fr);
-			gap: 5px;
+			gap: clamp(3px,1vw,5px);
 			flex-shrink: 0;
 		}
-
 		.info {
 			border: 1px solid #00FFFF;
-			padding: 5px;
+			padding: clamp(3px,1svh,5px);
 			text-align: center;
-			font-size: 10px;
+			font-size: clamp(8px,2.4vw,10px);
 		}
-
 		.info-value {
-			margin-top: 3px;
-			font-size: 13px;
+			margin-top: 2px;
+			font-size: clamp(10px,3vw,13px);
 		}
-
+		.difficulty-controls {
+			width: 100%;
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: clamp(3px,1vw,5px);
+			flex-shrink: 0;
+		}
+		.difficulty-button {
+			min-height: clamp(27px,5svh,34px);
+			font-size: clamp(9px,2.5vw,11px);
+		}
+		.difficulty-button.active {
+			background: #00FFFF;
+			color: #000;
+		}
+		.loading {
+			width: 100%;
+			border: 1px solid #00FFFF;
+			padding: clamp(4px,1svh,8px);
+			font-size: clamp(8px,2.3vw,10px);
+			text-align: center;
+			flex-shrink: 0;
+		}
+		.loading.hidden {
+			display: none;
+		}
+		.board-wrap {
+			flex: 1;
+			min-height: 0;
+			width: 100%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			overflow: auto;
+		}
 		.board {
-			width: min(92vw,350px);
+			width: min(
+				92vw,
+				350px,
+				58svh
+			);
+			max-width: 350px;
 			display: grid;
 			grid-template-columns: repeat(5,1fr);
 			grid-template-rows: repeat(6,1fr);
-			gap: 5px;
+			gap: clamp(3px,1vw,5px);
 			flex-shrink: 0;
 			perspective: 700px;
 		}
-
 		.tile {
 			width: 100%;
 			aspect-ratio: 1;
@@ -128,46 +156,38 @@
 			justify-content: center;
 			background: #001414;
 			color: #00FFFF;
-			font-size: clamp(20px,7vw,34px);
+			font-size: clamp(18px,7vw,34px);
 			font-weight: bold;
 			user-select: none;
 			transform-style: preserve-3d;
 		}
-
 		.tile.filled {
 			border-color: #00FFFF;
 		}
-
 		.tile.correct {
 			background: #006666;
 			color: #FFFFFF;
 			border-color: #00FFFF;
 		}
-
 		.tile.present {
 			background: #665500;
 			color: #FFFF00;
 			border-color: #FFFF00;
 		}
-
 		.tile.absent {
 			background: #151515;
 			color: #555555;
 			border-color: #333333;
 		}
-
 		.tile.pop {
 			animation: pop .12s ease-out;
 		}
-
 		.tile.flip {
 			animation: flip .38s ease-out;
 		}
-
 		.tile.shake {
 			animation: shake .25s ease-in-out;
 		}
-
 		@keyframes pop {
 			0% {
 				transform: scale(.85);
@@ -179,7 +199,6 @@
 				transform: scale(1);
 			}
 		}
-
 		@keyframes flip {
 			0% {
 				transform: rotateX(0deg);
@@ -191,7 +210,6 @@
 				transform: rotateX(0deg);
 			}
 		}
-
 		@keyframes shake {
 			0%,
 			100% {
@@ -210,103 +228,117 @@
 				transform: translateX(4px);
 			}
 		}
-
 		.status {
-			min-height: 17px;
-			font-size: 11px;
+			min-height: clamp(14px,2.5svh,17px);
+			font-size: clamp(9px,2.5vw,11px);
 			text-align: center;
+			flex-shrink: 0;
 		}
-
 		.keyboard {
 			width: 100%;
 			max-width: 420px;
 			display: flex;
 			flex-direction: column;
-			gap: 4px;
+			gap: clamp(2px,.7svh,4px);
 			flex-shrink: 0;
 		}
-
+		.keyboard.hidden {
+			display: none;
+		}
 		.key-row {
 			display: flex;
 			justify-content: center;
-			gap: 4px;
+			gap: clamp(2px,.8vw,4px);
 		}
-
 		.key {
 			flex: 1;
 			max-width: 38px;
 			min-width: 0;
-			min-height: 42px;
-			font-size: 12px;
+			min-height: clamp(31px,6svh,42px);
+			font-size: clamp(9px,2.8vw,12px);
+			padding: 0;
 		}
-
 		.key.wide {
 			max-width: 58px;
-			font-size: 10px;
+			font-size: clamp(8px,2.5vw,10px);
 		}
-
 		.key.correct {
 			background: #006666;
 			color: #FFFFFF;
 			border-color: #00FFFF;
 		}
-
 		.key.present {
 			background: #665500;
 			color: #FFFF00;
 			border-color: #FFFF00;
 		}
-
 		.key.absent {
 			background: #151515;
 			color: #555555;
 			border-color: #333333;
 		}
-
 		.actions {
 			width: 100%;
 			display: grid;
 			grid-template-columns: repeat(3,1fr);
-			gap: 5px;
+			gap: clamp(3px,1vw,5px);
 			flex-shrink: 0;
 		}
-
 		.action {
-			min-height: 36px;
-			font-size: 11px;
+			min-height: clamp(29px,5svh,36px);
+			font-size: clamp(9px,2.5vw,11px);
 		}
-
 		.info-page {
 			width: 100%;
 			display: flex;
 			flex-direction: column;
 			gap: 8px;
+			overflow-y: auto;
+			padding-bottom: 8px;
 		}
-
 		.info-box {
 			border: 1px solid #00FFFF;
 			padding: 10px;
 			font-size: 12px;
 			line-height: 1.7;
+			flex-shrink: 0;
 		}
-
 		.info-title {
 			font-size: 14px;
 			margin-bottom: 5px;
 		}
-
 		.key-grid {
 			display: grid;
 			grid-template-columns: 1fr 1fr;
 			gap: 5px;
 		}
-
 		.key-help {
 			border: 1px solid #00FFFF;
 			padding: 7px;
 			text-align: center;
 		}
-
+		.setting-row {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 10px;
+			border: 1px solid #00FFFF;
+			padding: 8px;
+		}
+		.setting-text {
+			font-size: 11px;
+			line-height: 1.5;
+		}
+		.setting-button {
+			min-width: 82px;
+			min-height: 34px;
+			font-size: 10px;
+			flex-shrink: 0;
+		}
+		.setting-button.active {
+			background: #00FFFF;
+			color: #000;
+		}
 		.overlay {
 			position: fixed;
 			inset: 0;
@@ -317,11 +349,9 @@
 			padding: 20px;
 			z-index: 100;
 		}
-
 		.overlay.show {
 			display: flex;
 		}
-
 		.overlay-box {
 			width: min(92vw,350px);
 			border: 1px solid #00FFFF;
@@ -329,66 +359,46 @@
 			padding: 18px;
 			text-align: center;
 		}
-
 		.overlay-title {
 			font-size: 22px;
 			margin-bottom: 10px;
 		}
-
 		.overlay-text {
 			font-size: 12px;
 			line-height: 1.7;
 			margin-bottom: 14px;
 			word-break: break-word;
 		}
-
 		.overlay-buttons {
 			display: grid;
 			grid-template-columns: 1fr 1fr;
 			gap: 6px;
 		}
-
 		.overlay-buttons button {
 			min-height: 38px;
 		}
-
-		.loading {
-			border: 1px solid #00FFFF;
-			padding: 12px;
-			font-size: 11px;
-			text-align: center;
-		}
-
-		@media(max-height:700px) {
+		@media(max-height:600px) {
 			.app {
-				padding: 4px;
-				gap: 4px;
-			}
-
-			.tab {
-				min-height: 30px;
-			}
-
-			.info {
 				padding: 3px;
+				gap: 3px;
 			}
-
-			.key {
-				min-height: 34px;
-			}
-
-			.action {
-				min-height: 30px;
-			}
-
-			.info-box {
-				padding: 7px;
-				font-size: 11px;
-			}
-
 			.board {
-				width: min(76vh,320px);
-				width: min(76svh,320px);
+				width: min(44svh,260px);
+			}
+			.key {
+				min-height: 27px;
+			}
+			.action {
+				min-height: 27px;
+			}
+			.difficulty-button {
+				min-height: 27px;
+			}
+			.info {
+				padding: 2px;
+			}
+			.info-value {
+				margin-top: 1px;
 			}
 		}
 	</style>
@@ -400,40 +410,38 @@
 			<button class="tab" data-page="controlsPage">CONTROLS</button>
 			<button class="tab" data-page="infoPage">INFO</button>
 		</div>
-
-		<div class="page active" id="gamePage">
+		<div class="page active game-page" id="gamePage">
 			<div class="hud">
 				<div class="info">
 					SCORE
 					<div class="info-value" id="score">0</div>
 				</div>
-
 				<div class="info">
 					STREAK
 					<div class="info-value" id="streak">0</div>
 				</div>
-
 				<div class="info">
 					PLAYED
 					<div class="info-value" id="played">0</div>
 				</div>
-
 				<div class="info">
 					WINS
 					<div class="info-value" id="wins">0</div>
 				</div>
 			</div>
-
+			<div class="difficulty-controls">
+				<button class="difficulty-button" id="easyDifficulty">EASY</button>
+				<button class="difficulty-button" id="hardDifficulty">HARD</button>
+			</div>
 			<div class="loading" id="loading">
 				LOADING WORDS...
 			</div>
-
-			<div class="board" id="board"></div>
-
+			<div class="board-wrap">
+				<div class="board" id="board"></div>
+			</div>
 			<div class="status" id="status">
 				LOADING WORD LIST
 			</div>
-
 			<div class="keyboard" id="keyboard">
 				<div class="key-row">
 					<button class="key" data-key="Q">Q</button>
@@ -447,7 +455,6 @@
 					<button class="key" data-key="O">O</button>
 					<button class="key" data-key="P">P</button>
 				</div>
-
 				<div class="key-row">
 					<button class="key" data-key="A">A</button>
 					<button class="key" data-key="S">S</button>
@@ -459,7 +466,6 @@
 					<button class="key" data-key="K">K</button>
 					<button class="key" data-key="L">L</button>
 				</div>
-
 				<div class="key-row">
 					<button class="key wide" data-key="ENTER">ENTER</button>
 					<button class="key" data-key="Z">Z</button>
@@ -472,166 +478,193 @@
 					<button class="key wide" data-key="BACKSPACE">⌫</button>
 				</div>
 			</div>
-
 			<div class="actions">
 				<button class="action" id="newGame">NEW GAME</button>
 				<button class="action" id="restart">RESTART</button>
 				<button class="action" id="help">HELP</button>
 			</div>
 		</div>
-
 		<div class="page" id="controlsPage">
 			<div class="info-page">
 				<div class="info-box">
+					<div class="info-title">GAME CONTROLS</div>
+					<div class="setting-row">
+						<div class="setting-text">
+							ON-SCREEN KEYBOARD
+							<br>
+							Show or hide the keyboard HUD during gameplay.
+						</div>
+						<button
+							class="setting-button"
+							id="keyboardToggle"
+						>
+							ON
+						</button>
+					</div>
+				</div>
+				<div class="info-box">
+					<div class="info-title">DIFFICULTY</div>
+					<div class="setting-row">
+						<div class="setting-text">
+							EASY
+							<br>
+							Uses words2.txt
+						</div>
+						<button
+							class="setting-button"
+							id="controlsEasy"
+						>
+							EASY
+						</button>
+					</div>
+					<div class="setting-row">
+						<div class="setting-text">
+							HARD
+							<br>
+							Uses words.txt
+						</div>
+						<button
+							class="setting-button"
+							id="controlsHard"
+						>
+							HARD
+						</button>
+					</div>
+				</div>
+				<div class="info-box">
 					<div class="info-title">KEYBOARD CONTROLS</div>
-
 					<div class="key-grid">
 						<div class="key-help">
 							A-Z
 							<br>
 							TYPE LETTER
 						</div>
-
 						<div class="key-help">
 							ENTER
 							<br>
 							SUBMIT GUESS
 						</div>
-
 						<div class="key-help">
 							BACKSPACE
 							<br>
 							DELETE
 						</div>
-
 						<div class="key-help">
 							R
 							<br>
 							RESTART
 						</div>
-
 						<div class="key-help">
 							N
 							<br>
 							NEW GAME
 						</div>
+						<div class="key-help">
+							1
+							<br>
+							EASY
+						</div>
+						<div class="key-help">
+							2
+							<br>
+							HARD
+						</div>
 					</div>
 				</div>
-
 				<div class="info-box">
 					<div class="info-title">GAME RULES</div>
-
 					Guess the hidden five-letter word in six attempts.
-
 					<br><br>
-
 					GREEN means the letter is correct and in the correct position.
-
 					<br>
-
 					YELLOW means the letter exists in the answer but is in the wrong position.
-
 					<br>
-
 					GRAY means the letter is not in the answer.
-
 					<br><br>
-
 					Every submitted five-letter guess is evaluated.
 				</div>
 			</div>
 		</div>
-
 		<div class="page" id="infoPage">
 			<div class="info-page">
 				<div class="info-box">
-					<div class="info-title">WORD LIST</div>
-
-					WORDS.TXT supplies the possible hidden answers.
-
+					<div class="info-title">WORD FILES</div>
+					EASY uses:
+					<br>
+					words2.txt
 					<br><br>
-
-					Entries are filtered to exactly five letters.
+					HARD uses:
+					<br>
+					words.txt
+					<br><br>
+					Both files must be beside wordle.html.
 				</div>
-
 				<div class="info-box">
-					<div class="info-title">GUESSES</div>
-
-					Any five-letter alphabetic word can be submitted.
-
+					<div class="info-title">DIFFICULTY</div>
+					EASY uses the API-generated common-word list saved as words2.txt.
 					<br><br>
-
-					The guess does not need to exist in words.txt to be evaluated.
+					HARD uses the larger and more unusual words.txt list.
 				</div>
-
 				<div class="info-box">
 					<div class="info-title">SIX ATTEMPTS</div>
-
 					You get exactly six guesses.
-
 					<br><br>
-
 					If all six guesses are used without finding the answer, the hidden word is revealed.
 				</div>
-
 				<div class="info-box">
 					<div class="info-title">REPEATED LETTERS</div>
-
 					Repeated letters are evaluated correctly.
-
 					<br><br>
-
 					A yellow letter is only awarded when there is still an unused matching letter in the hidden word.
 				</div>
 			</div>
 		</div>
 	</div>
-
 	<div class="overlay" id="overlay">
 		<div class="overlay-box">
 			<div class="overlay-title" id="overlayTitle">WORDLE</div>
 			<div class="overlay-text" id="overlayText"></div>
-
 			<div class="overlay-buttons">
 				<button id="overlayNew">NEW GAME</button>
 				<button id="overlayClose">CLOSE</button>
 			</div>
 		</div>
 	</div>
-
-		<script>
+	<script>
 		const ROWS = 6;
 		const WORD_LENGTH = 5;
-
 		const boardElement =
 			document.getElementById("board");
-
 		const loadingElement =
 			document.getElementById("loading");
-
 		const statusElement =
 			document.getElementById("status");
-
 		const scoreElement =
 			document.getElementById("score");
-
 		const streakElement =
 			document.getElementById("streak");
-
 		const playedElement =
 			document.getElementById("played");
-
 		const winsElement =
 			document.getElementById("wins");
-
 		const overlay =
 			document.getElementById("overlay");
-
 		const overlayTitle =
 			document.getElementById("overlayTitle");
-
 		const overlayText =
 			document.getElementById("overlayText");
+		const easyDifficulty =
+			document.getElementById("easyDifficulty");
+		const hardDifficulty =
+			document.getElementById("hardDifficulty");
+		const controlsEasy =
+			document.getElementById("controlsEasy");
+		const controlsHard =
+			document.getElementById("controlsHard");
+		const keyboardElement =
+			document.getElementById("keyboard");
+		const keyboardToggle =
+			document.getElementById("keyboardToggle");
 
 		let easyWords = [];
 		let hardWords = [];
@@ -640,7 +673,10 @@
 			localStorage.getItem(
 				"little_hollow_wordle_difficulty"
 			) || "easy";
-
+		let keyboardVisible =
+			localStorage.getItem(
+				"little_hollow_wordle_keyboard"
+			) !== "off";
 		let answer = "";
 		let guesses = [];
 		let currentGuess = "";
@@ -649,38 +685,37 @@
 		let gameStarted = false;
 		let isRevealing = false;
 		let startTime = 0;
-
 		let score = Number(
 			localStorage.getItem(
 				"little_hollow_wordle_score"
 			) || 0
 		);
-
 		let streak = Number(
 			localStorage.getItem(
 				"little_hollow_wordle_streak"
 			) || 0
 		);
-
 		let played = Number(
 			localStorage.getItem(
 				"little_hollow_wordle_played"
 			) || 0
 		);
-
 		let wins = Number(
 			localStorage.getItem(
 				"little_hollow_wordle_wins"
 			) || 0
 		);
-
 		const keyStates = {};
 
 		function updateHUD() {
-			scoreElement.textContent = score;
-			streakElement.textContent = streak;
-			playedElement.textContent = played;
-			winsElement.textContent = wins;
+			scoreElement.textContent =
+				score;
+			streakElement.textContent =
+				streak;
+			playedElement.textContent =
+				played;
+			winsElement.textContent =
+				wins;
 		}
 
 		function normalizeWord(word) {
@@ -701,7 +736,7 @@
 			if (!response.ok) {
 				throw new Error(
 					file +
-					" HTTP " +
+					" returned HTTP " +
 					response.status
 				);
 			}
@@ -725,9 +760,13 @@
 		}
 
 		async function loadWords() {
+			loadingElement.classList.remove(
+				"hidden"
+			);
+
 			try {
 				loadingElement.textContent =
-					"LOADING EASY WORDS...";
+					"LOADING words2.txt...";
 
 				easyWords =
 					await loadWordFile(
@@ -735,7 +774,7 @@
 					);
 
 				loadingElement.textContent =
-					"LOADING HARD WORDS...";
+					"LOADING words.txt...";
 
 				hardWords =
 					await loadWordFile(
@@ -744,18 +783,19 @@
 
 				if (!easyWords.length) {
 					throw new Error(
-						"words2.txt contains no valid 5-letter words"
+						"words2.txt has no valid 5-letter words"
 					);
 				}
 
 				if (!hardWords.length) {
 					throw new Error(
-						"words.txt contains no valid 5-letter words"
+						"words.txt has no valid 5-letter words"
 					);
 				}
 
-				loadingElement.style.display =
-					"none";
+				loadingElement.classList.add(
+					"hidden"
+				);
 
 				setDifficulty(
 					difficulty,
@@ -764,10 +804,10 @@
 
 			} catch (error) {
 				loadingElement.textContent =
-					"FAILED TO LOAD WORD FILES";
+					"FAILED TO LOAD WORD FILE";
 
 				statusElement.textContent =
-					"NEED words2.txt AND words.txt";
+					error.message;
 
 				console.error(error);
 			}
@@ -784,57 +824,95 @@
 				value = "easy";
 			}
 
-			difficulty = value;
+			if (
+				value === "easy" &&
+				!easyWords.length
+			) {
+				statusElement.textContent =
+					"words2.txt NOT LOADED";
+				return;
+			}
 
-			localStorage.setItem(
-				"little_hollow_wordle_difficulty",
-				difficulty
-			);
+			if (
+				value === "hard" &&
+				!hardWords.length
+			) {
+				statusElement.textContent =
+					"words.txt NOT LOADED";
+				return;
+			}
+
+			difficulty =
+				value;
 
 			activeWords =
 				difficulty === "easy"
 					? easyWords
 					: hardWords;
 
+			localStorage.setItem(
+				"little_hollow_wordle_difficulty",
+				difficulty
+			);
+
 			updateDifficultyUI();
 
-			if (
-				startNewGame &&
-				activeWords.length
-			) {
+			if (startNewGame) {
 				newGame();
-
-				statusElement.textContent =
-					difficulty === "easy"
-						? "EASY MODE"
-						: "HARD MODE";
 			}
 		}
 
 		function updateDifficultyUI() {
-			const easyButton =
-				document.getElementById(
-					"easyDifficulty"
-				);
-
-			const hardButton =
-				document.getElementById(
-					"hardDifficulty"
-				);
-
-			if (!easyButton || !hardButton) {
-				return;
-			}
-
-			easyButton.classList.toggle(
+			easyDifficulty.classList.toggle(
 				"active",
 				difficulty === "easy"
 			);
 
-			hardButton.classList.toggle(
+			hardDifficulty.classList.toggle(
 				"active",
 				difficulty === "hard"
 			);
+
+			controlsEasy.classList.toggle(
+				"active",
+				difficulty === "easy"
+			);
+
+			controlsHard.classList.toggle(
+				"active",
+				difficulty === "hard"
+			);
+		}
+
+		function updateKeyboardVisibility() {
+			keyboardElement.classList.toggle(
+				"hidden",
+				!keyboardVisible
+			);
+
+			keyboardToggle.textContent =
+				keyboardVisible
+					? "ON"
+					: "OFF";
+
+			keyboardToggle.classList.toggle(
+				"active",
+				keyboardVisible
+			);
+		}
+
+		function toggleKeyboard() {
+			keyboardVisible =
+				!keyboardVisible;
+
+			localStorage.setItem(
+				"little_hollow_wordle_keyboard",
+				keyboardVisible
+					? "on"
+					: "off"
+			);
+
+			updateKeyboardVisibility();
 		}
 
 		function chooseAnswer() {
@@ -848,7 +926,8 @@
 		}
 
 		function buildBoard() {
-			boardElement.innerHTML = "";
+			boardElement.innerHTML =
+				"";
 
 			for (
 				let r = 0;
@@ -868,8 +947,11 @@
 					tile.className =
 						"tile";
 
-					tile.dataset.row = r;
-					tile.dataset.col = c;
+					tile.dataset.row =
+						r;
+
+					tile.dataset.col =
+						c;
 
 					boardElement.appendChild(
 						tile
@@ -896,7 +978,10 @@
 				c++
 			) {
 				const tile =
-					getTile(row, c);
+					getTile(
+						row,
+						c
+					);
 
 				tile.textContent =
 					currentGuess[c]
@@ -916,7 +1001,9 @@
 			const result =
 				Array(
 					WORD_LENGTH
-				).fill("absent");
+				).fill(
+					"absent"
+				);
 
 			const remaining = {};
 
@@ -925,22 +1012,19 @@
 				i < WORD_LENGTH;
 				i++
 			) {
-				const answerLetter =
-					answer[i];
-
 				if (
 					guess[i] ===
-					answerLetter
+					answer[i]
 				) {
 					result[i] =
 						"correct";
 				} else {
 					remaining[
-						answerLetter
+						answer[i]
 					] =
 						(
 							remaining[
-								answerLetter
+								answer[i]
 							] || 0
 						) + 1;
 				}
@@ -1037,7 +1121,10 @@
 				c++
 			) {
 				const tile =
-					getTile(row, c);
+					getTile(
+						row,
+						c
+					);
 
 				tile.classList.remove(
 					"shake"
@@ -1076,11 +1163,19 @@
 				currentGuess;
 
 			const result =
-				evaluateGuess(guess);
+				evaluateGuess(
+					guess
+				);
 
-			guesses.push(guess);
+			guesses.push(
+				guess
+			);
 
-			isRevealing = true;
+			isRevealing =
+				true;
+
+			const submittedRow =
+				row;
 
 			for (
 				let c = 0;
@@ -1088,7 +1183,10 @@
 				c++
 			) {
 				const tile =
-					getTile(row, c);
+					getTile(
+						submittedRow,
+						c
+					);
 
 				setTimeout(
 					() => {
@@ -1121,19 +1219,19 @@
 				result
 			);
 
-			const submittedRow =
-				row;
-
 			row++;
 
-			currentGuess = "";
+			currentGuess =
+				"";
 
 			setTimeout(
 				() => {
-					isRevealing = false;
+					isRevealing =
+						false;
 
 					if (
-						guess === answer
+						guess ===
+						answer
 					) {
 						winGame();
 						return;
@@ -1148,12 +1246,19 @@
 					}
 
 					statusElement.textContent =
-						"GUESS " +
+						(
+							difficulty ===
+							"easy"
+								? "EASY"
+								: "HARD"
+						) +
+						" — GUESS " +
 						(row + 1) +
 						"/" +
 						ROWS;
 				},
-				WORD_LENGTH * 90 +
+				WORD_LENGTH *
+				90 +
 				350
 			);
 		}
@@ -1179,7 +1284,8 @@
 				letter.toLowerCase();
 
 			const position =
-				currentGuess.length - 1;
+				currentGuess.length -
+				1;
 
 			const tile =
 				getTile(
@@ -1209,6 +1315,12 @@
 				return;
 			}
 
+			if (
+				!currentGuess.length
+			) {
+				return;
+			}
+
 			currentGuess =
 				currentGuess.slice(
 					0,
@@ -1227,13 +1339,15 @@
 
 			document
 				.querySelectorAll(".key")
-				.forEach(key => {
-					key.classList.remove(
-						"correct",
-						"present",
-						"absent"
-					);
-				});
+				.forEach(
+					key => {
+						key.classList.remove(
+							"correct",
+							"present",
+							"absent"
+						);
+					}
+				);
 		}
 
 		function newGame() {
@@ -1248,23 +1362,33 @@
 			chooseAnswer();
 
 			guesses = [];
-			currentGuess = "";
+			currentGuess =
+				"";
 			row = 0;
-			gameFinished = false;
-			gameStarted = true;
-			isRevealing = false;
-			startTime = Date.now();
+			gameFinished =
+				false;
+			gameStarted =
+				true;
+			isRevealing =
+				false;
+			startTime =
+				Date.now();
 
 			overlay.classList.remove(
 				"show"
 			);
 
 			updateDifficultyUI();
+			updateKeyboardVisibility();
 
 			statusElement.textContent =
-				difficulty === "easy"
-					? "EASY MODE — GUESS 1/6"
-					: "HARD MODE — GUESS 1/6";
+				(
+					difficulty ===
+					"easy"
+						? "EASY"
+						: "HARD"
+				) +
+				" — GUESS 1/6";
 		}
 
 		function restartGame() {
@@ -1293,11 +1417,13 @@
 			const timeBonus =
 				Math.max(
 					0,
-					300 - elapsed
+					300 -
+					elapsed
 				);
 
 			const difficultyBonus =
-				difficulty === "hard"
+				difficulty ===
+				"hard"
 					? 500
 					: 0;
 
@@ -1310,12 +1436,15 @@
 		}
 
 		function winGame() {
-			gameFinished = true;
+			gameFinished =
+				true;
 
 			const gained =
 				calculateScore();
 
-			score += gained;
+			score +=
+				gained;
+
 			streak++;
 			played++;
 			wins++;
@@ -1375,7 +1504,9 @@
 		}
 
 		function loseGame() {
-			gameFinished = true;
+			gameFinished =
+				true;
+
 			streak = 0;
 			played++;
 
@@ -1440,72 +1571,127 @@
 
 		document
 			.querySelectorAll(".tab")
-			.forEach(tab => {
-				tab.addEventListener(
-					"click",
-					() => {
-						document
-							.querySelectorAll(".tab")
-							.forEach(item => {
-								item.classList.remove(
-									"active"
+			.forEach(
+				tab => {
+					tab.addEventListener(
+						"click",
+						() => {
+							document
+								.querySelectorAll(
+									".tab"
+								)
+								.forEach(
+									item => {
+										item.classList.remove(
+											"active"
+										);
+									}
 								);
-							});
 
-						document
-							.querySelectorAll(".page")
-							.forEach(page => {
-								page.classList.remove(
-									"active"
+							document
+								.querySelectorAll(
+									".page"
+								)
+								.forEach(
+									page => {
+										page.classList.remove(
+											"active"
+										);
+									}
 								);
-							});
 
-						tab.classList.add(
-							"active"
-						);
-
-						document
-							.getElementById(
-								tab.dataset.page
-							)
-							.classList.add(
+							tab.classList.add(
 								"active"
 							);
-					}
+
+							document
+								.getElementById(
+									tab.dataset.page
+								)
+								.classList.add(
+									"active"
+								);
+						}
+					);
+				}
+			);
+
+		easyDifficulty.addEventListener(
+			"click",
+			() => {
+				setDifficulty(
+					"easy"
 				);
-			});
+			}
+		);
+
+		hardDifficulty.addEventListener(
+			"click",
+			() => {
+				setDifficulty(
+					"hard"
+				);
+			}
+		);
+
+		controlsEasy.addEventListener(
+			"click",
+			() => {
+				setDifficulty(
+					"easy"
+				);
+			}
+		);
+
+		controlsHard.addEventListener(
+			"click",
+			() => {
+				setDifficulty(
+					"hard"
+				);
+			}
+		);
+
+		keyboardToggle.addEventListener(
+			"click",
+			toggleKeyboard
+		);
 
 		document
-			.querySelectorAll("[data-key]")
-			.forEach(key => {
-				key.addEventListener(
-					"click",
-					() => {
-						const value =
-							key.dataset.key;
+			.querySelectorAll(
+				"[data-key]"
+			)
+			.forEach(
+				key => {
+					key.addEventListener(
+						"click",
+						() => {
+							const value =
+								key.dataset.key;
 
-						if (
-							value ===
-							"ENTER"
-						) {
-							submitGuess();
-							return;
+							if (
+								value ===
+								"ENTER"
+							) {
+								submitGuess();
+								return;
+							}
+
+							if (
+								value ===
+								"BACKSPACE"
+							) {
+								deleteLetter();
+								return;
+							}
+
+							addLetter(
+								value
+							);
 						}
-
-						if (
-							value ===
-							"BACKSPACE"
-						) {
-							deleteLetter();
-							return;
-						}
-
-						addLetter(
-							value
-						);
-					}
-				);
-			});
+					);
+				}
+			);
 
 		document
 			.getElementById("newGame")
@@ -1546,38 +1732,6 @@
 				}
 			);
 
-		const easyDifficulty =
-			document.getElementById(
-				"easyDifficulty"
-			);
-
-		const hardDifficulty =
-			document.getElementById(
-				"hardDifficulty"
-			);
-
-		if (easyDifficulty) {
-			easyDifficulty.addEventListener(
-				"click",
-				() => {
-					setDifficulty(
-						"easy"
-					);
-				}
-			);
-		}
-
-		if (hardDifficulty) {
-			hardDifficulty.addEventListener(
-				"click",
-				() => {
-					setDifficulty(
-						"hard"
-					);
-				}
-			);
-		}
-
 		document.addEventListener(
 			"keydown",
 			event => {
@@ -1586,7 +1740,9 @@
 
 				if (
 					key.length === 1 &&
-					/^[a-zA-Z]$/.test(key)
+					/^[a-zA-Z]$/.test(
+						key
+					)
 				) {
 					event.preventDefault();
 
@@ -1659,11 +1815,14 @@
 					setDifficulty(
 						"hard"
 					);
+
+					return;
 				}
 			}
 		);
 
 		updateHUD();
+		updateKeyboardVisibility();
 		loadWords();
 	</script>
 </body>
