@@ -83,11 +83,31 @@ Long-press/right-click for more actions.
 ========================================================= */
 
 const zones=[
-{key:"local",label:"LOCAL",prefix:"chxd:/local/"},
-{key:"session",label:"SESSION",prefix:"chxd:/session/"},
-{key:"indexdb",label:"INDEXDB",prefix:"chxd:/indexdb/"},
-{key:"puter",label:"PUTER",prefix:"puter:/"},
-{key:"system",label:"SYSTEM",prefix:"chxd:/system/"}
+    {
+        key:"local",
+        label:"LOCAL",
+        prefix:"chxd:/local/"
+    },
+    {
+        key:"session",
+        label:"SESSION",
+        prefix:"chxd:/session/"
+    },
+    {
+        key:"indexdb",
+        label:"INDEXDB",
+        prefix:"chxd:/indexdb/"
+    },
+    {
+        key:"puter",
+        label:"PUTER",
+        prefix:"puter:/"
+    },
+    {
+        key:"system",
+        label:"SYSTEM",
+        prefix:"chxd:/system/"
+    }
 ];
 
 let current="local";
@@ -102,16 +122,34 @@ let renameSaving=false;
 let renameRequest=0;
 let refreshSerial=0;
 
-const params=new URLSearchParams(location.search);
-const selectMode=params.get("select")==="1";
+const params=
+    new URLSearchParams(
+        location.search
+    );
 
-const tabs=document.getElementById("tabs");
-const list=document.getElementById("list");
-const box=document.getElementById("pathBox");
-const hint=document.getElementById("hint");
-const errorBox=document.getElementById("error");
-const currentPathBox=document.getElementById("currentPath");
-const contextMenu=document.getElementById("contextMenu");
+const selectMode=
+    params.get("select")==="1";
+
+const tabs=
+    document.getElementById("tabs");
+
+const list=
+    document.getElementById("list");
+
+const box=
+    document.getElementById("pathBox");
+
+const hint=
+    document.getElementById("hint");
+
+const errorBox=
+    document.getElementById("error");
+
+const currentPathBox=
+    document.getElementById("currentPath");
+
+const contextMenu=
+    document.getElementById("contextMenu");
 
 
 /* =========================================================
@@ -120,17 +158,26 @@ const contextMenu=document.getElementById("contextMenu");
 
 function showError(s){
 
-    errorBox.textContent=String(
-        s||"Unknown error"
+    errorBox.textContent=
+        String(
+            s||"Unknown error"
+        );
+
+    errorBox.style.display=
+        "block";
+
+    clearTimeout(
+        showError.timer
     );
 
-    errorBox.style.display="block";
-
-    clearTimeout(showError.timer);
-
-    showError.timer=setTimeout(()=>{
-        errorBox.style.display="none";
-    },4500);
+    showError.timer=
+        setTimeout(
+            ()=>{
+                errorBox.style.display=
+                    "none";
+            },
+            4500
+        );
 
 }
 
@@ -153,22 +200,37 @@ if(selectMode){
 
 zones.forEach(z=>{
 
-    const b=document.createElement("button");
+    const b=
+        document.createElement(
+            "button"
+        );
 
-    b.textContent=z.label;
-    b.dataset.k=z.key;
+    b.textContent=
+        z.label;
+
+    b.dataset.k=
+        z.key;
 
     if(z.key===current){
-        b.classList.add("active");
+
+        b.classList.add(
+            "active"
+        );
+
     }
+
 
     b.onclick=()=>{
 
         cancelRename();
 
-        current=z.key;
+        current=
+            z.key;
+
         currentPrefix="";
+
         selected.clear();
+
 
         [
             ...tabs.children
@@ -181,9 +243,11 @@ zones.forEach(z=>{
 
         });
 
+
         refresh();
 
     };
+
 
     tabs.appendChild(b);
 
@@ -226,7 +290,8 @@ function ext(p){
 
 function isImagePath(path){
 
-    const e=ext(path);
+    const e=
+        ext(path);
 
     return[
         "png",
@@ -265,7 +330,10 @@ function selectedPaths(){
 
 function normalizeFolderPath(p){
 
-    p=String(p||"");
+    p=
+        String(
+            p||""
+        );
 
     return p.endsWith("/")
         ?p
@@ -276,7 +344,9 @@ function normalizeFolderPath(p){
 
 function isFolderPath(p){
 
-    return String(p||"").endsWith("/");
+    return String(
+        p||""
+    ).endsWith("/");
 
 }
 
@@ -288,8 +358,12 @@ function isFolderPath(p){
 function displayName(p){
 
     const clean=
-        String(p||"")
-        .replace(/\/+$/,"");
+        String(
+            p||""
+        ).replace(
+            /\/+$/,
+            ""
+        );
 
     const i=
         clean.lastIndexOf("/");
@@ -308,15 +382,22 @@ function displayName(p){
 function parentFolder(p){
 
     const clean=
-        String(p||"")
-        .replace(/\/+$/,"");
+        String(
+            p||""
+        ).replace(
+            /\/+$/,
+            ""
+        );
 
     const i=
         clean.lastIndexOf("/");
 
     return i<0
         ?""
-        :clean.slice(0,i+1);
+        :clean.slice(
+            0,
+            i+1
+        );
 
 }
 
@@ -327,10 +408,11 @@ function parentFolder(p){
 
 function updatePathDisplay(){
 
-    const z=zone();
+    const z=
+        zone();
 
     currentPathBox.textContent=
-        z.prefix +
+        z.prefix+
         currentPrefix.replace(
             z.prefix,
             ""
@@ -340,18 +422,24 @@ function updatePathDisplay(){
 
 
 /* =========================================================
-   CONTEXT MENU
+   CLOSE CONTEXT
 ========================================================= */
 
 function closeContextMenu(){
 
-    contextMenu.style.display="none";
+    contextMenu.style.display=
+        "none";
 
     contextPath=null;
+
     contextIsFolder=false;
 
 }
 
+
+/* =========================================================
+   CONTEXT BUTTON
+========================================================= */
 
 function addContextButton(
     label,
@@ -359,13 +447,21 @@ function addContextButton(
     className=""
 ){
 
-    const b=document.createElement("button");
+    const b=
+        document.createElement(
+            "button"
+        );
 
-    b.textContent=label;
+    b.textContent=
+        label;
 
     if(className){
-        b.className=className;
+
+        b.className=
+            className;
+
     }
+
 
     b.onclick=()=>{
 
@@ -375,13 +471,15 @@ function addContextButton(
 
     };
 
+
     contextMenu.appendChild(b);
 
 }
 
 
 /* =========================================================
-   IMAGE EDITOR OPEN BRIDGE
+   IMAGE EDITOR
+   USES THE ACTUAL Apps.openApp() FROM app.js
 ========================================================= */
 
 async function openImageEditor(path){
@@ -389,13 +487,14 @@ async function openImageEditor(path){
     try{
 
         /*
-         * Only image files should reach this function.
+         * Only images should be sent to the Image Editor.
          */
 
         if(!isImagePath(path)){
 
             showError(
-                "Not an image file: "+path
+                "Not an image file: "+
+                path
             );
 
             return;
@@ -404,14 +503,23 @@ async function openImageEditor(path){
 
 
         /*
-         * Read through Little Hollow FS.
+         * Read the original image from the Little Hollow
+         * filesystem before opening the editor.
+         *
+         * This is the same data the File Manager can
+         * download correctly.
          */
 
         const r=
-            await parent.FS.read(path);
+            await parent.FS.read(
+                path
+            );
 
 
-        if(!r || !r.ok){
+        if(
+            !r ||
+            !r.ok
+        ){
 
             throw new Error(
                 r &&
@@ -423,23 +531,80 @@ async function openImageEditor(path){
         }
 
 
-        /*
-         * Image data exactly as stored by
-         * the Little Hollow filesystem.
-         *
-         * Usually:
-         *
-         * data:image/png;base64,...
-         */
+        const imageData=
+            r.content;
 
-        const imageData=r.content;
 
         const imageName=
             displayName(path);
 
 
         /*
-         * Build payload for the editor.
+         * IMPORTANT:
+         *
+         * Your app.js registry contains:
+         *
+         * imageeditor:
+         * {
+         *   title:"imageeditor",
+         *   src:"app/imageEditor.html"
+         * }
+         *
+         * and Apps.openApp() is the correct launcher.
+         *
+         * We pass the path immediately. The editor itself
+         * can use the path as a fallback on startup.
+         */
+
+        if(
+            !parent.Apps ||
+            typeof parent.Apps.openApp!=="function"
+        ){
+
+            throw new Error(
+                "Apps.openApp() is unavailable."
+            );
+
+        }
+
+
+        const result=
+            parent.Apps.openApp(
+                "imageeditor",
+                {
+                    path:path,
+                    title:"IMAGE EDITOR",
+                    width:700,
+                    height:560,
+                    allowMultiple:false
+                }
+            );
+
+
+        if(
+            !result ||
+            !result.ok ||
+            !result.win
+        ){
+
+            throw new Error(
+                result &&
+                (
+                    result.error ||
+                    result.summary
+                ) ||
+                "Could not open Image Editor."
+            );
+
+        }
+
+
+        const win=
+            result.win;
+
+
+        /*
+         * Payload for the Image Editor API.
          */
 
         const payload={
@@ -452,106 +617,79 @@ async function openImageEditor(path){
 
 
         /*
-         * --------------------------------------------------
-         * METHOD 1
-         * Native app helper, if Little Hollow provides it.
-         * --------------------------------------------------
+         * Find the editor iframe.
+         *
+         * WM.openWindow() already returns the window object,
+         * but the iframe may not have been inserted yet.
          */
 
-        if(
-            parent.Apps &&
-            typeof parent.Apps.openImageEditor==="function"
-        ){
+        function getIframe(){
 
-            const result=
-                await parent.Apps.openImageEditor({
-                    path:path,
-                    image:imageData,
-                    name:imageName
-                });
+            if(
+                !win ||
+                !win.el
+            ){
 
+                return null;
 
-            /*
-             * If helper directly handled the image,
-             * we're finished.
-             */
-
-            if(result!==false){
-                return;
             }
+
+
+            return win.el.querySelector(
+                "iframe"
+            );
 
         }
 
 
         /*
-         * --------------------------------------------------
-         * METHOD 2
-         * Generic application/window opener.
+         * Send once the iframe exists and again after
+         * its load event.
          *
-         * This handles the case where the editor is opened
-         * as an iframe and returns its window/iframe.
-         * --------------------------------------------------
+         * This is intentional because the editor's own
+         * message listener must exist before postMessage
+         * can be useful.
          */
 
-        if(
-            parent.Apps &&
-            typeof parent.Apps.open==="function"
-        ){
-
-            let editorResult=null;
-
-            try{
-
-                editorResult=
-                    await parent.Apps.open(
-                        "Image Editor"
-                    );
-
-            }
-            catch(_){
-
-                editorResult=null;
-
-            }
+        let sent=false;
 
 
-            /*
-             * If the app helper returned an iframe,
-             * iframe element, window, or contentWindow,
-             * send the API message.
-             */
+        function sendToEditor(){
 
-            const target=
-                editorResult &&
-                editorResult.contentWindow
-
-                    ?editorResult.contentWindow
-
-                    :editorResult &&
-                     editorResult.window
-
-                    ?editorResult.window
-
-                    :editorResult &&
-                     editorResult.iframe &&
-                     editorResult.iframe.contentWindow
-
-                    ?editorResult.iframe.contentWindow
-
-                    :editorResult;
+            const iframe=
+                getIframe();
 
 
             if(
-                target &&
-                typeof target.postMessage==="function"
+                !iframe ||
+                !iframe.contentWindow
             ){
 
-                target.postMessage(
+                return false;
+
+            }
+
+
+            try{
+
+                iframe.contentWindow.postMessage(
                     payload,
                     "*"
                 );
 
-                return;
+                sent=true;
+
+                return true;
+
+            }
+            catch(err){
+
+                console.warn(
+                    "Image Editor postMessage failed:",
+                    err
+                );
+
+                return false;
 
             }
 
@@ -559,171 +697,131 @@ async function openImageEditor(path){
 
 
         /*
-         * --------------------------------------------------
-         * METHOD 3
-         * Generic Tools bridge.
-         *
-         * The exact tool name can be handled by the
-         * Little Hollow application launcher.
-         * --------------------------------------------------
+         * If the iframe already exists, attach to load.
          */
 
-        if(
-            parent.Tools &&
-            typeof parent.Tools.execute==="function"
-        ){
+        const existing=
+            getIframe();
 
-            let toolResult=null;
 
-            try{
+        if(existing){
 
-                toolResult=
-                    await parent.Tools.execute(
-                        "open_image_editor",
-                        {
-                            path:path,
-                            name:imageName,
-                            image:imageData
+            existing.addEventListener(
+                "load",
+                ()=>{
+                    sendToEditor();
+                },
+                {
+                    once:true
+                }
+            );
+
+
+            /*
+             * Try immediately too.
+             */
+
+            sendToEditor();
+
+        }
+
+
+        /*
+         * Poll briefly because WM may not have created
+         * the iframe when openApp() returns.
+         */
+
+        let tries=0;
+
+        const timer=
+            setInterval(
+                ()=>{
+
+                    tries++;
+
+                    const iframe=
+                        getIframe();
+
+
+                    if(iframe){
+
+                        if(!iframe.dataset.lhEditorHooked){
+
+                            iframe.dataset.lhEditorHooked=
+                                "1";
+
+
+                            iframe.addEventListener(
+                                "load",
+                                ()=>{
+                                    sendToEditor();
+                                }
+                            );
+
                         }
-                    );
-
-            }
-            catch(_){
-
-                toolResult=null;
-
-            }
 
 
-            /*
-             * Some app launchers return the iframe/window.
-             */
+                        sendToEditor();
 
-            const target=
-                toolResult &&
-                toolResult.contentWindow
-
-                    ?toolResult.contentWindow
-
-                    :toolResult &&
-                     toolResult.window
-
-                    ?toolResult.window
-
-                    :toolResult &&
-                     toolResult.iframe &&
-                     toolResult.iframe.contentWindow
-
-                    ?toolResult.iframe.contentWindow
-
-                    :null;
+                    }
 
 
-            if(
-                target &&
-                typeof target.postMessage==="function"
-            ){
+                    /*
+                     * Stop polling after a reasonable window.
+                     * The editor was already opened with path=,
+                     * so it can still load the image itself.
+                     */
 
-                target.postMessage(
-                    payload,
-                    "*"
-                );
+                    if(
+                        sent ||
+                        tries>=30
+                    ){
 
-                return;
+                        clearInterval(
+                            timer
+                        );
 
-            }
+                    }
 
-
-            /*
-             * Tool handled it internally.
-             */
-
-            if(
-                toolResult &&
-                toolResult.ok
-            ){
-
-                return;
-
-            }
-
-        }
+                },
+                100
+            );
 
 
         /*
-         * --------------------------------------------------
-         * METHOD 4
-         * Existing generic "open_file" launcher.
-         *
-         * The path is passed to it with an explicit editor
-         * hint so it can launch the Image Editor instead of
-         * the default viewer.
-         * --------------------------------------------------
+         * If the editor closes, stop the timer.
          */
 
-        if(
-            parent.Tools &&
-            typeof parent.Tools.execute==="function"
-        ){
+        const oldOnClose=
+            win.onClose;
 
-            let opened=
-                await parent.Tools.execute(
-                    "open_file",
-                    {
-                        path:path,
-                        app:"Image Editor",
-                        editor:"Image Editor"
-                    }
+
+        win.onClose=
+            function(){
+
+                clearInterval(
+                    timer
                 );
 
 
-            if(
-                opened &&
-                opened.ok===false
-            ){
+                if(
+                    typeof oldOnClose==="function"
+                ){
 
-                throw new Error(
-                    opened.summary ||
-                    opened.error ||
-                    "Could not open Image Editor."
-                );
+                    oldOnClose();
 
-            }
+                }
+
+            };
 
 
-            /*
-             * If open_file itself opens the editor,
-             * give the editor another API message through
-             * the application event path.
-             */
-
-            if(
-                opened &&
-                opened.contentWindow &&
-                typeof opened.contentWindow.postMessage==="function"
-            ){
-
-                opened.contentWindow.postMessage(
-                    payload,
-                    "*"
-                );
-
-            }
-
-            return;
-
-        }
-
-
-        throw new Error(
-            "Image Editor application bridge is unavailable."
-        );
+        return;
 
     }
     catch(err){
 
         showError(
-            "EDIT failed: " +
+            "EDIT IMAGE failed: "+
             (
                 err &&
                 err.message
@@ -750,8 +848,11 @@ function showContextMenu(
 
     cancelRename();
 
-    contextPath=path;
-    contextIsFolder=isFolder;
+    contextPath=
+        path;
+
+    contextIsFolder=
+        isFolder;
 
     contextMenu.innerHTML="";
 
@@ -794,9 +895,9 @@ function showContextMenu(
 
 
         /*
-         * --------------------------------------------------
-         * IMAGE EDIT
-         * --------------------------------------------------
+         * IMAGE EDITOR
+         *
+         * This is the image-specific action.
          */
 
         if(isImagePath(path)){
@@ -822,7 +923,16 @@ function showContextMenu(
         );
 
 
-        if(ext(path)!=="zip"){
+        /*
+         * Existing EDIT behavior.
+         *
+         * For images, edit() itself also redirects to
+         * Image Editor, so this remains compatible.
+         */
+
+        if(
+            ext(path)!=="zip"
+        ){
 
             addContextButton(
                 "EDIT",
@@ -844,21 +954,29 @@ function showContextMenu(
                 "php",
                 "html",
                 "css"
-            ].includes(ext(path))
+            ].includes(
+                ext(path)
+            )
         ){
 
             addContextButton(
                 "CODE",
                 ()=>{
-                    selected=new Set([path]);
+
+                    selected=
+                        new Set([path]);
+
                     code();
+
                 }
             );
 
         }
 
 
-        if(ext(path)==="zip"){
+        if(
+            ext(path)==="zip"
+        ){
 
             addContextButton(
                 "UNZIP",
@@ -869,27 +987,36 @@ function showContextMenu(
         }
 
 
-        if(zone().key!=="system"){
+        if(
+            zone().key!=="system"
+        ){
 
             addContextButton(
                 "SELECT",
                 ()=>{
+
                     selected.add(path);
+
                     refresh();
+
                 }
             );
 
         }
 
 
-        if(zone().key!=="system"){
+        if(
+            zone().key!=="system"
+        ){
 
             addContextButton(
                 "DELETE",
                 async()=>{
 
                     const r=
-                        await parent.FS.remove(path);
+                        await parent.FS.remove(
+                            path
+                        );
 
 
                     if(!r.ok){
@@ -904,7 +1031,10 @@ function showContextMenu(
                     }
 
 
-                    selected.delete(path);
+                    selected.delete(
+                        path
+                    );
+
 
                     refresh();
 
@@ -927,7 +1057,8 @@ function showContextMenu(
     }
 
 
-    contextMenu.style.display="block";
+    contextMenu.style.display=
+        "block";
 
 
     const rect=
@@ -965,10 +1096,17 @@ function showContextMenu(
 
 
     contextMenu.style.left=
-        Math.max(2,left)+"px";
+        Math.max(
+            2,
+            left
+        )+"px";
+
 
     contextMenu.style.top=
-        Math.max(2,top)+"px";
+        Math.max(
+            2,
+            top
+        )+"px";
 
 }
 
@@ -981,9 +1119,12 @@ function startRenameByPath(path){
 
     closeContextMenu();
 
+
     const target=
         [
-            ...document.querySelectorAll(".name")
+            ...document.querySelectorAll(
+                ".name"
+            )
         ]
         .find(
             n =>
@@ -1012,23 +1153,37 @@ function startRename(
 
     cancelRename();
 
+
     const oldName=
-        displayName(oldPath);
+        displayName(
+            oldPath
+        );
 
 
     const input=
-        document.createElement("input");
+        document.createElement(
+            "input"
+        );
 
 
     input.className=
         "rename-input";
 
 
-    input.value=oldName;
+    input.value=
+        oldName;
 
-    input.autocomplete="off";
-    input.spellcheck=false;
-    input.dataset.path=oldPath;
+
+    input.autocomplete=
+        "off";
+
+
+    input.spellcheck=
+        false;
+
+
+    input.dataset.path=
+        oldPath;
 
 
     const oldContent=
@@ -1046,7 +1201,11 @@ function startRename(
 
 
     element.innerHTML="";
-    element.appendChild(input);
+
+    element.appendChild(
+        input
+    );
+
 
     input.focus();
 
@@ -1138,21 +1297,34 @@ function buildNewPath(
 ){
 
     let cleanName=
-        String(newName||"")
+        String(
+            newName||""
+        )
         .trim()
-        .replace(/[\/\\]/g,"")
+        .replace(
+            /[\/\\]/g,
+            ""
+        )
         .trim();
 
 
     if(!cleanName){
+
         return null;
+
     }
 
 
     return(
-        parentFolder(oldPath)+
+        parentFolder(
+            oldPath
+        )+
         cleanName+
-        (folder?"/":"")
+        (
+            folder
+                ?"/"
+                :""
+        )
     );
 
 }
@@ -1195,6 +1367,7 @@ async function renameUsingFS(
 
         }
 
+
         return;
 
     }
@@ -1220,7 +1393,9 @@ async function renameUsingFS(
         const descendants=
             files.filter(
                 p =>
-                    String(p).startsWith(oldPath) &&
+                    String(p).startsWith(
+                        oldPath
+                    ) &&
                     String(p)!==oldPath
             );
 
@@ -1252,7 +1427,10 @@ async function renameUsingFS(
 
                 throw new Error(
                     r.error ||
-                    ("Could not read "+source)
+                    (
+                        "Could not read "+
+                        source
+                    )
                 );
 
             }
@@ -1260,7 +1438,9 @@ async function renameUsingFS(
 
             const relative=
                 String(source)
-                .slice(oldPath.length);
+                .slice(
+                    oldPath.length
+                );
 
 
             entries.push({
@@ -1292,8 +1472,10 @@ async function renameUsingFS(
 
                 throw new Error(
                     w.error ||
-                    ("Could not create "+
-                     e.destination)
+                    (
+                        "Could not create "+
+                        e.destination
+                    )
                 );
 
             }
@@ -1343,7 +1525,10 @@ async function renameUsingFS(
 
         throw new Error(
             r.error ||
-            ("Could not read "+oldPath)
+            (
+                "Could not read "+
+                oldPath
+            )
         );
 
     }
@@ -1361,7 +1546,10 @@ async function renameUsingFS(
 
         throw new Error(
             w.error ||
-            ("Could not create "+newPath)
+            (
+                "Could not create "+
+                newPath
+            )
         );
 
     }
@@ -1377,7 +1565,10 @@ async function renameUsingFS(
 
         throw new Error(
             d.error ||
-            ("Could not remove "+oldPath)
+            (
+                "Could not remove "+
+                oldPath
+            )
         );
 
     }
@@ -1475,7 +1666,8 @@ async function finishRename(){
         ++renameRequest;
 
 
-    renameSaving=true;
+    renameSaving=
+        true;
 
 
     try{
@@ -1505,8 +1697,12 @@ async function finishRename(){
         );
 
 
-        activeRename=null;
-        renameSaving=false;
+        activeRename=
+            null;
+
+        renameSaving=
+            false;
+
 
         await refresh();
 
@@ -1522,7 +1718,8 @@ async function finishRename(){
         }
 
 
-        renameSaving=false;
+        renameSaving=
+            false;
 
 
         showError(
@@ -1547,7 +1744,9 @@ async function finishRename(){
 function restoreRename(){
 
     if(!activeRename){
+
         return;
+
     }
 
 
@@ -1559,8 +1758,11 @@ function restoreRename(){
         currentRename.oldContent;
 
 
-    activeRename=null;
-    renameSaving=false;
+    activeRename=
+        null;
+
+    renameSaving=
+        false;
 
 }
 
@@ -1590,7 +1792,9 @@ document.addEventListener(
 
             if(
                 e.target!==input &&
-                !input.contains(e.target)
+                !input.contains(
+                    e.target
+                )
             ){
 
                 finishRename();
@@ -1601,9 +1805,15 @@ document.addEventListener(
 
 
         if(
-            !contextMenu.contains(e.target) &&
-            !e.target.closest(".name") &&
-            !e.target.closest(".rename-input")
+            !contextMenu.contains(
+                e.target
+            ) &&
+            !e.target.closest(
+                ".name"
+            ) &&
+            !e.target.closest(
+                ".rename-input"
+            )
         ){
 
             closeContextMenu();
@@ -1652,12 +1862,8 @@ async function openPath(p){
     }
 
 
-    /*
-     * Image opens normally through the file opener.
-     * EDIT IMAGE explicitly launches Image Editor.
-     */
-
-    const e=ext(p);
+    const e=
+        ext(p);
 
 
     if(e==="zip"){
@@ -1715,7 +1921,9 @@ function enterFolder(path){
     cancelRename();
 
     currentPrefix=
-        normalizeFolderPath(path);
+        normalizeFolderPath(
+            path
+        );
 
     closeContextMenu();
 
@@ -1732,7 +1940,8 @@ function goUp(){
 
     cancelRename();
 
-    const z=zone();
+    const z=
+        zone();
 
 
     if(!currentPrefix){
@@ -1779,7 +1988,10 @@ function goUp(){
     else{
 
         currentPrefix=
-            p.slice(0,i+1);
+            p.slice(
+                0,
+                i+1
+            );
 
     }
 
@@ -1790,19 +2002,20 @@ function goUp(){
 
 
 /* =========================================================
-   EDIT NON-IMAGE FILE
+   EDIT
 ========================================================= */
 
 async function edit(p){
 
     /*
-     * Images use Image Editor.
-     * Text/code files keep using their existing editor.
+     * Images always use the dedicated Image Editor.
      */
 
     if(isImagePath(p)){
 
-        await openImageEditor(p);
+        await openImageEditor(
+            p
+        );
 
         return;
 
@@ -1928,16 +2141,23 @@ function downloadData(
 ){
 
     const a=
-        document.createElement("a");
+        document.createElement(
+            "a"
+        );
 
 
     a.href=data;
+
     a.download=name;
 
 
-    document.body.appendChild(a);
+    document.body.appendChild(
+        a
+    );
+
 
     a.click();
+
 
     a.remove();
 
@@ -1947,19 +2167,27 @@ function downloadData(
 async function downloadBinary(p){
 
     const r=
-        await parent.FS.read(p);
+        await parent.FS.read(
+            p
+        );
 
 
     if(!r.ok){
 
-        showError(r.error);
+        showError(
+            r.error
+        );
 
         return false;
 
     }
 
 
-    if(!/^data:/i.test(r.content)){
+    if(
+        !/^data:/i.test(
+            r.content
+        )
+    ){
 
         showError(
             "This file does not contain downloadable binary data."
@@ -1988,7 +2216,9 @@ async function downloadBinary(p){
 function dataURLToBytes(data){
 
     const comma=
-        String(data).indexOf(",");
+        String(data).indexOf(
+            ","
+        );
 
 
     if(comma<0){
@@ -2014,7 +2244,9 @@ function dataURLToBytes(data){
 
 
     if(
-        /;base64/i.test(header)
+        /;base64/i.test(
+            header
+        )
     ){
 
         const binary=
@@ -2046,7 +2278,9 @@ function dataURLToBytes(data){
 
     return new TextEncoder()
         .encode(
-            decodeURIComponent(body)
+            decodeURIComponent(
+                body
+            )
         );
 
 }
@@ -2094,7 +2328,8 @@ function findEOCD(bytes){
 
 
     for(
-        let p=bytes.length-22;
+        let p=
+            bytes.length-22;
         p>=min;
         p--
     ){
@@ -2122,15 +2357,22 @@ function safeZipPath(name){
 
     name=
         String(name||"")
-        .replace(/\\/g,"/")
-        .replace(/^\/+/,"");
+        .replace(
+            /\\/g,
+            "/"
+        )
+        .replace(
+            /^\/+/,
+            ""
+        );
 
 
     const result=[];
 
 
     for(
-        const part of name.split("/")
+        const part
+        of name.split("/")
     ){
 
         if(
@@ -2144,12 +2386,16 @@ function safeZipPath(name){
         }
 
 
-        result.push(part);
+        result.push(
+            part
+        );
 
     }
 
 
-    return result.join("/");
+    return result.join(
+        "/"
+    );
 
 }
 
@@ -2158,7 +2404,9 @@ function safeZipPath(name){
    UNZIP
 ========================================================= */
 
-async function unzipFile(zipPath){
+async function unzipFile(
+    zipPath
+){
 
     const defaultFolder=
         zipPath.replace(
@@ -2182,7 +2430,9 @@ async function unzipFile(zipPath){
 
 
     let outputFolder=
-        String(output).trim();
+        String(
+            output
+        ).trim();
 
 
     if(
@@ -2236,7 +2486,9 @@ async function unzipFile(zipPath){
 
 
         const eocd=
-            findEOCD(bytes);
+            findEOCD(
+                bytes
+            );
 
 
         if(eocd<0){
@@ -2341,7 +2593,9 @@ async function unzipFile(zipPath){
 
             const filename=
                 new TextDecoder()
-                .decode(nameBytes);
+                .decode(
+                    nameBytes
+                );
 
 
             const safeName=
@@ -2603,7 +2857,8 @@ function crc32(bytes){
 
 
     for(
-        const b of bytes
+        const b
+        of bytes
     ){
 
         c^=b;
@@ -2651,7 +2906,10 @@ function makeZip(entries){
         const name=
             utf8(
                 entry.name
-                .replace(/^\/+/,"")
+                .replace(
+                    /^\/+/,
+                    ""
+                )
             );
 
 
@@ -2660,7 +2918,9 @@ function makeZip(entries){
 
 
         const crc=
-            crc32(data);
+            crc32(
+                data
+            );
 
 
         const header=
@@ -2689,7 +2949,9 @@ function makeZip(entries){
             ]);
 
 
-        local.push(header);
+        local.push(
+            header
+        );
 
 
         central.push(
@@ -2725,7 +2987,8 @@ function makeZip(entries){
         );
 
 
-        offset+=header.length;
+        offset+=
+            header.length;
 
     }
 
@@ -2792,18 +3055,22 @@ function blobDataURL(blob){
 
 
             reader.onload=
-                () => resolve(
-                    reader.result
-                );
+                ()=>
+                    resolve(
+                        reader.result
+                    );
 
 
             reader.onerror=
-                () => reject(
-                    reader.error
-                );
+                ()=>
+                    reject(
+                        reader.error
+                    );
 
 
-            reader.readAsDataURL(blob);
+            reader.readAsDataURL(
+                blob
+            );
 
         }
     );
@@ -2829,10 +3096,14 @@ async function collectFiles(paths){
             String(path);
 
 
-        if(isFolderPath(p)){
+        if(
+            isFolderPath(p)
+        ){
 
             const base=
-                normalizeFolderPath(p);
+                normalizeFolderPath(
+                    p
+                );
 
 
             const files=
@@ -2986,7 +3257,9 @@ async function downloadItem(path){
 
     try{
 
-        if(isFolderPath(path)){
+        if(
+            isFolderPath(path)
+        ){
 
             const entries=
                 await collectFiles(
@@ -3022,7 +3295,9 @@ async function downloadItem(path){
             ext(path)==="zip"
         ){
 
-            await downloadBinary(path);
+            await downloadBinary(
+                path
+            );
 
             return;
 
@@ -3058,6 +3333,7 @@ async function downloadItem(path){
                 displayName(path)
             );
 
+
             return;
 
         }
@@ -3065,7 +3341,11 @@ async function downloadItem(path){
 
         const blob=
             new Blob(
-                [String(r.content)],
+                [
+                    String(
+                        r.content
+                    )
+                ],
                 {
                     type:
                         "application/octet-stream"
@@ -3074,7 +3354,9 @@ async function downloadItem(path){
 
 
         downloadData(
-            await blobDataURL(blob),
+            await blobDataURL(
+                blob
+            ),
             displayName(path)
         );
 
@@ -3219,6 +3501,7 @@ async function refresh(){
 
     cancelRename();
 
+
     const serial=
         ++refreshSerial;
 
@@ -3356,7 +3639,9 @@ async function refresh(){
             }
             else{
 
-                visible.push(p);
+                visible.push(
+                    p
+                );
 
             }
 
@@ -3422,7 +3707,10 @@ async function refresh(){
                 );
 
 
-            cb.type="checkbox";
+            cb.type=
+                "checkbox";
+
+
             cb.checked=
                 selected.has(p);
 
@@ -3431,12 +3719,16 @@ async function refresh(){
 
                 if(cb.checked){
 
-                    selected.add(p);
+                    selected.add(
+                        p
+                    );
 
                 }
                 else{
 
-                    selected.delete(p);
+                    selected.delete(
+                        p
+                    );
 
                 }
 
@@ -3449,9 +3741,13 @@ async function refresh(){
                 );
 
 
-            name.className="name";
+            name.className=
+                "name";
 
-            name.dataset.path=p;
+
+            name.dataset.path=
+                p;
+
 
             name.textContent=
                 (
@@ -3464,7 +3760,8 @@ async function refresh(){
                 displayName(p);
 
 
-            name.title=p;
+            name.title=
+                p;
 
 
             name.onclick=()=>{
@@ -3481,6 +3778,13 @@ async function refresh(){
             };
 
 
+            /*
+             * Double-click:
+             *
+             * image -> Image Editor
+             * other file -> rename
+             */
+
             name.ondblclick=e=>{
 
                 e.preventDefault();
@@ -3488,18 +3792,15 @@ async function refresh(){
                 e.stopPropagation();
 
 
-                /*
-                 * Double-clicking an image opens
-                 * Image Editor directly.
-                 * Other files keep rename behavior.
-                 */
-
                 if(
                     image &&
                     !folder
                 ){
 
-                    openImageEditor(p);
+                    openImageEditor(
+                        p
+                    );
+
 
                     return;
 
@@ -3515,9 +3816,14 @@ async function refresh(){
             };
 
 
+            /*
+             * Right click
+             */
+
             name.oncontextmenu=e=>{
 
                 e.preventDefault();
+
 
                 showContextMenu(
                     e.clientX,
@@ -3528,6 +3834,10 @@ async function refresh(){
 
             };
 
+
+            /*
+             * Long press for touch
+             */
 
             let pressTimer=null;
 
@@ -3589,6 +3899,10 @@ async function refresh(){
             );
 
 
+            /* =================================================
+               FOLDER
+            ================================================= */
+
             if(folder){
 
                 const openBtn=
@@ -3597,7 +3911,9 @@ async function refresh(){
                     );
 
 
-                openBtn.textContent="OPEN";
+                openBtn.textContent=
+                    "OPEN";
+
 
                 openBtn.onclick=
                     ()=>{
@@ -3616,7 +3932,9 @@ async function refresh(){
                     );
 
 
-                dlBtn.textContent="DL";
+                dlBtn.textContent=
+                    "DL";
+
 
                 dlBtn.onclick=
                     ()=>{
@@ -3629,6 +3947,12 @@ async function refresh(){
                 );
 
             }
+
+
+            /* =================================================
+               FILE
+            ================================================= */
+
             else{
 
                 const e=
@@ -3636,7 +3960,7 @@ async function refresh(){
 
 
                 /*
-                 * IMAGE EDIT BUTTON
+                 * IMAGE EDIT
                  */
 
                 if(image){
@@ -3657,7 +3981,9 @@ async function refresh(){
 
                     editImageBtn.onclick=
                         ()=>{
-                            openImageEditor(p);
+                            openImageEditor(
+                                p
+                            );
                         };
 
 
@@ -3678,7 +4004,8 @@ async function refresh(){
                     );
 
 
-                dlBtn.textContent="DL";
+                dlBtn.textContent=
+                    "DL";
 
 
                 dlBtn.onclick=
@@ -3693,11 +4020,7 @@ async function refresh(){
 
 
                 /*
-                 * Existing EDIT
-                 *
-                 * Do not add a second EDIT button
-                 * for images because images already
-                 * have the Image Editor button.
+                 * Existing EDIT for non-image files.
                  */
 
                 if(
@@ -3729,7 +4052,13 @@ async function refresh(){
                 }
 
 
-                if(e==="zip"){
+                /*
+                 * ZIP
+                 */
+
+                if(
+                    e==="zip"
+                ){
 
                     const unzipBtn=
                         document.createElement(
@@ -3753,6 +4082,10 @@ async function refresh(){
 
                 }
 
+
+                /*
+                 * CODE
+                 */
 
                 if(
                     z.key!=="system" &&
@@ -3786,6 +4119,7 @@ async function refresh(){
                             selected=
                                 new Set([p]);
 
+
                             code();
 
                         };
@@ -3798,6 +4132,10 @@ async function refresh(){
                 }
 
 
+                /*
+                 * DELETE
+                 */
+
                 if(
                     z.key!=="system"
                 ){
@@ -3808,7 +4146,8 @@ async function refresh(){
                         );
 
 
-                    del.textContent="DEL";
+                    del.textContent=
+                        "DEL";
 
 
                     del.onclick=
@@ -3827,12 +4166,15 @@ async function refresh(){
                                     "Could not delete file."
                                 );
 
+
                                 return;
 
                             }
 
 
-                            selected.delete(p);
+                            selected.delete(
+                                p
+                            );
 
 
                             await refresh();
@@ -3849,7 +4191,9 @@ async function refresh(){
             }
 
 
-            list.appendChild(row);
+            list.appendChild(
+                row
+            );
 
         }
 
@@ -3880,21 +4224,23 @@ async function refresh(){
 
 
 /* =========================================================
-   REFRESH BUTTON
+   REFRESH
 ========================================================= */
 
 document.getElementById(
     "refresh"
-).onclick=refresh;
+).onclick=
+    refresh;
 
 
 /* =========================================================
-   UP BUTTON
+   UP
 ========================================================= */
 
 document.getElementById(
     "up"
-).onclick=goUp;
+).onclick=
+    goUp;
 
 
 /* =========================================================
@@ -3903,53 +4249,58 @@ document.getElementById(
 
 document.getElementById(
     "selectAll"
-).onclick=async()=>{
+).onclick=
+    async()=>{
 
-    cancelRename();
-
-
-    const z=
-        zone();
+        cancelRename();
 
 
-    const files=
-        await parent.FS.list(
+        const z=
+            zone();
+
+
+        const files=
+            await parent.FS.list(
+                currentPrefix ||
+                z.prefix
+            );
+
+
+        if(!Array.isArray(files)){
+
+            return;
+
+        }
+
+
+        const base=
             currentPrefix ||
-            z.prefix
+            z.prefix;
+
+
+        files.forEach(
+            p=>{
+
+                if(
+                    String(p).startsWith(
+                        base
+                    ) &&
+                    String(p)!==base
+                ){
+
+                    selected.add(
+                        p
+                    );
+
+                }
+
+            }
         );
 
 
-    if(!Array.isArray(files)){
+        await refresh();
 
-        return;
-
-    }
-
-
-    const base=
-        currentPrefix ||
-        z.prefix;
-
-
-    files.forEach(
-        p=>{
-
-            if(
-                String(p).startsWith(base) &&
-                String(p)!==base
-            ){
-
-                selected.add(p);
-
-            }
-
-        }
-    );
-
-
-    await refresh();
-
-};
+    };
 
 
 /* =========================================================
@@ -3958,57 +4309,59 @@ document.getElementById(
 
 document.getElementById(
     "newText"
-).onclick=async()=>{
+).onclick=
+    async()=>{
 
-    cancelRename();
-
-
-    const defaultPath=
-        (
-            currentPrefix ||
-            zone().prefix
-        )+
-        "new.txt";
+        cancelRename();
 
 
-    const name=
-        prompt(
-            "New text file path:",
-            defaultPath
-        );
+        const defaultPath=
+            (
+                currentPrefix ||
+                zone().prefix
+            )+
+            "new.txt";
 
 
-    if(!name){
-
-        return;
-
-    }
-
-
-    const r=
-        await parent.FS.write(
-            name,
-            "",
-            true
-        );
+        const name=
+            prompt(
+                "New text file path:",
+                defaultPath
+            );
 
 
-    if(!r.ok){
+        if(!name){
 
-        showError(
-            r.error
-        );
+            return;
 
-        return;
-
-    }
+        }
 
 
-    await refresh();
+        const r=
+            await parent.FS.write(
+                name,
+                "",
+                true
+            );
 
-    edit(name);
 
-};
+        if(!r.ok){
+
+            showError(
+                r.error
+            );
+
+
+            return;
+
+        }
+
+
+        await refresh();
+
+        edit(name);
+
+    };
 
 
 /* =========================================================
@@ -4017,72 +4370,75 @@ document.getElementById(
 
 document.getElementById(
     "zip"
-).onclick=async()=>{
+).onclick=
+    async()=>{
 
-    cancelRename();
-
-
-    const fs=
-        selectedPaths();
+        cancelRename();
 
 
-    if(!fs.length){
-
-        showError(
-            "Select files first."
-        );
-
-        return;
-
-    }
+        const fs=
+            selectedPaths();
 
 
-    const out=
-        prompt(
-            "ZIP output path:",
-            (
-                currentPrefix ||
-                zone().prefix
-            )+
-            "archive.zip"
-        );
+        if(!fs.length){
+
+            showError(
+                "Select files first."
+            );
 
 
-    if(!out){
+            return;
 
-        return;
-
-    }
+        }
 
 
-    const r=
-        await parent.Tools.execute(
-            "zip_files",
-            {
-                files:fs,
-                output_path:out
-            }
-        );
+        const out=
+            prompt(
+                "ZIP output path:",
+                (
+                    currentPrefix ||
+                    zone().prefix
+                )+
+                "archive.zip"
+            );
 
 
-    if(!r.ok){
+        if(!out){
 
-        showError(
-            r.summary ||
-            "Could not create ZIP."
-        );
+            return;
 
-        return;
-
-    }
+        }
 
 
-    selected.clear();
+        const r=
+            await parent.Tools.execute(
+                "zip_files",
+                {
+                    files:fs,
+                    output_path:out
+                }
+            );
 
 
-    await refresh();
+        if(!r.ok){
 
-};
+            showError(
+                r.summary ||
+                "Could not create ZIP."
+            );
+
+
+            return;
+
+        }
+
+
+        selected.clear();
+
+
+        await refresh();
+
+    };
 
 
 /* =========================================================
@@ -4114,7 +4470,9 @@ box.onchange=()=>{
             showError(
                 r.files &&
                 r.files.length
-                    ?r.files.join("\n")
+                    ?r.files.join(
+                        "\n"
+                    )
                     :r.summary
             );
 
@@ -4151,7 +4509,9 @@ box.onkeydown=e=>{
     }
 
 
-    if(/\/$/.test(v)){
+    if(
+        /\/$/.test(v)
+    ){
 
         const z=
             zone();
@@ -4191,5 +4551,6 @@ box.onkeydown=e=>{
 refresh();
 
 </script>
+
 </body>
 </html>
