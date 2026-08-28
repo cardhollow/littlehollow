@@ -2,46 +2,968 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Image Viewer</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:monospace;}
-html,body{width:100%;height:100%;background:#000;color:#00FFFF;}
-.wrap{display:flex;flex-direction:column;height:100%;}
-.bar{flex:0 0 auto;display:flex;padding:8px;border-bottom:1px solid #00FFFF;gap:6px;}
-.bar input{flex:1;background:#001010;border:1px solid #00FFFF;color:#00FFFF;padding:6px;font-family:monospace;}
-.bar button{border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:6px 10px;cursor:pointer;}
-.stage{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;}
-img{max-width:100%;max-height:100%;}
-.empty{opacity:0.5;font-size:12px;}
-</style>
-</head>
-<body>
-<div class="wrap">
-    <div class="bar">
-        <input id="url" type="text" placeholder="Image URL...">
-        <button id="loadBtn">LOAD</button>
-    </div>
-    <div class="stage" id="stage"><div class="empty">No image loaded.</div></div>
-</div>
-<script>
-const stage=document.getElementById("stage");
-const urlInput=document.getElementById("url");
 
-function show(src){
-    stage.innerHTML="";
-    const img=document.createElement("img");
-    img.src=src;
-    img.onerror=()=>{ stage.innerHTML="<div class=\"empty\">Failed to load image.</div>"; };
-    stage.appendChild(img);
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:monospace;
 }
 
-document.getElementById("loadBtn").addEventListener("click",()=>{
-    if(urlInput.value.trim()) show(urlInput.value.trim());
+html,body{
+    width:100%;
+    height:100%;
+    background:#000;
+    color:#00FFFF;
+}
+
+body{
+    overflow:hidden;
+}
+
+.wrap{
+    display:flex;
+    flex-direction:column;
+    width:100%;
+    height:100%;
+}
+
+.bar{
+    flex:0 0 auto;
+    display:flex;
+    gap:6px;
+    padding:8px;
+    border-bottom:1px solid #00FFFF;
+}
+
+.bar input{
+    flex:1;
+    min-width:0;
+    background:#001010;
+    border:1px solid #00FFFF;
+    color:#00FFFF;
+    padding:6px 8px;
+    outline:none;
+    font:11px monospace;
+}
+
+.bar button{
+    border:1px solid #00FFFF;
+    background:transparent;
+    color:#00FFFF;
+    padding:6px 10px;
+    cursor:pointer;
+    font:11px monospace;
+}
+
+.bar button:active{
+    background:#00FFFF;
+    color:#000;
+}
+
+.stage{
+    flex:1;
+    min-height:0;
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:auto;
+    position:relative;
+    padding:8px;
+}
+
+.stage img{
+    display:block;
+    max-width:100%;
+    max-height:100%;
+    width:auto;
+    height:auto;
+    object-fit:contain;
+}
+
+.empty{
+    opacity:.55;
+    font-size:12px;
+    text-align:center;
+    white-space:pre-wrap;
+    padding:20px;
+}
+
+.error{
+    color:#ff6666;
+    font-size:11px;
+    text-align:center;
+    white-space:pre-wrap;
+    padding:20px;
+    max-width:100%;
+    overflow:auto;
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+    <div class="bar">
+        <input
+            id="url"
+            type="text"
+            placeholder="Image URL or chxd:/ path..."
+            autocomplete="off"
+            spellcheck="false"
+        >
+        <button id="loadBtn">LOAD</button>
+    </div>
+
+    <div class="stage" id="stage">
+        <div class="empty">No image loaded.</div>
+    </div>
+
+</div>
+
+<script>
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+
+const stage = document.getElementById("stage");
+const urlInput = document.getElementById("url");
+
+let currentObjectURL = null;
+
+
+/* =========================================================
+   CLEANUP
+========================================================= */
+
+function cleanupObjectURL(){
+
+    if(!currentObjectURL){
+        return;
+    }
+
+    try{
+        URL.revokeObjectURL(currentObjectURL);
+    }catch(_){}
+
+    currentObjectURL = null;
+}
+
+
+/* =========================================================
+   UI
+========================================================= */
+
+function loading(){
+
+    cleanupObjectURL();
+
+    stage.innerHTML =
+        '<div class="empty">Loading image...</div>';
+
+}
+
+
+function errorMessage(message){
+
+    cleanupObjectURL();
+
+    stage.innerHTML = "";
+
+    const box = document.createElement("div");
+    box.className = "error";
+    box.textContent = String(message || "Failed to load image.");
+
+    stage.appendChild(box);
+
+}
+
+
+/* =========================================================
+   GET FILESYSTEM
+========================================================= */
+
+function getFS(){
+
+    /*
+     * Image Viewer normally runs as an app iframe.
+     * The main Little Hollow page already exposes:
+     *
+     * parent.FS
+     */
+
+    if(
+        window.parent &&
+        window.parent !== window &&
+        window.parent.FS
+    ){
+        return window.parent.FS;
+    }
+
+    /*
+     * Fallback if Image Viewer is opened directly.
+     */
+
+    if(window.FS){
+        return window.FS;
+    }
+
+    return null;
+}
+
+
+/* =========================================================
+   GET TOOLS
+========================================================= */
+
+function getTools(){
+
+    if(
+        window.parent &&
+        window.parent !== window &&
+        window.parent.Tools
+    ){
+        return window.parent.Tools;
+    }
+
+    if(window.Tools){
+        return window.Tools;
+    }
+
+    return null;
+}
+
+
+/* =========================================================
+   PATH DETECTION
+========================================================= */
+
+function isVirtualPath(src){
+
+    return (
+        /^chxd:\//i.test(src) ||
+        /^local:\//i.test(src) ||
+        /^session:\//i.test(src) ||
+        /^indexdb:\//i.test(src) ||
+        /^puter:\//i.test(src)
+    );
+
+}
+
+
+function isDirectImageSource(src){
+
+    return (
+        /^data:image\//i.test(src) ||
+        /^blob:/i.test(src) ||
+        /^https?:\/\//i.test(src) ||
+        /^file:/i.test(src)
+    );
+
+}
+
+
+/* =========================================================
+   FILE EXTENSION
+========================================================= */
+
+function extension(path){
+
+    const clean = String(path || "")
+        .split("?")[0]
+        .split("#")[0];
+
+    const dot = clean.lastIndexOf(".");
+
+    if(dot < 0){
+        return "";
+    }
+
+    return clean
+        .slice(dot + 1)
+        .toLowerCase();
+
+}
+
+
+/* =========================================================
+   MIME TYPE
+========================================================= */
+
+function mimeFromPath(path){
+
+    const e = extension(path);
+
+    switch(e){
+
+        case "png":
+            return "image/png";
+
+        case "jpg":
+        case "jpeg":
+        case "jpe":
+            return "image/jpeg";
+
+        case "gif":
+            return "image/gif";
+
+        case "webp":
+            return "image/webp";
+
+        case "bmp":
+            return "image/bmp";
+
+        case "svg":
+        case "svgz":
+            return "image/svg+xml";
+
+        case "ico":
+            return "image/x-icon";
+
+        case "avif":
+            return "image/avif";
+
+        case "tif":
+        case "tiff":
+            return "image/tiff";
+
+        default:
+            return "application/octet-stream";
+    }
+
+}
+
+
+/* =========================================================
+   BASE64 DETECTION
+========================================================= */
+
+function isProbablyBase64(value){
+
+    if(typeof value !== "string"){
+        return false;
+    }
+
+    const s = value
+        .trim()
+        .replace(/\s/g,"");
+
+    if(s.length < 20){
+        return false;
+    }
+
+    return /^[A-Za-z0-9+/=]+$/.test(s);
+
+}
+
+
+function detectBase64Mime(value, path){
+
+    const s = String(value || "")
+        .trim()
+        .replace(/\s/g,"");
+
+    /*
+     * PNG
+     */
+    if(s.startsWith("iVBORw0KGgo")){
+        return "image/png";
+    }
+
+    /*
+     * JPEG
+     */
+    if(s.startsWith("/9j/")){
+        return "image/jpeg";
+    }
+
+    /*
+     * GIF
+     */
+    if(
+        s.startsWith("R0lGODlh") ||
+        s.startsWith("R0lGODdh")
+    ){
+        return "image/gif";
+    }
+
+    /*
+     * WEBP
+     */
+    if(s.startsWith("UklGR")){
+        return "image/webp";
+    }
+
+    /*
+     * BMP
+     */
+    if(s.startsWith("Qk")){
+        return "image/bmp";
+    }
+
+    /*
+     * Otherwise use filename.
+     */
+    const guessed = mimeFromPath(path);
+
+    if(guessed !== "application/octet-stream"){
+        return guessed;
+    }
+
+    return "application/octet-stream";
+}
+
+
+/* =========================================================
+   BINARY TYPE DETECTION
+========================================================= */
+
+function detectBinaryMime(value, path){
+
+    let bytes = null;
+
+    if(value instanceof ArrayBuffer){
+
+        bytes = new Uint8Array(value);
+
+    }
+    else if(
+        value &&
+        typeof value === "object" &&
+        value.buffer instanceof ArrayBuffer
+    ){
+
+        bytes = new Uint8Array(
+            value.buffer,
+            value.byteOffset || 0,
+            value.byteLength
+        );
+
+    }
+
+    if(bytes){
+
+        /*
+         * PNG
+         */
+        if(
+            bytes.length >= 8 &&
+            bytes[0] === 137 &&
+            bytes[1] === 80 &&
+            bytes[2] === 78 &&
+            bytes[3] === 71 &&
+            bytes[4] === 13 &&
+            bytes[5] === 10 &&
+            bytes[6] === 26 &&
+            bytes[7] === 10
+        ){
+            return "image/png";
+        }
+
+        /*
+         * JPEG
+         */
+        if(
+            bytes.length >= 3 &&
+            bytes[0] === 255 &&
+            bytes[1] === 216 &&
+            bytes[2] === 255
+        ){
+            return "image/jpeg";
+        }
+
+        /*
+         * GIF
+         */
+        if(
+            bytes.length >= 6 &&
+            bytes[0] === 71 &&
+            bytes[1] === 73 &&
+            bytes[2] === 70
+        ){
+            return "image/gif";
+        }
+
+        /*
+         * WEBP
+         */
+        if(
+            bytes.length >= 12 &&
+            bytes[0] === 82 &&
+            bytes[1] === 73 &&
+            bytes[2] === 70 &&
+            bytes[3] === 70 &&
+            bytes[8] === 87 &&
+            bytes[9] === 69 &&
+            bytes[10] === 66 &&
+            bytes[11] === 80
+        ){
+            return "image/webp";
+        }
+
+        /*
+         * BMP
+         */
+        if(
+            bytes.length >= 2 &&
+            bytes[0] === 66 &&
+            bytes[1] === 77
+        ){
+            return "image/bmp";
+        }
+    }
+
+    return mimeFromPath(path);
+}
+
+
+/* =========================================================
+   DATA URL
+========================================================= */
+
+function normalizeDataURL(data, path){
+
+    const value = String(data || "").trim();
+
+    /*
+     * Already a proper data URL.
+     */
+    if(/^data:/i.test(value)){
+        return value;
+    }
+
+    /*
+     * Plain base64.
+     */
+    if(isProbablyBase64(value)){
+
+        const mime = detectBase64Mime(value, path);
+
+        return (
+            "data:" +
+            mime +
+            ";base64," +
+            value.replace(/\s/g,"")
+        );
+    }
+
+    return null;
+}
+
+
+/* =========================================================
+   BLOB -> OBJECT URL
+========================================================= */
+
+function blobToURL(blob){
+
+    currentObjectURL = URL.createObjectURL(blob);
+
+    return currentObjectURL;
+}
+
+
+/* =========================================================
+   ARRAY BUFFER -> OBJECT URL
+========================================================= */
+
+function binaryToURL(value, path){
+
+    let bytes;
+
+    if(value instanceof ArrayBuffer){
+
+        bytes = new Uint8Array(value);
+
+    }
+    else if(
+        value &&
+        typeof value === "object" &&
+        value.buffer instanceof ArrayBuffer
+    ){
+
+        bytes = new Uint8Array(
+            value.buffer,
+            value.byteOffset || 0,
+            value.byteLength
+        );
+
+    }
+    else{
+
+        throw new Error("Unsupported binary data.");
+
+    }
+
+    const mime = detectBinaryMime(bytes, path);
+
+    const blob = new Blob(
+        [bytes],
+        {type:mime}
+    );
+
+    return blobToURL(blob);
+}
+
+
+/* =========================================================
+   CONTENT -> IMAGE SOURCE
+========================================================= */
+
+async function contentToImageSource(content, path){
+
+    /*
+     * Blob
+     */
+    if(content instanceof Blob){
+
+        const mime =
+            content.type && content.type.startsWith("image/")
+                ? content.type
+                : detectBinaryMime(await content.arrayBuffer(), path);
+
+        /*
+         * Preserve original bytes.
+         */
+        const blob =
+            content.type === mime
+                ? content
+                : new Blob([await content.arrayBuffer()], {type:mime});
+
+        return blobToURL(blob);
+    }
+
+
+    /*
+     * ArrayBuffer
+     */
+    if(content instanceof ArrayBuffer){
+
+        return binaryToURL(content, path);
+    }
+
+
+    /*
+     * Typed array
+     */
+    if(
+        content &&
+        typeof content === "object" &&
+        content.buffer instanceof ArrayBuffer
+    ){
+
+        return binaryToURL(content, path);
+    }
+
+
+    /*
+     * String
+     */
+    if(typeof content === "string"){
+
+        const value = content.trim();
+
+        /*
+         * Data URL
+         */
+        if(/^data:/i.test(value)){
+            return value;
+        }
+
+
+        /*
+         * Plain Base64
+         */
+        if(isProbablyBase64(value)){
+
+            return normalizeDataURL(
+                value,
+                path
+            );
+        }
+
+
+        /*
+         * SVG stored as plain text
+         */
+        if(
+            /^<svg[\s>]/i.test(value) ||
+            /^<\?xml[\s>]/i.test(value)
+        ){
+
+            const blob = new Blob(
+                [value],
+                {type:"image/svg+xml"}
+            );
+
+            return blobToURL(blob);
+        }
+
+
+        /*
+         * Some filesystem implementations
+         * may return a URL from their reader.
+         */
+        if(
+            /^https?:\/\//i.test(value) ||
+            /^blob:/i.test(value) ||
+            /^file:/i.test(value)
+        ){
+
+            return value;
+        }
+
+
+        throw new Error(
+            "The file exists, but its contents are not recognizable as image data.\n" +
+            "Expected a data:image/... URL, Base64 image data, Blob, ArrayBuffer, or image URL."
+        );
+    }
+
+
+    throw new Error(
+        "Unsupported filesystem data type: " +
+        Object.prototype.toString.call(content)
+    );
+}
+
+
+/* =========================================================
+   READ VIRTUAL FILE
+========================================================= */
+
+async function readVirtualFile(path){
+
+    const fs = getFS();
+
+    if(!fs){
+
+        throw new Error(
+            "Little Hollow filesystem bridge is unavailable.\n" +
+            "The viewer could not access parent.FS."
+        );
+
+    }
+
+
+    let normalized = path;
+
+    if(typeof fs.normalize === "function"){
+        normalized = fs.normalize(path);
+    }
+
+
+    console.log(
+        "[ImageViewer] Reading:",
+        normalized
+    );
+
+
+    const result = await fs.read(normalized);
+
+
+    if(!result || !result.ok){
+
+        throw new Error(
+            result && result.error
+                ? result.error
+                : "File could not be read: " + normalized
+        );
+
+    }
+
+
+    return contentToImageSource(
+        result.content,
+        normalized
+    );
+}
+
+
+/* =========================================================
+   LOAD DIRECT URL
+========================================================= */
+
+async function showDirect(src){
+
+    return new Promise((resolve,reject)=>{
+
+        const img = document.createElement("img");
+
+        img.onload = () => {
+
+            cleanupObjectURL();
+
+            stage.innerHTML = "";
+
+            stage.appendChild(img);
+
+            resolve(true);
+
+        };
+
+
+        img.onerror = () => {
+
+            reject(
+                new Error(
+                    "The image URL could not be decoded:\n" +
+                    src
+                )
+            );
+
+        };
+
+
+        img.src = src;
+
+    });
+
+}
+
+
+/* =========================================================
+   LOAD IMAGE
+========================================================= */
+
+async function show(src){
+
+    src = String(src || "").trim();
+
+    if(!src){
+        errorMessage("No image path specified.");
+        return;
+    }
+
+
+    loading();
+
+
+    try{
+
+        let imageSource;
+
+
+        /*
+         * Little Hollow virtual filesystem.
+         */
+        if(isVirtualPath(src)){
+
+            imageSource =
+                await readVirtualFile(src);
+
+        }
+
+
+        /*
+         * Direct image/data/blob URL.
+         */
+        else if(isDirectImageSource(src)){
+
+            imageSource = src;
+
+        }
+
+
+        /*
+         * Try normal URL as a final fallback.
+         */
+        else{
+
+            imageSource = src;
+
+        }
+
+
+        console.log(
+            "[ImageViewer] Image source:",
+            imageSource
+        );
+
+
+        await showDirect(imageSource);
+
+    }
+    catch(err){
+
+        console.error(
+            "[ImageViewer] Load failed:",
+            err
+        );
+
+        errorMessage(
+            "Failed to load image.\n\n" +
+            (err && err.message
+                ? err.message
+                : String(err))
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   BUTTON
+========================================================= */
+
+document
+    .getElementById("loadBtn")
+    .addEventListener("click", () => {
+
+        const src = urlInput.value.trim();
+
+        if(src){
+            show(src);
+        }
+
+    });
+
+
+/* =========================================================
+   ENTER
+========================================================= */
+
+urlInput.addEventListener("keydown", e => {
+
+    if(e.key !== "Enter"){
+        return;
+    }
+
+    const src = urlInput.value.trim();
+
+    if(src){
+        show(src);
+    }
+
 });
 
-const params=new URLSearchParams(location.search);
-const initial=params.get("src");
-if(initial){ urlInput.value=initial; show(initial); }
+
+/* =========================================================
+   INITIAL PATH
+========================================================= */
+
+const params =
+    new URLSearchParams(location.search);
+
+const initial =
+    params.get("src");
+
+if(initial){
+
+    urlInput.value = initial;
+
+    show(initial);
+
+}
+
 </script>
+
 </body>
 </html>
