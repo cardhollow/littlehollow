@@ -1,0 +1,2172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+	<title>Little Hollow Minesweeper</title>
+	<style>
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+			font-family: monospace;
+		}
+
+		html, body {
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+			background: #000d0d;
+			color: #00FFFF;
+		}
+
+		body {
+			display: flex;
+			justify-content: center;
+		}
+
+		button,
+		select,
+		input {
+			font-family: monospace;
+		}
+
+		button,
+		select {
+			color: #00FFFF;
+			background: #000;
+			border: 1px solid #00FFFF;
+			cursor: pointer;
+			touch-action: manipulation;
+		}
+
+		button:active {
+			background: #00FFFF;
+			color: #000;
+		}
+
+		.app {
+			width: 100%;
+			max-width: 500px;
+			height: 100%;
+			display: flex;
+			flex-direction: column;
+			padding: 8px;
+			gap: 7px;
+		}
+
+		.tabs {
+			width: 100%;
+			display: flex;
+			border-bottom: 1px solid #00FFFF;
+			flex-shrink: 0;
+		}
+
+		.tab {
+			flex: 1;
+			min-height: 34px;
+			border: none;
+			border-right: 1px solid #00FFFF;
+			font-size: 12px;
+		}
+
+		.tab:last-child {
+			border-right: none;
+		}
+
+		.tab.active {
+			background: #00FFFF;
+			color: #000;
+		}
+
+		.page {
+			display: none;
+			flex: 1;
+			min-height: 0;
+			flex-direction: column;
+			align-items: center;
+			gap: 7px;
+			overflow: auto;
+			padding-bottom: 5px;
+		}
+
+		.page.active {
+			display: flex;
+		}
+
+		.hud {
+			width: 100%;
+			display: grid;
+			grid-template-columns: repeat(5, 1fr);
+			gap: 5px;
+			flex-shrink: 0;
+		}
+
+		.info {
+			border: 1px solid #00FFFF;
+			padding: 5px;
+			text-align: center;
+			font-size: 9px;
+			min-width: 0;
+		}
+
+		.info-value {
+			margin-top: 3px;
+			font-size: 12px;
+			white-space: nowrap;
+		}
+
+		.board-wrap {
+			width: 100%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			flex-shrink: 0;
+		}
+
+		.board {
+			display: grid;
+			background: #000;
+			border: 2px solid #00FFFF;
+			user-select: none;
+			touch-action: none;
+		}
+
+		.cell {
+			position: relative;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: #001414;
+			color: #00FFFF;
+			border-right: 1px solid rgba(0, 255, 255, .22);
+			border-bottom: 1px solid rgba(0, 255, 255, .22);
+			font-weight: bold;
+			font-size: clamp(10px, 3vw, 18px);
+			cursor: pointer;
+			user-select: none;
+		}
+
+		.cell.open {
+			background: #000;
+		}
+
+		.cell.flagged {
+			color: #FF00FF;
+		}
+
+		.cell.mine {
+			color: #FF4444;
+			background: rgba(255, 0, 0, .12);
+		}
+
+		.cell.exploded {
+			background: #FF4444;
+			color: #000;
+		}
+
+		.cell.selected {
+			outline: 2px solid #FFFFFF;
+			outline-offset: -2px;
+		}
+
+		.number-1 { color: #4CC9FF; }
+		.number-2 { color: #00FF66; }
+		.number-3 { color: #FF5555; }
+		.number-4 { color: #AA88FF; }
+		.number-5 { color: #FFAA00; }
+		.number-6 { color: #00FFFF; }
+		.number-7 { color: #FFFFFF; }
+		.number-8 { color: #AAAAAA; }
+
+		.controls {
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			gap: 5px;
+			flex-shrink: 0;
+		}
+
+		.row {
+			display: grid;
+			gap: 5px;
+		}
+
+		.row.three {
+			grid-template-columns: repeat(3, 1fr);
+		}
+
+		.row.four {
+			grid-template-columns: repeat(4, 1fr);
+		}
+
+		.row.five {
+			grid-template-columns: repeat(5, 1fr);
+		}
+
+		.control-button {
+			min-height: 38px;
+			font-size: 11px;
+		}
+
+		.mode-button.active {
+			background: #00FFFF;
+			color: #000;
+		}
+
+		.status {
+			min-height: 15px;
+			font-size: 10px;
+			text-align: center;
+			flex-shrink: 0;
+		}
+
+		.info-page {
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		.info-box {
+			border: 1px solid #00FFFF;
+			padding: 10px;
+			font-size: 12px;
+			line-height: 1.7;
+		}
+
+		.info-title {
+			font-size: 14px;
+			margin-bottom: 5px;
+		}
+
+		.key-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 5px;
+		}
+
+		.key {
+			border: 1px solid #00FFFF;
+			padding: 7px;
+			text-align: center;
+		}
+
+		.editor-settings {
+			width: 100%;
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 5px;
+		}
+
+		.setting {
+			border: 1px solid #00FFFF;
+			padding: 7px;
+			display: flex;
+			flex-direction: column;
+			gap: 5px;
+			font-size: 10px;
+		}
+
+		.setting input,
+		.setting select {
+			width: 100%;
+			min-height: 32px;
+			padding: 4px;
+			outline: none;
+		}
+
+		.editor-board-wrap {
+			width: 100%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+
+		.editor-board {
+			display: grid;
+			background: #000;
+			border: 2px solid #00FFFF;
+			user-select: none;
+			touch-action: none;
+		}
+
+		.editor-cell {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: #001414;
+			border-right: 1px solid rgba(0, 255, 255, .22);
+			border-bottom: 1px solid rgba(0, 255, 255, .22);
+			color: #00FFFF;
+			font-size: clamp(9px, 2.6vw, 16px);
+			cursor: pointer;
+		}
+
+		.editor-cell.mine {
+			background: #FF4444;
+			color: #000;
+			font-weight: bold;
+		}
+
+		.editor-cell.start {
+			background: #004444;
+		}
+
+		.editor-cell.safe {
+			background: #000;
+		}
+
+		.editor-actions {
+			width: 100%;
+			display: grid;
+			grid-template-columns: repeat(4, 1fr);
+			gap: 5px;
+		}
+
+		.editor-actions button {
+			min-height: 36px;
+			font-size: 10px;
+		}
+
+		.overlay {
+			position: fixed;
+			inset: 0;
+			background: rgba(0, 0, 0, .88);
+			display: none;
+			align-items: center;
+			justify-content: center;
+			padding: 20px;
+			z-index: 100;
+		}
+
+		.overlay.show {
+			display: flex;
+		}
+
+		.overlay-box {
+			width: min(92vw, 360px);
+			border: 1px solid #00FFFF;
+			background: #000;
+			padding: 18px;
+			text-align: center;
+		}
+
+		.overlay-title {
+			font-size: 22px;
+			margin-bottom: 10px;
+		}
+
+		.overlay-text {
+			font-size: 12px;
+			line-height: 1.7;
+			margin-bottom: 14px;
+		}
+
+		.overlay-buttons {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 6px;
+		}
+
+		.overlay-buttons button {
+			min-height: 38px;
+		}
+
+		@media (max-width: 360px) {
+			.hud {
+				grid-template-columns: repeat(3, 1fr);
+			}
+
+			.hud .info:nth-child(4),
+			.hud .info:nth-child(5) {
+				display: none;
+			}
+		}
+
+		@media (max-height: 700px) {
+			.app {
+				padding: 4px;
+				gap: 4px;
+			}
+
+			.tab {
+				min-height: 30px;
+			}
+
+			.info {
+				padding: 3px;
+			}
+
+			.info-value {
+				font-size: 11px;
+			}
+
+			.control-button {
+				min-height: 31px;
+			}
+
+			.info-box {
+				padding: 7px;
+				font-size: 11px;
+			}
+
+			.setting {
+				padding: 5px;
+			}
+		}
+	</style>
+</head>
+<body>
+	<div class="app">
+		<div class="tabs">
+			<button class="tab active" data-page="gamePage">GAME</button>
+			<button class="tab" data-page="editorPage">EDITOR</button>
+			<button class="tab" data-page="controlsPage">CONTROLS</button>
+			<button class="tab" data-page="infoPage">INFO</button>
+		</div>
+
+		<div class="page active" id="gamePage">
+			<div class="hud">
+				<div class="info">
+					MINES
+					<div class="info-value" id="mineCount">40</div>
+				</div>
+				<div class="info">
+					FLAGS
+					<div class="info-value" id="flagCount">0</div>
+				</div>
+				<div class="info">
+					SAFE
+					<div class="info-value" id="safeCount">0</div>
+				</div>
+				<div class="info">
+					TIME
+					<div class="info-value" id="timer">00:00</div>
+				</div>
+				<div class="info">
+					SIZE
+					<div class="info-value" id="sizeInfo">16×16</div>
+				</div>
+			</div>
+
+			<div class="board-wrap">
+				<div class="board" id="board"></div>
+			</div>
+
+			<div class="status" id="status">
+				Tap to open. Use FLAG to mark mines.
+			</div>
+
+			<div class="controls">
+				<div class="row four">
+					<button class="control-button mode-button active" id="openMode">OPEN</button>
+					<button class="control-button mode-button" id="flagMode">FLAG</button>
+					<button class="control-button" id="newGame">NEW</button>
+					<button class="control-button" id="restart">RESTART</button>
+				</div>
+
+				<div class="row four">
+					<button class="control-button" id="hint">HINT</button>
+					<button class="control-button" id="pause">PAUSE</button>
+					<button class="control-button" id="reveal">REVEAL</button>
+					<button class="control-button" id="chord">CHORD</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="page" id="editorPage">
+			<div class="info-page">
+				<div class="editor-settings">
+					<div class="setting">
+						<label for="editorRows">ROWS</label>
+						<input id="editorRows" type="number" min="5" max="30" value="16">
+					</div>
+
+					<div class="setting">
+						<label for="editorCols">COLUMNS</label>
+						<input id="editorCols" type="number" min="5" max="30" value="16">
+					</div>
+
+					<div class="setting">
+						<label for="editorMines">MINES</label>
+						<input id="editorMines" type="number" min="1" max="200" value="40">
+					</div>
+
+					<div class="setting">
+						<label for="editorMode">MODE</label>
+						<select id="editorMode">
+							<option value="mine">PLACE MINES</option>
+							<option value="safe">PLACE SAFE</option>
+							<option value="start">SET START</option>
+						</select>
+					</div>
+				</div>
+
+				<div class="editor-board-wrap">
+					<div class="editor-board" id="editorBoard"></div>
+				</div>
+
+				<div class="editor-actions">
+					<button id="editorClear">CLEAR</button>
+					<button id="editorRandom">RANDOM</button>
+					<button id="editorPlay">PLAY</button>
+					<button id="editorSave">SAVE</button>
+				</div>
+
+				<div class="status" id="editorStatus">
+					Editor: tap cells to modify the board.
+				</div>
+			</div>
+		</div>
+
+		<div class="page" id="controlsPage">
+			<div class="info-page">
+				<div class="info-box">
+					<div class="info-title">KEYBOARD</div>
+					<div class="key-grid">
+						<div class="key">↑ ↓ ← →<br>MOVE</div>
+						<div class="key">ENTER<br>OPEN</div>
+						<div class="key">SPACE<br>FLAG</div>
+						<div class="key">H<br>HINT</div>
+						<div class="key">C<br>CHORD</div>
+						<div class="key">R<br>RESTART</div>
+						<div class="key">N<br>NEW GAME</div>
+						<div class="key">P<br>PAUSE</div>
+						<div class="key">E<br>REVEAL</div>
+					</div>
+				</div>
+
+				<div class="info-box">
+					<div class="info-title">TOUCH</div>
+					Tap OPEN mode to reveal cells.
+					<br>
+					Use FLAG mode to place or remove flags.
+					<br>
+					Long-press a cell to flag it.
+					<br>
+					Use CHORD on an opened numbered cell when enough flags are placed.
+				</div>
+			</div>
+		</div>
+
+		<div class="page" id="infoPage">
+			<div class="info-page">
+				<div class="info-box">
+					<div class="info-title">MINESWEEPER</div>
+					Open every safe cell without opening a mine.
+					Numbers show how many mines are touching the cell.
+				</div>
+
+				<div class="info-box">
+					<div class="info-title">PROCEDURAL BOARDS</div>
+					New boards are generated procedurally.
+					<br>
+					The first opened cell is always protected.
+					<br>
+					If possible, its surrounding area is also protected so the opening is useful.
+				</div>
+
+				<div class="info-box">
+					<div class="info-title">DIFFICULTY</div>
+					EASY = smaller board and fewer mines.
+					<br>
+					MEDIUM = standard board.
+					<br>
+					HARD = larger board and more mines.
+					<br>
+					EXPERT = very large minefield.
+				</div>
+
+				<div class="info-box">
+					<div class="info-title">EDITOR</div>
+					The editor lets you create custom minefields.
+					<br>
+					You can place mines, force safe cells, choose a starting cell, randomize the board, save it locally and play it.
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="overlay" id="overlay">
+		<div class="overlay-box">
+			<div class="overlay-title" id="overlayTitle">MINESWEEPER</div>
+			<div class="overlay-text" id="overlayText"></div>
+			<div class="overlay-buttons">
+				<button id="overlayRestart">RESTART</button>
+				<button id="overlayClose">CLOSE</button>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		const boardElement = document.getElementById("board");
+		const mineCountElement = document.getElementById("mineCount");
+		const flagCountElement = document.getElementById("flagCount");
+		const safeCountElement = document.getElementById("safeCount");
+		const timerElement = document.getElementById("timer");
+		const sizeInfoElement = document.getElementById("sizeInfo");
+		const statusElement = document.getElementById("status");
+
+		const editorBoardElement = document.getElementById("editorBoard");
+		const editorRowsElement = document.getElementById("editorRows");
+		const editorColsElement = document.getElementById("editorCols");
+		const editorMinesElement = document.getElementById("editorMines");
+		const editorModeElement = document.getElementById("editorMode");
+		const editorStatusElement = document.getElementById("editorStatus");
+
+		const overlay = document.getElementById("overlay");
+		const overlayTitle = document.getElementById("overlayTitle");
+		const overlayText = document.getElementById("overlayText");
+
+		const openModeButton = document.getElementById("openMode");
+		const flagModeButton = document.getElementById("flagMode");
+
+		const DIFFICULTIES = {
+			easy: {
+				rows: 9,
+				cols: 9,
+				mines: 10
+			},
+			medium: {
+				rows: 16,
+				cols: 16,
+				mines: 40
+			},
+			hard: {
+				rows: 20,
+				cols: 20,
+				mines: 70
+			},
+			expert: {
+				rows: 24,
+				cols: 24,
+				mines: 110
+			}
+		};
+
+		let rows = 16;
+		let cols = 16;
+		let mines = 40;
+		let board = [];
+		let revealed = [];
+		let flagged = [];
+		let numbers = [];
+		let firstMove = true;
+		let gameOver = false;
+		let paused = false;
+		let won = false;
+		let inputMode = "open";
+		let selectedRow = 0;
+		let selectedCol = 0;
+		let timerSeconds = 0;
+		let timerInterval = null;
+		let longPressTimer = null;
+		let editorRows = 16;
+		let editorCols = 16;
+		let editorMines = 40;
+		let editorMineMap = [];
+		let editorSafeMap = [];
+		let editorStart = null;
+
+		function createGrid(value) {
+			return Array.from(
+				{ length: rows },
+				() => Array(cols).fill(value)
+			);
+		}
+
+		function createEditorGrid(value) {
+			return Array.from(
+				{ length: editorRows },
+				() => Array(editorCols).fill(value)
+			);
+		}
+
+		function shuffle(array) {
+			for (let i = array.length - 1; i > 0; i--) {
+				const j = Math.floor(Math.random() * (i + 1));
+				[array[i], array[j]] = [array[j], array[i]];
+			}
+			return array;
+		}
+
+		function formatTime(seconds) {
+			const minutes = Math.floor(seconds / 60);
+			const secs = seconds % 60;
+
+			return (
+				String(minutes).padStart(2, "0") +
+				":" +
+				String(secs).padStart(2, "0")
+			);
+		}
+
+		function stopTimer() {
+			if (timerInterval !== null) {
+				clearInterval(timerInterval);
+				timerInterval = null;
+			}
+		}
+
+		function startTimer() {
+			stopTimer();
+
+			timerInterval = setInterval(() => {
+				if (paused || gameOver || won) {
+					return;
+				}
+
+				timerSeconds++;
+				timerElement.textContent = formatTime(timerSeconds);
+			}, 1000);
+		}
+
+		function updateHUD() {
+			const flagCount = flagged.reduce(
+				(total, row) =>
+					total +
+					row.filter(Boolean).length,
+				0
+			);
+
+			const revealedCount = revealed.reduce(
+				(total, row) =>
+					total +
+					row.filter(Boolean).length,
+				0
+			);
+
+			const safeCells = rows * cols - mines;
+
+			mineCountElement.textContent = mines;
+			flagCountElement.textContent = flagCount;
+			safeCountElement.textContent =
+				Math.max(
+					0,
+					safeCells - revealedCount
+				);
+			timerElement.textContent =
+				formatTime(timerSeconds);
+
+			sizeInfoElement.textContent =
+				cols + "×" + rows;
+		}
+
+		function neighbors(row, col) {
+			const result = [];
+
+			for (let dr = -1; dr <= 1; dr++) {
+				for (let dc = -1; dc <= 1; dc++) {
+					if (dr === 0 && dc === 0) {
+						continue;
+					}
+
+					const nr = row + dr;
+					const nc = col + dc;
+
+					if (
+						nr >= 0 &&
+						nr < rows &&
+						nc >= 0 &&
+						nc < cols
+					) {
+						result.push([nr, nc]);
+					}
+				}
+			}
+
+			return result;
+		}
+
+		function buildNumbers() {
+			numbers = createGrid(0);
+
+			for (let r = 0; r < rows; r++) {
+				for (let c = 0; c < cols; c++) {
+					if (board[r][c]) {
+						numbers[r][c] = -1;
+						continue;
+					}
+
+					let count = 0;
+
+					for (const [nr, nc] of neighbors(r, c)) {
+						if (board[nr][nc]) {
+							count++;
+						}
+					}
+
+					numbers[r][c] = count;
+				}
+			}
+		}
+
+		function generateMines(firstRow, firstCol) {
+			board = createGrid(false);
+
+			const forbidden = new Set();
+
+			for (const [r, c] of neighbors(firstRow, firstCol)) {
+				forbidden.add(r + ":" + c);
+			}
+
+			forbidden.add(
+				firstRow + ":" + firstCol
+			);
+
+			let positions = [];
+
+			for (let r = 0; r < rows; r++) {
+				for (let c = 0; c < cols; c++) {
+					const key = r + ":" + c;
+
+					if (!forbidden.has(key)) {
+						positions.push([r, c]);
+					}
+				}
+			}
+
+			shuffle(positions);
+
+			const requiredSafe = rows * cols - mines;
+
+			if (positions.length < mines) {
+				positions = [];
+
+				for (let r = 0; r < rows; r++) {
+					for (let c = 0; c < cols; c++) {
+						if (
+							r !== firstRow ||
+							c !== firstCol
+						) {
+							positions.push([r, c]);
+						}
+					}
+				}
+
+				shuffle(positions);
+			}
+
+			for (let i = 0; i < mines; i++) {
+				const position = positions[i];
+
+				if (position) {
+					board[position[0]][position[1]] = true;
+				}
+			}
+
+			buildNumbers();
+
+			revealed = createGrid(false);
+			flagged = createGrid(false);
+
+			firstMove = false;
+		}
+
+		function renderBoard() {
+			boardElement.innerHTML = "";
+
+			const availableWidth =
+				Math.min(
+					window.innerWidth - 16,
+					460
+				);
+
+			const availableHeight =
+				Math.max(
+					180,
+					window.innerHeight - 250
+				);
+
+			const cellSize = Math.max(
+				12,
+				Math.floor(
+					Math.min(
+						availableWidth / cols,
+						availableHeight / rows
+					)
+				)
+			);
+
+			boardElement.style.gridTemplateColumns =
+				`repeat(${cols},${cellSize}px)`;
+
+			boardElement.style.gridTemplateRows =
+				`repeat(${rows},${cellSize}px)`;
+
+			for (let r = 0; r < rows; r++) {
+				for (let c = 0; c < cols; c++) {
+					const cell =
+						document.createElement("div");
+
+					cell.className = "cell";
+
+					if (revealed[r][c]) {
+						cell.classList.add("open");
+					}
+
+					if (flagged[r][c]) {
+						cell.classList.add("flagged");
+						cell.textContent = "⚑";
+					}
+
+					if (
+						selectedRow === r &&
+						selectedCol === c &&
+						!gameOver
+					) {
+						cell.classList.add("selected");
+					}
+
+					if (revealed[r][c]) {
+						if (board[r][c]) {
+							cell.classList.add("mine");
+
+							if (
+								won ||
+								gameOver
+							) {
+								cell.textContent = "✹";
+							}
+						} else {
+							const number =
+								numbers[r][c];
+
+							if (number > 0) {
+								cell.textContent = number;
+								cell.classList.add(
+									"number-" + number
+								);
+							}
+						}
+					}
+
+					if (
+						gameOver &&
+						board[r][c]
+					) {
+						cell.classList.add("mine");
+
+						if (
+							!revealed[r][c]
+						) {
+							cell.textContent = "✹";
+						}
+					}
+
+					cell.addEventListener(
+						"click",
+						() => {
+							selectedRow = r;
+							selectedCol = c;
+
+							if (
+								gameOver ||
+								won ||
+								paused
+							) {
+								renderBoard();
+								return;
+							}
+
+							if (inputMode === "flag") {
+								toggleFlag(r, c);
+							} else {
+								openCell(r, c);
+							}
+						}
+					);
+
+					cell.addEventListener(
+						"touchstart",
+						() => {
+							longPressTimer =
+								setTimeout(() => {
+									if (
+										!gameOver &&
+										!won &&
+										!paused
+									) {
+										toggleFlag(r, c);
+									}
+								}, 500);
+						},
+						{ passive: true }
+					);
+
+					cell.addEventListener(
+						"touchend",
+						() => {
+							if (longPressTimer !== null) {
+								clearTimeout(longPressTimer);
+								longPressTimer = null;
+							}
+						},
+						{ passive: true }
+					);
+
+					boardElement.appendChild(cell);
+				}
+			}
+
+			updateHUD();
+		}
+
+		function openCell(row, col) {
+			if (
+				gameOver ||
+				won ||
+				paused ||
+				flagged[row][col]
+			) {
+				return;
+			}
+
+			if (firstMove) {
+				generateMines(row, col);
+			}
+
+			if (revealed[row][col]) {
+				chordCell(row, col);
+				return;
+			}
+
+			if (board[row][col]) {
+				revealed[row][col] = true;
+				gameOver = true;
+				stopTimer();
+
+				showGameOver(
+					"MINE TRIGGERED",
+					"You hit a mine."
+				);
+
+				renderBoard();
+				return;
+			}
+
+			floodOpen(row, col);
+			checkWin();
+			renderBoard();
+		}
+
+		function floodOpen(row, col) {
+			const queue = [[row, col]];
+			const seen = new Set();
+
+			while (queue.length) {
+				const [r, c] = queue.shift();
+				const key = r + ":" + c;
+
+				if (seen.has(key)) {
+					continue;
+				}
+
+				seen.add(key);
+
+				if (
+					r < 0 ||
+					r >= rows ||
+					c < 0 ||
+					c >= cols ||
+					revealed[r][c] ||
+					flagged[r][c] ||
+					board[r][c]
+				) {
+					continue;
+				}
+
+				revealed[r][c] = true;
+
+				if (numbers[r][c] === 0) {
+					for (const neighbor of neighbors(r, c)) {
+						queue.push(neighbor);
+					}
+				}
+			}
+		}
+
+		function toggleFlag(row, col) {
+			if (
+				gameOver ||
+				won ||
+				paused ||
+				revealed[row][col]
+			) {
+				return;
+			}
+
+			flagged[row][col] =
+				!flagged[row][col];
+
+			const flagCount =
+				flagged.reduce(
+					(total, currentRow) =>
+						total +
+						currentRow.filter(Boolean).length,
+					0
+				);
+
+			statusElement.textContent =
+				flagged[row][col]
+					? "FLAGGED"
+					: "FLAG REMOVED";
+
+			if (flagCount > mines) {
+				statusElement.textContent =
+					"TOO MANY FLAGS";
+			}
+
+			renderBoard();
+		}
+
+		function chordCell(row, col) {
+			if (
+				!revealed[row][col] ||
+				numbers[row][col] <= 0
+			) {
+				return;
+			}
+
+			const adjacent = neighbors(row, col);
+
+			const flagCount =
+				adjacent.filter(
+					([r, c]) => flagged[r][c]
+				).length;
+
+			if (
+				flagCount !== numbers[row][col]
+			) {
+				statusElement.textContent =
+					"FLAGS DO NOT MATCH";
+				return;
+			}
+
+			for (const [r, c] of adjacent) {
+				if (
+					!flagged[r][c] &&
+					!revealed[r][c]
+				) {
+					openCell(r, c);
+
+					if (gameOver) {
+						return;
+					}
+				}
+			}
+		}
+
+		function chordSelected() {
+			if (
+				gameOver ||
+				won ||
+				paused
+			) {
+				return;
+			}
+
+			chordCell(
+				selectedRow,
+				selectedCol
+			);
+
+			checkWin();
+			renderBoard();
+		}
+
+		function giveHint() {
+			if (
+				gameOver ||
+				won ||
+				paused
+			) {
+				return;
+			}
+
+			const candidates = [];
+
+			for (let r = 0; r < rows; r++) {
+				for (let c = 0; c < cols; c++) {
+					if (
+						!revealed[r][c] &&
+						!flagged[r][c] &&
+						!board[r][c]
+					) {
+						candidates.push([r, c]);
+					}
+				}
+			}
+
+			if (!candidates.length) {
+				return;
+			}
+
+			const [row, col] =
+				candidates[
+					Math.floor(
+						Math.random() *
+						candidates.length
+					)
+				];
+
+			floodOpen(row, col);
+
+			selectedRow = row;
+			selectedCol = col;
+
+			statusElement.textContent =
+				"HINT USED";
+
+			checkWin();
+			renderBoard();
+		}
+
+		function checkWin() {
+			const safeCells =
+				rows * cols - mines;
+
+			let revealedSafe = 0;
+
+			for (let r = 0; r < rows; r++) {
+				for (let c = 0; c < cols; c++) {
+					if (
+						revealed[r][c] &&
+						!board[r][c]
+					) {
+						revealedSafe++;
+					}
+				}
+			}
+
+			if (
+				revealedSafe >= safeCells
+			) {
+				won = true;
+				stopTimer();
+
+				showWin();
+			}
+		}
+
+		function showWin() {
+			overlayTitle.textContent =
+				"FIELD CLEARED";
+
+			overlayText.innerHTML =
+				"MINES: " +
+				mines +
+				"<br>" +
+				"TIME: " +
+				formatTime(timerSeconds) +
+				"<br><br>" +
+				"ALL SAFE CELLS OPEN.";
+
+			overlay.classList.add("show");
+			renderBoard();
+		}
+
+		function showGameOver(title, text) {
+			overlayTitle.textContent = title;
+			overlayText.textContent = text;
+			overlay.classList.add("show");
+		}
+
+		function newGame() {
+			stopTimer();
+
+			board = createGrid(false);
+			revealed = createGrid(false);
+			flagged = createGrid(false);
+			numbers = createGrid(0);
+
+			firstMove = true;
+			gameOver = false;
+			paused = false;
+			won = false;
+			timerSeconds = 0;
+			selectedRow = 0;
+			selectedCol = 0;
+
+			overlay.classList.remove("show");
+
+			updateHUD();
+			renderBoard();
+			startTimer();
+
+			statusElement.textContent =
+				"Tap to open. First move is protected.";
+		}
+
+		function restartGame() {
+			newGame();
+		}
+
+		function applyDifficulty(name) {
+			const data =
+				DIFFICULTIES[name];
+
+			if (!data) {
+				return;
+			}
+
+			rows = data.rows;
+			cols = data.cols;
+			mines = data.mines;
+
+			newGame();
+		}
+
+		function togglePause() {
+			if (
+				gameOver ||
+				won
+			) {
+				return;
+			}
+
+			paused = !paused;
+
+			if (paused) {
+				overlayTitle.textContent =
+					"PAUSED";
+
+				overlayText.textContent =
+					"Press PAUSE or P to continue.";
+
+				overlay.classList.add("show");
+			} else {
+				overlay.classList.remove("show");
+			}
+		}
+
+		function setMode(mode) {
+			inputMode = mode;
+
+			openModeButton.classList.toggle(
+				"active",
+				mode === "open"
+			);
+
+			flagModeButton.classList.toggle(
+				"active",
+				mode === "flag"
+			);
+
+			statusElement.textContent =
+				mode === "open"
+					? "OPEN MODE"
+					: "FLAG MODE";
+		}
+
+		function revealAll() {
+			if (
+				gameOver ||
+				won ||
+				paused
+			) {
+				return;
+			}
+
+			gameOver = true;
+			stopTimer();
+
+			for (let r = 0; r < rows; r++) {
+				for (let c = 0; c < cols; c++) {
+					if (!board[r][c]) {
+						revealed[r][c] = true;
+					}
+				}
+			}
+
+			statusElement.textContent =
+				"BOARD REVEALED";
+
+			renderBoard();
+		}
+
+		function moveSelection(dr, dc) {
+			selectedRow =
+				(selectedRow + dr + rows) % rows;
+
+			selectedCol =
+				(selectedCol + dc + cols) % cols;
+
+			renderBoard();
+		}
+
+		function editorRender() {
+			editorBoardElement.innerHTML = "";
+
+			const width =
+				Math.min(
+					window.innerWidth - 20,
+					460
+				);
+
+			const height =
+				Math.max(
+					180,
+					window.innerHeight - 250
+				);
+
+			const cellSize =
+				Math.max(
+					12,
+					Math.floor(
+						Math.min(
+							width / editorCols,
+							height / editorRows
+						)
+					)
+				);
+
+			editorBoardElement.style.gridTemplateColumns =
+				`repeat(${editorCols},${cellSize}px)`;
+
+			editorBoardElement.style.gridTemplateRows =
+				`repeat(${editorRows},${cellSize}px)`;
+
+			for (let r = 0; r < editorRows; r++) {
+				for (let c = 0; c < editorCols; c++) {
+					const cell =
+						document.createElement("div");
+
+					cell.className =
+						"editor-cell";
+
+					if (
+						editorMineMap[r][c]
+					) {
+						cell.classList.add("mine");
+						cell.textContent = "✹";
+					}
+
+					if (
+						editorSafeMap[r][c]
+					) {
+						cell.classList.add("safe");
+					}
+
+					if (
+						editorStart &&
+						editorStart[0] === r &&
+						editorStart[1] === c
+					) {
+						cell.classList.add("start");
+						cell.textContent = "S";
+					}
+
+					cell.addEventListener(
+						"click",
+						() => {
+							editorClick(r, c);
+						}
+					);
+
+					editorBoardElement.appendChild(cell);
+				}
+			}
+		}
+
+		function editorClick(row, col) {
+			const mode =
+				editorModeElement.value;
+
+			if (mode === "mine") {
+				editorSafeMap[row][col] = false;
+				editorMineMap[row][col] =
+					!editorMineMap[row][col];
+			}
+
+			if (mode === "safe") {
+				editorMineMap[row][col] = false;
+				editorSafeMap[row][col] =
+					!editorSafeMap[row][col];
+			}
+
+			if (mode === "start") {
+				editorStart = [row, col];
+				editorSafeMap[row][col] = true;
+				editorMineMap[row][col] = false;
+			}
+
+			enforceEditorMineLimit();
+			editorRender();
+
+			editorStatusElement.textContent =
+				"EDITOR: " +
+				mode.toUpperCase();
+		}
+
+		function enforceEditorMineLimit() {
+			const positions = [];
+
+			for (let r = 0; r < editorRows; r++) {
+				for (let c = 0; c < editorCols; c++) {
+					if (editorMineMap[r][c]) {
+						positions.push([r, c]);
+					}
+				}
+			}
+
+			shuffle(positions);
+
+			while (
+				positions.length >
+				editorMines
+			) {
+				const position =
+					positions.pop();
+
+				editorMineMap[
+					position[0]
+				][
+					position[1]
+				] = false;
+			}
+
+			if (
+				editorStart &&
+				editorMineMap[
+					editorStart[0]
+				][
+					editorStart[1]
+				]
+			) {
+				editorMineMap[
+					editorStart[0]
+				][
+					editorStart[1]
+				] = false;
+			}
+		}
+
+		function editorClear() {
+			editorMineMap =
+				createEditorGrid(false);
+
+			editorSafeMap =
+				createEditorGrid(false);
+
+			editorStart = null;
+
+			editorRender();
+
+			editorStatusElement.textContent =
+				"EDITOR CLEARED";
+		}
+
+		function editorRandom() {
+			editorMineMap =
+				createEditorGrid(false);
+
+			editorSafeMap =
+				createEditorGrid(false);
+
+			editorStart = [
+				Math.floor(editorRows / 2),
+				Math.floor(editorCols / 2)
+			];
+
+			editorSafeMap[
+				editorStart[0]
+			][
+				editorStart[1]
+			] = true;
+
+			const positions = [];
+
+			for (let r = 0; r < editorRows; r++) {
+				for (let c = 0; c < editorCols; c++) {
+					if (
+						r === editorStart[0] &&
+						c === editorStart[1]
+					) {
+						continue;
+					}
+
+					positions.push([r, c]);
+				}
+			}
+
+			shuffle(positions);
+
+			for (
+				let i = 0;
+				i < editorMines &&
+				i < positions.length;
+				i++
+			) {
+				const [r, c] =
+					positions[i];
+
+				if (
+					!editorSafeMap[r][c]
+				) {
+					editorMineMap[r][c] = true;
+				}
+			}
+
+			editorRender();
+
+			editorStatusElement.textContent =
+				"RANDOM BOARD CREATED";
+		}
+
+		function editorPlay() {
+			let minePositions = [];
+
+			for (let r = 0; r < editorRows; r++) {
+				for (let c = 0; c < editorCols; c++) {
+					if (editorMineMap[r][c]) {
+						minePositions.push([r, c]);
+					}
+				}
+			}
+
+			if (!minePositions.length) {
+				editorStatusElement.textContent =
+					"PLACE AT LEAST 1 MINE";
+				return;
+			}
+
+			rows = editorRows;
+			cols = editorCols;
+			mines = minePositions.length;
+
+			board = createGrid(false);
+
+			for (const [r, c] of minePositions) {
+				board[r][c] = true;
+			}
+
+			revealed = createGrid(false);
+			flagged = createGrid(false);
+
+			firstMove = false;
+			gameOver = false;
+			paused = false;
+			won = false;
+			timerSeconds = 0;
+
+			buildNumbers();
+
+			selectedRow =
+				editorStart
+					? editorStart[0]
+					: 0;
+
+			selectedCol =
+				editorStart
+					? editorStart[1]
+					: 0;
+
+			statusElement.textContent =
+				"EDITOR BOARD LOADED";
+
+			document
+				.querySelector(
+					'[data-page="gamePage"]'
+				)
+				.click();
+
+			renderBoard();
+			startTimer();
+
+			if (editorStart) {
+				openCell(
+					editorStart[0],
+					editorStart[1]
+				);
+			}
+		}
+
+		function editorSave() {
+			const data = {
+				rows: editorRows,
+				cols: editorCols,
+				mines: [],
+				safe: [],
+				start: editorStart
+			};
+
+			for (let r = 0; r < editorRows; r++) {
+				for (let c = 0; c < editorCols; c++) {
+					if (editorMineMap[r][c]) {
+						data.mines.push([
+							r,
+							c
+						]);
+					}
+
+					if (editorSafeMap[r][c]) {
+						data.safe.push([
+							r,
+							c
+						]);
+					}
+				}
+			}
+
+			localStorage.setItem(
+				"little_hollow_minesweeper_editor",
+				JSON.stringify(data)
+			);
+
+			editorStatusElement.textContent =
+				"EDITOR SAVED";
+		}
+
+		function editorLoad() {
+			try {
+				const saved =
+					localStorage.getItem(
+						"little_hollow_minesweeper_editor"
+					);
+
+				if (!saved) {
+					editorRender();
+					return;
+				}
+
+				const data =
+					JSON.parse(saved);
+
+				editorRows =
+					Math.max(
+						5,
+						Math.min(
+							30,
+							Number(data.rows) || 16
+						)
+					);
+
+				editorCols =
+					Math.max(
+						5,
+						Math.min(
+							30,
+							Number(data.cols) || 16
+						)
+					);
+
+				editorMines =
+					Math.max(
+						1,
+						Number(
+							data.mines?.length
+						) || 40
+					);
+
+				editorRowsElement.value =
+					editorRows;
+
+				editorColsElement.value =
+					editorCols;
+
+				editorMinesElement.value =
+					editorMines;
+
+				editorMineMap =
+					createEditorGrid(false);
+
+				editorSafeMap =
+					createEditorGrid(false);
+
+				for (
+					const [r, c] of data.mines || []
+				) {
+					if (
+						r >= 0 &&
+						r < editorRows &&
+						c >= 0 &&
+						c < editorCols
+					) {
+						editorMineMap[r][c] = true;
+					}
+				}
+
+				for (
+					const [r, c] of data.safe || []
+				) {
+					if (
+						r >= 0 &&
+						r < editorRows &&
+						c >= 0 &&
+						c < editorCols
+					) {
+						editorSafeMap[r][c] = true;
+					}
+				}
+
+				editorStart =
+					Array.isArray(data.start)
+						? data.start
+						: null;
+
+				editorRender();
+			} catch (error) {
+				editorMineMap =
+					createEditorGrid(false);
+
+				editorSafeMap =
+					createEditorGrid(false);
+
+				editorStart = null;
+
+				editorRender();
+			}
+		}
+
+		document
+			.querySelectorAll(".tab")
+			.forEach(tab => {
+				tab.addEventListener(
+					"click",
+					() => {
+						document
+							.querySelectorAll(".tab")
+							.forEach(item => {
+								item.classList.remove(
+									"active"
+								);
+							});
+
+						document
+							.querySelectorAll(".page")
+							.forEach(page => {
+								page.classList.remove(
+									"active"
+								);
+							});
+
+						tab.classList.add("active");
+
+						document
+							.getElementById(
+								tab.dataset.page
+							)
+							.classList.add("active");
+
+						if (
+							tab.dataset.page ===
+							"editorPage"
+						) {
+							editorRender();
+						}
+					}
+				);
+			});
+
+		openModeButton.addEventListener(
+			"click",
+			() => setMode("open")
+		);
+
+		flagModeButton.addEventListener(
+			"click",
+			() => setMode("flag")
+		);
+
+		document
+			.getElementById("newGame")
+			.addEventListener(
+				"click",
+				newGame
+			);
+
+		document
+			.getElementById("restart")
+			.addEventListener(
+				"click",
+				restartGame
+			);
+
+		document
+			.getElementById("hint")
+			.addEventListener(
+				"click",
+				giveHint
+			);
+
+		document
+			.getElementById("pause")
+			.addEventListener(
+				"click",
+				togglePause
+			);
+
+		document
+			.getElementById("reveal")
+			.addEventListener(
+				"click",
+				revealAll
+			);
+
+		document
+			.getElementById("chord")
+			.addEventListener(
+				"click",
+				chordSelected
+			);
+
+		document
+			.getElementById("overlayRestart")
+			.addEventListener(
+				"click",
+				restartGame
+			);
+
+		document
+			.getElementById("overlayClose")
+			.addEventListener(
+				"click",
+				() => {
+					overlay.classList.remove(
+						"show"
+					);
+				}
+			);
+
+		document
+			.getElementById("editorRows")
+			.addEventListener(
+				"change",
+				() => {
+					editorRows =
+						Math.max(
+							5,
+							Math.min(
+								30,
+								Number(
+									editorRowsElement.value
+								) || 16
+							)
+						);
+
+					editorRowsElement.value =
+						editorRows;
+
+					editorMineMap =
+						createEditorGrid(false);
+
+					editorSafeMap =
+						createEditorGrid(false);
+
+					editorStart = null;
+
+					editorRender();
+				}
+			);
+
+		document
+			.getElementById("editorCols")
+			.addEventListener(
+				"change",
+				() => {
+					editorCols =
+						Math.max(
+							5,
+							Math.min(
+								30,
+								Number(
+									editorColsElement.value
+								) || 16
+							)
+						);
+
+					editorColsElement.value =
+						editorCols;
+
+					editorMineMap =
+						createEditorGrid(false);
+
+					editorSafeMap =
+						createEditorGrid(false);
+
+					editorStart = null;
+
+					editorRender();
+				}
+			);
+
+		document
+			.getElementById("editorMines")
+			.addEventListener(
+				"change",
+				() => {
+					editorMines =
+						Math.max(
+							1,
+							Math.min(
+								editorRows *
+								editorCols -
+								1,
+								Number(
+									editorMinesElement.value
+								) || 1
+							)
+						);
+
+					editorMinesElement.value =
+						editorMines;
+
+					enforceEditorMineLimit();
+					editorRender();
+				}
+			);
+
+		document
+			.getElementById("editorClear")
+			.addEventListener(
+				"click",
+				editorClear
+			);
+
+		document
+			.getElementById("editorRandom")
+			.addEventListener(
+				"click",
+				editorRandom
+			);
+
+		document
+			.getElementById("editorPlay")
+			.addEventListener(
+				"click",
+				editorPlay
+			);
+
+		document
+			.getElementById("editorSave")
+			.addEventListener(
+				"click",
+				editorSave
+			);
+
+		document.addEventListener(
+			"keydown",
+			event => {
+				const key = event.key;
+
+				if (
+					key === "ArrowUp" ||
+					key === "ArrowDown" ||
+					key === "ArrowLeft" ||
+					key === "ArrowRight"
+				) {
+					event.preventDefault();
+
+					if (
+						document
+							.getElementById("gamePage")
+							.classList.contains("active")
+					) {
+						if (key === "ArrowUp") {
+							moveSelection(-1, 0);
+						}
+
+						if (key === "ArrowDown") {
+							moveSelection(1, 0);
+						}
+
+						if (key === "ArrowLeft") {
+							moveSelection(0, -1);
+						}
+
+						if (key === "ArrowRight") {
+							moveSelection(0, 1);
+						}
+					}
+
+					return;
+				}
+
+				if (key === "Enter") {
+					event.preventDefault();
+					openCell(
+						selectedRow,
+						selectedCol
+					);
+					return;
+				}
+
+				if (key === " ") {
+					event.preventDefault();
+					toggleFlag(
+						selectedRow,
+						selectedCol
+					);
+					return;
+				}
+
+				if (
+					key === "h" ||
+					key === "H"
+				) {
+					event.preventDefault();
+					giveHint();
+					return;
+				}
+
+				if (
+					key === "c" ||
+					key === "C"
+				) {
+					event.preventDefault();
+					chordSelected();
+					return;
+				}
+
+				if (
+					key === "r" ||
+					key === "R"
+				) {
+					event.preventDefault();
+					restartGame();
+					return;
+				}
+
+				if (
+					key === "n" ||
+					key === "N"
+				) {
+					event.preventDefault();
+					newGame();
+					return;
+				}
+
+				if (
+					key === "p" ||
+					key === "P"
+				) {
+					event.preventDefault();
+					togglePause();
+					return;
+				}
+
+				if (
+					key === "e" ||
+					key === "E"
+				) {
+					event.preventDefault();
+					revealAll();
+				}
+			}
+		);
+
+		window.addEventListener(
+			"resize",
+			() => {
+				renderBoard();
+				editorRender();
+			}
+		);
+
+		editorLoad();
+		newGame();
+	</script>
+</body>
+</html>
