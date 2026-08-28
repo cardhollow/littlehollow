@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+	<title>Little Hollow SOS</title>
+	<style>
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+			font-family: monospace;
+		}
+		html,
+		body {
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+			background: #000d0d;
+			color: #00FFFF;
+		}
+		body {
+			display: flex;
+			justify-content: center;
+		}
+		button,
+		select,
+		input {
+			font-family: monospace;
+		}
+		button {
+			color: #00FFFF;
+			background: transparent;
+			border: 1px solid #00FFFF;
+			cursor: pointer;
+			touch-action: manipulation;
+		}
+		button:active {
+			background: #00FFFF;
+			color: #000;
+		}
+		.app {
+			width: 100%;
+			max-width: 430px;
+			height: 100svh;
+			display: flex;
+			flex-direction: column;
+			padding: clamp(3px,1.5svh,8px);
+			gap: clamp(3px,1svh,7px);
+			overflow: hidden;
+		}
+		.tabs {
+			width: 100%;
+			display: flex;
+			border-bottom: 1px solid #00FFFF;
+			flex-shrink: 0;
+		}
+		.tab {
+			flex: 1;
+			min-height: clamp(28px,5svh,34px);
+			border: none;
+			border-right: 1px solid #00FFFF;
+			font-size: clamp(10px,2.5vw,12px);
+		}
+		.tab:last-child {
+			border-right: none;
+		}
+		.tab.active {
+			background: #00FFFF;
+			color: #000;
+		}
+		.page {
+			display: none;
+			flex: 1;
+			min-height: 0;
+			width: 100%;
+			flex-direction: column;
+			align-items: center;
+			gap: clamp(3px,1svh,7px);
+			overflow: hidden;
+		}
+		.page.active {
+			display: flex;
+		}
+		.game-page {
+			justify-content: flex-start;
+		}
+		.hud {
+			width: 100%;
+			display: grid;
+			grid-template-columns: repeat(4,1fr);
+			gap: clamp(3px,1vw,5px);
+			flex-shrink: 0;
+		}
+		.info {
+			border: 1px solid #00FFFF;
+			padding: clamp(3px,1svh,5px);
+			text-align: center;
+			font-size: clamp(8px,2.4vw,10px);
+		}
+		.info-value {
+			margin-top: 2px;
+			font-size: clamp(10px,3vw,13px);
+		}
+		.config-grid {
+			width: 100%;
+			display: grid;
+			grid-template-columns: repeat(3,1fr);
+			gap: clamp(3px,1vw,5px);
+			flex-shrink: 0;
+		}
+		.config-button {
+			min-height: clamp(29px,5svh,34px);
+			font-size: clamp(8px,2.5vw,10px);
+		}
+		.config-button.active {
+			background: #00FFFF;
+			color: #000;
+		}
+		.config-select {
+			width: 100%;
+			min-height: clamp(29px,5svh,34px);
+			background: #000;
+			color: #00FFFF;
+			border: 1px solid #00FFFF;
+			font-size: clamp(8px,2.5vw,10px);
+			padding: 0 4px;
+		}
+		.game-area {
+			flex: 1;
+			min-height: 0;
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			gap: clamp(3px,1svh,7px);
+			overflow: hidden;
+		}
+		.turn-panel {
+			width: 100%;
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: clamp(3px,1vw,5px);
+			flex-shrink: 0;
+		}
+		.panel {
+			border: 1px solid #00FFFF;
+			background: #000;
+			padding: clamp(5px,1svh,8px);
+		}
+		.current {
+			font-size: clamp(10px,3vw,13px);
+		}
+		.status-small {
+			margin-top: 3px;
+			font-size: clamp(8px,2.3vw,10px);
+		}
+		.letter-controls {
+			margin-top: 5px;
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 4px;
+		}
+		.letter-button {
+			min-height: clamp(27px,5svh,34px);
+			font-size: clamp(10px,3vw,13px);
+		}
+		.letter-button.active {
+			background: #00FFFF;
+			color: #000;
+		}
+		.score-panel {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 4px;
+			align-items: center;
+		}
+		.score-box {
+			border: 1px solid #00FFFF;
+			padding: 5px;
+			text-align: center;
+		}
+		.score-label {
+			font-size: clamp(8px,2.2vw,10px);
+		}
+		.score-value {
+			margin-top: 2px;
+			font-size: clamp(12px,3.5vw,16px);
+		}
+		.board-wrap {
+			width: 100%;
+			flex: 1;
+			min-height: 0;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			overflow: hidden;
+		}
+		.board {
+			display: grid;
+			gap: clamp(2px,.8vw,5px);
+			width: min(92vw,360px,70svh);
+			aspect-ratio: 1;
+			background: #000;
+			border: 2px solid #00FFFF;
+			padding: clamp(3px,.8vw,6px);
+			flex-shrink: 1;
+			max-width: 100%;
+			max-height: 100%;
+		}
+		.cell {
+			min-width: 0;
+			min-height: 0;
+			width: 100%;
+			height: 100%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: #001414;
+			border: 1px solid rgba(0,255,255,.28);
+			color: #00FFFF;
+			font-size: clamp(14px,5vw,30px);
+			font-weight: bold;
+			cursor: pointer;
+			user-select: none;
+			transition: transform .08s,box-shadow .12s,background .12s;
+		}
+		.cell:active {
+			transform: scale(.96);
+		}
+		.cell.s {
+			color: #00FFFF;
+		}
+		.cell.o {
+			color: #FF66AA;
+		}
+		.cell.highlight {
+			background: #004444;
+			box-shadow: 0 0 0 2px #FFFFFF inset;
+		}
+		.cell.green-perma {
+			border-color: #00FF66;
+			box-shadow: 0 0 0 1px #00FF66 inset;
+		}
+		.bottom-controls {
+			width: 100%;
+			display: grid;
+			grid-template-columns: repeat(3,1fr);
+			gap: clamp(3px,1vw,5px);
+			flex-shrink: 0;
+		}
+		.bottom-button {
+			min-height: clamp(29px,5svh,36px);
+			font-size: clamp(8px,2.5vw,11px);
+		}
+		.status {
+			width: 100%;
+			min-height: clamp(14px,2.5svh,17px);
+			font-size: clamp(8px,2.5vw,11px);
+			text-align: center;
+			flex-shrink: 0;
+		}
+		.info-page {
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+			overflow-y: auto;
+			padding-bottom: 8px;
+		}
+		.info-box {
+			border: 1px solid #00FFFF;
+			padding: 10px;
+			font-size: 12px;
+			line-height: 1.7;
+			flex-shrink: 0;
+		}
+		.info-title {
+			font-size: 14px;
+			margin-bottom: 5px;
+		}
+		.key-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 5px;
+		}
+		.key-help {
+			border: 1px solid #00FFFF;
+			padding: 7px;
+			text-align: center;
+		}
+		.setting-row {
+			display: grid;
+			grid-template-columns: 1fr 110px;
+			gap: 6px;
+			align-items: center;
+			border: 1px solid #00FFFF;
+			padding: 7px;
+			margin-bottom: 6px;
+		}
+		.setting-row:last-child {
+			margin-bottom: 0;
+		}
+		.setting-label {
+			font-size: 11px;
+			line-height: 1.5;
+		}
+		.setting-control {
+			width: 100%;
+			min-height: 32px;
+			font-size: 10px;
+		}
+		.overlay {
+			position: fixed;
+			inset: 0;
+			background: rgba(0,0,0,.88);
+			display: none;
+			align-items: center;
+			justify-content: center;
+			padding: 20px;
+			z-index: 100;
+		}
+		.overlay.show {
+			display: flex;
+		}
+		.overlay-box {
+			width: min(92vw,350px);
+			border: 1px solid #00FFFF;
+			background: #000;
+			padding: 18px;
+			text-align: center;
+		}
+		.overlay-title {
+			font-size: 22px;
+			margin-bottom: 10px;
+		}
+		.overlay-text {
+			font-size: 12px;
+			line-height: 1.7;
+			margin-bottom: 14px;
+			word-break: break-word;
+		}
+		.overlay-buttons {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 6px;
+		}
+		.overlay-buttons button {
+			min-height: 38px;
+		}
+		@media(max-height:600px) {
+			.app {
+				padding: 3px;
+				gap: 3px;
+			}
+			.board {
+				width: min(48svh,260px);
+			}
+			.info-box {
+				padding: 7px;
+				font-size: 11px;
+			}
+			.key-help {
+				padding: 5px;
+			}
+			.setting-row {
+				grid-template-columns: 1fr 90px;
+				padding: 5px;
+			}
+		}
+	</style>
+</head>
+<body>
+	<div class="app">
+		<div class="tabs">
+			<button class="tab active" data-page="gamePage">GAME</button>
+			<button class="tab" data-page="controlsPage">CONTROLS</button>
+			<button class="tab" data-page="infoPage">INFO</button>
+		</div>
+		<div class="page active game-page" id="gamePage">
+			<div class="hud">
+				<div class="info">
+					GRID
+					<div class="info-value" id="level">5×5</div>
+				</div>
+				<div class="info">
+					SCORE
+					<div class="info-value" id="score">0</div>
+				</div>
+				<div class="info">
+					P1
+					<div class="info-value" id="score1">0</div>
+				</div>
+				<div class="info">
+					P2
+					<div class="info-value" id="score2">0</div>
+				</div>
+			</div>
+			<div class="config-grid">
+				<button class="config-button active" id="sizeButton">GRID 5</button>
+				<button class="config-button" id="modeButton">VS AI</button>
+				<select class="config-select" id="difficulty">
+					<option value="easy">EASY AI</option>
+					<option value="normal" selected>NORMAL AI</option>
+					<option value="hard">HARD AI</option>
+				</select>
+			</div>
+			<div class="game-area">
+				<div class="turn-panel">
+					<div class="panel">
+						<div class="current">
+							TURN:
+							<span id="turnText">PLAYER 1</span>
+						</div>
+						<div class="status-small">
+							CHOOSE LETTER
+						</div>
+						<div class="letter-controls">
+							<button class="letter-button active" id="letterS">S</button>
+							<button class="letter-button" id="letterO">O</button>
+						</div>
+					</div>
+					<div class="panel score-panel">
+						<div class="score-box">
+							<div class="score-label">P1</div>
+							<div class="score-value" id="scorePanel1">0</div>
+						</div>
+						<div class="score-box">
+							<div class="score-label">P2</div>
+							<div class="score-value" id="scorePanel2">0</div>
+						</div>
+					</div>
+				</div>
+				<div class="board-wrap">
+					<div class="board" id="board"></div>
+				</div>
+				<div class="status" id="status">
+					PLACE S OR O
+				</div>
+			</div>
+			<div class="bottom-controls">
+				<button class="bottom-button" id="hintButton">HIGHLIGHT</button>
+				<button class="bottom-button" id="restartButton">RESTART</button>
+				<button class="bottom-button" id="newButton">NEW GAME</button>
+			</div>
+		</div>
+		<div class="page" id="controlsPage">
+			<div class="info-page">
+				<div class="info-box">
+					<div class="info-title">GAME SETTINGS</div>
+					<div class="setting-row">
+						<div class="setting-label">
+							GRID SIZE
+							<br>
+							Choose a board from 5×5 to 12×12.
+						</div>
+						<button class="setting-control" id="gridSizeControl">
+							5 × 5
+						</button>
+					</div>
+					<div class="setting-row">
+						<div class="setting-label">
+							GAME MODE
+							<br>
+							PLAYER VS PLAYER or PLAYER VS AI.
+						</div>
+						<button class="setting-control" id="modeControl">
+							PLAYER VS AI
+						</button>
+					</div>
+					<div class="setting-row">
+						<div class="setting-label">
+							AI DIFFICULTY
+							<br>
+							Easy, Normal, or Hard.
+						</div>
+						<select class="config-select" id="difficultyControl">
+							<option value="easy">EASY</option>
+							<option value="normal" selected>NORMAL</option>
+							<option value="hard">HARD</option>
+						</select>
+					</div>
+					<div class="setting-row">
+						<div class="setting-label">
+							SHOW CONNECTED
+							<br>
+							Keep previously formed SOS highlighted.
+						</div>
+						<button class="setting-control" id="connectedControl">
+							ON
+						</button>
+					</div>
+				</div>
+				<div class="info-box">
+					<div class="info-title">KEYBOARD CONTROLS</div>
+					<div class="key-grid">
+						<div class="key-help">
+							S
+							<br>
+							SELECT S
+						</div>
+						<div class="key-help">
+							O
+							<br>
+							SELECT O
+						</div>
+						<div class="key-help">
+							1
+							<br>
+							5 × 5
+						</div>
+						<div class="key-help">
+							2
+							<br>
+							6 × 6
+						</div>
+						<div class="key-help">
+							3
+							<br>
+							7 × 7
+						</div>
+						<div class="key-help">
+							4
+							<br>
+							8 × 8
+						</div>
+						<div class="key-help">
+							5
+							<br>
+							9 × 9
+						</div>
+						<div class="key-help">
+							6
+							<br>
+							10 × 10
+						</div>
+						<div class="key-help">
+							7
+							<br>
+							11 × 11
+						</div>
+						<div class="key-help">
+							8
+							<br>
+							12 × 12
+						</div>
+					</div>
+				</div>
+				<div class="info-box">
+					<div class="info-title">SOS RULES</div>
+					Players take turns placing S or O into empty cells.
+					<br><br>
+					Make S-O-S horizontally, vertically, or diagonally to score 1 point for every new SOS created.
+					<br><br>
+					If a player creates one or more SOS, that player keeps the turn and may place another letter.
+					<br><br>
+					The turn only changes when a move creates no SOS.
+					<br><br>
+					The game ends only when the board is completely full.
+				</div>
+			</div>
+		</div>
+		<div class="page" id="infoPage">
+			<div class="info-page">
+				<div class="info-box">
+					<div class="info-title">ABOUT SOS</div>
+					SOS is a grid strategy game based on creating the sequence S-O-S.
+					<br><br>
+					Horizontal, vertical, and diagonal sequences all count.
+				</div>
+				<div class="info-box">
+					<div class="info-title">SCORING</div>
+					Each newly created SOS is worth 1 point.
+					<br><br>
+					A single move can create multiple SOS patterns.
+					<br><br>
+					Letters may participate in multiple different SOS patterns.
+				</div>
+				<div class="info-box">
+					<div class="info-title">TURN RULE</div>
+					A move that creates no SOS passes the turn.
+					<br><br>
+					A move that creates at least one SOS does not pass the turn.
+					<br><br>
+					This means one player can make several consecutive moves.
+				</div>
+				<div class="info-box">
+					<div class="info-title">AI</div>
+					EASY makes mostly random moves.
+					<br><br>
+					NORMAL prioritizes moves that create SOS.
+					<br><br>
+					HARD prioritizes scoring and also considers dangerous moves that allow the opponent to score.
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="overlay" id="overlay">
+		<div class="overlay-box">
+			<div class="overlay-title" id="overlayTitle">SOS</div>
+			<div class="overlay-text" id="overlayText"></div>
+			<div class="overlay-buttons">
+				<button id="overlayNew">NEW GAME</button>
+				<button id="overlayClose">CLOSE</button>
+			</div>
+		</div>
+	</div>
+	<script>
+		const boardElement =
+			document.getElementById("board");
+		const scoreElement =
+			document.getElementById("score");
+		const score1Element =
+			document.getElementById("score1");
+		const score2Element =
+			document.getElementById("score2");
+		const scorePanel1 =
+			document.getElementById("scorePanel1");
+		const scorePanel2 =
+			document.getElementById("scorePanel2");
+		const levelElement =
+			document.getElementById("level");
+		const turnElement =
+			document.getElementById("turnText");
+		const statusElement =
+			document.getElementById("status");
+		const difficultyElement =
+			document.getElementById("difficulty");
+		const difficultyControl =
+			document.getElementById("difficultyControl");
+		const modeButton =
+			document.getElementById("modeButton");
+		const modeControl =
+			document.getElementById("modeControl");
+		const sizeButton =
+			document.getElementById("sizeButton");
+		const gridSizeControl =
+			document.getElementById("gridSizeControl");
+		const connectedControl =
+			document.getElementById("connectedControl");
+		const letterSButton =
+			document.getElementById("letterS");
+		const letterOButton =
+			document.getElementById("letterO");
+		const overlay =
+			document.getElementById("overlay");
+		const overlayTitle =
+			document.getElementById("overlayTitle");
+		const overlayText =
+			document.getElementById("overlayText");
+
+		let size = 5;
+		let board = [];
+		let currentPlayer = 1;
+		let scores = {
+			1: 0,
+			2: 0
+		};
+		let selectedLetter = "S";
+		let lastFormed = [];
+		let permanentGreen = new Set();
+		let aiThinking = false;
+		let gameOver = false;
+		let mode = "pvc";
+		let connectedVisible = true;
+
+		const directions = [
+			[0,1],
+			[1,0],
+			[1,1],
+			[1,-1]
+		];
+
+		function createBoard(newSize = size) {
+			size = Math.min(
+				12,
+				Math.max(
+					5,
+					Number(newSize) || 5
+				)
+			);
+
+			board = Array.from(
+				{length:size},
+				() => Array(size).fill("")
+			);
+
+			currentPlayer = 1;
+
+			scores = {
+				1: 0,
+				2: 0
+			};
+
+			selectedLetter = "S";
+			lastFormed = [];
+			permanentGreen.clear();
+			aiThinking = false;
+			gameOver = false;
+
+			overlay.classList.remove(
+				"show"
+			);
+
+			updateSizeUI();
+			updateModeUI();
+			updateLetterUI();
+			renderBoard();
+			updateHUD();
+
+			statusElement.textContent =
+				"PLACE S OR O";
+		}
+
+		function renderBoard() {
+			boardElement.innerHTML = "";
+
+			boardElement.style.gridTemplateColumns =
+				`repeat(${size},1fr)`;
+
+			boardElement.style.gridTemplateRows =
+				`repeat(${size},1fr)`;
+
+			for(let r = 0; r < size; r++) {
+				for(let c = 0; c < size; c++) {
+					const cell =
+						document.createElement("button");
+
+					cell.className = "cell";
+
+					cell.dataset.row = r;
+					cell.dataset.col = c;
+
+					if(board[r][c] === "S") {
+						cell.classList.add("s");
+						cell.textContent = "S";
+					}
+
+					if(board[r][c] === "O") {
+						cell.classList.add("o");
+						cell.textContent = "O";
+					}
+
+					if(
+						connectedVisible &&
+						permanentGreen.has(
+							`${r},${c}`
+						)
+					) {
+						cell.classList.add(
+							"green-perma"
+						);
+					}
+
+					cell.addEventListener(
+						"click",
+						() => {
+							handleCell(
+								r,
+								c
+							);
+						}
+					);
+
+					boardElement.appendChild(
+						cell
+					);
+				}
+			}
+		}
+
+		function handleCell(r,c) {
+			if(
+				aiThinking ||
+				gameOver ||
+				board[r][c] !== ""
+			) {
+				return;
+			}
+
+			if(
+				mode === "pvc" &&
+				currentPlayer === 2
+			) {
+				return;
+			}
+
+			placeLetter(
+				r,
+				c,
+				selectedLetter
+			);
+		}
+
+		function placeLetter(r,c,letter) {
+			if(
+				gameOver ||
+				board[r][c] !== ""
+			) {
+				return;
+			}
+
+			const playerAtMove =
+				currentPlayer;
+
+			board[r][c] = letter;
+
+			const formed =
+				findNewSOSFromMove(
+					r,
+					c,
+					letter
+				);
+
+			if(formed.length > 0) {
+				scores[playerAtMove] +=
+					formed.length;
+
+				lastFormed =
+					formed.map(
+						triangle =>
+							triangle.map(
+								point => [
+									point[0],
+									point[1]
+								]
+							)
+					);
+
+				formed.forEach(
+					triangle => {
+						triangle.forEach(
+							([rr,cc]) => {
+								permanentGreen.add(
+									`${rr},${cc}`
+								);
+							}
+						);
+					}
+				);
+
+				statusElement.textContent =
+					getPlayerName(
+						playerAtMove
+					) +
+					" + " +
+					formed.length +
+					" SOS — PLAY AGAIN";
+
+				renderBoard();
+				updateHUD();
+
+				if(isBoardFull()) {
+					finishGame();
+					return;
+				}
+
+				if(
+					mode === "pvc" &&
+					currentPlayer === 2
+				) {
+					runAIMove();
+				}
+
+				return;
+			}
+
+			lastFormed = [];
+
+			currentPlayer =
+				currentPlayer === 1
+					? 2
+					: 1;
+
+			statusElement.textContent =
+				"TURN PASSED";
+
+			renderBoard();
+			updateHUD();
+
+			if(isBoardFull()) {
+				finishGame();
+				return;
+			}
+
+			if(
+				mode === "pvc" &&
+				currentPlayer === 2
+			) {
+				runAIMove();
+			}
+		}
+
+		function getPlayerName(player) {
+			if(
+				player === 2 &&
+				mode === "pvc"
+			) {
+				return "COMPUTER";
+			}
+
+			return "PLAYER " + player;
+		}
+
+		function updateTurnText() {
+			turnElement.textContent =
+				getPlayerName(
+					currentPlayer
+				);
+		}
+
+		function updateHUD() {
+			scoreElement.textContent =
+				scores[1] +
+				scores[2];
+
+			score1Element.textContent =
+				scores[1];
+
+			score2Element.textContent =
+				scores[2];
+
+			scorePanel1.textContent =
+				scores[1];
+
+			scorePanel2.textContent =
+				scores[2];
+
+			levelElement.textContent =
+				size +
+				"×" +
+				size;
+
+			updateTurnText();
+		}
+
+		function updateSizeUI() {
+			sizeButton.textContent =
+				"GRID " +
+				size;
+
+			gridSizeControl.textContent =
+				size +
+				" × " +
+				size;
+		}
+
+		function updateModeUI() {
+			modeButton.textContent =
+				mode === "pvp"
+					? "2P"
+					: "VS AI";
+
+			modeControl.textContent =
+				mode === "pvp"
+					? "2 PLAYERS"
+					: "PLAYER VS AI";
+
+			difficultyElement.value =
+				difficultyControl.value;
+		}
+
+		function updateLetterUI() {
+			letterSButton.classList.toggle(
+				"active",
+				selectedLetter === "S"
+			);
+
+			letterOButton.classList.toggle(
+				"active",
+				selectedLetter === "O"
+			);
+		}
+
+		function cycleSize() {
+			let nextSize =
+				size + 1;
+
+			if(nextSize > 12) {
+				nextSize = 5;
+			}
+
+			createBoard(
+				nextSize
+			);
+		}
+
+		function cycleMode() {
+			mode =
+				mode === "pvp"
+					? "pvc"
+					: "pvp";
+
+			createBoard(
+				size
+			);
+		}
+
+		function isInside(r,c) {
+			return (
+				r >= 0 &&
+				r < size &&
+				c >= 0 &&
+				c < size
+			);
+		}
+
+		function findNewSOSFromMove(
+			r,
+			c,
+			letter
+		) {
+			const formed = [];
+			const seen = new Set();
+
+			function addSOS(a,b,d) {
+				const key =
+					[
+						`${a[0]},${a[1]}`,
+						`${b[0]},${b[1]}`,
+						`${d[0]},${d[1]}`
+					].join("|");
+
+				if(!seen.has(key)) {
+					seen.add(key);
+					formed.push([
+						a,
+						b,
+						d
+					]);
+				}
+			}
+
+			if(letter === "O") {
+				for(const [dr,dc] of directions) {
+					const r1 =
+						r + dr;
+
+					const c1 =
+						c + dc;
+
+					const r2 =
+						r - dr;
+
+					const c2 =
+						c - dc;
+
+					if(
+						isInside(r1,c1) &&
+						isInside(r2,c2) &&
+						board[r1][c1] === "S" &&
+						board[r2][c2] === "S"
+					) {
+						addSOS(
+							[r2,c2],
+							[r,c],
+							[r1,c1]
+						);
+					}
+				}
+			}
+
+			if(letter === "S") {
+				for(const [dr,dc] of directions) {
+					const r1 =
+						r + dr;
+
+					const c1 =
+						c + dc;
+
+					const r2 =
+						r + dr * 2;
+
+					const c2 =
+						c + dc * 2;
+
+					if(
+						isInside(r1,c1) &&
+						isInside(r2,c2) &&
+						board[r1][c1] === "O" &&
+						board[r2][c2] === "S"
+					) {
+						addSOS(
+							[r,c],
+							[r1,c1],
+							[r2,c2]
+						);
+					}
+
+					const r3 =
+						r - dr;
+
+					const c3 =
+						c - dc;
+
+					const r4 =
+						r - dr * 2;
+
+					const c4 =
+						c - dc * 2;
+
+					if(
+						isInside(r3,c3) &&
+						isInside(r4,c4) &&
+						board[r3][c3] === "O" &&
+						board[r4][c4] === "S"
+					) {
+						addSOS(
+							[r4,c4],
+							[r3,c3],
+							[r,c]
+						);
+					}
+				}
+			}
+
+			return formed;
+		}
+
+		function highlightCells(
+			triples
+		) {
+			const cells = new Set();
+
+			for(const triangle of triples) {
+				for(const [r,c] of triangle) {
+					cells.add(
+						`${r},${c}`
+					);
+				}
+			}
+
+			for(const key of cells) {
+				const [r,c] =
+					key.split(",")
+						.map(Number);
+
+				const cell =
+					boardElement.children[
+						r * size + c
+					];
+
+				if(cell) {
+					cell.classList.add(
+						"highlight"
+					);
+				}
+			}
+
+			setTimeout(
+				() => {
+					renderBoard();
+				},
+				700
+			);
+		}
+
+		function isBoardFull() {
+			for(let r = 0; r < size; r++) {
+				for(let c = 0; c < size; c++) {
+					if(board[r][c] === "") {
+						return false;
+					}
+				}
+			}
+
+			return true;
+		}
+
+		function finishGame() {
+			gameOver = true;
+			aiThinking = false;
+
+			let title =
+				"TIE GAME";
+
+			if(
+				scores[1] >
+				scores[2]
+			) {
+				title =
+					getPlayerName(1) +
+					" WINS";
+			}
+
+			if(
+				scores[2] >
+				scores[1]
+			) {
+				title =
+					getPlayerName(2) +
+					" WINS";
+			}
+
+			overlayTitle.textContent =
+				title;
+
+			overlayText.innerHTML =
+				"GRID: " +
+				size +
+				"×" +
+				size +
+				"<br><br>" +
+				getPlayerName(1) +
+				": " +
+				scores[1] +
+				"<br>" +
+				getPlayerName(2) +
+				": " +
+				scores[2] +
+				"<br><br>" +
+				"BOARD FULL";
+
+			overlay.classList.add(
+				"show"
+			);
+
+			statusElement.textContent =
+				"BOARD FULL";
+		}
+
+		function getEmptyCells() {
+			const cells = [];
+
+			for(let r = 0; r < size; r++) {
+				for(let c = 0; c < size; c++) {
+					if(board[r][c] === "") {
+						cells.push([
+							r,
+							c
+						]);
+					}
+				}
+			}
+
+			return cells;
+		}
+
+		function evaluateMove(
+			r,
+			c,
+			letter
+		) {
+			board[r][c] =
+				letter;
+
+			const formed =
+				findNewSOSFromMove(
+					r,
+					c,
+					letter
+				);
+
+			board[r][c] =
+				"";
+
+			return formed.length;
+		}
+
+		function simulateMove(
+			r,
+			c,
+			letter
+		) {
+			board[r][c] =
+				letter;
+
+			const formed =
+				findNewSOSFromMove(
+					r,
+					c,
+					letter
+				);
+
+			board[r][c] =
+				"";
+
+			return formed.length;
+		}
+
+		function chooseRandomMove() {
+			const empty =
+				getEmptyCells();
+
+			if(!empty.length) {
+				return null;
+			}
+
+			const position =
+				empty[
+					Math.floor(
+						Math.random() *
+						empty.length
+					)
+				];
+
+			return {
+				r: position[0],
+				c: position[1],
+				letter:
+					Math.random() < .5
+						? "S"
+						: "O"
+			};
+		}
+
+		function chooseNormalMove() {
+			const empty =
+				getEmptyCells();
+
+			if(!empty.length) {
+				return null;
+			}
+
+			let bestScore = -1;
+			let candidates = [];
+
+			for(const [r,c] of empty) {
+				for(const letter of ["S","O"]) {
+					const score =
+						evaluateMove(
+							r,
+							c,
+							letter
+						);
+
+					if(score > bestScore) {
+						bestScore =
+							score;
+
+						candidates = [
+							{
+								r,
+								c,
+								letter
+							}
+						];
+					} else if(
+						score ===
+						bestScore
+					) {
+						candidates.push({
+							r,
+							c,
+							letter
+						});
+					}
+				}
+			}
+
+			if(bestScore > 0) {
+				return candidates[
+					Math.floor(
+						Math.random() *
+						candidates.length
+					)
+				];
+			}
+
+			return chooseRandomMove();
+		}
+
+		function chooseHardMove() {
+			const empty =
+				getEmptyCells();
+
+			if(!empty.length) {
+				return null;
+			}
+
+			let bestValue =
+				-Infinity;
+
+			let candidates = [];
+
+			for(const [r,c] of empty) {
+				for(const letter of ["S","O"]) {
+					const ownScore =
+						simulateMove(
+							r,
+							c,
+							letter
+						);
+
+					let futureRisk = 0;
+
+					board[r][c] =
+						letter;
+
+					for(const [or,oc] of getEmptyCells()) {
+						futureRisk =
+							Math.max(
+								futureRisk,
+								simulateMove(
+									or,
+									oc,
+									"S"
+								),
+								simulateMove(
+									or,
+									oc,
+									"O"
+								)
+							);
+					}
+
+					board[r][c] =
+						"";
+
+					const value =
+						ownScore * 100 -
+						futureRisk * 25;
+
+					if(value > bestValue) {
+						bestValue =
+							value;
+
+						candidates = [
+							{
+								r,
+								c,
+								letter
+							}
+						];
+					} else if(
+						value ===
+						bestValue
+					) {
+						candidates.push({
+							r,
+							c,
+							letter
+						});
+					}
+				}
+			}
+
+			if(!candidates.length) {
+				return chooseRandomMove();
+			}
+
+			return candidates[
+				Math.floor(
+					Math.random() *
+					candidates.length
+				)
+			];
+		}
+
+		function runAIMove() {
+			if(
+				gameOver ||
+				mode !== "pvc" ||
+				currentPlayer !== 2 ||
+				aiThinking
+			) {
+				return;
+			}
+
+			aiThinking = true;
+
+			statusElement.textContent =
+				"COMPUTER THINKING...";
+
+			setTimeout(
+				() => {
+					if(gameOver) {
+						aiThinking = false;
+						return;
+					}
+
+					let move = null;
+
+					const difficulty =
+						difficultyControl.value;
+
+					if(
+						difficulty ===
+						"easy"
+					) {
+						move =
+							chooseRandomMove();
+					} else if(
+						difficulty ===
+						"normal"
+					) {
+						move =
+							chooseNormalMove();
+					} else {
+						move =
+							chooseHardMove();
+					}
+
+					if(!move) {
+						aiThinking = false;
+						finishGame();
+						return;
+					}
+
+					aiThinking = false;
+
+					placeLetter(
+						move.r,
+						move.c,
+						move.letter
+					);
+				},
+				300
+			);
+		}
+
+		function restartGame() {
+			createBoard(
+				size
+			);
+		}
+
+		function showLastFormed() {
+			if(!lastFormed.length) {
+				statusElement.textContent =
+					"NO RECENT SOS";
+				return;
+			}
+
+			highlightCells(
+				lastFormed
+			);
+		}
+
+		function setDifficulty(value) {
+			difficultyControl.value =
+				value;
+
+			difficultyElement.value =
+				value;
+		}
+
+		document
+			.querySelectorAll(".tab")
+			.forEach(
+				tab => {
+					tab.addEventListener(
+						"click",
+						() => {
+							document
+								.querySelectorAll(
+									".tab"
+								)
+								.forEach(
+									item => {
+										item.classList.remove(
+											"active"
+										);
+									}
+								);
+
+							document
+								.querySelectorAll(
+									".page"
+								)
+								.forEach(
+									page => {
+										page.classList.remove(
+											"active"
+										);
+									}
+								);
+
+							tab.classList.add(
+								"active"
+							);
+
+							document
+								.getElementById(
+									tab.dataset.page
+								)
+								.classList.add(
+									"active"
+								);
+						}
+					);
+				}
+			);
+
+		letterSButton.addEventListener(
+			"click",
+			() => {
+				if(
+					aiThinking ||
+					gameOver
+				) {
+					return;
+				}
+
+				selectedLetter = "S";
+				updateLetterUI();
+
+				statusElement.textContent =
+					"SELECTED S";
+			}
+		);
+
+		letterOButton.addEventListener(
+			"click",
+			() => {
+				if(
+					aiThinking ||
+					gameOver
+				) {
+					return;
+				}
+
+				selectedLetter = "O";
+				updateLetterUI();
+
+				statusElement.textContent =
+					"SELECTED O";
+			}
+		);
+
+		sizeButton.addEventListener(
+			"click",
+			cycleSize
+		);
+
+		gridSizeControl.addEventListener(
+			"click",
+			cycleSize
+		);
+
+		modeButton.addEventListener(
+			"click",
+			cycleMode
+		);
+
+		modeControl.addEventListener(
+			"click",
+			cycleMode
+		);
+
+		difficultyControl.addEventListener(
+			"change",
+			() => {
+				difficultyElement.value =
+					difficultyControl.value;
+			}
+		);
+
+		difficultyElement.addEventListener(
+			"change",
+			() => {
+				difficultyControl.value =
+					difficultyElement.value;
+			}
+		);
+
+		connectedControl.addEventListener(
+			"click",
+			() => {
+				connectedVisible =
+					!connectedVisible;
+
+				connectedControl.textContent =
+					connectedVisible
+						? "ON"
+						: "OFF";
+
+				connectedControl.classList.toggle(
+					"active",
+					connectedVisible
+				);
+
+				renderBoard();
+			}
+		);
+
+		document
+			.getElementById("hintButton")
+			.addEventListener(
+				"click",
+				showLastFormed
+			);
+
+		document
+			.getElementById("restartButton")
+			.addEventListener(
+				"click",
+				restartGame
+			);
+
+		document
+			.getElementById("newButton")
+			.addEventListener(
+				"click",
+				restartGame
+			);
+
+		document
+			.getElementById("overlayNew")
+			.addEventListener(
+				"click",
+				restartGame
+			);
+
+		document
+			.getElementById("overlayClose")
+			.addEventListener(
+				"click",
+				() => {
+					overlay.classList.remove(
+						"show"
+					);
+
+					if(
+						!gameOver &&
+						mode === "pvc" &&
+						currentPlayer === 2
+					) {
+						runAIMove();
+					}
+				}
+			);
+
+		document.addEventListener(
+			"keydown",
+			event => {
+				if(
+					event.key === "s" ||
+					event.key === "S"
+				) {
+					event.preventDefault();
+
+					selectedLetter = "S";
+					updateLetterUI();
+					return;
+				}
+
+				if(
+					event.key === "o" ||
+					event.key === "O"
+				) {
+					event.preventDefault();
+
+					selectedLetter = "O";
+					updateLetterUI();
+					return;
+				}
+
+				if(
+					event.key >= "1" &&
+					event.key <= "8"
+				) {
+					event.preventDefault();
+
+					const newSize =
+						4 +
+						Number(
+							event.key
+						);
+
+					createBoard(
+						newSize
+					);
+
+					return;
+				}
+
+				if(
+					event.key === "r" ||
+					event.key === "R"
+				) {
+					event.preventDefault();
+
+					restartGame();
+					return;
+				}
+
+				if(
+					event.key === "h" ||
+					event.key === "H"
+				) {
+					event.preventDefault();
+
+					showLastFormed();
+				}
+			}
+		);
+
+		window.addEventListener(
+			"resize",
+			renderBoard
+		);
+
+		createBoard(5);
+	</script>
+</body>
+</html>
