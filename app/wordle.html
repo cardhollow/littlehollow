@@ -599,7 +599,7 @@
 		</div>
 	</div>
 
-	<script>
+		<script>
 		const ROWS = 6;
 		const WORD_LENGTH = 5;
 
@@ -633,7 +633,14 @@
 		const overlayText =
 			document.getElementById("overlayText");
 
-		let words = [];
+		let easyWords = [];
+		let hardWords = [];
+		let activeWords = [];
+		let difficulty =
+			localStorage.getItem(
+				"little_hollow_wordle_difficulty"
+			) || "easy";
+
 		let answer = "";
 		let guesses = [];
 		let currentGuess = "";
@@ -682,64 +689,160 @@
 				.toLowerCase();
 		}
 
+		async function loadWordFile(file) {
+			const response =
+				await fetch(
+					file,
+					{
+						cache: "no-store"
+					}
+				);
+
+			if (!response.ok) {
+				throw new Error(
+					file +
+					" HTTP " +
+					response.status
+				);
+			}
+
+			const text =
+				await response.text();
+
+			return [
+				...new Set(
+					text
+						.split(/\r?\n/)
+						.map(normalizeWord)
+						.filter(
+							word =>
+								/^[a-z]{5}$/.test(
+									word
+								)
+						)
+				)
+			];
+		}
+
 		async function loadWords() {
 			try {
-				const response =
-					await fetch(
-						"words.txt",
-						{
-							cache: "no-store"
-						}
+				loadingElement.textContent =
+					"LOADING EASY WORDS...";
+
+				easyWords =
+					await loadWordFile(
+						"words2.txt"
 					);
 
-				if (!response.ok) {
+				loadingElement.textContent =
+					"LOADING HARD WORDS...";
+
+				hardWords =
+					await loadWordFile(
+						"words.txt"
+					);
+
+				if (!easyWords.length) {
 					throw new Error(
-						"HTTP " + response.status
+						"words2.txt contains no valid 5-letter words"
 					);
 				}
 
-				const text =
-					await response.text();
-
-				words = text
-					.split(/\r?\n/)
-					.map(normalizeWord)
-					.filter(
-						word =>
-							/^[a-z]{5}$/.test(word)
-					);
-
-				words =
-					[...new Set(words)];
-
-				if (!words.length) {
+				if (!hardWords.length) {
 					throw new Error(
-						"No five-letter words found"
+						"words.txt contains no valid 5-letter words"
 					);
 				}
 
 				loadingElement.style.display =
 					"none";
 
-				newGame();
+				setDifficulty(
+					difficulty,
+					false
+				);
 
 			} catch (error) {
 				loadingElement.textContent =
-					"FAILED TO LOAD words.txt";
+					"FAILED TO LOAD WORD FILES";
 
 				statusElement.textContent =
-					"PUT words.txt BESIDE wordle.html";
+					"NEED words2.txt AND words.txt";
 
 				console.error(error);
 			}
 		}
 
+		function setDifficulty(
+			value,
+			startNewGame = true
+		) {
+			if (
+				value !== "easy" &&
+				value !== "hard"
+			) {
+				value = "easy";
+			}
+
+			difficulty = value;
+
+			localStorage.setItem(
+				"little_hollow_wordle_difficulty",
+				difficulty
+			);
+
+			activeWords =
+				difficulty === "easy"
+					? easyWords
+					: hardWords;
+
+			updateDifficultyUI();
+
+			if (
+				startNewGame &&
+				activeWords.length
+			) {
+				newGame();
+
+				statusElement.textContent =
+					difficulty === "easy"
+						? "EASY MODE"
+						: "HARD MODE";
+			}
+		}
+
+		function updateDifficultyUI() {
+			const easyButton =
+				document.getElementById(
+					"easyDifficulty"
+				);
+
+			const hardButton =
+				document.getElementById(
+					"hardDifficulty"
+				);
+
+			if (!easyButton || !hardButton) {
+				return;
+			}
+
+			easyButton.classList.toggle(
+				"active",
+				difficulty === "easy"
+			);
+
+			hardButton.classList.toggle(
+				"active",
+				difficulty === "hard"
+			);
+		}
+
 		function chooseAnswer() {
 			answer =
-				words[
+				activeWords[
 					Math.floor(
 						Math.random() *
-						words.length
+						activeWords.length
 					)
 				];
 		}
@@ -758,7 +861,9 @@
 					c++
 				) {
 					const tile =
-						document.createElement("div");
+						document.createElement(
+							"div"
+						);
 
 					tile.className =
 						"tile";
@@ -773,7 +878,10 @@
 			}
 		}
 
-		function getTile(rowIndex, colIndex) {
+		function getTile(
+			rowIndex,
+			colIndex
+		) {
 			return boardElement.children[
 				rowIndex *
 				WORD_LENGTH +
@@ -830,9 +938,11 @@
 					remaining[
 						answerLetter
 					] =
-						(remaining[
-							answerLetter
-						] || 0) + 1;
+						(
+							remaining[
+								answerLetter
+							] || 0
+						) + 1;
 				}
 			}
 
@@ -1072,7 +1182,10 @@
 				currentGuess.length - 1;
 
 			const tile =
-				getTile(row, position);
+				getTile(
+					row,
+					position
+				);
 
 			tile.classList.remove(
 				"pop"
@@ -1096,10 +1209,6 @@
 				return;
 			}
 
-			if (!currentGuess.length) {
-				return;
-			}
-
 			currentGuess =
 				currentGuess.slice(
 					0,
@@ -1110,7 +1219,9 @@
 		}
 
 		function resetKeyboard() {
-			for (const key in keyStates) {
+			for (
+				const key in keyStates
+			) {
 				delete keyStates[key];
 			}
 
@@ -1126,7 +1237,9 @@
 		}
 
 		function newGame() {
-			if (!words.length) {
+			if (
+				!activeWords.length
+			) {
 				return;
 			}
 
@@ -1146,8 +1259,12 @@
 				"show"
 			);
 
+			updateDifficultyUI();
+
 			statusElement.textContent =
-				"GUESS 1/" + ROWS;
+				difficulty === "easy"
+					? "EASY MODE — GUESS 1/6"
+					: "HARD MODE — GUESS 1/6";
 		}
 
 		function restartGame() {
@@ -1160,16 +1277,18 @@
 
 			const elapsed =
 				Math.floor(
-					(Date.now() -
-						startTime) /
-					1000
+					(
+						Date.now() -
+						startTime
+					) / 1000
 				);
 
 			const guessBonus =
-				(ROWS -
+				(
+					ROWS -
 					guessesUsed +
-					1) *
-				100;
+					1
+				) * 100;
 
 			const timeBonus =
 				Math.max(
@@ -1177,10 +1296,16 @@
 					300 - elapsed
 				);
 
+			const difficultyBonus =
+				difficulty === "hard"
+					? 500
+					: 0;
+
 			return (
 				500 +
 				guessBonus +
-				timeBonus
+				timeBonus +
+				difficultyBonus
 			);
 		}
 
@@ -1227,6 +1352,9 @@
 						answer.toUpperCase() +
 						"</b>" +
 						"<br><br>" +
+						"MODE: " +
+						difficulty.toUpperCase() +
+						"<br>" +
 						"GUESS: " +
 						guesses.length +
 						"/" +
@@ -1273,6 +1401,9 @@
 						answer.toUpperCase() +
 						"</b>" +
 						"<br><br>" +
+						"MODE: " +
+						difficulty.toUpperCase() +
+						"<br>" +
 						"YOU USED ALL 6 ATTEMPTS.";
 
 					overlay.classList.add(
@@ -1296,7 +1427,11 @@
 				"<br>" +
 				"GRAY = NOT IN WORD" +
 				"<br><br>" +
-				"YOU HAVE 6 GUESSES.";
+				"6 ATTEMPTS" +
+				"<br>" +
+				"EASY = words2.txt" +
+				"<br>" +
+				"HARD = words.txt";
 
 			overlay.classList.add(
 				"show"
@@ -1365,7 +1500,9 @@
 							return;
 						}
 
-						addLetter(value);
+						addLetter(
+							value
+						);
 					}
 				);
 			});
@@ -1408,6 +1545,38 @@
 					);
 				}
 			);
+
+		const easyDifficulty =
+			document.getElementById(
+				"easyDifficulty"
+			);
+
+		const hardDifficulty =
+			document.getElementById(
+				"hardDifficulty"
+			);
+
+		if (easyDifficulty) {
+			easyDifficulty.addEventListener(
+				"click",
+				() => {
+					setDifficulty(
+						"easy"
+					);
+				}
+			);
+		}
+
+		if (hardDifficulty) {
+			hardDifficulty.addEventListener(
+				"click",
+				() => {
+					setDifficulty(
+						"hard"
+					);
+				}
+			);
+		}
 
 		document.addEventListener(
 			"keydown",
@@ -1466,6 +1635,30 @@
 					event.preventDefault();
 
 					newGame();
+
+					return;
+				}
+
+				if (
+					key === "1"
+				) {
+					event.preventDefault();
+
+					setDifficulty(
+						"easy"
+					);
+
+					return;
+				}
+
+				if (
+					key === "2"
+				) {
+					event.preventDefault();
+
+					setDifficulty(
+						"hard"
+					);
 				}
 			}
 		);
