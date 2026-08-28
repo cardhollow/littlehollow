@@ -2,51 +2,69 @@
 
     const root=document.getElementById("windows-root");
     const taskbar=document.getElementById("taskbar-items");
+
     let zTop=100;
-    const windows=[]; // {id, el, taskbarBtn, standaloneKey, minimized, maximized}
+    const windows=[];
+
     let counter=0;
 
     /*
-     * External application tabs opened through /application.html.
+     * Browser application tabs opened through
+     * /application.html
      *
      * {
-     *   window: browserWindow,
-     *   appId,
-     *   ready
+     *     window: BrowserWindow,
+     *     appId: String,
+     *     ready: Boolean
      * }
      */
     const applicationTabs=new Map();
 
 
     function bringToFront(win){
+
+        if(!win||win.closed){
+            return;
+        }
+
         zTop+=1;
+
         win.el.style.zIndex=zTop;
     }
 
 
     function findStandalone(key){
+
         return windows.find(
             w=>w.standaloneKey===key&&!w.closed
         );
     }
 
 
-    /**
-     * options: {
-     *   title,
-     *   html,
-     *   iframeSrc,
-     *   closable,
-     *   draggable,
-     *   resizable,
-     *   maximizable,
-     *   width,
-     *   height,
-     *   x,
-     *   y,
-     *   standaloneKey,
-     *   noPad,
-     *   onClose
+    /*
+     * =========================================================
+     * CREATE NORMAL WINDOW
+     * =========================================================
+     *
+     * options:
+     *
+     * {
+     *     title,
+     *     html,
+     *     iframeSrc,
+     *
+     *     closable,
+     *     draggable,
+     *     resizable,
+     *
+     *     width,
+     *     height,
+     *     x,
+     *     y,
+     *
+     *     standaloneKey,
+     *     noPad,
+     *     onClose
      * }
      */
     function openWindow(options){
@@ -55,7 +73,7 @@
 
 
         /*
-         * Standalone window protection
+         * Standalone protection
          */
         if(options.standaloneKey){
 
@@ -79,16 +97,21 @@
 
         counter+=1;
 
-        const id="win-"+counter;
+        const id=
+            "win-"+counter;
 
 
         /*
-         * Main window element
+         * Main window
          */
-        const el=document.createElement("div");
+        const el=
+            document.createElement("div");
 
-        el.className="cyan-window";
+        el.className=
+            "cyan-window";
+
         el.id=id;
+
 
         el.style.width=
             options.width||"420px";
@@ -103,6 +126,7 @@
         const offset=
             (windows.length%8)*22;
 
+
         const defaultX=
             options.x!=null
             ?options.x
@@ -110,11 +134,14 @@
                 20,
                 (
                     window.innerWidth-
-                    parseInt(options.width||420)
+                    parseInt(
+                        options.width||420
+                    )
                 )/2+
                 offset-
                 100
             );
+
 
         const defaultY=
             options.y!=null
@@ -123,11 +150,14 @@
                 60,
                 (
                     window.innerHeight-
-                    parseInt(options.height||320)
+                    parseInt(
+                        options.height||320
+                    )
                 )/2+
                 offset-
                 100
             );
+
 
         el.style.left=
             defaultX+"px";
@@ -137,7 +167,9 @@
 
 
         /*
-         * Header
+         * =====================================================
+         * HEADER
+         * =====================================================
          */
         const header=
             document.createElement("div");
@@ -162,7 +194,9 @@
 
 
         /*
-         * Header buttons
+         * Buttons
+         *
+         * _   □   ×
          */
         const btns=
             document.createElement("div");
@@ -172,9 +206,9 @@
 
 
         /*
+         * -----------------------------------------------------
          * MINIMIZE
-         *
-         * _
+         * -----------------------------------------------------
          */
         const minBtn=
             document.createElement("button");
@@ -186,28 +220,36 @@
 
 
         /*
-         * MAXIMIZE
+         * -----------------------------------------------------
+         * OPEN IN NEW TAB
+         * -----------------------------------------------------
          *
-         * □
+         * This is the □ button.
+         *
+         * It DOES NOT maximize the window.
+         *
+         * It opens the same iframe application through:
+         *
+         * /application.html
          */
-        let maxBtn=null;
+        let newTabBtn=null;
 
-        if(options.maximizable!==false){
+        if(options.iframeSrc){
 
-            maxBtn=
+            newTabBtn=
                 document.createElement("button");
 
-            maxBtn.textContent="□";
-            maxBtn.title="Maximize";
+            newTabBtn.textContent="□";
+            newTabBtn.title="Open in New Tab";
 
-            btns.appendChild(maxBtn);
+            btns.appendChild(newTabBtn);
         }
 
 
         /*
+         * -----------------------------------------------------
          * CLOSE
-         *
-         * ×
+         * -----------------------------------------------------
          */
         let closeBtn=null;
 
@@ -227,7 +269,9 @@
 
 
         /*
-         * Content
+         * =====================================================
+         * CONTENT
+         * =====================================================
          */
         const content=
             document.createElement("div");
@@ -238,17 +282,23 @@
 
 
         /*
-         * Existing iframe window
+         * Store iframe reference so the same app source
+         * can be opened in the browser tab.
          */
+        let iframe=null;
+
+
         if(options.iframeSrc){
 
-            const iframe=
+            iframe=
                 document.createElement("iframe");
 
             iframe.src=
                 options.iframeSrc;
 
-            content.appendChild(iframe);
+            content.appendChild(
+                iframe
+            );
 
         }else if(options.html!==undefined){
 
@@ -262,7 +312,9 @@
 
 
         /*
-         * Resize handle
+         * =====================================================
+         * RESIZE HANDLE
+         * =====================================================
          */
         if(options.resizable!==false){
 
@@ -285,20 +337,30 @@
 
 
         /*
-         * Window state
+         * =====================================================
+         * WINDOW STATE
+         * =====================================================
          */
         const win={
+
             id,
+
             el,
-            title:options.title||"WINDOW",
+
+            title:
+                options.title||"WINDOW",
+
             standaloneKey:
                 options.standaloneKey||null,
 
-            minimized:false,
-            maximized:false,
-            closed:false,
+            iframe,
 
-            restoreState:null,
+            iframeSrc:
+                options.iframeSrc||null,
+
+            minimized:false,
+
+            closed:false,
 
             onClose:
                 options.onClose||null
@@ -317,6 +379,7 @@
             "mousedown",
             ()=>bringToFront(win)
         );
+
 
         el.addEventListener(
             "touchstart",
@@ -338,7 +401,9 @@
 
 
         /*
-         * Minimize
+         * =====================================================
+         * MINIMIZE
+         * =====================================================
          */
         minBtn.addEventListener(
             "click",
@@ -352,27 +417,45 @@
 
 
         /*
-         * Maximize
+         * =====================================================
+         * OPEN IN NEW TAB
+         * =====================================================
          */
-        if(maxBtn){
+        if(newTabBtn){
 
-            maxBtn.addEventListener(
+            newTabBtn.addEventListener(
                 "click",
                 e=>{
 
                     e.stopPropagation();
 
-                    toggleMaximize(
-                        win,
-                        maxBtn
-                    );
+                    openApplicationTab({
+
+                        appId:
+                            win.standaloneKey||
+                            win.id,
+
+                        title:
+                            win.title,
+
+                        src:
+                            win.iframeSrc,
+
+                        /*
+                         * This is specifically the
+                         * "new browser tab" operation.
+                         */
+                        standalone:true
+                    });
                 }
             );
         }
 
 
         /*
-         * Close
+         * =====================================================
+         * CLOSE
+         * =====================================================
          */
         if(closeBtn){
 
@@ -390,311 +473,284 @@
 
         addTaskbarButton(win);
 
+
         return win;
     }
 
 
     /*
      * =========================================================
-     * MAXIMIZE / RESTORE
-     * =========================================================
-     */
-    function toggleMaximize(
-        win,
-        button
-    ){
-
-        /*
-         * RESTORE
-         */
-        if(win.maximized){
-
-            if(win.restoreState){
-
-                win.el.style.left=
-                    win.restoreState.left;
-
-                win.el.style.top=
-                    win.restoreState.top;
-
-                win.el.style.width=
-                    win.restoreState.width;
-
-                win.el.style.height=
-                    win.restoreState.height;
-            }
-
-            win.maximized=false;
-
-            button.textContent="□";
-            button.title="Maximize";
-
-            bringToFront(win);
-
-            return;
-        }
-
-
-        /*
-         * Save current state
-         */
-        win.restoreState={
-
-            left:
-                win.el.style.left,
-
-            top:
-                win.el.style.top,
-
-            width:
-                win.el.style.width,
-
-            height:
-                win.el.style.height
-        };
-
-
-        /*
-         * Maximize
-         */
-        win.maximized=true;
-
-        win.el.style.left="0px";
-        win.el.style.top="0px";
-
-        win.el.style.width="100%";
-
-        win.el.style.height=
-            "calc(100% - 44px)";
-
-
-        /*
-         * Restore icon
-         */
-        button.textContent="❐";
-        button.title="Restore";
-
-        bringToFront(win);
-    }
-
-
-    /*
-     * =========================================================
-     * OPEN APPLICATION IN A REAL BROWSER TAB
+     * OPEN APP IN REAL BROWSER TAB
      * =========================================================
      *
-     * The actual browser tab is:
+     * The new browser tab is:
      *
      * /application.html
      *
-     * application.html contains exactly ONE iframe.
+     * That page contains ONE iframe.
      */
     function openApplicationTab(options){
 
-    options=options||{};
+        options=options||{};
 
-    const src=options.src||null;
-    const srcDoc=options.srcDoc||null;
 
-    if(!src&&!srcDoc){
+        const src=
+            options.src||null;
 
-        console.error(
-            "WM.openApplicationTab: missing src or srcDoc"
-        );
+        const srcDoc=
+            options.srcDoc||null;
 
-        return null;
-    }
 
-    const appId=
-        options.appId||
-        options.standaloneKey||
-        (
-            "application-"+
-            Date.now()+
-            "-"+
-            Math.random()
-        );
+        if(!src&&!srcDoc){
 
-    /*
-     * Reuse existing browser tab when requested.
-     */
-    if(options.standalone!==false){
-
-        const existing=
-            applicationTabs.get(appId);
-
-        if(
-            existing&&
-            existing.window&&
-            !existing.window.closed
-        ){
-
-            existing.window.focus();
-
-            sendApplicationCommand(
-                existing.window,
-                {
-                    type:"load-app",
-                    appId,
-                    title:
-                        options.title||
-                        "APPLICATION",
-                    src,
-                    srcDoc
-                }
+            console.error(
+                "WM.openApplicationTab: missing src or srcDoc"
             );
 
-            return existing.window;
+            return null;
         }
 
-        applicationTabs.delete(appId);
-    }
 
-    /*
-     * IMPORTANT:
-     *
-     * This MUST happen immediately inside the user's
-     * click/tap handler.
-     *
-     * Do not put window.open() inside setTimeout,
-     * Promise, fetch, or another asynchronous callback.
-     */
-    let appWindow=null;
-
-    try{
-
-        appWindow=
-            window.open(
-                "about:blank",
-                "_blank"
+        /*
+         * Give the application a stable ID.
+         */
+        const appId=
+            options.appId||
+            (
+                "application-"+
+                Date.now()+"-"+
+                Math.random()
             );
 
-    }catch(error){
 
-        console.error(
-            "Little Hollow: could not open browser tab.",
-            error
-        );
+        /*
+         * Reuse existing browser tab.
+         */
+        if(options.standalone!==false){
 
-        return null;
-    }
-
-    /*
-     * Browser blocked the new tab.
-     */
-    if(!appWindow){
-
-        console.warn(
-            "Little Hollow: popup/new-tab was blocked."
-        );
-
-        return null;
-    }
-
-    /*
-     * Store it immediately.
-     */
-    const record={
-        window:appWindow,
-        appId,
-        ready:false
-    };
-
-    applicationTabs.set(
-        appId,
-        record
-    );
-
-    /*
-     * Navigate the newly created tab to
-     * application.html.
-     */
-    try{
-
-        const applicationURL=
-            new URL(
-                "/application.html",
-                window.location.href
-            ).href;
-
-        appWindow.location.href=
-            applicationURL;
-
-    }catch(error){
-
-        console.error(
-            "Little Hollow: could not navigate application tab.",
-            error
-        );
-
-        try{
-            appWindow.close();
-        }catch(_){}
-
-        applicationTabs.delete(appId);
-
-        return null;
-    }
-
-    /*
-     * application.html needs time to load.
-     * Send the command repeatedly until its
-     * listener is active.
-     */
-    let attempts=0;
-
-    const retryTimer=
-        setInterval(()=>{
-
-            if(
-                !appWindow||
-                appWindow.closed
-            ){
-
-                clearInterval(
-                    retryTimer
-                );
-
-                applicationTabs.delete(
+            const existing=
+                applicationTabs.get(
                     appId
                 );
 
-                return;
+
+            if(
+                existing&&
+                existing.window&&
+                !existing.window.closed
+            ){
+
+                existing.window.focus();
+
+                sendApplicationCommand(
+                    existing.window,
+                    {
+                        type:"load-app",
+
+                        appId,
+
+                        title:
+                            options.title||
+                            "APPLICATION",
+
+                        src,
+
+                        srcDoc
+                    }
+                );
+
+                return existing.window;
             }
 
-            attempts++;
 
-            sendApplicationCommand(
-                appWindow,
-                {
-                    type:"load-app",
-                    appId,
-                    title:
-                        options.title||
-                        "APPLICATION",
-                    src,
-                    srcDoc
-                }
+            applicationTabs.delete(
+                appId
+            );
+        }
+
+
+        /*
+         * Open blank immediately.
+         *
+         * This is intentionally synchronous so that
+         * a button click can create the browser tab.
+         */
+        let appWindow=null;
+
+
+        try{
+
+            appWindow=
+                window.open(
+                    "about:blank",
+                    "_blank"
+                );
+
+        }catch(error){
+
+            console.error(
+                "Little Hollow: failed to open browser tab.",
+                error
             );
 
-            /*
-             * Stop retrying after a few seconds.
-             */
-            if(attempts>=40){
+            return null;
+        }
 
-                clearInterval(
-                    retryTimer
-                );
+
+        /*
+         * Popup blocked
+         */
+        if(!appWindow){
+
+            console.warn(
+                "Little Hollow: browser blocked the new tab."
+            );
+
+            return null;
+        }
+
+
+        /*
+         * Register immediately.
+         */
+        applicationTabs.set(
+            appId,
+            {
+                window:appWindow,
+                appId,
+                ready:false
             }
+        );
 
-        },250);
 
-    return appWindow;
-}
+        /*
+         * Navigate the newly opened tab.
+         */
+        try{
+
+            const applicationURL=
+                new URL(
+                    "/application.html",
+                    window.location.href
+                ).href;
+
+
+            appWindow.location.href=
+                applicationURL;
+
+        }catch(error){
+
+            console.error(
+                "Little Hollow: failed to open application.html.",
+                error
+            );
+
+
+            try{
+                appWindow.close();
+            }catch(_){}
+
+
+            applicationTabs.delete(
+                appId
+            );
+
+
+            return null;
+        }
+
+
+        /*
+         * application.html has to finish loading before
+         * it can receive our command.
+         *
+         * Retry briefly.
+         */
+        let attempts=0;
+
+
+        const retryTimer=
+            setInterval(
+                ()=>{
+
+                    if(
+                        !appWindow||
+                        appWindow.closed
+                    ){
+
+                        clearInterval(
+                            retryTimer
+                        );
+
+                        applicationTabs.delete(
+                            appId
+                        );
+
+                        return;
+                    }
+
+
+                    attempts+=1;
+
+
+                    sendApplicationCommand(
+                        appWindow,
+                        {
+                            type:"load-app",
+
+                            appId,
+
+                            title:
+                                options.title||
+                                "APPLICATION",
+
+                            src,
+
+                            srcDoc
+                        }
+                    );
+
+
+                    if(attempts>=40){
+
+                        clearInterval(
+                            retryTimer
+                        );
+                    }
+
+                },
+                250
+            );
+
+
+        /*
+         * First attempt immediately.
+         */
+        sendApplicationCommand(
+            appWindow,
+            {
+                type:"load-app",
+
+                appId,
+
+                title:
+                    options.title||
+                    "APPLICATION",
+
+                src,
+
+                srcDoc
+            }
+        );
+
+
+        return appWindow;
+    }
+
 
     /*
      * =========================================================
-     * SEND MESSAGE TO application.html
+     * SEND COMMAND TO APPLICATION TAB
      * =========================================================
      */
     function sendApplicationCommand(
@@ -733,16 +789,13 @@
 
     /*
      * =========================================================
-     * MAIN PAGE ←→ application.html
+     * MAIN PAGE MESSAGE RECEIVER
      * =========================================================
      */
     window.addEventListener(
         "message",
         function(event){
 
-            /*
-             * Same origin only
-             */
             if(
                 event.origin!==
                 window.location.origin
@@ -764,7 +817,7 @@
 
 
             /*
-             * application.html is ready.
+             * application.html is ready
              */
             if(
                 message.type===
@@ -788,8 +841,8 @@
 
 
             /*
-             * Message coming from the application
-             * inside application.html.
+             * application.html forwarded something
+             * from its iframe.
              */
             if(
                 message.type===
@@ -801,8 +854,8 @@
 
 
                 /*
-                 * Re-dispatch so existing Main Page
-                 * message listeners can receive it.
+                 * Give the existing Main Page code
+                 * the original application message.
                  */
                 window.dispatchEvent(
                     new MessageEvent(
@@ -957,6 +1010,11 @@
      */
     function closeWindow(win){
 
+        if(!win||win.closed){
+            return;
+        }
+
+
         win.closed=true;
 
 
@@ -1095,17 +1153,6 @@
                 );
 
 
-            /*
-             * Don't drag maximized windows.
-             */
-            if(
-                currentWin&&
-                currentWin.maximized
-            ){
-                return;
-            }
-
-
             const rect=
                 win.getBoundingClientRect();
 
@@ -1116,6 +1163,7 @@
             offsetX=
                 clientX-
                 rect.left;
+
 
             offsetY=
                 clientY-
@@ -1141,6 +1189,7 @@
             let x=
                 clientX-
                 offsetX;
+
 
             let y=
                 clientY-
@@ -1178,6 +1227,7 @@
 
             win.style.left=
                 x+"px";
+
 
             win.style.top=
                 y+"px";
@@ -1312,28 +1362,12 @@
             clientY
         ){
 
-            const currentWin=
-                windows.find(
-                    w=>w.el===win
-                );
-
-
-            /*
-             * Don't resize maximized windows.
-             */
-            if(
-                currentWin&&
-                currentWin.maximized
-            ){
-                return;
-            }
-
-
             resizing=true;
 
 
             startW=
                 win.offsetWidth;
+
 
             startH=
                 win.offsetHeight;
@@ -1341,6 +1375,7 @@
 
             startX=
                 clientX;
+
 
             startY=
                 clientY;
@@ -1379,6 +1414,7 @@
 
             win.style.width=
                 w+"px";
+
 
             win.style.height=
                 h+"px";
@@ -1493,24 +1529,25 @@
         closeAll,
 
         /*
-         * New browser tab application system
+         * Opens /application.html in a REAL browser tab.
          */
         openApplicationTab,
 
         /*
-         * Send Main Page → application.html → iframe
+         * Main Page → application.html → iframe
          */
         sendToApplicationTab,
 
         /*
-         * Get open application tabs
+         * List external application tabs.
          */
         listApplicationTabs,
 
         /*
-         * Existing window list
+         * Existing Little Hollow windows.
          */
         list:()=>windows.slice()
+
     };
 
 })();
