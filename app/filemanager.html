@@ -35,10 +35,15 @@ body{overflow:hidden}
 .ctx button:last-child{border-bottom:0}
 .ctx .danger{color:#ff6666}
 .ctx .zip-action{color:#66FFFF}
+.ctx .edit-action{color:#7fffff;font-weight:bold}
+.image-row{border-left:2px solid rgba(0,255,255,.35)}
 </style>
 </head>
+
 <body>
+
 <div class="wrap">
+
 <div class="bar">
 <input id="pathBox" placeholder="path or wildcard">
 <button id="refresh">REFRESH</button>
@@ -47,16 +52,36 @@ body{overflow:hidden}
 <button id="zip">ZIP SELECTED</button>
 <button id="selectAll">SELECT ALL</button>
 </div>
+
 <div class="tabs" id="tabs"></div>
+
 <div class="pathbar">
 <div class="current-path" id="currentPath"></div>
 </div>
-<div class="hint" id="hint">Tap a file to open it. EDIT opens Notepad. CODE opens OneCompiler. Tap a folder to enter it. Double-click/tap a name to rename. Long-press/right-click for more actions.</div>
-<div class="hint" id="error" style="display:none"></div>
-<div class="list" id="list"></div>
+
+<div class="hint" id="hint">
+Tap a file to open it.
+EDIT opens images in Image Editor.
+CODE opens OneCompiler.
+Tap a folder to enter it.
+Double-click/tap a name to rename.
+Long-press/right-click for more actions.
 </div>
+
+<div class="hint" id="error" style="display:none"></div>
+
+<div class="list" id="list"></div>
+
+</div>
+
 <div class="ctx" id="contextMenu"></div>
+
 <script>
+
+/* =========================================================
+   ZONES
+========================================================= */
+
 const zones=[
 {key:"local",label:"LOCAL",prefix:"chxd:/local/"},
 {key:"session",label:"SESSION",prefix:"chxd:/session/"},
@@ -64,17 +89,22 @@ const zones=[
 {key:"puter",label:"PUTER",prefix:"puter:/"},
 {key:"system",label:"SYSTEM",prefix:"chxd:/system/"}
 ];
+
 let current="local";
 let currentPrefix="";
 let selected=new Set();
+
 let contextPath=null;
 let contextIsFolder=false;
+
 let activeRename=null;
 let renameSaving=false;
 let renameRequest=0;
 let refreshSerial=0;
+
 const params=new URLSearchParams(location.search);
 const selectMode=params.get("select")==="1";
+
 const tabs=document.getElementById("tabs");
 const list=document.getElementById("list");
 const box=document.getElementById("pathBox");
@@ -83,786 +113,4083 @@ const errorBox=document.getElementById("error");
 const currentPathBox=document.getElementById("currentPath");
 const contextMenu=document.getElementById("contextMenu");
 
+
+/* =========================================================
+   ERROR
+========================================================= */
+
 function showError(s){
-errorBox.textContent=String(s||"Unknown error");
-errorBox.style.display="block";
-setTimeout(()=>{errorBox.style.display="none"},4500);
+
+    errorBox.textContent=String(
+        s||"Unknown error"
+    );
+
+    errorBox.style.display="block";
+
+    clearTimeout(showError.timer);
+
+    showError.timer=setTimeout(()=>{
+        errorBox.style.display="none";
+    },4500);
+
 }
-if(selectMode)hint.textContent="SELECT MODE: choose a file to return it to the calling app. Multiple files can be selected for OneCompiler.";
-zones.forEach(z=>{
-const b=document.createElement("button");
-b.textContent=z.label;
-b.dataset.k=z.key;
-if(z.key===current)b.classList.add("active");
-b.onclick=()=>{
-cancelRename();
-current=z.key;
-currentPrefix="";
-selected.clear();
-[...tabs.children].forEach(x=>x.classList.toggle("active",x.dataset.k===current));
-refresh();
-};
-tabs.appendChild(b);
-});
-function zone(){
-return zones.find(x=>x.key===current);
-}
-function ext(p){
-return(p.split("?")[0].split(".").pop()||"").toLowerCase();
-}
-function selectedPaths(){
-return[...selected];
-}
-function normalizeFolderPath(p){
-p=String(p||"");
-return p.endsWith("/")?p:p+"/";
-}
-function isFolderPath(p){
-return String(p||"").endsWith("/");
-}
-function displayName(p){
-const clean=String(p||"").replace(/\/+$/,"");
-const i=clean.lastIndexOf("/");
-return i>=0?clean.slice(i+1):clean;
-}
-function parentFolder(p){
-const clean=String(p||"").replace(/\/+$/,"");
-const i=clean.lastIndexOf("/");
-return i<0?"":clean.slice(0,i+1);
-}
-function updatePathDisplay(){
-const z=zone();
-currentPathBox.textContent=z.prefix+currentPrefix.replace(z.prefix,"");
-}
-function closeContextMenu(){
-contextMenu.style.display="none";
-contextPath=null;
-contextIsFolder=false;
-}
-function addContextButton(label,fn,className=""){
-const b=document.createElement("button");
-b.textContent=label;
-if(className)b.className=className;
-b.onclick=()=>{
-closeContextMenu();
-fn();
-};
-contextMenu.appendChild(b);
-}
-function showContextMenu(x,y,path,isFolder){
-cancelRename();
-contextPath=path;
-contextIsFolder=isFolder;
-contextMenu.innerHTML="";
-if(isFolder){
-addContextButton("OPEN",()=>enterFolder(path));
-addContextButton("RENAME",()=>startRenameByPath(path));
-addContextButton("DOWNLOAD",()=>downloadItem(path));
-addContextButton("SELECT",()=>{
-selected.add(path);
-refresh();
-});
-}else{
-addContextButton("OPEN",()=>openPath(path));
-addContextButton("RENAME",()=>startRenameByPath(path));
-addContextButton("DOWNLOAD",()=>downloadItem(path));
-if(ext(path)!=="zip")addContextButton("EDIT",()=>edit(path));
-if(["js","ts","py","java","c","cpp","cs","php","html","css"].includes(ext(path)))addContextButton("CODE",()=>{
-selected=new Set([path]);
-code();
-});
-if(ext(path)==="zip")addContextButton("UNZIP",()=>unzipFile(path),"zip-action");
-if(zone().key!=="system")addContextButton("SELECT",()=>{
-selected.add(path);
-refresh();
-});
-if(zone().key!=="system")addContextButton("DELETE",async()=>{
-const r=await parent.FS.remove(path);
-if(!r.ok){
-showError(r.error||"Could not delete.");
-return;
-}
-selected.delete(path);
-refresh();
-},"danger");
-}
-if(selected.size)addContextButton("DOWNLOAD SELECTED",()=>downloadSelected());
-contextMenu.style.display="block";
-const rect=contextMenu.getBoundingClientRect();
-let left=x;
-let top=y;
-if(left+rect.width>window.innerWidth)left=window.innerWidth-rect.width-4;
-if(top+rect.height>window.innerHeight)top=window.innerHeight-rect.height-4;
-contextMenu.style.left=Math.max(2,left)+"px";
-contextMenu.style.top=Math.max(2,top)+"px";
-}
-function startRenameByPath(path){
-closeContextMenu();
-const target=[...document.querySelectorAll(".name")].find(n=>n.dataset.path===path);
-if(target)startRename(target,path,isFolderPath(path));
-}
-function startRename(element,oldPath,folder){
-cancelRename();
-const oldName=displayName(oldPath);
-const input=document.createElement("input");
-input.className="rename-input";
-input.value=oldName;
-input.autocomplete="off";
-input.spellcheck=false;
-input.dataset.path=oldPath;
-const oldContent=element.textContent;
-activeRename={element,input,oldPath,oldName,oldContent,folder};
-element.innerHTML="";
-element.appendChild(input);
-input.focus();
-if(!folder){
-const dot=oldName.lastIndexOf(".");
-if(dot>0){
-try{input.setSelectionRange(0,dot)}catch(_){input.select()}
-}else input.select();
-}else input.select();
-input.addEventListener("keydown",e=>{
-if(e.key==="Enter"){
-e.preventDefault();
-finishRename();
-}else if(e.key==="Escape"){
-e.preventDefault();
-cancelRename();
-}
-});
-input.addEventListener("click",e=>e.stopPropagation());
-input.addEventListener("pointerdown",e=>e.stopPropagation());
-input.addEventListener("dblclick",e=>e.stopPropagation());
-}
-function buildNewPath(oldPath,newName,folder){
-let cleanName=String(newName||"").trim().replace(/[\/\\]/g,"").trim();
-if(!cleanName)return null;
-return parentFolder(oldPath)+cleanName+(folder?"/":"");
-}
-async function renameUsingFS(oldPath,newPath){
-if(parent.FS&&typeof parent.FS.rename==="function"){
-const r=await parent.FS.rename(oldPath,newPath);
-if(!r||!r.ok)throw new Error(r&&(r.error||r.summary)||"Could not rename.");
-return;
-}
-if(oldPath.endsWith("/")){
-const files=await parent.FS.list(oldPath);
-if(!Array.isArray(files))throw new Error("Could not read folder.");
-const descendants=files.filter(p=>String(p).startsWith(oldPath)&&String(p)!==oldPath);
-const entries=[];
-for(const source of descendants){
-if(String(source).endsWith("/"))continue;
-const r=await parent.FS.read(source);
-if(!r.ok)throw new Error(r.error||("Could not read "+source));
-const relative=String(source).slice(oldPath.length);
-entries.push({source,destination:normalizeFolderPath(newPath)+relative,content:r.content});
-}
-for(const e of entries){
-const w=await parent.FS.write(e.destination,e.content,true);
-if(!w.ok)throw new Error(w.error||("Could not create "+e.destination));
-}
-for(let i=entries.length-1;i>=0;i--){
-const r=await parent.FS.remove(entries[i].source);
-if(!r.ok)throw new Error(r.error||("Could not remove "+entries[i].source));
-}
-return;
-}
-const r=await parent.FS.read(oldPath);
-if(!r.ok)throw new Error(r.error||("Could not read "+oldPath));
-const w=await parent.FS.write(newPath,r.content,true);
-if(!w.ok)throw new Error(w.error||("Could not create "+newPath));
-const d=await parent.FS.remove(oldPath);
-if(!d.ok)throw new Error(d.error||("Could not remove "+oldPath));
-}
-async function finishRename(){
-if(!activeRename||renameSaving)return;
-const state=activeRename;
-const input=state.input;
-if(!input||!input.isConnected){
-activeRename=null;
-return;
-}
-const newName=input.value.trim();
-if(!newName){
-cancelRename();
-showError("Name cannot be empty.");
-return;
-}
-const newPath=buildNewPath(state.oldPath,newName,state.folder);
-if(!newPath){
-cancelRename();
-showError("Invalid name.");
-return;
-}
-if(newPath===state.oldPath){
-restoreRename();
-return;
-}
-const request=++renameRequest;
-renameSaving=true;
-try{
-await renameUsingFS(state.oldPath,newPath);
-if(request!==renameRequest)return;
-selected.delete(state.oldPath);
-selected.delete(newPath);
-activeRename=null;
-renameSaving=false;
-await refresh();
-}catch(err){
-if(request!==renameRequest)return;
-renameSaving=false;
-showError(err.message||String(err));
-if(input.isConnected)input.focus();
-}
-}
-function restoreRename(){
-if(!activeRename)return;
-const state=activeRename;
-state.element.textContent=state.oldContent;
-activeRename=null;
-renameSaving=false;
-}
-function cancelRename(){
-renameRequest++;
-restoreRename();
-}
-document.addEventListener("pointerdown",e=>{
-if(activeRename){
-const input=activeRename.input;
-if(e.target!==input&&!input.contains(e.target))finishRename();
-}
-if(!contextMenu.contains(e.target)&&!e.target.closest(".name")&&!e.target.closest(".rename-input"))closeContextMenu();
-},true);
-document.addEventListener("scroll",closeContextMenu,true);
-async function openPath(p){
-if(isFolderPath(p)){
-enterFolder(p);
-return;
-}
+
+
+/* =========================================================
+   SELECT MODE
+========================================================= */
+
 if(selectMode){
-parent.postMessage({type:"LH_FILE_SELECTED",path:p},"*");
-return;
+
+    hint.textContent=
+        "SELECT MODE: choose a file to return it to the calling app. Multiple files can be selected for OneCompiler.";
+
 }
-const e=ext(p);
-if(e==="zip"){
-await downloadBinary(p);
-return;
+
+
+/* =========================================================
+   BUILD TABS
+========================================================= */
+
+zones.forEach(z=>{
+
+    const b=document.createElement("button");
+
+    b.textContent=z.label;
+    b.dataset.k=z.key;
+
+    if(z.key===current){
+        b.classList.add("active");
+    }
+
+    b.onclick=()=>{
+
+        cancelRename();
+
+        current=z.key;
+        currentPrefix="";
+        selected.clear();
+
+        [
+            ...tabs.children
+        ].forEach(x=>{
+
+            x.classList.toggle(
+                "active",
+                x.dataset.k===current
+            );
+
+        });
+
+        refresh();
+
+    };
+
+    tabs.appendChild(b);
+
+});
+
+
+/* =========================================================
+   ZONE
+========================================================= */
+
+function zone(){
+
+    return zones.find(
+        x=>x.key===current
+    );
+
 }
-try{
-const r=await parent.Tools.execute("open_file",{path:p});
-if(r&&!r.ok)showError(r.summary||r.error||"Could not open file.");
-}catch(err){
-showError(err.message||err);
+
+
+/* =========================================================
+   EXTENSION
+========================================================= */
+
+function ext(p){
+
+    return(
+        p
+        .split("?")[0]
+        .split("#")[0]
+        .split(".")
+        .pop()||""
+    ).toLowerCase();
+
 }
+
+
+/* =========================================================
+   IMAGE DETECTION
+========================================================= */
+
+function isImagePath(path){
+
+    const e=ext(path);
+
+    return[
+        "png",
+        "jpg",
+        "jpeg",
+        "jpe",
+        "webp",
+        "gif",
+        "bmp",
+        "svg",
+        "avif",
+        "ico",
+        "tif",
+        "tiff"
+    ].includes(e);
+
 }
+
+
+/* =========================================================
+   SELECTED
+========================================================= */
+
+function selectedPaths(){
+
+    return[
+        ...selected
+    ];
+
+}
+
+
+/* =========================================================
+   FOLDER PATH
+========================================================= */
+
+function normalizeFolderPath(p){
+
+    p=String(p||"");
+
+    return p.endsWith("/")
+        ?p
+        :p+"/";
+
+}
+
+
+function isFolderPath(p){
+
+    return String(p||"").endsWith("/");
+
+}
+
+
+/* =========================================================
+   DISPLAY NAME
+========================================================= */
+
+function displayName(p){
+
+    const clean=
+        String(p||"")
+        .replace(/\/+$/,"");
+
+    const i=
+        clean.lastIndexOf("/");
+
+    return i>=0
+        ?clean.slice(i+1)
+        :clean;
+
+}
+
+
+/* =========================================================
+   PARENT FOLDER
+========================================================= */
+
+function parentFolder(p){
+
+    const clean=
+        String(p||"")
+        .replace(/\/+$/,"");
+
+    const i=
+        clean.lastIndexOf("/");
+
+    return i<0
+        ?""
+        :clean.slice(0,i+1);
+
+}
+
+
+/* =========================================================
+   PATH DISPLAY
+========================================================= */
+
+function updatePathDisplay(){
+
+    const z=zone();
+
+    currentPathBox.textContent=
+        z.prefix +
+        currentPrefix.replace(
+            z.prefix,
+            ""
+        );
+
+}
+
+
+/* =========================================================
+   CONTEXT MENU
+========================================================= */
+
+function closeContextMenu(){
+
+    contextMenu.style.display="none";
+
+    contextPath=null;
+    contextIsFolder=false;
+
+}
+
+
+function addContextButton(
+    label,
+    fn,
+    className=""
+){
+
+    const b=document.createElement("button");
+
+    b.textContent=label;
+
+    if(className){
+        b.className=className;
+    }
+
+    b.onclick=()=>{
+
+        closeContextMenu();
+
+        fn();
+
+    };
+
+    contextMenu.appendChild(b);
+
+}
+
+
+/* =========================================================
+   IMAGE EDITOR OPEN BRIDGE
+========================================================= */
+
+async function openImageEditor(path){
+
+    try{
+
+        /*
+         * Only image files should reach this function.
+         */
+
+        if(!isImagePath(path)){
+
+            showError(
+                "Not an image file: "+path
+            );
+
+            return;
+
+        }
+
+
+        /*
+         * Read through Little Hollow FS.
+         */
+
+        const r=
+            await parent.FS.read(path);
+
+
+        if(!r || !r.ok){
+
+            throw new Error(
+                r &&
+                r.error
+                    ?r.error
+                    :"Could not read image."
+            );
+
+        }
+
+
+        /*
+         * Image data exactly as stored by
+         * the Little Hollow filesystem.
+         *
+         * Usually:
+         *
+         * data:image/png;base64,...
+         */
+
+        const imageData=r.content;
+
+        const imageName=
+            displayName(path);
+
+
+        /*
+         * Build payload for the editor.
+         */
+
+        const payload={
+            type:"LH_RECEIVE_IMAGE",
+            data:imageData,
+            path:path,
+            name:imageName,
+            filename:imageName
+        };
+
+
+        /*
+         * --------------------------------------------------
+         * METHOD 1
+         * Native app helper, if Little Hollow provides it.
+         * --------------------------------------------------
+         */
+
+        if(
+            parent.Apps &&
+            typeof parent.Apps.openImageEditor==="function"
+        ){
+
+            const result=
+                await parent.Apps.openImageEditor({
+                    path:path,
+                    image:imageData,
+                    name:imageName
+                });
+
+
+            /*
+             * If helper directly handled the image,
+             * we're finished.
+             */
+
+            if(result!==false){
+                return;
+            }
+
+        }
+
+
+        /*
+         * --------------------------------------------------
+         * METHOD 2
+         * Generic application/window opener.
+         *
+         * This handles the case where the editor is opened
+         * as an iframe and returns its window/iframe.
+         * --------------------------------------------------
+         */
+
+        if(
+            parent.Apps &&
+            typeof parent.Apps.open==="function"
+        ){
+
+            let editorResult=null;
+
+            try{
+
+                editorResult=
+                    await parent.Apps.open(
+                        "Image Editor"
+                    );
+
+            }
+            catch(_){
+
+                editorResult=null;
+
+            }
+
+
+            /*
+             * If the app helper returned an iframe,
+             * iframe element, window, or contentWindow,
+             * send the API message.
+             */
+
+            const target=
+                editorResult &&
+                editorResult.contentWindow
+
+                    ?editorResult.contentWindow
+
+                    :editorResult &&
+                     editorResult.window
+
+                    ?editorResult.window
+
+                    :editorResult &&
+                     editorResult.iframe &&
+                     editorResult.iframe.contentWindow
+
+                    ?editorResult.iframe.contentWindow
+
+                    :editorResult;
+
+
+            if(
+                target &&
+                typeof target.postMessage==="function"
+            ){
+
+                target.postMessage(
+                    payload,
+                    "*"
+                );
+
+                return;
+
+            }
+
+        }
+
+
+        /*
+         * --------------------------------------------------
+         * METHOD 3
+         * Generic Tools bridge.
+         *
+         * The exact tool name can be handled by the
+         * Little Hollow application launcher.
+         * --------------------------------------------------
+         */
+
+        if(
+            parent.Tools &&
+            typeof parent.Tools.execute==="function"
+        ){
+
+            let toolResult=null;
+
+            try{
+
+                toolResult=
+                    await parent.Tools.execute(
+                        "open_image_editor",
+                        {
+                            path:path,
+                            name:imageName,
+                            image:imageData
+                        }
+                    );
+
+            }
+            catch(_){
+
+                toolResult=null;
+
+            }
+
+
+            /*
+             * Some app launchers return the iframe/window.
+             */
+
+            const target=
+                toolResult &&
+                toolResult.contentWindow
+
+                    ?toolResult.contentWindow
+
+                    :toolResult &&
+                     toolResult.window
+
+                    ?toolResult.window
+
+                    :toolResult &&
+                     toolResult.iframe &&
+                     toolResult.iframe.contentWindow
+
+                    ?toolResult.iframe.contentWindow
+
+                    :null;
+
+
+            if(
+                target &&
+                typeof target.postMessage==="function"
+            ){
+
+                target.postMessage(
+                    payload,
+                    "*"
+                );
+
+                return;
+
+            }
+
+
+            /*
+             * Tool handled it internally.
+             */
+
+            if(
+                toolResult &&
+                toolResult.ok
+            ){
+
+                return;
+
+            }
+
+        }
+
+
+        /*
+         * --------------------------------------------------
+         * METHOD 4
+         * Existing generic "open_file" launcher.
+         *
+         * The path is passed to it with an explicit editor
+         * hint so it can launch the Image Editor instead of
+         * the default viewer.
+         * --------------------------------------------------
+         */
+
+        if(
+            parent.Tools &&
+            typeof parent.Tools.execute==="function"
+        ){
+
+            let opened=
+                await parent.Tools.execute(
+                    "open_file",
+                    {
+                        path:path,
+                        app:"Image Editor",
+                        editor:"Image Editor"
+                    }
+                );
+
+
+            if(
+                opened &&
+                opened.ok===false
+            ){
+
+                throw new Error(
+                    opened.summary ||
+                    opened.error ||
+                    "Could not open Image Editor."
+                );
+
+            }
+
+
+            /*
+             * If open_file itself opens the editor,
+             * give the editor another API message through
+             * the application event path.
+             */
+
+            if(
+                opened &&
+                opened.contentWindow &&
+                typeof opened.contentWindow.postMessage==="function"
+            ){
+
+                opened.contentWindow.postMessage(
+                    payload,
+                    "*"
+                );
+
+            }
+
+            return;
+
+        }
+
+
+        throw new Error(
+            "Image Editor application bridge is unavailable."
+        );
+
+    }
+    catch(err){
+
+        showError(
+            "EDIT failed: " +
+            (
+                err &&
+                err.message
+                    ?err.message
+                    :String(err)
+            )
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   CONTEXT MENU
+========================================================= */
+
+function showContextMenu(
+    x,
+    y,
+    path,
+    isFolder
+){
+
+    cancelRename();
+
+    contextPath=path;
+    contextIsFolder=isFolder;
+
+    contextMenu.innerHTML="";
+
+
+    if(isFolder){
+
+        addContextButton(
+            "OPEN",
+            ()=>enterFolder(path)
+        );
+
+
+        addContextButton(
+            "RENAME",
+            ()=>startRenameByPath(path)
+        );
+
+
+        addContextButton(
+            "DOWNLOAD",
+            ()=>downloadItem(path)
+        );
+
+
+        addContextButton(
+            "SELECT",
+            ()=>{
+                selected.add(path);
+                refresh();
+            }
+        );
+
+    }
+    else{
+
+        addContextButton(
+            "OPEN",
+            ()=>openPath(path)
+        );
+
+
+        /*
+         * --------------------------------------------------
+         * IMAGE EDIT
+         * --------------------------------------------------
+         */
+
+        if(isImagePath(path)){
+
+            addContextButton(
+                "EDIT IMAGE",
+                ()=>openImageEditor(path),
+                "edit-action"
+            );
+
+        }
+
+
+        addContextButton(
+            "RENAME",
+            ()=>startRenameByPath(path)
+        );
+
+
+        addContextButton(
+            "DOWNLOAD",
+            ()=>downloadItem(path)
+        );
+
+
+        if(ext(path)!=="zip"){
+
+            addContextButton(
+                "EDIT",
+                ()=>edit(path)
+            );
+
+        }
+
+
+        if(
+            [
+                "js",
+                "ts",
+                "py",
+                "java",
+                "c",
+                "cpp",
+                "cs",
+                "php",
+                "html",
+                "css"
+            ].includes(ext(path))
+        ){
+
+            addContextButton(
+                "CODE",
+                ()=>{
+                    selected=new Set([path]);
+                    code();
+                }
+            );
+
+        }
+
+
+        if(ext(path)==="zip"){
+
+            addContextButton(
+                "UNZIP",
+                ()=>unzipFile(path),
+                "zip-action"
+            );
+
+        }
+
+
+        if(zone().key!=="system"){
+
+            addContextButton(
+                "SELECT",
+                ()=>{
+                    selected.add(path);
+                    refresh();
+                }
+            );
+
+        }
+
+
+        if(zone().key!=="system"){
+
+            addContextButton(
+                "DELETE",
+                async()=>{
+
+                    const r=
+                        await parent.FS.remove(path);
+
+
+                    if(!r.ok){
+
+                        showError(
+                            r.error ||
+                            "Could not delete."
+                        );
+
+                        return;
+
+                    }
+
+
+                    selected.delete(path);
+
+                    refresh();
+
+                },
+                "danger"
+            );
+
+        }
+
+    }
+
+
+    if(selected.size){
+
+        addContextButton(
+            "DOWNLOAD SELECTED",
+            ()=>downloadSelected()
+        );
+
+    }
+
+
+    contextMenu.style.display="block";
+
+
+    const rect=
+        contextMenu.getBoundingClientRect();
+
+
+    let left=x;
+    let top=y;
+
+
+    if(
+        left+rect.width>
+        window.innerWidth
+    ){
+
+        left=
+            window.innerWidth-
+            rect.width-
+            4;
+
+    }
+
+
+    if(
+        top+rect.height>
+        window.innerHeight
+    ){
+
+        top=
+            window.innerHeight-
+            rect.height-
+            4;
+
+    }
+
+
+    contextMenu.style.left=
+        Math.max(2,left)+"px";
+
+    contextMenu.style.top=
+        Math.max(2,top)+"px";
+
+}
+
+
+/* =========================================================
+   RENAME
+========================================================= */
+
+function startRenameByPath(path){
+
+    closeContextMenu();
+
+    const target=
+        [
+            ...document.querySelectorAll(".name")
+        ]
+        .find(
+            n =>
+                n.dataset.path===path
+        );
+
+
+    if(target){
+
+        startRename(
+            target,
+            path,
+            isFolderPath(path)
+        );
+
+    }
+
+}
+
+
+function startRename(
+    element,
+    oldPath,
+    folder
+){
+
+    cancelRename();
+
+    const oldName=
+        displayName(oldPath);
+
+
+    const input=
+        document.createElement("input");
+
+
+    input.className=
+        "rename-input";
+
+
+    input.value=oldName;
+
+    input.autocomplete="off";
+    input.spellcheck=false;
+    input.dataset.path=oldPath;
+
+
+    const oldContent=
+        element.textContent;
+
+
+    activeRename={
+        element,
+        input,
+        oldPath,
+        oldName,
+        oldContent,
+        folder
+    };
+
+
+    element.innerHTML="";
+    element.appendChild(input);
+
+    input.focus();
+
+
+    if(!folder){
+
+        const dot=
+            oldName.lastIndexOf(".");
+
+
+        if(dot>0){
+
+            try{
+
+                input.setSelectionRange(
+                    0,
+                    dot
+                );
+
+            }
+            catch(_){
+
+                input.select();
+
+            }
+
+        }
+        else{
+
+            input.select();
+
+        }
+
+    }
+    else{
+
+        input.select();
+
+    }
+
+
+    input.addEventListener(
+        "keydown",
+        e=>{
+
+            if(e.key==="Enter"){
+
+                e.preventDefault();
+
+                finishRename();
+
+            }
+            else if(e.key==="Escape"){
+
+                e.preventDefault();
+
+                cancelRename();
+
+            }
+
+        }
+    );
+
+
+    input.addEventListener(
+        "click",
+        e=>e.stopPropagation()
+    );
+
+
+    input.addEventListener(
+        "pointerdown",
+        e=>e.stopPropagation()
+    );
+
+
+    input.addEventListener(
+        "dblclick",
+        e=>e.stopPropagation()
+    );
+
+}
+
+
+function buildNewPath(
+    oldPath,
+    newName,
+    folder
+){
+
+    let cleanName=
+        String(newName||"")
+        .trim()
+        .replace(/[\/\\]/g,"")
+        .trim();
+
+
+    if(!cleanName){
+        return null;
+    }
+
+
+    return(
+        parentFolder(oldPath)+
+        cleanName+
+        (folder?"/":"")
+    );
+
+}
+
+
+/* =========================================================
+   RENAME USING FS
+========================================================= */
+
+async function renameUsingFS(
+    oldPath,
+    newPath
+){
+
+    if(
+        parent.FS &&
+        typeof parent.FS.rename==="function"
+    ){
+
+        const r=
+            await parent.FS.rename(
+                oldPath,
+                newPath
+            );
+
+
+        if(
+            !r ||
+            !r.ok
+        ){
+
+            throw new Error(
+                r &&
+                (
+                    r.error ||
+                    r.summary
+                ) ||
+                "Could not rename."
+            );
+
+        }
+
+        return;
+
+    }
+
+
+    if(oldPath.endsWith("/")){
+
+        const files=
+            await parent.FS.list(
+                oldPath
+            );
+
+
+        if(!Array.isArray(files)){
+
+            throw new Error(
+                "Could not read folder."
+            );
+
+        }
+
+
+        const descendants=
+            files.filter(
+                p =>
+                    String(p).startsWith(oldPath) &&
+                    String(p)!==oldPath
+            );
+
+
+        const entries=[];
+
+
+        for(
+            const source
+            of descendants
+        ){
+
+            if(
+                String(source).endsWith("/")
+            ){
+
+                continue;
+
+            }
+
+
+            const r=
+                await parent.FS.read(
+                    source
+                );
+
+
+            if(!r.ok){
+
+                throw new Error(
+                    r.error ||
+                    ("Could not read "+source)
+                );
+
+            }
+
+
+            const relative=
+                String(source)
+                .slice(oldPath.length);
+
+
+            entries.push({
+                source,
+                destination:
+                    normalizeFolderPath(
+                        newPath
+                    )+
+                    relative,
+                content:r.content
+            });
+
+        }
+
+
+        for(
+            const e of entries
+        ){
+
+            const w=
+                await parent.FS.write(
+                    e.destination,
+                    e.content,
+                    true
+                );
+
+
+            if(!w.ok){
+
+                throw new Error(
+                    w.error ||
+                    ("Could not create "+
+                     e.destination)
+                );
+
+            }
+
+        }
+
+
+        for(
+            let i=entries.length-1;
+            i>=0;
+            i--
+        ){
+
+            const r=
+                await parent.FS.remove(
+                    entries[i].source
+                );
+
+
+            if(!r.ok){
+
+                throw new Error(
+                    r.error ||
+                    (
+                        "Could not remove "+
+                        entries[i].source
+                    )
+                );
+
+            }
+
+        }
+
+
+        return;
+
+    }
+
+
+    const r=
+        await parent.FS.read(
+            oldPath
+        );
+
+
+    if(!r.ok){
+
+        throw new Error(
+            r.error ||
+            ("Could not read "+oldPath)
+        );
+
+    }
+
+
+    const w=
+        await parent.FS.write(
+            newPath,
+            r.content,
+            true
+        );
+
+
+    if(!w.ok){
+
+        throw new Error(
+            w.error ||
+            ("Could not create "+newPath)
+        );
+
+    }
+
+
+    const d=
+        await parent.FS.remove(
+            oldPath
+        );
+
+
+    if(!d.ok){
+
+        throw new Error(
+            d.error ||
+            ("Could not remove "+oldPath)
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   FINISH RENAME
+========================================================= */
+
+async function finishRename(){
+
+    if(
+        !activeRename ||
+        renameSaving
+    ){
+
+        return;
+
+    }
+
+
+    const currentRename=
+        activeRename;
+
+
+    const input=
+        currentRename.input;
+
+
+    if(
+        !input ||
+        !input.isConnected
+    ){
+
+        activeRename=null;
+
+        return;
+
+    }
+
+
+    const newName=
+        input.value.trim();
+
+
+    if(!newName){
+
+        cancelRename();
+
+        showError(
+            "Name cannot be empty."
+        );
+
+        return;
+
+    }
+
+
+    const newPath=
+        buildNewPath(
+            currentRename.oldPath,
+            newName,
+            currentRename.folder
+        );
+
+
+    if(!newPath){
+
+        cancelRename();
+
+        showError(
+            "Invalid name."
+        );
+
+        return;
+
+    }
+
+
+    if(
+        newPath===
+        currentRename.oldPath
+    ){
+
+        restoreRename();
+
+        return;
+
+    }
+
+
+    const request=
+        ++renameRequest;
+
+
+    renameSaving=true;
+
+
+    try{
+
+        await renameUsingFS(
+            currentRename.oldPath,
+            newPath
+        );
+
+
+        if(
+            request!==renameRequest
+        ){
+
+            return;
+
+        }
+
+
+        selected.delete(
+            currentRename.oldPath
+        );
+
+
+        selected.delete(
+            newPath
+        );
+
+
+        activeRename=null;
+        renameSaving=false;
+
+        await refresh();
+
+    }
+    catch(err){
+
+        if(
+            request!==renameRequest
+        ){
+
+            return;
+
+        }
+
+
+        renameSaving=false;
+
+
+        showError(
+            err.message ||
+            String(err)
+        );
+
+
+        if(
+            input.isConnected
+        ){
+
+            input.focus();
+
+        }
+
+    }
+
+}
+
+
+function restoreRename(){
+
+    if(!activeRename){
+        return;
+    }
+
+
+    const currentRename=
+        activeRename;
+
+
+    currentRename.element.textContent=
+        currentRename.oldContent;
+
+
+    activeRename=null;
+    renameSaving=false;
+
+}
+
+
+function cancelRename(){
+
+    renameRequest++;
+
+    restoreRename();
+
+}
+
+
+/* =========================================================
+   GLOBAL POINTER
+========================================================= */
+
+document.addEventListener(
+    "pointerdown",
+    e=>{
+
+        if(activeRename){
+
+            const input=
+                activeRename.input;
+
+
+            if(
+                e.target!==input &&
+                !input.contains(e.target)
+            ){
+
+                finishRename();
+
+            }
+
+        }
+
+
+        if(
+            !contextMenu.contains(e.target) &&
+            !e.target.closest(".name") &&
+            !e.target.closest(".rename-input")
+        ){
+
+            closeContextMenu();
+
+        }
+
+    },
+    true
+);
+
+
+document.addEventListener(
+    "scroll",
+    closeContextMenu,
+    true
+);
+
+
+/* =========================================================
+   OPEN PATH
+========================================================= */
+
+async function openPath(p){
+
+    if(isFolderPath(p)){
+
+        enterFolder(p);
+
+        return;
+
+    }
+
+
+    if(selectMode){
+
+        parent.postMessage(
+            {
+                type:"LH_FILE_SELECTED",
+                path:p
+            },
+            "*"
+        );
+
+        return;
+
+    }
+
+
+    /*
+     * Image opens normally through the file opener.
+     * EDIT IMAGE explicitly launches Image Editor.
+     */
+
+    const e=ext(p);
+
+
+    if(e==="zip"){
+
+        await downloadBinary(p);
+
+        return;
+
+    }
+
+
+    try{
+
+        const r=
+            await parent.Tools.execute(
+                "open_file",
+                {
+                    path:p
+                }
+            );
+
+
+        if(
+            r &&
+            !r.ok
+        ){
+
+            showError(
+                r.summary ||
+                r.error ||
+                "Could not open file."
+            );
+
+        }
+
+    }
+    catch(err){
+
+        showError(
+            err.message ||
+            err
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   ENTER FOLDER
+========================================================= */
+
 function enterFolder(path){
-cancelRename();
-currentPrefix=normalizeFolderPath(path);
-closeContextMenu();
-refresh();
+
+    cancelRename();
+
+    currentPrefix=
+        normalizeFolderPath(path);
+
+    closeContextMenu();
+
+    refresh();
+
 }
+
+
+/* =========================================================
+   GO UP
+========================================================= */
+
 function goUp(){
-cancelRename();
-const z=zone();
-if(!currentPrefix)return;
-const root=z.prefix.replace(/\/+$/,"");
-let p=currentPrefix.replace(/\/+$/,"");
-if(p===root){
-currentPrefix="";
-refresh();
-return;
+
+    cancelRename();
+
+    const z=zone();
+
+
+    if(!currentPrefix){
+
+        return;
+
+    }
+
+
+    const root=
+        z.prefix.replace(
+            /\/+$/,
+            ""
+        );
+
+
+    let p=
+        currentPrefix.replace(
+            /\/+$/,
+            ""
+        );
+
+
+    if(p===root){
+
+        currentPrefix="";
+
+        refresh();
+
+        return;
+
+    }
+
+
+    const i=
+        p.lastIndexOf("/");
+
+
+    if(i<=root.length){
+
+        currentPrefix="";
+
+    }
+    else{
+
+        currentPrefix=
+            p.slice(0,i+1);
+
+    }
+
+
+    refresh();
+
 }
-const i=p.lastIndexOf("/");
-if(i<=root.length)currentPrefix="";
-else currentPrefix=p.slice(0,i+1);
-refresh();
-}
+
+
+/* =========================================================
+   EDIT NON-IMAGE FILE
+========================================================= */
+
 async function edit(p){
-try{
-const r=await parent.Tools.execute("open_notepad",{path:p});
-if(r&&!r.ok)showError(r.summary||r.error||"Could not open Notepad.");
-}catch(err){
-showError(err.message||err);
+
+    /*
+     * Images use Image Editor.
+     * Text/code files keep using their existing editor.
+     */
+
+    if(isImagePath(p)){
+
+        await openImageEditor(p);
+
+        return;
+
+    }
+
+
+    try{
+
+        const r=
+            await parent.Tools.execute(
+                "open_notepad",
+                {
+                    path:p
+                }
+            );
+
+
+        if(
+            r &&
+            !r.ok
+        ){
+
+            showError(
+                r.summary ||
+                r.error ||
+                "Could not open Notepad."
+            );
+
+        }
+
+    }
+    catch(err){
+
+        showError(
+            err.message ||
+            err
+        );
+
+    }
+
 }
-}
+
+
+/* =========================================================
+   CODE
+========================================================= */
+
 async function code(){
-const paths=selectedPaths();
-if(!paths.length)return;
-const files=[];
-for(const p of paths){
-if(isFolderPath(p))continue;
-const r=await parent.FS.read(p);
-if(r.ok)files.push({name:p.split("/").pop(),content:r.content});
+
+    const paths=
+        selectedPaths();
+
+
+    if(!paths.length){
+
+        return;
+
+    }
+
+
+    const files=[];
+
+
+    for(
+        const p of paths
+    ){
+
+        if(
+            isFolderPath(p)
+        ){
+
+            continue;
+
+        }
+
+
+        const r=
+            await parent.FS.read(
+                p
+            );
+
+
+        if(r.ok){
+
+            files.push({
+                name:
+                    p.split("/")
+                     .pop(),
+                content:r.content
+            });
+
+        }
+
+    }
+
+
+    if(!files.length){
+
+        return;
+
+    }
+
+
+    parent.Apps.openOneCompiler({
+        language:
+            ext(files[0].name)==="py"
+                ?"python"
+                :"javascript",
+        files,
+        run:false
+    });
+
 }
-if(!files.length)return;
-parent.Apps.openOneCompiler({language:ext(files[0].name)==="py"?"python":"javascript",files,run:false});
+
+
+/* =========================================================
+   DOWNLOAD
+========================================================= */
+
+function downloadData(
+    data,
+    name
+){
+
+    const a=
+        document.createElement("a");
+
+
+    a.href=data;
+    a.download=name;
+
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    a.remove();
+
 }
-function downloadData(data,name){
-const a=document.createElement("a");
-a.href=data;
-a.download=name;
-document.body.appendChild(a);
-a.click();
-a.remove();
-}
+
+
 async function downloadBinary(p){
-const r=await parent.FS.read(p);
-if(!r.ok){
-showError(r.error);
-return false;
+
+    const r=
+        await parent.FS.read(p);
+
+
+    if(!r.ok){
+
+        showError(r.error);
+
+        return false;
+
+    }
+
+
+    if(!/^data:/i.test(r.content)){
+
+        showError(
+            "This file does not contain downloadable binary data."
+        );
+
+        return false;
+
+    }
+
+
+    downloadData(
+        r.content,
+        p.split("/").pop()
+    );
+
+
+    return true;
+
 }
-if(!/^data:/i.test(r.content)){
-showError("This file does not contain downloadable binary data.");
-return false;
-}
-downloadData(r.content,p.split("/").pop());
-return true;
-}
+
+
+/* =========================================================
+   DATA URL -> BYTES
+========================================================= */
+
 function dataURLToBytes(data){
-const comma=String(data).indexOf(",");
-if(comma<0)throw new Error("Invalid data URL.");
-const header=String(data).slice(0,comma);
-const body=String(data).slice(comma+1);
-if(/;base64/i.test(header)){
-const binary=atob(body);
-const bytes=new Uint8Array(binary.length);
-for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
-return bytes;
+
+    const comma=
+        String(data).indexOf(",");
+
+
+    if(comma<0){
+
+        throw new Error(
+            "Invalid data URL."
+        );
+
+    }
+
+
+    const header=
+        String(data).slice(
+            0,
+            comma
+        );
+
+
+    const body=
+        String(data).slice(
+            comma+1
+        );
+
+
+    if(
+        /;base64/i.test(header)
+    ){
+
+        const binary=
+            atob(body);
+
+
+        const bytes=
+            new Uint8Array(
+                binary.length
+            );
+
+
+        for(
+            let i=0;
+            i<binary.length;
+            i++
+        ){
+
+            bytes[i]=
+                binary.charCodeAt(i);
+
+        }
+
+
+        return bytes;
+
+    }
+
+
+    return new TextEncoder()
+        .encode(
+            decodeURIComponent(body)
+        );
+
 }
-return new TextEncoder().encode(decodeURIComponent(body));
+
+
+/* =========================================================
+   ZIP
+========================================================= */
+
+function readU16(
+    bytes,
+    p
+){
+
+    return(
+        bytes[p] |
+        bytes[p+1]<<8
+    )>>>0;
+
 }
-function readU16(bytes,p){
-return(bytes[p]|bytes[p+1]<<8)>>>0;
+
+
+function readU32(
+    bytes,
+    p
+){
+
+    return(
+        bytes[p] |
+        bytes[p+1]<<8 |
+        bytes[p+2]<<16 |
+        bytes[p+3]<<24
+    )>>>0;
+
 }
-function readU32(bytes,p){
-return(bytes[p]|bytes[p+1]<<8|bytes[p+2]<<16|bytes[p+3]<<24)>>>0;
-}
+
+
 function findEOCD(bytes){
-const min=Math.max(0,bytes.length-65557);
-for(let p=bytes.length-22;p>=min;p--){
-if(readU32(bytes,p)===0x06054b50)return p;
+
+    const min=
+        Math.max(
+            0,
+            bytes.length-65557
+        );
+
+
+    for(
+        let p=bytes.length-22;
+        p>=min;
+        p--
+    ){
+
+        if(
+            readU32(
+                bytes,
+                p
+            )===0x06054b50
+        ){
+
+            return p;
+
+        }
+
+    }
+
+
+    return -1;
+
 }
-return -1;
-}
+
+
 function safeZipPath(name){
-name=String(name||"").replace(/\\/g,"/").replace(/^\/+/,"");
-const result=[];
-for(const part of name.split("/")){
-if(!part||part==="."||part==="..")continue;
-result.push(part);
+
+    name=
+        String(name||"")
+        .replace(/\\/g,"/")
+        .replace(/^\/+/,"");
+
+
+    const result=[];
+
+
+    for(
+        const part of name.split("/")
+    ){
+
+        if(
+            !part ||
+            part==="." ||
+            part===".."
+        ){
+
+            continue;
+
+        }
+
+
+        result.push(part);
+
+    }
+
+
+    return result.join("/");
+
 }
-return result.join("/");
-}
+
+
+/* =========================================================
+   UNZIP
+========================================================= */
+
 async function unzipFile(zipPath){
-const defaultFolder=zipPath.replace(/\.zip$/i,"")+"/";
-const output=prompt("UNZIP destination folder:",defaultFolder);
-if(!output)return;
-let outputFolder=String(output).trim();
-if(!outputFolder.endsWith("/"))outputFolder+="/";
-try{
-const r=await parent.FS.read(zipPath);
-if(!r.ok){
-showError(r.error||"Could not read ZIP.");
-return;
+
+    const defaultFolder=
+        zipPath.replace(
+            /\.zip$/i,
+            ""
+        )+"/";
+
+
+    const output=
+        prompt(
+            "UNZIP destination folder:",
+            defaultFolder
+        );
+
+
+    if(!output){
+
+        return;
+
+    }
+
+
+    let outputFolder=
+        String(output).trim();
+
+
+    if(
+        !outputFolder.endsWith("/")
+    ){
+
+        outputFolder+="/";
+
+    }
+
+
+    try{
+
+        const r=
+            await parent.FS.read(
+                zipPath
+            );
+
+
+        if(!r.ok){
+
+            showError(
+                r.error ||
+                "Could not read ZIP."
+            );
+
+            return;
+
+        }
+
+
+        if(
+            !/^data:/i.test(
+                r.content
+            )
+        ){
+
+            showError(
+                "ZIP does not contain binary data."
+            );
+
+            return;
+
+        }
+
+
+        const bytes=
+            dataURLToBytes(
+                r.content
+            );
+
+
+        const eocd=
+            findEOCD(bytes);
+
+
+        if(eocd<0){
+
+            showError(
+                "Invalid ZIP archive."
+            );
+
+            return;
+
+        }
+
+
+        const entries=
+            readU16(
+                bytes,
+                eocd+10
+            );
+
+
+        const centralOffset=
+            readU32(
+                bytes,
+                eocd+16
+            );
+
+
+        let pos=
+            centralOffset;
+
+        let extracted=0;
+
+
+        for(
+            let n=0;
+            n<entries;
+            n++
+        ){
+
+            if(
+                readU32(
+                    bytes,
+                    pos
+                )!==0x02014b50
+            ){
+
+                throw new Error(
+                    "Invalid ZIP central directory."
+                );
+
+            }
+
+
+            const method=
+                readU16(
+                    bytes,
+                    pos+10
+                );
+
+
+            const compressedSize=
+                readU32(
+                    bytes,
+                    pos+20
+                );
+
+
+            const nameLength=
+                readU16(
+                    bytes,
+                    pos+28
+                );
+
+
+            const extraLength=
+                readU16(
+                    bytes,
+                    pos+30
+                );
+
+
+            const commentLength=
+                readU16(
+                    bytes,
+                    pos+32
+                );
+
+
+            const localOffset=
+                readU32(
+                    bytes,
+                    pos+42
+                );
+
+
+            const nameBytes=
+                bytes.slice(
+                    pos+46,
+                    pos+46+nameLength
+                );
+
+
+            const filename=
+                new TextDecoder()
+                .decode(nameBytes);
+
+
+            const safeName=
+                safeZipPath(
+                    filename
+                );
+
+
+            if(
+                safeName &&
+                !filename.endsWith("/")
+            ){
+
+                if(
+                    readU32(
+                        bytes,
+                        localOffset
+                    )!==0x04034b50
+                ){
+
+                    throw new Error(
+                        "Invalid ZIP local header."
+                    );
+
+                }
+
+
+                const localNameLength=
+                    readU16(
+                        bytes,
+                        localOffset+26
+                    );
+
+
+                const localExtraLength=
+                    readU16(
+                        bytes,
+                        localOffset+28
+                    );
+
+
+                const dataStart=
+                    localOffset+
+                    30+
+                    localNameLength+
+                    localExtraLength;
+
+
+                const compressed=
+                    bytes.slice(
+                        dataStart,
+                        dataStart+
+                        compressedSize
+                    );
+
+
+                let fileBytes;
+
+
+                if(method===0){
+
+                    fileBytes=
+                        compressed;
+
+                }
+                else if(method===8){
+
+                    if(
+                        typeof DecompressionStream!=="function"
+                    ){
+
+                        throw new Error(
+                            "This browser cannot decompress DEFLATE ZIP files."
+                        );
+
+                    }
+
+
+                    const stream=
+                        new Blob(
+                            [compressed]
+                        )
+                        .stream()
+                        .pipeThrough(
+                            new DecompressionStream(
+                                "deflate-raw"
+                            )
+                        );
+
+
+                    const buffer=
+                        await new Response(
+                            stream
+                        ).arrayBuffer();
+
+
+                    fileBytes=
+                        new Uint8Array(
+                            buffer
+                        );
+
+                }
+                else{
+
+                    throw new Error(
+                        "Unsupported ZIP compression method "+
+                        method+
+                        " for "+
+                        filename+
+                        "."
+                    );
+
+                }
+
+
+                let binary="";
+
+                const chunkSize=
+                    0x8000;
+
+
+                for(
+                    let i=0;
+                    i<fileBytes.length;
+                    i+=chunkSize
+                ){
+
+                    const chunk=
+                        fileBytes.subarray(
+                            i,
+                            Math.min(
+                                i+chunkSize,
+                                fileBytes.length
+                            )
+                        );
+
+
+                    binary+=
+                        String.fromCharCode(
+                            ...chunk
+                        );
+
+                }
+
+
+                const dataURL=
+                    "data:application/octet-stream;base64,"+
+                    btoa(binary);
+
+
+                const dest=
+                    outputFolder+
+                    safeName;
+
+
+                const w=
+                    await parent.FS.write(
+                        dest,
+                        dataURL,
+                        true
+                    );
+
+
+                if(!w.ok){
+
+                    throw new Error(
+                        "Could not extract "+
+                        filename+
+                        ": "+
+                        (
+                            w.error ||
+                            "write failed"
+                        )
+                    );
+
+                }
+
+
+                extracted++;
+
+            }
+
+
+            pos+=
+                46+
+                nameLength+
+                extraLength+
+                commentLength;
+
+        }
+
+
+        showError(
+            "UNZIP complete: extracted "+
+            extracted+
+            " file(s) to "+
+            outputFolder
+        );
+
+
+        await refresh();
+
+    }
+    catch(err){
+
+        showError(
+            "UNZIP failed: "+
+            (
+                err.message ||
+                String(err)
+            )
+        );
+
+    }
+
 }
-if(!/^data:/i.test(r.content)){
-showError("ZIP does not contain binary data.");
-return;
-}
-const bytes=dataURLToBytes(r.content);
-const eocd=findEOCD(bytes);
-if(eocd<0){
-showError("Invalid ZIP archive.");
-return;
-}
-const entries=readU16(bytes,eocd+10);
-const centralOffset=readU32(bytes,eocd+16);
-let pos=centralOffset;
-let extracted=0;
-for(let n=0;n<entries;n++){
-if(readU32(bytes,pos)!==0x02014b50)throw new Error("Invalid ZIP central directory.");
-const method=readU16(bytes,pos+10);
-const compressedSize=readU32(bytes,pos+20);
-const nameLength=readU16(bytes,pos+28);
-const extraLength=readU16(bytes,pos+30);
-const commentLength=readU16(bytes,pos+32);
-const localOffset=readU32(bytes,pos+42);
-const nameBytes=bytes.slice(pos+46,pos+46+nameLength);
-const filename=new TextDecoder().decode(nameBytes);
-const safeName=safeZipPath(filename);
-if(safeName&&!filename.endsWith("/")){
-if(readU32(bytes,localOffset)!==0x04034b50)throw new Error("Invalid ZIP local header.");
-const localNameLength=readU16(bytes,localOffset+26);
-const localExtraLength=readU16(bytes,localOffset+28);
-const dataStart=localOffset+30+localNameLength+localExtraLength;
-const compressed=bytes.slice(dataStart,dataStart+compressedSize);
-let fileBytes;
-if(method===0){
-fileBytes=compressed;
-}else if(method===8){
-if(typeof DecompressionStream!=="function")throw new Error("This browser cannot decompress DEFLATE ZIP files.");
-const stream=new Blob([compressed]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
-const buffer=await new Response(stream).arrayBuffer();
-fileBytes=new Uint8Array(buffer);
-}else{
-throw new Error("Unsupported ZIP compression method "+method+" for "+filename+".");
-}
-let binary="";
-const chunkSize=0x8000;
-for(let i=0;i<fileBytes.length;i+=chunkSize){
-const chunk=fileBytes.subarray(i,Math.min(i+chunkSize,fileBytes.length));
-binary+=String.fromCharCode(...chunk);
-}
-const dataURL="data:application/octet-stream;base64,"+btoa(binary);
-const dest=outputFolder+safeName;
-const w=await parent.FS.write(dest,dataURL,true);
-if(!w.ok)throw new Error("Could not extract "+filename+": "+(w.error||"write failed"));
-extracted++;
-}
-pos+=46+nameLength+extraLength+commentLength;
-}
-showError("UNZIP complete: extracted "+extracted+" file(s) to "+outputFolder);
-await refresh();
-}catch(err){
-showError("UNZIP failed: "+(err.message||String(err)));
-}
-}
+
+
+/* =========================================================
+   ZIP HELPERS
+========================================================= */
+
 function utf8(s){
-return new TextEncoder().encode(String(s));
+
+    return new TextEncoder()
+        .encode(
+            String(s)
+        );
+
 }
+
+
 function u16(n){
-return[n&255,(n>>>8)&255];
+
+    return[
+        n&255,
+        (n>>>8)&255
+    ];
+
 }
+
+
 function u32(n){
-return[n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255];
+
+    return[
+        n&255,
+        (n>>>8)&255,
+        (n>>>16)&255,
+        (n>>>24)&255
+    ];
+
 }
+
+
 function crc32(bytes){
-let c=0xffffffff;
-for(const b of bytes){
-c^=b;
-for(let i=0;i<8;i++)c=(c>>>1)^((c&1)?0xedb88320:0);
+
+    let c=
+        0xffffffff;
+
+
+    for(
+        const b of bytes
+    ){
+
+        c^=b;
+
+
+        for(
+            let i=0;
+            i<8;
+            i++
+        ){
+
+            c=
+                (c>>>1)^
+                (
+                    (c&1)
+                        ?0xedb88320
+                        :0
+                );
+
+        }
+
+    }
+
+
+    return(
+        c^0xffffffff
+    )>>>0;
+
 }
-return(c^0xffffffff)>>>0;
-}
+
+
 function makeZip(entries){
-const local=[];
-const central=[];
-let offset=0;
-for(const entry of entries){
-const name=utf8(entry.name.replace(/^\/+/,""));
-const data=entry.data;
-const crc=crc32(data);
-const header=new Uint8Array([...u32(0x04034b50),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...name,...data]);
-local.push(header);
-central.push(new Uint8Array([...u32(0x02014b50),...u16(20),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(offset),...name]));
-offset+=header.length;
+
+    const local=[];
+    const central=[];
+
+    let offset=0;
+
+
+    for(
+        const entry
+        of entries
+    ){
+
+        const name=
+            utf8(
+                entry.name
+                .replace(/^\/+/,"")
+            );
+
+
+        const data=
+            entry.data;
+
+
+        const crc=
+            crc32(data);
+
+
+        const header=
+            new Uint8Array([
+
+                ...u32(
+                    0x04034b50
+                ),
+
+                ...u16(20),
+                ...u16(0),
+                ...u16(0),
+                ...u16(0),
+                ...u16(0),
+
+                ...u32(crc),
+                ...u32(data.length),
+                ...u32(data.length),
+
+                ...u16(name.length),
+                ...u16(0),
+
+                ...name,
+                ...data
+
+            ]);
+
+
+        local.push(header);
+
+
+        central.push(
+            new Uint8Array([
+
+                ...u32(
+                    0x02014b50
+                ),
+
+                ...u16(20),
+                ...u16(20),
+                ...u16(0),
+                ...u16(0),
+                ...u16(0),
+                ...u16(0),
+
+                ...u32(crc),
+                ...u32(data.length),
+                ...u32(data.length),
+
+                ...u16(name.length),
+                ...u16(0),
+                ...u16(0),
+                ...u16(0),
+                ...u16(0),
+
+                ...u32(0),
+                ...u32(offset),
+
+                ...name
+
+            ])
+        );
+
+
+        offset+=header.length;
+
+    }
+
+
+    const cdOffset=
+        offset;
+
+
+    const cdSize=
+        central.reduce(
+            (a,b)=>
+                a+b.length,
+            0
+        );
+
+
+    const eocd=
+        new Uint8Array([
+
+            ...u32(
+                0x06054b50
+            ),
+
+            ...u16(0),
+            ...u16(0),
+
+            ...u16(
+                central.length
+            ),
+
+            ...u16(
+                central.length
+            ),
+
+            ...u32(cdSize),
+            ...u32(cdOffset),
+
+            ...u16(0)
+
+        ]);
+
+
+    return new Blob(
+        [
+            ...local,
+            ...central,
+            eocd
+        ],
+        {
+            type:"application/zip"
+        }
+    );
+
 }
-const cdOffset=offset;
-const cdSize=central.reduce((a,b)=>a+b.length,0);
-const eocd=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(central.length),...u16(central.length),...u32(cdSize),...u32(cdOffset),...u16(0)]);
-return new Blob([...local,...central,eocd],{type:"application/zip"});
-}
+
+
 function blobDataURL(blob){
-return new Promise((resolve,reject)=>{
-const reader=new FileReader();
-reader.onload=()=>resolve(reader.result);
-reader.onerror=()=>reject(reader.error);
-reader.readAsDataURL(blob);
-});
+
+    return new Promise(
+        (resolve,reject)=>{
+
+            const reader=
+                new FileReader();
+
+
+            reader.onload=
+                () => resolve(
+                    reader.result
+                );
+
+
+            reader.onerror=
+                () => reject(
+                    reader.error
+                );
+
+
+            reader.readAsDataURL(blob);
+
+        }
+    );
+
 }
+
+
+/* =========================================================
+   COLLECT FILES
+========================================================= */
+
 async function collectFiles(paths){
-const entries=[];
-for(const path of paths){
-const p=String(path);
-if(isFolderPath(p)){
-const base=normalizeFolderPath(p);
-const files=await parent.FS.list(base);
-if(!Array.isArray(files))continue;
-for(const item0 of files){
-const item=String(item0);
-if(!item.startsWith(base)||item.endsWith("/"))continue;
-const r=await parent.FS.read(item);
-if(!r.ok)continue;
-let bytes;
-if(/^data:/i.test(r.content)){
-bytes=dataURLToBytes(r.content);
-}else{
-bytes=utf8(r.content);
+
+    const entries=[];
+
+
+    for(
+        const path
+        of paths
+    ){
+
+        const p=
+            String(path);
+
+
+        if(isFolderPath(p)){
+
+            const base=
+                normalizeFolderPath(p);
+
+
+            const files=
+                await parent.FS.list(
+                    base
+                );
+
+
+            if(!Array.isArray(files)){
+
+                continue;
+
+            }
+
+
+            for(
+                const item0
+                of files
+            ){
+
+                const item=
+                    String(item0);
+
+
+                if(
+                    !item.startsWith(base) ||
+                    item.endsWith("/")
+                ){
+
+                    continue;
+
+                }
+
+
+                const r=
+                    await parent.FS.read(
+                        item
+                    );
+
+
+                if(!r.ok){
+
+                    continue;
+
+                }
+
+
+                let bytes;
+
+
+                if(
+                    /^data:/i.test(
+                        r.content
+                    )
+                ){
+
+                    bytes=
+                        dataURLToBytes(
+                            r.content
+                        );
+
+                }
+                else{
+
+                    bytes=
+                        utf8(
+                            r.content
+                        );
+
+                }
+
+
+                const relative=
+                    item.slice(
+                        base.length
+                    );
+
+
+                entries.push({
+                    name:
+                        displayName(p)+
+                        "/"+
+                        relative,
+                    data:bytes
+                });
+
+            }
+
+        }
+        else{
+
+            const r=
+                await parent.FS.read(
+                    p
+                );
+
+
+            if(!r.ok){
+
+                continue;
+
+            }
+
+
+            let bytes;
+
+
+            if(
+                /^data:/i.test(
+                    r.content
+                )
+            ){
+
+                bytes=
+                    dataURLToBytes(
+                        r.content
+                    );
+
+            }
+            else{
+
+                bytes=
+                    utf8(
+                        r.content
+                    );
+
+            }
+
+
+            entries.push({
+                name:
+                    displayName(p),
+                data:bytes
+            });
+
+        }
+
+    }
+
+
+    return entries;
+
 }
-const relative=item.slice(base.length);
-entries.push({name:displayName(p)+"/"+relative,data:bytes});
-}
-}else{
-const r=await parent.FS.read(p);
-if(!r.ok)continue;
-let bytes;
-if(/^data:/i.test(r.content)){
-bytes=dataURLToBytes(r.content);
-}else{
-bytes=utf8(r.content);
-}
-entries.push({name:displayName(p),data:bytes});
-}
-}
-return entries;
-}
+
+
+/* =========================================================
+   DOWNLOAD ITEM
+========================================================= */
+
 async function downloadItem(path){
-try{
-if(isFolderPath(path)){
-const entries=await collectFiles([path]);
-const blob=makeZip(entries);
-const url=await blobDataURL(blob);
-downloadData(url,displayName(path)+".zip");
-return;
+
+    try{
+
+        if(isFolderPath(path)){
+
+            const entries=
+                await collectFiles(
+                    [path]
+                );
+
+
+            const blob=
+                makeZip(
+                    entries
+                );
+
+
+            const url=
+                await blobDataURL(
+                    blob
+                );
+
+
+            downloadData(
+                url,
+                displayName(path)+
+                ".zip"
+            );
+
+
+            return;
+
+        }
+
+
+        if(
+            ext(path)==="zip"
+        ){
+
+            await downloadBinary(path);
+
+            return;
+
+        }
+
+
+        const r=
+            await parent.FS.read(
+                path
+            );
+
+
+        if(!r.ok){
+
+            showError(
+                r.error ||
+                "Could not read file."
+            );
+
+            return;
+
+        }
+
+
+        if(
+            /^data:/i.test(
+                r.content
+            )
+        ){
+
+            downloadData(
+                r.content,
+                displayName(path)
+            );
+
+            return;
+
+        }
+
+
+        const blob=
+            new Blob(
+                [String(r.content)],
+                {
+                    type:
+                        "application/octet-stream"
+                }
+            );
+
+
+        downloadData(
+            await blobDataURL(blob),
+            displayName(path)
+        );
+
+    }
+    catch(err){
+
+        showError(
+            "Download failed: "+
+            (
+                err.message ||
+                String(err)
+            )
+        );
+
+    }
+
 }
-if(ext(path)==="zip"){
-await downloadBinary(path);
-return;
-}
-const r=await parent.FS.read(path);
-if(!r.ok){
-showError(r.error||"Could not read file.");
-return;
-}
-if(/^data:/i.test(r.content)){
-downloadData(r.content,displayName(path));
-return;
-}
-const blob=new Blob([String(r.content)],{type:"application/octet-stream"});
-downloadData(await blobDataURL(blob),displayName(path));
-}catch(err){
-showError("Download failed: "+(err.message||String(err)));
-}
-}
+
+
+/* =========================================================
+   DOWNLOAD SELECTED
+========================================================= */
+
 async function downloadSelected(){
-const paths=selectedPaths();
-if(!paths.length){
-showError("Select files or folders first.");
-return;
+
+    const paths=
+        selectedPaths();
+
+
+    if(!paths.length){
+
+        showError(
+            "Select files or folders first."
+        );
+
+        return;
+
+    }
+
+
+    try{
+
+        if(paths.length===1){
+
+            await downloadItem(
+                paths[0]
+            );
+
+            return;
+
+        }
+
+
+        const entries=
+            await collectFiles(
+                paths
+            );
+
+
+        const blob=
+            makeZip(
+                entries
+            );
+
+
+        const url=
+            await blobDataURL(
+                blob
+            );
+
+
+        downloadData(
+            url,
+            "selected.zip"
+        );
+
+    }
+    catch(err){
+
+        showError(
+            "Download failed: "+
+            (
+                err.message ||
+                String(err)
+            )
+        );
+
+    }
+
 }
-try{
-if(paths.length===1){
-await downloadItem(paths[0]);
-return;
-}
-const entries=await collectFiles(paths);
-const blob=makeZip(entries);
-const url=await blobDataURL(blob);
-downloadData(url,"selected.zip");
-}catch(err){
-showError("Download failed: "+(err.message||String(err)));
-}
-}
+
+
+/* =========================================================
+   SORT
+========================================================= */
+
 function sortPaths(files){
-files.sort((a,b)=>{
-const af=isFolderPath(a);
-const bf=isFolderPath(b);
-if(af!==bf)return af?-1:1;
-return a.localeCompare(b,undefined,{numeric:true,sensitivity:"base"});
-});
-return files;
+
+    files.sort(
+        (a,b)=>{
+
+            const af=
+                isFolderPath(a);
+
+
+            const bf=
+                isFolderPath(b);
+
+
+            if(af!==bf){
+
+                return af
+                    ?-1
+                    :1;
+
+            }
+
+
+            return a.localeCompare(
+                b,
+                undefined,
+                {
+                    numeric:true,
+                    sensitivity:"base"
+                }
+            );
+
+        }
+    );
+
+
+    return files;
+
 }
+
+
+/* =========================================================
+   REFRESH
+========================================================= */
+
 async function refresh(){
-cancelRename();
-const serial=++refreshSerial;
-const z=zone();
-if(!z)return;
-updatePathDisplay();
-if(z.key==="puter"&&!parent.FS.puterReady()){
-if(serial===refreshSerial)list.innerHTML='<div class="empty">Puter filesystem unavailable. Puter:/ is enabled only when Puter actually provides filesystem support.</div>';
-return;
+
+    cancelRename();
+
+    const serial=
+        ++refreshSerial;
+
+
+    const z=
+        zone();
+
+
+    if(!z){
+
+        return;
+
+    }
+
+
+    updatePathDisplay();
+
+
+    if(
+        z.key==="puter" &&
+        !parent.FS.puterReady()
+    ){
+
+        if(
+            serial===refreshSerial
+        ){
+
+            list.innerHTML=
+                '<div class="empty">Puter filesystem unavailable. Puter:/ is enabled only when Puter actually provides filesystem support.</div>';
+
+        }
+
+
+        return;
+
+    }
+
+
+    try{
+
+        const result=
+            await parent.FS.list(
+                currentPrefix ||
+                z.prefix
+            );
+
+
+        if(
+            serial!==refreshSerial
+        ){
+
+            return;
+
+        }
+
+
+        let files=
+            Array.isArray(result)
+                ?result
+                :[];
+
+
+        const base=
+            currentPrefix ||
+            z.prefix;
+
+
+        const visible=[];
+
+
+        for(
+            const p0
+            of files
+        ){
+
+            const p=
+                String(p0);
+
+
+            if(
+                !p.startsWith(base)
+            ){
+
+                continue;
+
+            }
+
+
+            const rest=
+                p.slice(
+                    base.length
+                );
+
+
+            if(!rest){
+
+                continue;
+
+            }
+
+
+            const clean=
+                rest.replace(
+                    /\/+$/,
+                    ""
+                );
+
+
+            const slash=
+                clean.indexOf("/");
+
+
+            if(slash>=0){
+
+                const folderPath=
+                    base+
+                    clean.slice(
+                        0,
+                        slash+1
+                    );
+
+
+                if(
+                    !visible.includes(
+                        folderPath
+                    )
+                ){
+
+                    visible.push(
+                        folderPath
+                    );
+
+                }
+
+            }
+            else{
+
+                visible.push(p);
+
+            }
+
+        }
+
+
+        files=
+            sortPaths(
+                visible
+            );
+
+
+        list.innerHTML="";
+
+
+        if(!files.length){
+
+            list.innerHTML=
+                '<div class="empty">No files.</div>';
+
+            return;
+
+        }
+
+
+        for(
+            const p
+            of files
+        ){
+
+            const row=
+                document.createElement(
+                    "div"
+                );
+
+
+            const folder=
+                isFolderPath(p);
+
+
+            const image=
+                !folder &&
+                isImagePath(p);
+
+
+            row.className=
+                "row"+
+                (
+                    folder
+                        ?" folder"
+                        :""
+                )+
+                (
+                    image
+                        ?" image-row"
+                        :""
+                );
+
+
+            const cb=
+                document.createElement(
+                    "input"
+                );
+
+
+            cb.type="checkbox";
+            cb.checked=
+                selected.has(p);
+
+
+            cb.onchange=()=>{
+
+                if(cb.checked){
+
+                    selected.add(p);
+
+                }
+                else{
+
+                    selected.delete(p);
+
+                }
+
+            };
+
+
+            const name=
+                document.createElement(
+                    "div"
+                );
+
+
+            name.className="name";
+
+            name.dataset.path=p;
+
+            name.textContent=
+                (
+                    folder
+                        ?"📁 "
+                        :image
+                            ?"🖼 "
+                            :""
+                )+
+                displayName(p);
+
+
+            name.title=p;
+
+
+            name.onclick=()=>{
+
+                if(activeRename){
+
+                    return;
+
+                }
+
+
+                openPath(p);
+
+            };
+
+
+            name.ondblclick=e=>{
+
+                e.preventDefault();
+
+                e.stopPropagation();
+
+
+                /*
+                 * Double-clicking an image opens
+                 * Image Editor directly.
+                 * Other files keep rename behavior.
+                 */
+
+                if(
+                    image &&
+                    !folder
+                ){
+
+                    openImageEditor(p);
+
+                    return;
+
+                }
+
+
+                startRename(
+                    name,
+                    p,
+                    folder
+                );
+
+            };
+
+
+            name.oncontextmenu=e=>{
+
+                e.preventDefault();
+
+                showContextMenu(
+                    e.clientX,
+                    e.clientY,
+                    p,
+                    folder
+                );
+
+            };
+
+
+            let pressTimer=null;
+
+
+            name.onpointerdown=e=>{
+
+                if(
+                    e.pointerType==="mouse" ||
+                    activeRename
+                ){
+
+                    return;
+
+                }
+
+
+                pressTimer=
+                    setTimeout(
+                        ()=>{
+
+                            showContextMenu(
+                                e.clientX,
+                                e.clientY,
+                                p,
+                                folder
+                            );
+
+                        },
+                        550
+                    );
+
+            };
+
+
+            name.onpointerup=
+                ()=>
+                    clearTimeout(
+                        pressTimer
+                    );
+
+
+            name.onpointercancel=
+                ()=>
+                    clearTimeout(
+                        pressTimer
+                    );
+
+
+            name.onpointermove=
+                ()=>
+                    clearTimeout(
+                        pressTimer
+                    );
+
+
+            row.append(
+                cb,
+                name
+            );
+
+
+            if(folder){
+
+                const openBtn=
+                    document.createElement(
+                        "button"
+                    );
+
+
+                openBtn.textContent="OPEN";
+
+                openBtn.onclick=
+                    ()=>{
+                        enterFolder(p);
+                    };
+
+
+                row.append(
+                    openBtn
+                );
+
+
+                const dlBtn=
+                    document.createElement(
+                        "button"
+                    );
+
+
+                dlBtn.textContent="DL";
+
+                dlBtn.onclick=
+                    ()=>{
+                        downloadItem(p);
+                    };
+
+
+                row.append(
+                    dlBtn
+                );
+
+            }
+            else{
+
+                const e=
+                    ext(p);
+
+
+                /*
+                 * IMAGE EDIT BUTTON
+                 */
+
+                if(image){
+
+                    const editImageBtn=
+                        document.createElement(
+                            "button"
+                        );
+
+
+                    editImageBtn.textContent=
+                        "EDIT";
+
+
+                    editImageBtn.title=
+                        "Open in Image Editor";
+
+
+                    editImageBtn.onclick=
+                        ()=>{
+                            openImageEditor(p);
+                        };
+
+
+                    row.append(
+                        editImageBtn
+                    );
+
+                }
+
+
+                /*
+                 * DOWNLOAD
+                 */
+
+                const dlBtn=
+                    document.createElement(
+                        "button"
+                    );
+
+
+                dlBtn.textContent="DL";
+
+
+                dlBtn.onclick=
+                    ()=>{
+                        downloadItem(p);
+                    };
+
+
+                row.append(
+                    dlBtn
+                );
+
+
+                /*
+                 * Existing EDIT
+                 *
+                 * Do not add a second EDIT button
+                 * for images because images already
+                 * have the Image Editor button.
+                 */
+
+                if(
+                    e!=="zip" &&
+                    !image &&
+                    z.key!=="system"
+                ){
+
+                    const editBtn=
+                        document.createElement(
+                            "button"
+                        );
+
+
+                    editBtn.textContent=
+                        "EDIT";
+
+
+                    editBtn.onclick=
+                        ()=>{
+                            edit(p);
+                        };
+
+
+                    row.append(
+                        editBtn
+                    );
+
+                }
+
+
+                if(e==="zip"){
+
+                    const unzipBtn=
+                        document.createElement(
+                            "button"
+                        );
+
+
+                    unzipBtn.textContent=
+                        "UNZIP";
+
+
+                    unzipBtn.onclick=
+                        ()=>{
+                            unzipFile(p);
+                        };
+
+
+                    row.append(
+                        unzipBtn
+                    );
+
+                }
+
+
+                if(
+                    z.key!=="system" &&
+                    [
+                        "js",
+                        "ts",
+                        "py",
+                        "java",
+                        "c",
+                        "cpp",
+                        "cs",
+                        "php",
+                        "html",
+                        "css"
+                    ].includes(e)
+                ){
+
+                    const codeBtn=
+                        document.createElement(
+                            "button"
+                        );
+
+
+                    codeBtn.textContent=
+                        "CODE";
+
+
+                    codeBtn.onclick=
+                        ()=>{
+
+                            selected=
+                                new Set([p]);
+
+                            code();
+
+                        };
+
+
+                    row.append(
+                        codeBtn
+                    );
+
+                }
+
+
+                if(
+                    z.key!=="system"
+                ){
+
+                    const del=
+                        document.createElement(
+                            "button"
+                        );
+
+
+                    del.textContent="DEL";
+
+
+                    del.onclick=
+                        async()=>{
+
+                            const r=
+                                await parent.FS.remove(
+                                    p
+                                );
+
+
+                            if(!r.ok){
+
+                                showError(
+                                    r.error ||
+                                    "Could not delete file."
+                                );
+
+                                return;
+
+                            }
+
+
+                            selected.delete(p);
+
+
+                            await refresh();
+
+                        };
+
+
+                    row.append(
+                        del
+                    );
+
+                }
+
+            }
+
+
+            list.appendChild(row);
+
+        }
+
+    }
+    catch(e){
+
+        if(
+            serial!==refreshSerial
+        ){
+
+            return;
+
+        }
+
+
+        list.innerHTML=
+            '<div class="empty">Could not read this folder.</div>';
+
+
+        showError(
+            e.message ||
+            "Could not list files."
+        );
+
+    }
+
 }
-try{
-const result=await parent.FS.list(currentPrefix||z.prefix);
-if(serial!==refreshSerial)return;
-let files=Array.isArray(result)?result:[];
-const base=currentPrefix||z.prefix;
-const visible=[];
-for(const p0 of files){
-const p=String(p0);
-if(!p.startsWith(base))continue;
-const rest=p.slice(base.length);
-if(!rest)continue;
-const clean=rest.replace(/\/+$/,"");
-const slash=clean.indexOf("/");
-if(slash>=0){
-const folderPath=base+clean.slice(0,slash+1);
-if(!visible.includes(folderPath))visible.push(folderPath);
-}else{
-visible.push(p);
-}
-}
-files=sortPaths(visible);
-list.innerHTML="";
-if(!files.length){
-list.innerHTML='<div class="empty">No files.</div>';
-return;
-}
-for(const p of files){
-const row=document.createElement("div");
-const folder=isFolderPath(p);
-row.className="row"+(folder?" folder":"");
-const cb=document.createElement("input");
-cb.type="checkbox";
-cb.checked=selected.has(p);
-cb.onchange=()=>{
-if(cb.checked)selected.add(p);
-else selected.delete(p);
+
+
+/* =========================================================
+   REFRESH BUTTON
+========================================================= */
+
+document.getElementById(
+    "refresh"
+).onclick=refresh;
+
+
+/* =========================================================
+   UP BUTTON
+========================================================= */
+
+document.getElementById(
+    "up"
+).onclick=goUp;
+
+
+/* =========================================================
+   SELECT ALL
+========================================================= */
+
+document.getElementById(
+    "selectAll"
+).onclick=async()=>{
+
+    cancelRename();
+
+
+    const z=
+        zone();
+
+
+    const files=
+        await parent.FS.list(
+            currentPrefix ||
+            z.prefix
+        );
+
+
+    if(!Array.isArray(files)){
+
+        return;
+
+    }
+
+
+    const base=
+        currentPrefix ||
+        z.prefix;
+
+
+    files.forEach(
+        p=>{
+
+            if(
+                String(p).startsWith(base) &&
+                String(p)!==base
+            ){
+
+                selected.add(p);
+
+            }
+
+        }
+    );
+
+
+    await refresh();
+
 };
-const name=document.createElement("div");
-name.className="name";
-name.dataset.path=p;
-name.textContent=(folder?"📁 ":"")+displayName(p);
-name.title=p;
-name.onclick=()=>{
-if(activeRename)return;
-openPath(p);
+
+
+/* =========================================================
+   NEW TEXT
+========================================================= */
+
+document.getElementById(
+    "newText"
+).onclick=async()=>{
+
+    cancelRename();
+
+
+    const defaultPath=
+        (
+            currentPrefix ||
+            zone().prefix
+        )+
+        "new.txt";
+
+
+    const name=
+        prompt(
+            "New text file path:",
+            defaultPath
+        );
+
+
+    if(!name){
+
+        return;
+
+    }
+
+
+    const r=
+        await parent.FS.write(
+            name,
+            "",
+            true
+        );
+
+
+    if(!r.ok){
+
+        showError(
+            r.error
+        );
+
+        return;
+
+    }
+
+
+    await refresh();
+
+    edit(name);
+
 };
-name.ondblclick=e=>{
-e.preventDefault();
-e.stopPropagation();
-startRename(name,p,folder);
+
+
+/* =========================================================
+   ZIP SELECTED
+========================================================= */
+
+document.getElementById(
+    "zip"
+).onclick=async()=>{
+
+    cancelRename();
+
+
+    const fs=
+        selectedPaths();
+
+
+    if(!fs.length){
+
+        showError(
+            "Select files first."
+        );
+
+        return;
+
+    }
+
+
+    const out=
+        prompt(
+            "ZIP output path:",
+            (
+                currentPrefix ||
+                zone().prefix
+            )+
+            "archive.zip"
+        );
+
+
+    if(!out){
+
+        return;
+
+    }
+
+
+    const r=
+        await parent.Tools.execute(
+            "zip_files",
+            {
+                files:fs,
+                output_path:out
+            }
+        );
+
+
+    if(!r.ok){
+
+        showError(
+            r.summary ||
+            "Could not create ZIP."
+        );
+
+        return;
+
+    }
+
+
+    selected.clear();
+
+
+    await refresh();
+
 };
-name.oncontextmenu=e=>{
-e.preventDefault();
-showContextMenu(e.clientX,e.clientY,p,folder);
-};
-let pressTimer=null;
-name.onpointerdown=e=>{
-if(e.pointerType==="mouse"||activeRename)return;
-pressTimer=setTimeout(()=>{
-showContextMenu(e.clientX,e.clientY,p,folder);
-},550);
-};
-name.onpointerup=()=>clearTimeout(pressTimer);
-name.onpointercancel=()=>clearTimeout(pressTimer);
-name.onpointermove=()=>clearTimeout(pressTimer);
-row.append(cb,name);
-if(folder){
-const openBtn=document.createElement("button");
-openBtn.textContent="OPEN";
-openBtn.onclick=()=>enterFolder(p);
-row.append(openBtn);
-const dlBtn=document.createElement("button");
-dlBtn.textContent="DL";
-dlBtn.onclick=()=>downloadItem(p);
-row.append(dlBtn);
-}else{
-const e=ext(p);
-const dlBtn=document.createElement("button");
-dlBtn.textContent="DL";
-dlBtn.onclick=()=>downloadItem(p);
-row.append(dlBtn);
-if(e!=="zip"){
-if(z.key!=="system"){
-const editBtn=document.createElement("button");
-editBtn.textContent="EDIT";
-editBtn.onclick=()=>edit(p);
-row.append(editBtn);
-}
-}else{
-const unzipBtn=document.createElement("button");
-unzipBtn.textContent="UNZIP";
-unzipBtn.onclick=()=>unzipFile(p);
-row.append(unzipBtn);
-}
-if(z.key!=="system"&&["js","ts","py","java","c","cpp","cs","php","html","css"].includes(e)){
-const codeBtn=document.createElement("button");
-codeBtn.textContent="CODE";
-codeBtn.onclick=()=>{
-selected=new Set([p]);
-code();
-};
-row.append(codeBtn);
-}
-if(z.key!=="system"){
-const del=document.createElement("button");
-del.textContent="DEL";
-del.onclick=async()=>{
-const r=await parent.FS.remove(p);
-if(!r.ok){
-showError(r.error||"Could not delete file.");
-return;
-}
-selected.delete(p);
-await refresh();
-};
-row.append(del);
-}
-}
-list.appendChild(row);
-}
-}catch(e){
-if(serial!==refreshSerial)return;
-list.innerHTML='<div class="empty">Could not read this folder.</div>';
-showError(e.message||"Could not list files.");
-}
-}
-document.getElementById("refresh").onclick=refresh;
-document.getElementById("up").onclick=goUp;
-document.getElementById("selectAll").onclick=async()=>{
-cancelRename();
-const z=zone();
-const files=await parent.FS.list(currentPrefix||z.prefix);
-if(!Array.isArray(files))return;
-const base=currentPrefix||z.prefix;
-files.forEach(p=>{
-if(String(p).startsWith(base)&&String(p)!==base)selected.add(p);
-});
-await refresh();
-};
-document.getElementById("newText").onclick=async()=>{
-cancelRename();
-const defaultPath=(currentPrefix||zone().prefix)+"new.txt";
-const name=prompt("New text file path:",defaultPath);
-if(!name)return;
-const r=await parent.FS.write(name,"",true);
-if(!r.ok){
-showError(r.error);
-return;
-}
-await refresh();
-edit(name);
-};
-document.getElementById("zip").onclick=async()=>{
-cancelRename();
-const fs=selectedPaths();
-if(!fs.length){
-showError("Select files first.");
-return;
-}
-const out=prompt("ZIP output path:",(currentPrefix||zone().prefix)+"archive.zip");
-if(!out)return;
-const r=await parent.Tools.execute("zip_files",{files:fs,output_path:out});
-if(!r.ok){
-showError(r.summary||"Could not create ZIP.");
-return;
-}
-selected.clear();
-await refresh();
-};
+
+
+/* =========================================================
+   PATH BOX
+========================================================= */
+
 box.onchange=()=>{
-const v=box.value.trim();
-if(!v)return;
-parent.Tools.execute("find_files",{pattern:v}).then(r=>{
-showError(r.files&&r.files.length?r.files.join("\n"):r.summary);
-}).catch(e=>showError(e.message||e));
+
+    const v=
+        box.value.trim();
+
+
+    if(!v){
+
+        return;
+
+    }
+
+
+    parent.Tools.execute(
+        "find_files",
+        {
+            pattern:v
+        }
+    )
+    .then(
+        r=>{
+
+            showError(
+                r.files &&
+                r.files.length
+                    ?r.files.join("\n")
+                    :r.summary
+            );
+
+        }
+    )
+    .catch(
+        e=>
+            showError(
+                e.message ||
+                e
+            )
+    );
+
 };
+
+
 box.onkeydown=e=>{
-if(e.key!=="Enter")return;
-const v=box.value.trim();
-if(!v)return;
-if(/\/$/.test(v)){
-const z=zone();
-if(v.startsWith(z.prefix)){
-currentPrefix=normalizeFolderPath(v);
-refresh();
-}
-return;
-}
-box.onchange();
+
+    if(e.key!=="Enter"){
+
+        return;
+
+    }
+
+
+    const v=
+        box.value.trim();
+
+
+    if(!v){
+
+        return;
+
+    }
+
+
+    if(/\/$/.test(v)){
+
+        const z=
+            zone();
+
+
+        if(
+            v.startsWith(
+                z.prefix
+            )
+        ){
+
+            currentPrefix=
+                normalizeFolderPath(
+                    v
+                );
+
+
+            refresh();
+
+        }
+
+
+        return;
+
+    }
+
+
+    box.onchange();
+
 };
+
+
+/* =========================================================
+   START
+========================================================= */
+
 refresh();
+
 </script>
 </body>
 </html>
