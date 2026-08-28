@@ -3,7 +3,7 @@
     const root=document.getElementById("windows-root");
     const taskbar=document.getElementById("taskbar-items");
     let zTop=100;
-    const windows=[]; // {id, el, taskbarBtn, standaloneKey, minimized}
+    const windows=[]; // {id, el, taskbarBtn, standaloneKey, minimized, maximized}
     let counter=0;
 
     /*
@@ -29,6 +29,7 @@
     /**
      * options: {
      *   title, html, iframeSrc, closable, draggable, resizable,
+     *   maximizable,
      *   width, height, x, y, standaloneKey, noPad, onClose
      * }
      */
@@ -97,12 +98,35 @@
         const btns=document.createElement("div");
         btns.className="cyan-window-btns";
 
+
+        /* =========================
+         * MINIMIZE
+         * ========================= */
         const minBtn=document.createElement("button");
         minBtn.textContent="_";
         minBtn.title="Minimize";
 
         btns.appendChild(minBtn);
 
+
+        /* =========================
+         * MAXIMIZE
+         * ========================= */
+        let maxBtn=null;
+
+        if(options.maximizable!==false){
+
+            maxBtn=document.createElement("button");
+            maxBtn.textContent="□";
+            maxBtn.title="Maximize";
+
+            btns.appendChild(maxBtn);
+        }
+
+
+        /* =========================
+         * CLOSE
+         * ========================= */
         let closeBtn=null;
 
         if(options.closable!==false){
@@ -116,7 +140,12 @@
 
         header.appendChild(btns);
 
+
+        /* =========================
+         * CONTENT
+         * ========================= */
         const content=document.createElement("div");
+
         content.className=
             "cyan-window-content"+
             (options.noPad?" no-pad":"");
@@ -137,6 +166,10 @@
         el.appendChild(header);
         el.appendChild(content);
 
+
+        /* =========================
+         * RESIZE
+         * ========================= */
         if(options.resizable!==false){
 
             const handle=document.createElement("div");
@@ -150,19 +183,25 @@
 
         root.appendChild(el);
 
+
         const win={
             id,
             el,
             title:options.title||"WINDOW",
             standaloneKey:options.standaloneKey||null,
             minimized:false,
+            maximized:false,
             closed:false,
+
+            restoreState:null,
+
             onClose:options.onClose||null
         };
 
         windows.push(win);
 
         bringToFront(win);
+
 
         el.addEventListener(
             "mousedown",
@@ -175,10 +214,15 @@
             {passive:true}
         );
 
+
         if(options.draggable!==false){
             makeDraggable(el,header);
         }
 
+
+        /* =========================
+         * MINIMIZE BUTTON
+         * ========================= */
         minBtn.addEventListener("click",e=>{
 
             e.stopPropagation();
@@ -186,6 +230,27 @@
             toggleMinimize(win);
         });
 
+
+        /* =========================
+         * MAXIMIZE BUTTON
+         * ========================= */
+        if(maxBtn){
+
+            maxBtn.addEventListener("click",e=>{
+
+                e.stopPropagation();
+
+                toggleMaximize(
+                    win,
+                    maxBtn
+                );
+            });
+        }
+
+
+        /* =========================
+         * CLOSE BUTTON
+         * ========================= */
         if(closeBtn){
 
             closeBtn.addEventListener("click",e=>{
@@ -196,14 +261,76 @@
             });
         }
 
+
         addTaskbarButton(win);
 
         return win;
     }
 
 
-    /*
-     * =========================================================
+    /* =========================================================
+     * MAXIMIZE / RESTORE
+     * ========================================================= */
+    function toggleMaximize(win,button){
+
+        if(win.maximized){
+
+            /* RESTORE */
+
+            if(win.restoreState){
+
+                win.el.style.left=
+                    win.restoreState.left;
+
+                win.el.style.top=
+                    win.restoreState.top;
+
+                win.el.style.width=
+                    win.restoreState.width;
+
+                win.el.style.height=
+                    win.restoreState.height;
+            }
+
+            win.maximized=false;
+
+            button.textContent="□";
+            button.title="Maximize";
+
+            bringToFront(win);
+
+            return;
+        }
+
+
+        /* SAVE CURRENT POSITION AND SIZE */
+
+        win.restoreState={
+            left:win.el.style.left,
+            top:win.el.style.top,
+            width:win.el.style.width,
+            height:win.el.style.height
+        };
+
+
+        /* MAXIMIZE */
+
+        win.maximized=true;
+
+        win.el.style.left="0px";
+        win.el.style.top="0px";
+        win.el.style.width="100%";
+        win.el.style.height=
+            "calc(100% - 44px)";
+
+        button.textContent="❐";
+        button.title="Restore";
+
+        bringToFront(win);
+    }
+
+
+    /* =========================================================
      * OPEN EXISTING APP IN A NEW BROWSER TAB
      * =========================================================
      *
@@ -221,25 +348,15 @@
      *     title:"My App"
      * });
      *
-     * This opens:
-     *
-     * /application.html
-     *
-     * and tells it which app to load.
+     * application.html becomes the outer page and contains
+     * exactly one iframe.
      */
     function openApplicationTab(options){
 
         options=options||{};
 
-        const src=
-            typeof options.src==="string"
-            ?options.src
-            :null;
-
-        const srcDoc=
-            typeof options.srcDoc==="string"
-            ?options.srcDoc
-            :null;
+        const src=options.src||null;
+        const srcDoc=options.srcDoc||null;
 
         if(!src&&!srcDoc){
 
@@ -255,9 +372,9 @@
             options.standaloneKey||
             ("application-"+Date.now()+"-"+Math.random());
 
+
         /*
-         * Reuse an already-open application tab when the same
-         * appId is used.
+         * Reuse an existing application tab when possible.
          */
         if(options.standalone!==false){
 
@@ -276,10 +393,10 @@
                         existing.window,
                         {
                             type:"load-app",
-                            appId:appId,
+                            appId,
                             title:options.title||"APPLICATION",
-                            src:src,
-                            srcDoc:srcDoc
+                            src,
+                            srcDoc
                         }
                     );
 
@@ -290,8 +407,9 @@
             }
         }
 
+
         /*
-         * Open the universal application host.
+         * Open /application.html as the actual browser tab.
          */
         const appWindow=window.open(
             "/application.html",
@@ -307,9 +425,10 @@
             return null;
         }
 
+
         const record={
             window:appWindow,
-            appId:appId,
+            appId,
             ready:false
         };
 
@@ -318,24 +437,19 @@
             record
         );
 
+
         /*
-         * application.html sends "application-ready" once it
-         * has loaded. Until then, retry the load message so the
-         * initial message is not lost during page navigation.
+         * application.html may not have loaded yet.
+         * Retry the command until it responds.
          */
         let attempts=0;
         let retryTimer=null;
 
-        function sendInitial(){
+        const sendInitial=()=>{
 
-            if(
-                !appWindow||
-                appWindow.closed
-            ){
+            if(!appWindow||appWindow.closed){
 
-                if(retryTimer){
-                    clearInterval(retryTimer);
-                }
+                clearInterval(retryTimer);
 
                 applicationTabs.delete(appId);
 
@@ -348,20 +462,18 @@
                 appWindow,
                 {
                     type:"load-app",
-                    appId:appId,
+                    appId,
                     title:options.title||"APPLICATION",
-                    src:src,
-                    srcDoc:srcDoc
+                    src,
+                    srcDoc
                 }
             );
 
             if(attempts>=30){
 
-                if(retryTimer){
-                    clearInterval(retryTimer);
-                }
+                clearInterval(retryTimer);
             }
-        }
+        };
 
         retryTimer=setInterval(
             sendInitial,
@@ -374,10 +486,13 @@
     }
 
 
-    /*
-     * Send a command to application.html.
-     */
-    function sendApplicationCommand(appWindow,message){
+    /* =========================================================
+     * SEND COMMAND TO application.html
+     * ========================================================= */
+    function sendApplicationCommand(
+        appWindow,
+        message
+    ){
 
         if(
             !appWindow||
@@ -407,20 +522,13 @@
     }
 
 
-    /*
-     * =========================================================
+    /* =========================================================
      * MAIN PAGE ←→ APPLICATION.HTML
-     * =========================================================
-     *
-     * application.html sends messages back to this page.
-     */
+     * ========================================================= */
     window.addEventListener(
         "message",
         function(event){
 
-            /*
-             * Only accept same-origin messages.
-             */
             if(
                 event.origin!==
                 window.location.origin
@@ -441,7 +549,10 @@
             /*
              * application.html is ready.
              */
-            if(message.type==="application-ready"){
+            if(
+                message.type===
+                "application-ready"
+            ){
 
                 const record=
                     applicationTabs.get(
@@ -451,22 +562,6 @@
                 if(record){
 
                     record.ready=true;
-
-                    /*
-                     * Send the load command again now that
-                     * application.html has explicitly announced
-                     * that it is ready.
-                     */
-                    sendApplicationCommand(
-                        record.window,
-                        {
-                            type:"load-app",
-                            appId:record.appId,
-                            title:message.title||"APPLICATION",
-                            src:message.src||null,
-                            srcDoc:message.srcDoc||null
-                        }
-                    );
                 }
 
                 return;
@@ -474,18 +569,20 @@
 
 
             /*
-             * application.html received a message from its
-             * iframe and forwarded it here.
+             * application.html forwarding
+             * something from its iframe.
              */
-            if(message.type==="application-to-main"){
+            if(
+                message.type===
+                "application-to-main"
+            ){
 
                 const appMessage=
                     message.message;
 
                 /*
-                 * Deliver it through the normal window message
-                 * system so existing Main Page listeners can
-                 * receive it.
+                 * Re-dispatch it as a normal
+                 * message event.
                  */
                 window.dispatchEvent(
                     new MessageEvent(
@@ -505,19 +602,13 @@
     );
 
 
-    /*
-     * =========================================================
+    /* =========================================================
      * MAIN PAGE → NEW-TAB APPLICATION
-     * =========================================================
-     *
-     * Example:
-     *
-     * WM.sendToApplicationTab("files",{
-     *     type:"open-file",
-     *     path:"/hello.txt"
-     * });
-     */
-    function sendToApplicationTab(appId,message){
+     * ========================================================= */
+    function sendToApplicationTab(
+        appId,
+        message
+    ){
 
         const record=
             applicationTabs.get(appId);
@@ -540,16 +631,16 @@
             record.window,
             {
                 type:"main-to-application",
-                appId:appId,
-                message:message
+                appId,
+                message
             }
         );
     }
 
 
-    /*
-     * Return currently tracked application tabs.
-     */
+    /* =========================================================
+     * LIST APPLICATION TABS
+     * ========================================================= */
     function listApplicationTabs(){
 
         const result=[];
@@ -568,7 +659,7 @@
                 }
 
                 result.push({
-                    appId:appId,
+                    appId,
                     window:record.window,
                     ready:record.ready
                 });
@@ -579,9 +670,13 @@
     }
 
 
+    /* =========================================================
+     * MINIMIZE
+     * ========================================================= */
     function toggleMinimize(win){
 
-        win.minimized=!win.minimized;
+        win.minimized=
+            !win.minimized;
 
         win.el.style.display=
             win.minimized
@@ -603,6 +698,9 @@
     }
 
 
+    /* =========================================================
+     * CLOSE
+     * ========================================================= */
     function closeWindow(win){
 
         win.closed=true;
@@ -613,7 +711,8 @@
             win.taskbarBtn.remove();
         }
 
-        const idx=windows.indexOf(win);
+        const idx=
+            windows.indexOf(win);
 
         if(idx!==-1){
             windows.splice(idx,1);
@@ -627,10 +726,15 @@
 
     function closeAll(){
 
-        [...windows].forEach(closeWindow);
+        [...windows].forEach(
+            closeWindow
+        );
     }
 
 
+    /* =========================================================
+     * TASKBAR BUTTON
+     * ========================================================= */
     function addTaskbarButton(win){
 
         const btn=document.createElement("div");
@@ -641,36 +745,32 @@
 
         btn.appendChild(label);
 
+
         const x=document.createElement("button");
         x.className="tb-x";
         x.textContent="×";
 
-        x.addEventListener(
-            "click",
-            e=>{
+        x.addEventListener("click",e=>{
 
-                e.stopPropagation();
+            e.stopPropagation();
 
-                closeWindow(win);
-            }
-        );
+            closeWindow(win);
+        });
 
         btn.appendChild(x);
 
-        btn.addEventListener(
-            "click",
-            ()=>{
 
-                if(win.minimized){
+        btn.addEventListener("click",()=>{
 
-                    toggleMinimize(win);
+            if(win.minimized){
 
-                }else{
+                toggleMinimize(win);
 
-                    bringToFront(win);
-                }
+            }else{
+
+                bringToFront(win);
             }
-        );
+        });
 
         taskbar.appendChild(btn);
 
@@ -678,13 +778,36 @@
     }
 
 
+    /* =========================================================
+     * DRAGGING
+     * ========================================================= */
     function makeDraggable(win,handle){
 
         let dragging=false;
+
         let offsetX=0;
         let offsetY=0;
 
-        function start(clientX,clientY){
+
+        function start(
+            clientX,
+            clientY
+        ){
+
+            const currentWin=
+                windows.find(
+                    w=>w.el===win
+                );
+
+            /*
+             * A maximized window cannot be dragged.
+             */
+            if(
+                currentWin&&
+                currentWin.maximized
+            ){
+                return;
+            }
 
             const rect=
                 win.getBoundingClientRect();
@@ -700,13 +823,15 @@
                 rect.top;
 
             bringToFront(
-                windows.find(
-                    w=>w.el===win
-                )
+                currentWin
             );
         }
 
-        function move(clientX,clientY){
+
+        function move(
+            clientX,
+            clientY
+        ){
 
             if(!dragging) return;
 
@@ -750,18 +875,18 @@
                 y+"px";
         }
 
+
         function end(){
             dragging=false;
         }
+
 
         handle.addEventListener(
             "mousedown",
             e=>{
 
                 if(
-                    e.target.closest(
-                        "button"
-                    )
+                    e.target.closest("button")
                 ){
                     return;
                 }
@@ -775,6 +900,7 @@
             }
         );
 
+
         window.addEventListener(
             "mousemove",
             e=>move(
@@ -783,25 +909,24 @@
             )
         );
 
+
         window.addEventListener(
             "mouseup",
             end
         );
+
 
         handle.addEventListener(
             "touchstart",
             e=>{
 
                 if(
-                    e.target.closest(
-                        "button"
-                    )
+                    e.target.closest("button")
                 ){
                     return;
                 }
 
-                const t=
-                    e.touches[0];
+                const t=e.touches[0];
 
                 start(
                     t.clientX,
@@ -812,16 +937,14 @@
             {passive:true}
         );
 
+
         window.addEventListener(
             "touchmove",
             e=>{
 
-                if(!dragging){
-                    return;
-                }
+                if(!dragging) return;
 
-                const t=
-                    e.touches[0];
+                const t=e.touches[0];
 
                 move(
                     t.clientX,
@@ -832,6 +955,7 @@
             {passive:true}
         );
 
+
         window.addEventListener(
             "touchend",
             end
@@ -839,7 +963,13 @@
     }
 
 
-    function makeResizable(win,handle){
+    /* =========================================================
+     * RESIZING
+     * ========================================================= */
+    function makeResizable(
+        win,
+        handle
+    ){
 
         let resizing=false;
 
@@ -848,7 +978,26 @@
         let startX=0;
         let startY=0;
 
-        function start(clientX,clientY){
+
+        function start(
+            clientX,
+            clientY
+        ){
+
+            const currentWin=
+                windows.find(
+                    w=>w.el===win
+                );
+
+            /*
+             * A maximized window cannot be resized.
+             */
+            if(
+                currentWin&&
+                currentWin.maximized
+            ){
+                return;
+            }
 
             resizing=true;
 
@@ -858,35 +1007,28 @@
             startH=
                 win.offsetHeight;
 
-            startX=
-                clientX;
-
-            startY=
-                clientY;
+            startX=clientX;
+            startY=clientY;
         }
 
-        function move(clientX,clientY){
 
-            if(!resizing){
-                return;
-            }
+        function move(
+            clientX,
+            clientY
+        ){
+
+            if(!resizing) return;
 
             const w=Math.max(
                 220,
                 startW+
-                (
-                    clientX-
-                    startX
-                )
+                (clientX-startX)
             );
 
             const h=Math.max(
                 150,
                 startH+
-                (
-                    clientY-
-                    startY
-                )
+                (clientY-startY)
             );
 
             win.style.width=
@@ -896,9 +1038,11 @@
                 h+"px";
         }
 
+
         function end(){
             resizing=false;
         }
+
 
         handle.addEventListener(
             "mousedown",
@@ -914,6 +1058,7 @@
             }
         );
 
+
         window.addEventListener(
             "mousemove",
             e=>move(
@@ -922,17 +1067,18 @@
             )
         );
 
+
         window.addEventListener(
             "mouseup",
             end
         );
 
+
         handle.addEventListener(
             "touchstart",
             e=>{
 
-                const t=
-                    e.touches[0];
+                const t=e.touches[0];
 
                 start(
                     t.clientX,
@@ -945,16 +1091,14 @@
             {passive:true}
         );
 
+
         window.addEventListener(
             "touchmove",
             e=>{
 
-                if(!resizing){
-                    return;
-                }
+                if(!resizing) return;
 
-                const t=
-                    e.touches[0];
+                const t=e.touches[0];
 
                 move(
                     t.clientX,
@@ -965,6 +1109,7 @@
             {passive:true}
         );
 
+
         window.addEventListener(
             "touchend",
             end
@@ -972,6 +1117,9 @@
     }
 
 
+    /* =========================================================
+     * PUBLIC API
+     * ========================================================= */
     window.WM={
 
         openWindow,
@@ -980,9 +1128,6 @@
 
         closeAll,
 
-        /*
-         * New browser-tab application system.
-         */
         openApplicationTab,
 
         sendToApplicationTab,
