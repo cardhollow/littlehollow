@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Game Finder</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:monospace}
+html,body{width:100%;height:100%;background:#000d0d;color:#00FFFF}
+.wrap{display:flex;flex-direction:column;height:100%;overflow:hidden}
+.toolbar{display:flex;gap:6px;padding:8px;border-bottom:1px solid #00FFFF;flex-wrap:wrap}
+.toolbar input{flex:1;min-width:200px;background:#001010;border:1px solid #00FFFF;color:#00FFFF;padding:6px;font-family:monospace}
+.toolbar button{border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:6px 9px;cursor:pointer;font-family:monospace;font-size:11px}
+.toolbar button:active{background:#00FFFF;color:#000}
+.results{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:12px}
+.source-group{border:1px solid #00FFFF;padding:8px}
+.source-title{background:#00FFFF;color:#000;padding:4px;margin:-8px -8px 8px -8px;font-weight:bold;font-size:11px}
+.game-card{border:1px solid #00FFFF;padding:6px;background:#001010;cursor:pointer;transition:background 0.2s}
+.game-card:hover{background:#003030}
+.game-title{font-weight:bold;margin-bottom:3px}
+.game-meta{font-size:10px;opacity:0.7;margin:3px 0}
+.game-link{font-size:10px;color:#00ff88;text-decoration:none}
+.game-link:hover{text-decoration:underline}
+.loading{opacity:0.5;text-align:center;padding:20px}
+.error{color:#ff0000;padding:10px;border:1px solid #ff0000}
+.status{padding:5px 10px;border-top:1px solid #00FFFF;font-size:11px;opacity:.75}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toolbar">
+    <input id="searchInput" type="text" placeholder="Search games... (e.g., tetris, minecraft)" value="">
+    <button id="searchBtn">SEARCH</button>
+    <button id="clearBtn">CLEAR</button>
+  </div>
+  <div class="results" id="results">
+    <div style="text-align:center;padding:20px;opacity:0.5">
+      Type a game name and click SEARCH to begin.
+    </div>
+  </div>
+  <div class="status" id="status">Ready.</div>
+</div>
+
+<script>
+const searchInput = document.getElementById("searchInput");
+const searchBtn = document.getElementById("searchBtn");
+const clearBtn = document.getElementById("clearBtn");
+const results = document.getElementById("results");
+const status = document.getElementById("status");
+
+// Get RAWG API key from localStorage or use placeholder
+const RAWG_KEY = localStorage.getItem("rawg_key") || "";
+
+function updateStatus(msg) {
+  status.textContent = msg;
+}
+
+function showLoading() {
+  results.innerHTML = '<div class="loading">Searching across game databases...</div>';
+  updateStatus("Searching...");
+}
+
+function showError(msg) {
+  results.innerHTML = `<div class="error">Error: ${msg}</div>`;
+  updateStatus("Search failed.");
+}
+
+async function searchFreeToGame(query) {
+  try {
+    const resp = await fetch(`https://www.freetogame.com/api/games`);
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const data = await resp.json();
+    // Filter locally by title (case-insensitive)
+    return data.filter(g => String(g.title || "").toLowerCase().includes(query.toLowerCase())).slice(0, 5);
+  } catch (e) {
+    console.warn("FreeToGame search failed:", e);
+    return [];
+  }
+}
+
+async function searchRAWG(query) {
+  if (!RAWG_KEY) {
+    console.warn("RAWG API key not set. Get one free at https://rawg.io/apidocs");
+    return [];
+  }
+  try {
+    const resp = await fetch(
+      `https://api.rawg.io/api/games?key=${RAWG_KEY}&search=${encodeURIComponent(query)}&page_size=5`
+    );
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const data = await resp.json();
+    return data.results || [];
+  } catch (e) {
+    console.warn("RAWG search failed:", e);
+    return [];
+  }
+}
+
+function renderFreeToGameResult(game) {
+  return `
+    <div class="game-card">
+      <div class="game-title">${game.title || "Untitled"}</div>
+      <div class="game-meta">
+        Platform: ${game.platform || "Web"} | 
+        Genre: ${game.genre || "Unknown"}
+      </div>
+      ${game.short_description ? `<div class="game-meta">${game.short_description}</div>` : ""}
+      ${game.game_url ? `<a class="game-link" href="${game.game_url}" target="_blank">Open Game →</a>` : ""}
+    </div>
+  `;
+}
+
+function renderRAWGResult(game) {
+  const platforms = (game.platforms || []).map(p => p.platform.name).join(", ");
+  const genres = (game.genres || []).map(g => g.name).join(", ");
+  const rating = game.rating ? `${game.rating}/5 (${game.ratings_count || 0} votes)` : "No rating";
+  
+  return `
+    <div class="game-card">
+      <div class="game-title">${game.name || "Untitled"}</div>
+      <div class="game-meta">
+        ${game.released ? `Released: ${game.released}` : ""}
+      </div>
+      <div class="game-meta">
+        Rating: ${rating}
+      </div>
+      ${platforms ? `<div class="game-meta">Platforms: ${platforms}</div>` : ""}
+      ${genres ? `<div class="game-meta">Genres: ${genres}</div>` : ""}
+      ${game.metacritic ? `<div class="game-meta">Metacritic: ${game.metacritic}/100</div>` : ""}
+      ${game.stores && game.stores.length ? `<div class="game-link">Available on ${game.stores.length} store(s)</div>` : ""}
+    </div>
+  `;
+}
+
+async function search() {
+  const query = searchInput.value.trim();
+  if (!query) {
+    updateStatus("Please enter a search query.");
+    return;
+  }
+
+  showLoading();
+  
+  try {
+    const [ftgResults, rawgResults] = await Promise.all([
+      searchFreeToGame(query),
+      searchRAWG(query)
+    ]);
+
+    let html = "";
+    
+    if (ftgResults.length > 0) {
+      html += `<div class="source-group">
+        <div class="source-title">FREETOGAME (Free-to-Play)</div>
+        ${ftgResults.map(renderFreeToGameResult).join("")}
+      </div>`;
+    }
+
+    if (rawgResults.length > 0) {
+      html += `<div class="source-group">
+        <div class="source-title">RAWG (500K+ Games Database)</div>
+        ${rawgResults.map(renderRAWGResult).join("")}
+      </div>`;
+    }
+
+    if (ftgResults.length === 0 && rawgResults.length === 0) {
+      html = `<div style="text-align:center;padding:20px;opacity:0.5">
+        No games found for "${query}".
+        ${!RAWG_KEY ? `<div style="margin-top:10px;font-size:10px;color:#ff8800">Tip: Set RAWG API key for better results. Get one free at https://rawg.io/apidocs</div>` : ""}
+      </div>`;
+    }
+
+    results.innerHTML = html;
+    updateStatus(`Found ${ftgResults.length + rawgResults.length} game(s).`);
+  } catch (e) {
+    showError(e.message);
+  }
+}
+
+function clear() {
+  searchInput.value = "";
+  results.innerHTML = '<div style="text-align:center;padding:20px;opacity:0.5">Type a game name and click SEARCH to begin.</div>';
+  updateStatus("Ready.");
+  searchInput.focus();
+}
+
+searchBtn.addEventListener("click", search);
+clearBtn.addEventListener("click", clear);
+searchInput.addEventListener("keypress", e => {
+  if (e.key === "Enter") search();
+});
+
+// Load any pre-filled query from URL params
+const params = new URLSearchParams(location.search);
+if (params.get("q")) {
+  searchInput.value = params.get("q");
+  setTimeout(search, 100);
+}
+
+searchInput.focus();
+</script>
+</body>
+</html>
