@@ -1,7 +1,3 @@
-/*
- * Window manager: creates draggable, resizable, minimizable windows.
- * Supports plain HTML content or an iframe pointed at an app page.
- */
 (function(){
 
     const root=document.getElementById("windows-root");
@@ -9,6 +5,17 @@
     let zTop=100;
     const windows=[]; // {id, el, taskbarBtn, standaloneKey, minimized}
     let counter=0;
+
+    /*
+     * External application tabs opened through /application.html.
+     *
+     * {
+     *   window: browserWindow,
+     *   appId,
+     *   ready
+     * }
+     */
+    const applicationTabs=new Map();
 
     function bringToFront(win){
         zTop+=1;
@@ -30,25 +37,50 @@
 
         if(options.standaloneKey){
             const existing=findStandalone(options.standaloneKey);
+
             if(existing){
                 bringToFront(existing);
-                if(existing.minimized) toggleMinimize(existing);
+
+                if(existing.minimized){
+                    toggleMinimize(existing);
+                }
+
                 return existing;
             }
         }
 
         counter+=1;
+
         const id="win-"+counter;
 
         const el=document.createElement("div");
         el.className="cyan-window";
         el.id=id;
+
         el.style.width=options.width||"420px";
         el.style.height=options.height||"320px";
 
         const offset=(windows.length%8)*22;
-        const defaultX=options.x!=null?options.x:Math.max(20,(window.innerWidth-parseInt(options.width||420))/2+offset-100);
-        const defaultY=options.y!=null?options.y:Math.max(60,(window.innerHeight-parseInt(options.height||320))/2+offset-100);
+
+        const defaultX=
+            options.x!=null
+            ?options.x
+            :Math.max(
+                20,
+                (window.innerWidth-parseInt(options.width||420))/2+
+                offset-
+                100
+            );
+
+        const defaultY=
+            options.y!=null
+            ?options.y
+            :Math.max(
+                60,
+                (window.innerHeight-parseInt(options.height||320))/2+
+                offset-
+                100
+            );
 
         el.style.left=defaultX+"px";
         el.style.top=defaultY+"px";
@@ -59,6 +91,7 @@
         const titleEl=document.createElement("div");
         titleEl.className="cyan-window-title";
         titleEl.textContent=options.title||"WINDOW";
+
         header.appendChild(titleEl);
 
         const btns=document.createElement("div");
@@ -67,26 +100,37 @@
         const minBtn=document.createElement("button");
         minBtn.textContent="_";
         minBtn.title="Minimize";
+
         btns.appendChild(minBtn);
 
         let closeBtn=null;
+
         if(options.closable!==false){
+
             closeBtn=document.createElement("button");
             closeBtn.textContent="×";
             closeBtn.title="Close";
+
             btns.appendChild(closeBtn);
         }
 
         header.appendChild(btns);
 
         const content=document.createElement("div");
-        content.className="cyan-window-content"+(options.noPad?" no-pad":"");
+        content.className=
+            "cyan-window-content"+
+            (options.noPad?" no-pad":"");
 
         if(options.iframeSrc){
+
             const iframe=document.createElement("iframe");
+
             iframe.src=options.iframeSrc;
+
             content.appendChild(iframe);
+
         }else if(options.html!==undefined){
+
             content.innerHTML=options.html;
         }
 
@@ -94,9 +138,13 @@
         el.appendChild(content);
 
         if(options.resizable!==false){
+
             const handle=document.createElement("div");
+
             handle.className="resize-handle";
+
             el.appendChild(handle);
+
             makeResizable(el,handle);
         }
 
@@ -113,23 +161,37 @@
         };
 
         windows.push(win);
+
         bringToFront(win);
 
-        el.addEventListener("mousedown",()=>bringToFront(win));
-        el.addEventListener("touchstart",()=>bringToFront(win),{passive:true});
+        el.addEventListener(
+            "mousedown",
+            ()=>bringToFront(win)
+        );
+
+        el.addEventListener(
+            "touchstart",
+            ()=>bringToFront(win),
+            {passive:true}
+        );
 
         if(options.draggable!==false){
             makeDraggable(el,header);
         }
 
         minBtn.addEventListener("click",e=>{
+
             e.stopPropagation();
+
             toggleMinimize(win);
         });
 
         if(closeBtn){
+
             closeBtn.addEventListener("click",e=>{
+
                 e.stopPropagation();
+
                 closeWindow(win);
             });
         }
@@ -139,150 +201,659 @@
         return win;
     }
 
-    function toggleMinimize(win){
-        win.minimized=!win.minimized;
-        win.el.style.display=win.minimized?"none":"flex";
-        if(win.taskbarBtn){
-            win.taskbarBtn.classList.toggle("minimized",win.minimized);
+
+    /*
+     * =========================================================
+     * OPEN EXISTING APP IN A NEW BROWSER TAB
+     * =========================================================
+     *
+     * Example:
+     *
+     * WM.openApplicationTab({
+     *     src:"files.html",
+     *     title:"Files"
+     * });
+     *
+     * Or:
+     *
+     * WM.openApplicationTab({
+     *     srcDoc:"<html>...</html>",
+     *     title:"My App"
+     * });
+     *
+     * application.html becomes the outer page and contains
+     * exactly one iframe.
+     */
+    function openApplicationTab(options){
+
+        options=options||{};
+
+        const src=options.src||null;
+        const srcDoc=options.srcDoc||null;
+
+        if(!src&&!srcDoc){
+            console.error(
+                "WM.openApplicationTab: missing src or srcDoc"
+            );
+
+            return null;
         }
-        if(!win.minimized) bringToFront(win);
+
+        const appId=
+            options.appId||
+            options.standaloneKey||
+            ("application-"+Date.now()+"-"+Math.random());
+
+        /*
+         * If requested as standalone, reuse the existing tab.
+         */
+        if(options.standalone!==false){
+
+            const existing=applicationTabs.get(appId);
+
+            if(existing){
+
+                if(
+                    existing.window &&
+                    !existing.window.closed
+                ){
+
+                    existing.window.focus();
+
+                    /*
+                     * Send a new load command if requested.
+                     */
+                    sendApplicationCommand(
+                        existing.window,
+                        {
+                            type:"load-app",
+                            appId,
+                            title:options.title||"APPLICATION",
+                            src,
+                            srcDoc
+                        }
+                    );
+
+                    return existing.window;
+                }
+
+                applicationTabs.delete(appId);
+            }
+        }
+
+        /*
+         * Open application.html.
+         *
+         * IMPORTANT:
+         * This should ideally be called directly from a user
+         * interaction such as a button click so popup blockers
+         * allow the new tab.
+         */
+        const appWindow=window.open(
+            "/application.html",
+            "_blank"
+        );
+
+        if(!appWindow){
+
+            console.warn(
+                "Little Hollow: browser blocked the application tab."
+            );
+
+            return null;
+        }
+
+        const record={
+            window:appWindow,
+            appId,
+            ready:false
+        };
+
+        applicationTabs.set(appId,record);
+
+        /*
+         * We don't know exactly when application.html has
+         * finished loading yet, so send the command repeatedly
+         * for a short period until the wrapper confirms ready.
+         */
+        let attempts=0;
+
+        const sendInitial=()=>{
+
+            if(!appWindow || appWindow.closed){
+
+                clearInterval(retryTimer);
+
+                applicationTabs.delete(appId);
+
+                return;
+            }
+
+            attempts++;
+
+            sendApplicationCommand(
+                appWindow,
+                {
+                    type:"load-app",
+                    appId,
+                    title:options.title||"APPLICATION",
+                    src,
+                    srcDoc
+                }
+            );
+
+            if(attempts>=30){
+
+                clearInterval(retryTimer);
+            }
+        };
+
+        const retryTimer=setInterval(
+            sendInitial,
+            250
+        );
+
+        sendInitial();
+
+        return appWindow;
     }
+
+
+    /*
+     * Send a command to application.html.
+     */
+    function sendApplicationCommand(appWindow,message){
+
+        if(!appWindow||appWindow.closed){
+            return false;
+        }
+
+        try{
+
+            appWindow.postMessage(
+                message,
+                window.location.origin
+            );
+
+            return true;
+
+        }catch(error){
+
+            console.error(
+                "Little Hollow application message failed:",
+                error
+            );
+
+            return false;
+        }
+    }
+
+
+    /*
+     * =========================================================
+     * MAIN PAGE ←→ APPLICATION.HTML
+     * =========================================================
+     *
+     * application.html sends messages to this page.
+     *
+     * This listener also handles the READY message and forwards
+     * application messages to the appropriate existing code.
+     */
+    window.addEventListener("message",function(event){
+
+        /*
+         * Ignore messages from other origins.
+         */
+        if(event.origin!==window.location.origin){
+            return;
+        }
+
+        if(!event.data||typeof event.data!=="object"){
+            return;
+        }
+
+        const message=event.data;
+
+        /*
+         * application.html announces that its iframe is ready.
+         */
+        if(message.type==="application-ready"){
+
+            const record=
+                applicationTabs.get(message.appId);
+
+            if(record){
+                record.ready=true;
+            }
+
+            return;
+        }
+
+        /*
+         * application.html has received a message FROM
+         * its iframe and is forwarding it to Main Page.
+         */
+        if(message.type==="application-to-main"){
+
+            const appMessage=message.message;
+
+            /*
+             * Re-dispatch as a normal MessageEvent so the rest
+             * of Little Hollow can listen exactly as before.
+             */
+            window.dispatchEvent(
+                new MessageEvent(
+                    "message",
+                    {
+                        data:appMessage,
+                        origin:event.origin,
+                        source:event.source
+                    }
+                )
+            );
+
+            return;
+        }
+
+    });
+
+
+    /*
+     * Send a normal application message to a new-tab app.
+     *
+     * Example:
+     *
+     * WM.sendToApplicationTab("files",{
+     *     type:"open-file",
+     *     path:"/hello.txt"
+     * });
+     */
+    function sendToApplicationTab(appId,message){
+
+        const record=applicationTabs.get(appId);
+
+        if(!record){
+            return false;
+        }
+
+        if(!record.window||record.window.closed){
+
+            applicationTabs.delete(appId);
+
+            return false;
+        }
+
+        return sendApplicationCommand(
+            record.window,
+            {
+                type:"main-to-application",
+                appId,
+                message
+            }
+        );
+    }
+
+
+    /*
+     * Return currently tracked application tabs.
+     */
+    function listApplicationTabs(){
+
+        const result=[];
+
+        applicationTabs.forEach(
+            (record,appId)=>{
+
+                if(
+                    !record.window||
+                    record.window.closed
+                ){
+
+                    applicationTabs.delete(appId);
+
+                    return;
+                }
+
+                result.push({
+                    appId,
+                    window:record.window,
+                    ready:record.ready
+                });
+            }
+        );
+
+        return result;
+    }
+
+
+    function toggleMinimize(win){
+
+        win.minimized=!win.minimized;
+
+        win.el.style.display=
+            win.minimized
+            ?"none"
+            :"flex";
+
+        if(win.taskbarBtn){
+
+            win.taskbarBtn.classList.toggle(
+                "minimized",
+                win.minimized
+            );
+        }
+
+        if(!win.minimized){
+
+            bringToFront(win);
+        }
+    }
+
 
     function closeWindow(win){
+
         win.closed=true;
+
         win.el.remove();
-        if(win.taskbarBtn) win.taskbarBtn.remove();
+
+        if(win.taskbarBtn){
+            win.taskbarBtn.remove();
+        }
+
         const idx=windows.indexOf(win);
-        if(idx!==-1) windows.splice(idx,1);
-        if(typeof win.onClose==="function") win.onClose();
+
+        if(idx!==-1){
+            windows.splice(idx,1);
+        }
+
+        if(typeof win.onClose==="function"){
+            win.onClose();
+        }
     }
 
+
     function closeAll(){
+
         [...windows].forEach(closeWindow);
     }
 
+
     function addTaskbarButton(win){
+
         const btn=document.createElement("div");
         btn.className="tb-item";
 
         const label=document.createElement("span");
         label.textContent=win.title;
+
         btn.appendChild(label);
 
         const x=document.createElement("button");
         x.className="tb-x";
         x.textContent="×";
+
         x.addEventListener("click",e=>{
+
             e.stopPropagation();
+
             closeWindow(win);
         });
+
         btn.appendChild(x);
 
         btn.addEventListener("click",()=>{
-            if(win.minimized) toggleMinimize(win);
-            else bringToFront(win);
+
+            if(win.minimized){
+
+                toggleMinimize(win);
+
+            }else{
+
+                bringToFront(win);
+            }
         });
 
         taskbar.appendChild(btn);
+
         win.taskbarBtn=btn;
     }
 
+
     function makeDraggable(win,handle){
+
         let dragging=false;
         let offsetX=0;
         let offsetY=0;
 
         function start(clientX,clientY){
+
             const rect=win.getBoundingClientRect();
+
             dragging=true;
+
             offsetX=clientX-rect.left;
             offsetY=clientY-rect.top;
-            bringToFront(windows.find(w=>w.el===win));
+
+            bringToFront(
+                windows.find(w=>w.el===win)
+            );
         }
 
         function move(clientX,clientY){
+
             if(!dragging) return;
+
             let x=clientX-offsetX;
             let y=clientY-offsetY;
-            const maxX=window.innerWidth-win.offsetWidth;
-            const maxY=window.innerHeight-win.offsetHeight-44;
-            x=Math.max(0,Math.min(x,maxX));
-            y=Math.max(0,Math.min(y,maxY));
+
+            const maxX=
+                window.innerWidth-win.offsetWidth;
+
+            const maxY=
+                window.innerHeight-
+                win.offsetHeight-
+                44;
+
+            x=Math.max(
+                0,
+                Math.min(x,maxX)
+            );
+
+            y=Math.max(
+                0,
+                Math.min(y,maxY)
+            );
+
             win.style.left=x+"px";
             win.style.top=y+"px";
         }
 
-        function end(){ dragging=false; }
+        function end(){
+            dragging=false;
+        }
 
         handle.addEventListener("mousedown",e=>{
+
             if(e.target.closest("button")) return;
-            start(e.clientX,e.clientY);
+
+            start(
+                e.clientX,
+                e.clientY
+            );
+
             e.preventDefault();
         });
-        window.addEventListener("mousemove",e=>move(e.clientX,e.clientY));
-        window.addEventListener("mouseup",end);
+
+        window.addEventListener(
+            "mousemove",
+            e=>move(
+                e.clientX,
+                e.clientY
+            )
+        );
+
+        window.addEventListener(
+            "mouseup",
+            end
+        );
 
         handle.addEventListener("touchstart",e=>{
+
             if(e.target.closest("button")) return;
+
             const t=e.touches[0];
-            start(t.clientX,t.clientY);
+
+            start(
+                t.clientX,
+                t.clientY
+            );
+
         },{passive:true});
-        window.addEventListener("touchmove",e=>{
-            if(!dragging) return;
-            const t=e.touches[0];
-            move(t.clientX,t.clientY);
-        },{passive:true});
-        window.addEventListener("touchend",end);
+
+        window.addEventListener(
+            "touchmove",
+            e=>{
+
+                if(!dragging) return;
+
+                const t=e.touches[0];
+
+                move(
+                    t.clientX,
+                    t.clientY
+                );
+            },
+            {passive:true}
+        );
+
+        window.addEventListener(
+            "touchend",
+            end
+        );
     }
 
+
     function makeResizable(win,handle){
+
         let resizing=false;
-        let startW=0,startH=0,startX=0,startY=0;
+
+        let startW=0;
+        let startH=0;
+        let startX=0;
+        let startY=0;
 
         function start(clientX,clientY){
+
             resizing=true;
+
             startW=win.offsetWidth;
             startH=win.offsetHeight;
+
             startX=clientX;
             startY=clientY;
         }
 
         function move(clientX,clientY){
+
             if(!resizing) return;
-            const w=Math.max(220,startW+(clientX-startX));
-            const h=Math.max(150,startH+(clientY-startY));
+
+            const w=Math.max(
+                220,
+                startW+(clientX-startX)
+            );
+
+            const h=Math.max(
+                150,
+                startH+(clientY-startY)
+            );
+
             win.style.width=w+"px";
             win.style.height=h+"px";
         }
 
-        function end(){ resizing=false; }
+        function end(){
+            resizing=false;
+        }
 
         handle.addEventListener("mousedown",e=>{
-            start(e.clientX,e.clientY);
+
+            start(
+                e.clientX,
+                e.clientY
+            );
+
             e.preventDefault();
             e.stopPropagation();
         });
-        window.addEventListener("mousemove",e=>move(e.clientX,e.clientY));
-        window.addEventListener("mouseup",end);
+
+        window.addEventListener(
+            "mousemove",
+            e=>move(
+                e.clientX,
+                e.clientY
+            )
+        );
+
+        window.addEventListener(
+            "mouseup",
+            end
+        );
 
         handle.addEventListener("touchstart",e=>{
+
             const t=e.touches[0];
-            start(t.clientX,t.clientY);
+
+            start(
+                t.clientX,
+                t.clientY
+            );
+
             e.stopPropagation();
+
         },{passive:true});
-        window.addEventListener("touchmove",e=>{
-            if(!resizing) return;
-            const t=e.touches[0];
-            move(t.clientX,t.clientY);
-        },{passive:true});
-        window.addEventListener("touchend",end);
+
+        window.addEventListener(
+            "touchmove",
+            e=>{
+
+                if(!resizing) return;
+
+                const t=e.touches[0];
+
+                move(
+                    t.clientX,
+                    t.clientY
+                );
+            },
+            {passive:true}
+        );
+
+        window.addEventListener(
+            "touchend",
+            end
+        );
     }
 
+
     window.WM={
+
         openWindow,
+
         closeWindow,
+
         closeAll,
+
+        /*
+         * New browser-tab application system.
+         */
+        openApplicationTab,
+
+        sendToApplicationTab,
+
+        listApplicationTabs,
+
         list:()=>windows.slice()
+
     };
 
 })();
