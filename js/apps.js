@@ -12,6 +12,8 @@
         imageviewer:{title:"IMAGE VIEWER",src:"app/imageviewer.html",w:480,h:380},
         videoplayer:{title:"VIDEO PLAYER",src:"app/videoplayer.html",w:480,h:360},
         audioplayer:{title:"AUDIO PLAYER",src:"app/audioplayer.html",w:420,h:260},
+        gamefinder:{title: "GAME FINDER",src:"app/gamefinder.html",w:360,h:340},
+        customapp:{title: "CUSTOM APP",src:"app/customapp.html",w:360,h:340},
         messenger:{title:"MESSENGER",src:"app/messenger.html",w:430,h:360}
     };
     function normalizeName(name){return String(name||"").trim().toLowerCase();}
