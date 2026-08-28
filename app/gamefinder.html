@@ -2,201 +2,367 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Game Finder</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:monospace}
 html,body{width:100%;height:100%;background:#000d0d;color:#00FFFF}
+body{overflow:hidden}
 .wrap{display:flex;flex-direction:column;height:100%;overflow:hidden}
 .toolbar{display:flex;gap:6px;padding:8px;border-bottom:1px solid #00FFFF;flex-wrap:wrap}
-.toolbar input{flex:1;min-width:200px;background:#001010;border:1px solid #00FFFF;color:#00FFFF;padding:6px;font-family:monospace}
-.toolbar button{border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:6px 9px;cursor:pointer;font-family:monospace;font-size:11px}
-.toolbar button:active{background:#00FFFF;color:#000}
-.results{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:12px}
+.toolbar input,.toolbar select{
+  background:#001010;border:1px solid #00FFFF;color:#00FFFF;
+  padding:6px;font-family:monospace;font-size:11px;
+}
+.toolbar input{flex:1;min-width:170px}
+.toolbar select{width:150px;cursor:pointer}
+.toolbar button{
+  border:1px solid #00FFFF;background:transparent;color:#00FFFF;
+  padding:6px 9px;cursor:pointer;font-family:monospace;font-size:11px
+}
+.toolbar button:hover,.toolbar button:active{background:#00FFFF;color:#000}
+.results{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px}
 .source-group{border:1px solid #00FFFF;padding:8px}
-.source-title{background:#00FFFF;color:#000;padding:4px;margin:-8px -8px 8px -8px;font-weight:bold;font-size:11px}
-.game-card{border:1px solid #00FFFF;padding:6px;background:#001010;cursor:pointer;transition:background 0.2s}
+.source-title{
+  background:#00FFFF;color:#000;padding:4px;margin:-8px -8px 8px -8px;
+  font-weight:bold;font-size:11px
+}
+.game-card{
+  border:1px solid #00FFFF;padding:8px;background:#001010;
+  cursor:pointer;transition:background .15s,transform .05s;margin-bottom:7px
+}
+.game-card:last-child{margin-bottom:0}
 .game-card:hover{background:#003030}
-.game-title{font-weight:bold;margin-bottom:3px}
-.game-meta{font-size:10px;opacity:0.7;margin:3px 0}
-.game-link{font-size:10px;color:#00ff88;text-decoration:none}
-.game-link:hover{text-decoration:underline}
-.loading{opacity:0.5;text-align:center;padding:20px}
-.error{color:#ff0000;padding:10px;border:1px solid #ff0000}
+.game-card:active{transform:translateY(1px)}
+.game-title{font-weight:bold;margin-bottom:4px}
+.game-meta{font-size:10px;opacity:.72;margin:3px 0;line-height:1.35}
+.game-thumb{
+  width:100%;max-height:150px;object-fit:cover;display:block;
+  border:1px solid #004444;margin:0 0 7px 0;background:#000
+}
+.open-hint{font-size:10px;color:#00ff88;margin-top:5px}
+.loading{opacity:.5;text-align:center;padding:20px}
+.empty{text-align:center;padding:20px;opacity:.5;line-height:1.6}
+.error{color:#ff4040;padding:10px;border:1px solid #ff4040;line-height:1.5}
 .status{padding:5px 10px;border-top:1px solid #00FFFF;font-size:11px;opacity:.75}
+.badge{
+  display:inline-block;border:1px solid #00FFFF;padding:2px 4px;
+  font-size:9px;margin-right:4px
+}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="toolbar">
-    <input id="searchInput" type="text" placeholder="Search games... (e.g., tetris, minecraft)" value="">
+    <input id="searchInput" type="text" placeholder="Search games... (e.g. snake, racing, puzzle)" autocomplete="off">
+    <select id="sourceSelect" title="Game source">
+      <option value="gamezipper">SRC: GAMEZIPPER</option>
+      <option value="lumin">SRC: LUMINSDK</option>
+    </select>
     <button id="searchBtn">SEARCH</button>
     <button id="clearBtn">CLEAR</button>
   </div>
+
   <div class="results" id="results">
-    <div style="text-align:center;padding:20px;opacity:0.5">
-      Type a game name and click SEARCH to begin.
-    </div>
+    <div class="empty">Type a keyword, choose SRC, and click SEARCH.</div>
   </div>
+
   <div class="status" id="status">Ready.</div>
 </div>
 
 <script>
-const searchInput = document.getElementById("searchInput");
-const searchBtn = document.getElementById("searchBtn");
-const clearBtn = document.getElementById("clearBtn");
-const results = document.getElementById("results");
-const status = document.getElementById("status");
+(function(){
+  "use strict";
 
-// Get RAWG API key from localStorage or use placeholder
-const RAWG_KEY = localStorage.getItem("rawg_key") || "";
+  const searchInput=document.getElementById("searchInput");
+  const sourceSelect=document.getElementById("sourceSelect");
+  const searchBtn=document.getElementById("searchBtn");
+  const clearBtn=document.getElementById("clearBtn");
+  const results=document.getElementById("results");
+  const status=document.getElementById("status");
 
-function updateStatus(msg) {
-  status.textContent = msg;
-}
+  const GAMEZIPPER_FEED="https://gamezipper.com/api/games.json";
+  const LUMIN_SCRIPT="https://cdn.jsdelivr.net/gh/luminsdk/script@latest/lumin.min.js";
 
-function showLoading() {
-  results.innerHTML = '<div class="loading">Searching across game databases...</div>';
-  updateStatus("Searching...");
-}
+  let gameZipperCache=null;
+  let luminLoadPromise=null;
 
-function showError(msg) {
-  results.innerHTML = `<div class="error">Error: ${msg}</div>`;
-  updateStatus("Search failed.");
-}
+  function esc(v){
+    return String(v==null?"":v)
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;")
+      .replace(/'/g,"&#39;");
+  }
 
-async function searchFreeToGame(query) {
-  try {
-    const resp = await fetch(`https://www.freetogame.com/api/games`);
-    if (!resp.ok) throw new Error("HTTP " + resp.status);
-    const data = await resp.json();
-    // Filter locally by title (case-insensitive)
-    return data.filter(g => String(g.title || "").toLowerCase().includes(query.toLowerCase())).slice(0, 5);
-  } catch (e) {
-    console.warn("FreeToGame search failed:", e);
+  function updateStatus(msg){
+    status.textContent=msg;
+  }
+
+  function loading(msg){
+    results.innerHTML='<div class="loading">'+esc(msg||"Searching...")+'</div>';
+    updateStatus("Searching...");
+  }
+
+  function showError(msg){
+    results.innerHTML='<div class="error"><b>ERROR</b><br>'+esc(msg)+'</div>';
+    updateStatus("Search failed.");
+  }
+
+  function showEmpty(query){
+    results.innerHTML=
+      '<div class="empty">No embeddable games found for "<b>'+esc(query)+'</b>".</div>';
+    updateStatus("No results.");
+  }
+
+  async function loadGameZipper(){
+    if(Array.isArray(gameZipperCache)) return gameZipperCache;
+
+    const resp=await fetch(GAMEZIPPER_FEED,{cache:"no-store"});
+    if(!resp.ok) throw new Error("GameZipper feed returned HTTP "+resp.status);
+
+    const data=await resp.json();
+    if(!Array.isArray(data)) throw new Error("GameZipper returned an unexpected feed format.");
+
+    gameZipperCache=data;
+    return data;
+  }
+
+  function searchGameZipper(query){
+    return loadGameZipper().then(data=>{
+      const q=query.toLowerCase();
+
+      return data.filter(g=>{
+        const hay=[
+          g.name,g.title,g.slug,g.category,g.description,g.tags
+        ].map(x=>String(x||"").toLowerCase()).join(" ");
+        return hay.includes(q);
+      }).slice(0,30).map(g=>({
+        source:"GAMEZIPPER",
+        id:g.slug||g.id||g.name,
+        name:g.name||g.title||g.slug||"Untitled",
+        category:g.category||"Game",
+        description:g.description||g.short_description||"",
+        thumbnail:g.thumbnail||g.image||"",
+        embedUrl:g.embedUrl||g.embed_url||
+          (g.slug ? "https://gamezipper.com/"+encodeURIComponent(g.slug)+"/" : "")
+      }));
+    });
+  }
+
+  function loadLumin(){
+    if(window.Lumin) return Promise.resolve(window.Lumin);
+    if(luminLoadPromise) return luminLoadPromise;
+
+    luminLoadPromise=new Promise((resolve,reject)=>{
+      const s=document.createElement("script");
+      s.src=LUMIN_SCRIPT;
+      s.onload=()=>{
+        if(window.Lumin) resolve(window.Lumin);
+        else reject(new Error("LuminSDK loaded, but window.Lumin was not found."));
+      };
+      s.onerror=()=>reject(new Error("Could not load LuminSDK."));
+      document.head.appendChild(s);
+    });
+
+    return luminLoadPromise;
+  }
+
+  async function searchLumin(query){
+    const L=await loadLumin();
+
+    if(typeof L.search==="function"){
+      const r=await L.search(query);
+      const raw=Array.isArray(r)?r:(r&&Array.isArray(r.games)?r.games:[]);
+      return raw.slice(0,30).map(normalizeLuminGame);
+    }
+
+    if(typeof L.getGames==="function"){
+      const r=await L.getGames({page:1,limit:30,q:query});
+      const raw=Array.isArray(r)?r:(r&&Array.isArray(r.games)?r.games:[]);
+      return raw.slice(0,30).map(normalizeLuminGame);
+    }
+
+    throw new Error("This LuminSDK build does not expose its search/getGames method.");
+  }
+
+  function normalizeLuminGame(g){
+    return {
+      source:"LUMINSDK",
+      raw:g,
+      id:g.id||g.gameId||g.slug||g.name,
+      name:g.name||g.title||"Untitled",
+      category:g.category||g.genre||"Game",
+      description:g.description||g.short_description||"",
+      thumbnail:g.thumbnail||g.image||g.thumbnailUrl||"",
+      embedUrl:g.embedUrl||g.embedURL||g.embed_url||g.gameUrl||g.url||""
+    };
+  }
+
+  async function resolveLuminEmbed(game){
+    if(game.embedUrl) return game.embedUrl;
+
+    const L=window.Lumin;
+    if(L && typeof L.getGameUrl==="function"){
+      const r=await L.getGameUrl(game.id);
+      if(typeof r==="string") return r;
+      if(r && typeof r.url==="string") return r.url;
+      if(r && typeof r.embedUrl==="string") return r.embedUrl;
+    }
+
+    const g=game.raw||{};
+    return g.embedUrl||g.embedURL||g.embed_url||g.gameUrl||g.url||"";
+  }
+
+  async function getResults(query,source){
+    if(source==="gamezipper") return searchGameZipper(query);
+    if(source==="lumin") return searchLumin(query);
     return [];
   }
-}
 
-async function searchRAWG(query) {
-  if (!RAWG_KEY) {
-    console.warn("RAWG API key not set. Get one free at https://rawg.io/apidocs");
-    return [];
-  }
-  try {
-    const resp = await fetch(
-      `https://api.rawg.io/api/games?key=${RAWG_KEY}&search=${encodeURIComponent(query)}&page_size=5`
+  async function openGame(game){
+    let url=game.embedUrl||"";
+
+    try{
+      if(game.source==="LUMINSDK"){
+        url=await resolveLuminEmbed(game);
+      }
+    }catch(e){
+      console.warn("Lumin embed URL resolution failed:",e);
+    }
+
+    if(!url){
+      // Fallback for Lumin records that expose a slug.
+      if(game.source==="LUMINSDK" && game.id && /^[a-z0-9_-]+$/i.test(String(game.id))){
+        url="https://luminsdk.com/"+encodeURIComponent(String(game.id))+"/";
+      }
+    }
+
+    if(!url){
+      alert("This result did not provide a playable embed URL.");
+      return;
+    }
+
+    /*
+      IMPORTANT:
+      gamefinder.html is itself running inside a LittleHollow iframe.
+      parent.WM.openWindow() opens a normal LittleHollow desktop window,
+      exactly like the other apps in the supplied ZIP reference.
+    */
+    if(parent && parent.WM && typeof parent.WM.openWindow==="function"){
+      parent.WM.openWindow({
+        title:"GAME — "+String(game.name||"GAME").toUpperCase(),
+        iframeSrc:url,
+        width:"820px",
+        height:"620px",
+        noPad:true,
+        standaloneKey:null
+      });
+      return;
+    }
+
+    // Fallback if gamefinder is opened outside LittleHollow.
+    window.open(
+      url,
+      "_blank",
+      "noopener,noreferrer,width=1100,height=800"
     );
-    if (!resp.ok) throw new Error("HTTP " + resp.status);
-    const data = await resp.json();
-    return data.results || [];
-  } catch (e) {
-    console.warn("RAWG search failed:", e);
-    return [];
-  }
-}
-
-function renderFreeToGameResult(game) {
-  return `
-    <div class="game-card">
-      <div class="game-title">${game.title || "Untitled"}</div>
-      <div class="game-meta">
-        Platform: ${game.platform || "Web"} | 
-        Genre: ${game.genre || "Unknown"}
-      </div>
-      ${game.short_description ? `<div class="game-meta">${game.short_description}</div>` : ""}
-      ${game.game_url ? `<a class="game-link" href="${game.game_url}" target="_blank">Open Game →</a>` : ""}
-    </div>
-  `;
-}
-
-function renderRAWGResult(game) {
-  const platforms = (game.platforms || []).map(p => p.platform.name).join(", ");
-  const genres = (game.genres || []).map(g => g.name).join(", ");
-  const rating = game.rating ? `${game.rating}/5 (${game.ratings_count || 0} votes)` : "No rating";
-  
-  return `
-    <div class="game-card">
-      <div class="game-title">${game.name || "Untitled"}</div>
-      <div class="game-meta">
-        ${game.released ? `Released: ${game.released}` : ""}
-      </div>
-      <div class="game-meta">
-        Rating: ${rating}
-      </div>
-      ${platforms ? `<div class="game-meta">Platforms: ${platforms}</div>` : ""}
-      ${genres ? `<div class="game-meta">Genres: ${genres}</div>` : ""}
-      ${game.metacritic ? `<div class="game-meta">Metacritic: ${game.metacritic}/100</div>` : ""}
-      ${game.stores && game.stores.length ? `<div class="game-link">Available on ${game.stores.length} store(s)</div>` : ""}
-    </div>
-  `;
-}
-
-async function search() {
-  const query = searchInput.value.trim();
-  if (!query) {
-    updateStatus("Please enter a search query.");
-    return;
   }
 
-  showLoading();
-  
-  try {
-    const [ftgResults, rawgResults] = await Promise.all([
-      searchFreeToGame(query),
-      searchRAWG(query)
-    ]);
+  function renderGame(game){
+    const title=esc(game.name||"Untitled");
+    const category=esc(game.category||"Game");
+    const desc=esc(game.description||"");
 
-    let html = "";
-    
-    if (ftgResults.length > 0) {
-      html += `<div class="source-group">
-        <div class="source-title">FREETOGAME (Free-to-Play)</div>
-        ${ftgResults.map(renderFreeToGameResult).join("")}
-      </div>`;
-    }
-
-    if (rawgResults.length > 0) {
-      html += `<div class="source-group">
-        <div class="source-title">RAWG (500K+ Games Database)</div>
-        ${rawgResults.map(renderRAWGResult).join("")}
-      </div>`;
-    }
-
-    if (ftgResults.length === 0 && rawgResults.length === 0) {
-      html = `<div style="text-align:center;padding:20px;opacity:0.5">
-        No games found for "${query}".
-        ${!RAWG_KEY ? `<div style="margin-top:10px;font-size:10px;color:#ff8800">Tip: Set RAWG API key for better results. Get one free at https://rawg.io/apidocs</div>` : ""}
-      </div>`;
-    }
-
-    results.innerHTML = html;
-    updateStatus(`Found ${ftgResults.length + rawgResults.length} game(s).`);
-  } catch (e) {
-    showError(e.message);
+    return `
+      <div class="game-card" data-game-index="">
+        ${game.thumbnail ? `<img class="game-thumb" loading="lazy" src="${esc(game.thumbnail)}" alt="">` : ""}
+        <div class="game-title">${title}</div>
+        <div class="game-meta">
+          <span class="badge">${esc(game.source)}</span>
+          <span class="badge">${category}</span>
+        </div>
+        ${desc ? `<div class="game-meta">${desc}</div>` : ""}
+        <div class="open-hint">CLICK TO OPEN GAME ↗</div>
+      </div>
+    `;
   }
-}
 
-function clear() {
-  searchInput.value = "";
-  results.innerHTML = '<div style="text-align:center;padding:20px;opacity:0.5">Type a game name and click SEARCH to begin.</div>';
-  updateStatus("Ready.");
+  async function search(){
+    const query=searchInput.value.trim();
+    const source=sourceSelect.value;
+
+    if(!query){
+      updateStatus("Please enter a search keyword.");
+      searchInput.focus();
+      return;
+    }
+
+    loading("Searching "+source.toUpperCase()+"...");
+    try{
+      const games=await getResults(query,source);
+
+      if(!games.length){
+        showEmpty(query);
+        return;
+      }
+
+      results.innerHTML=
+        '<div class="source-group">'+
+          '<div class="source-title">'+
+            esc(source==="gamezipper" ? "GAMEZIPPER — EMBEDDABLE HTML5 GAMES" :
+                "LUMINSDK — BROWSER GAMES")+
+          '</div>'+
+          games.map((g,i)=>renderGame({...g,_i:i})).join("")+
+        '</div>';
+
+      const cards=[...results.querySelectorAll(".game-card")];
+      cards.forEach((card,i)=>{
+        card.addEventListener("click",()=>openGame(games[i]));
+      });
+
+      updateStatus(`Found ${games.length} game(s). Click a result to open it.`);
+    }catch(e){
+      console.error(e);
+      showError(e.message||String(e));
+    }
+  }
+
+  function clear(){
+    searchInput.value="";
+    results.innerHTML='<div class="empty">Type a keyword, choose SRC, and click SEARCH.</div>';
+    updateStatus("Ready.");
+    searchInput.focus();
+  }
+
+  searchBtn.addEventListener("click",search);
+  clearBtn.addEventListener("click",clear);
+
+  searchInput.addEventListener("keydown",e=>{
+    if(e.key==="Enter"){
+      e.preventDefault();
+      search();
+    }
+  });
+
+  sourceSelect.addEventListener("change",()=>{
+    updateStatus("Source: "+sourceSelect.options[sourceSelect.selectedIndex].text);
+  });
+
+  const params=new URLSearchParams(location.search);
+  if(params.get("src")){
+    const s=params.get("src").toLowerCase();
+    if([...sourceSelect.options].some(o=>o.value===s)) sourceSelect.value=s;
+  }
+
+  if(params.get("q")){
+    searchInput.value=params.get("q");
+    setTimeout(search,100);
+  }
+
   searchInput.focus();
-}
-
-searchBtn.addEventListener("click", search);
-clearBtn.addEventListener("click", clear);
-searchInput.addEventListener("keypress", e => {
-  if (e.key === "Enter") search();
-});
-
-// Load any pre-filled query from URL params
-const params = new URLSearchParams(location.search);
-if (params.get("q")) {
-  searchInput.value = params.get("q");
-  setTimeout(search, 100);
-}
-
-searchInput.focus();
+})();
 </script>
 </body>
 </html>
