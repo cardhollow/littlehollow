@@ -85,8 +85,7 @@ body{
         function(event){
 
             /*
-             * Only the Main Page that opened this tab
-             * may control it.
+             * Only the Main Page that opened this tab.
              */
             if(
                 event.source!==
@@ -97,7 +96,7 @@ body{
 
 
             /*
-             * Same origin
+             * Same origin.
              */
             if(
                 event.origin!==
@@ -121,7 +120,7 @@ body{
 
             /*
              * =================================================
-             * LOAD APP
+             * LOAD APPLICATION
              * =================================================
              */
             if(
@@ -134,9 +133,6 @@ body{
                     null;
 
 
-                /*
-                 * Browser tab title
-                 */
                 document.title=
                     message.title||
                     "Application";
@@ -157,12 +153,11 @@ body{
 
                     iframe.srcdoc=
                         message.srcDoc;
-
                 }
 
 
                 /*
-                 * Normal src
+                 * src
                  */
                 else if(
                     typeof message.src===
@@ -179,7 +174,12 @@ body{
                 }
 
 
+                /*
+                 * Tell Main Page that the wrapper
+                 * is listening.
+                 */
                 notifyReady();
+
 
                 return;
             }
@@ -195,6 +195,9 @@ body{
                 "main-to-application"
             ){
 
+                /*
+                 * Ignore messages for another app.
+                 */
                 if(
                     currentAppId&&
                     message.appId&&
@@ -204,8 +207,14 @@ body{
                 }
 
 
-                if(iframe.contentWindow){
+                if(
+                    iframe.contentWindow
+                ){
 
+                    /*
+                     * Forward EXACTLY the inner
+                     * application message.
+                     */
                     iframe.contentWindow.postMessage(
                         message.message,
                         event.origin
@@ -225,18 +234,27 @@ body{
      * APP → MAIN PAGE
      * =========================================================
      *
-     * Existing applications can keep using:
+     * Existing app code remains unchanged.
      *
-     * window.parent.postMessage(...)
+     * Example:
      *
-     * because THIS iframe's parent is application.html.
+     * window.parent.postMessage(
+     *     data,
+     *     "*"
+     * );
+     *
+     * The iframe's parent is application.html,
+     * so application.html receives it here.
      */
     window.addEventListener(
         "message",
         function(event){
 
             /*
-             * Only messages from our one iframe.
+             * IMPORTANT:
+             *
+             * Only accept messages from the actual
+             * application iframe.
              */
             if(
                 !iframe.contentWindow||
@@ -248,7 +266,8 @@ body{
 
 
             /*
-             * Forward to original Main Page.
+             * Forward the original application message
+             * to the original Main Page.
              */
             if(
                 window.opener&&
@@ -277,7 +296,7 @@ body{
 
     /*
      * =========================================================
-     * READY
+     * WRAPPER READY
      * =========================================================
      */
     function notifyReady(){
@@ -305,8 +324,7 @@ body{
 
 
     /*
-     * Tell Main Page again when the actual app iframe
-     * finishes loading.
+     * Notify Main Page when the actual app finishes loading.
      */
     iframe.addEventListener(
         "load",
@@ -315,6 +333,7 @@ body{
             notifyReady();
         }
     );
+
 
 })();
 
