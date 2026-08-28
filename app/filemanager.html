@@ -7,8 +7,7 @@ const zones=[{key:"local",label:"LOCAL",prefix:"chxd:/local/"},{key:"session",la
 let current="local",selected=new Set(),dirs={local:"",session:"",indexdb:"",puter:"",system:""},editingPath=null;
 const params=new URLSearchParams(location.search),selectMode=params.get("select")==="1";
 const tabs=document.getElementById("tabs"),list=document.getElementById("list"),box=document.getElementById("pathBox"),hint=document.getElementById("hint"),errorBox=document.getElementById("error"),pathText=document.getElementById("pathText"),fileInput=document.getElementById("fileInput"),folderInput=document.getElementById("folderInput");
-
-function showError(s){errorBox.textContent=String(s||"Unknown error");errorBox.style.display="block";clearTimeout(showError.t);showError.t=setTimeout(()=>errorBox.style.display="none",4500)}
+function showError(s){errorBox.textContent=String(s||"Unknown error");errorBox.style.display="block";setTimeout(()=>errorBox.style.display="none",4500)}
 function norm(p){return String(p||"").replace(/\\/g,"/").replace(/\/+/g,"/")}
 function join(a,b){a=norm(a).replace(/\/+$/,"");b=norm(b).replace(/^\/+/,"");return a?(b?a+"/"+b:a):b}
 function base(p){return norm(p).split("/").pop()||""}
@@ -19,294 +18,33 @@ function displayPath(){const z=zones.find(x=>x.key===current);pathText.textConte
 function selectedPaths(){return[...selected]}
 function isArchive(p){return["zip","7z","rar","tar","gz","tgz"].includes(ext(p))}
 function validPart(n){return!!n&&n!=="."&&n!==".."}
-async function toolExecute(name,args){try{if(parent&&parent.Tools&&typeof parent.Tools.execute==="function")return await parent.Tools.execute(name,args);showError("Tool bridge unavailable: "+name);return null}catch(e){showError(e.message||e);return null}}
-async function ensureDirs(path){const parts=norm(path).split("/").filter(Boolean);if(!parts.length)return{ok:true};let cur=parts[0].includes(":")?parts.shift()+"/":"";for(const p of parts){cur=join(cur,p);try{const r=await makeDir(cur);if(r&&r.ok===false&&!/exist|already/i.test(String(r.error||r.summary||"")))return r}catch(e){return{ok:false,error:e.message||String(e)}}}return{ok:true}}
 if(selectMode)hint.textContent="SELECT MODE: choose a file to return it to the calling app. Multiple files can be selected for OneCompiler.";
-
 zones.forEach(z=>{const b=document.createElement("button");b.textContent=z.label;b.dataset.k=z.key;if(z.key===current)b.classList.add("active");b.onclick=()=>{current=z.key;[...tabs.children].forEach(x=>x.classList.toggle("active",x.dataset.k===current));refresh()};tabs.appendChild(b)});
-
-async function openPath(p){
-    if(selectMode){parent.postMessage({type:"LH_FILE_SELECTED",path:p},"*");return}
-    if(isArchive(p)){if(confirm("This is an archive.\n\nOK = UNZIP\nCancel = DOWNLOAD"))return unzipArchive(p);return downloadBinary(p)}
-    const r=await toolExecute("open_file",{path:p});
-    if(r&&!r.ok)showError(r.summary||r.error||"Could not open file.")
-}
-
-async function edit(p){
-    const r=await toolExecute("open_notepad",{path:p});
-    if(r&&!r.ok)showError(r.summary||r.error||"Could not open Notepad.")
-}
-
-async function code(){
-    const paths=selectedPaths();if(!paths.length)return;
-    const files=[];
-    for(const p of paths){try{const r=await parent.FS.read(p);if(r.ok)files.push({name:base(p),content:r.content})}catch(e){}}
-    if(!files.length)return;
-    if(!parent.Apps||typeof parent.Apps.openOneCompiler!=="function"){showError("OneCompiler bridge unavailable.");return}
-    parent.Apps.openOneCompiler({language:ext(files[0].name)==="py"?"python":"javascript",files,run:false})
-}
-
-function downloadData(data,name){const a=document.createElement("a");a.href=data;a.download=name;document.body.appendChild(a);a.click();a.remove()}
-
-async function downloadBinary(p){
-    try{
-        const r=await parent.FS.read(p);
-        if(!r.ok){showError(r.error);return false}
-        if(!/^data:/i.test(r.content)){showError("This archive does not contain downloadable binary data.");return false}
-        downloadData(r.content,base(p));return true
-    }catch(err){showError(err.message||err);return false}
-}
-
-async function makeDir(path){
-    try{if(typeof parent.FS.mkdir==="function")return await parent.FS.mkdir(path)}catch(e){}
-    try{if(typeof parent.FS.createFolder==="function")return await parent.FS.createFolder(path)}catch(e){}
-    try{if(typeof parent.FS.makeDir==="function")return await parent.FS.makeDir(path)}catch(e){}
-    try{
-        const r=await parent.FS.write(join(path,".folder"),"",true);
-        if(r&&r.ok){
-            try{await parent.FS.remove(join(path,".folder"))}catch(e){}
-            return{ok:true}
-        }
-    }catch(e){}
-    return{ok:false,error:"This filesystem does not provide folder creation."}
-}
-
-async function renamePath(oldPath,newPath){
-    try{if(typeof parent.FS.rename==="function")return await parent.FS.rename(oldPath,newPath)}catch(e){}
-    try{if(typeof parent.FS.move==="function")return await parent.FS.move(oldPath,newPath)}catch(e){}
-    for(const tool of ["rename_file","rename","move_file"]){
-        const r=await toolExecute(tool,{path:oldPath,old_path:oldPath,new_path:newPath,newPath:newPath});
-        if(r&&r.ok)return r;
-    }
-    return{ok:false,error:"This filesystem does not provide rename support."}
-}
-
-async function finishRename(path,input){
-    const oldName=base(path),newName=input.value.trim();
-    input.blur();
-    if(!newName||newName===oldName){editingPath=null;return refresh()}
-    if(newName.includes("/")||newName.includes("\\")||!validPart(newName)){
-        showError("Rename only allows a single name. '/' is not allowed when renaming.");
-        editingPath=null;return refresh()
-    }
-    const np=join(path.slice(0,path.length-oldName.length),newName),r=await renamePath(path,np);
-    if(!r||r.ok===false){showError(r&&r.error||r&&r.summary||"Could not rename item.");editingPath=null;return}
-    if(selected.has(path)){selected.delete(path);selected.add(np)}
-    editingPath=null;refresh()
-}
-
-function renameInline(o,name){
-    if(editingPath)return;
-    editingPath=o.path;
-    name.classList.add("editing");
-    const old=base(o.path),input=document.createElement("input");
-    input.className="renameInput";
-    input.value=old;
-    name.textContent="";
-    name.appendChild(input);
-    input.focus();
-    input.select();
-    let done=false;
-    const finish=()=>{if(done)return;done=true;finishRename(o.path,input)};
-    input.addEventListener("keydown",e=>{if(e.key==="Enter")finish();else if(e.key==="Escape"){done=true;editingPath=null;refresh()}});
-    input.addEventListener("blur",finish)
-}
-
-function buildEntries(all,z){
-    const folder=norm(dirs[current]).replace(/^\/+|\/+$/g,""),out=new Map();
-    for(const raw of all){
-        const p=norm(raw);if(!p.startsWith(z.prefix))continue;
-        let r=rel(p,z.prefix).replace(/^\/+/,"");
-        if(folder){if(r===folder||!r.startsWith(folder+"/"))continue;r=r.slice(folder.length+1)}
-        if(!r)continue;
-        const i=r.indexOf("/");
-        if(i<0)out.set(r,{type:"file",path:p});
-        else{const n=r.slice(0,i),fp=join(join(z.prefix,folder),n);out.set(n,{type:"folder",path:fp})}
-    }
-    return[...out.values()].sort((a,b)=>a.type!==b.type?(a.type==="folder"?-1:1):base(a.path).localeCompare(base(b.path),undefined,{numeric:true,sensitivity:"base"}))
-}
-
-async function refresh(){
-    editingPath=null;
-    const z=zones.find(x=>x.key===current);
-    list.innerHTML="";
-    displayPath();
-    if(z.key==="puter"&&typeof parent.FS.puterReady==="function"&&!parent.FS.puterReady()){list.innerHTML='<div class="empty">Puter filesystem unavailable. Puter:/ is enabled only when Puter actually provides filesystem support.</div>';return}
-    let all=[];
-    try{all=await parent.FS.list(z.prefix)}catch(e){showError(e.message||e);return}
-    const entries=buildEntries(Array.isArray(all)?all:[],z);
-    if(!entries.length){list.innerHTML='<div class="empty">No files or folders.</div>';return}
-    entries.forEach(o=>{
-        const row=document.createElement("div");row.className="row";
-        const cb=document.createElement("input");cb.type="checkbox";cb.disabled=o.type==="folder";cb.checked=o.type==="file"&&selected.has(o.path);cb.onchange=()=>cb.checked?selected.add(o.path):selected.delete(o.path);
-        const name=document.createElement("div");name.className="name"+(o.type==="folder"?" folder":"");name.textContent=o.type==="folder"?"[+] "+base(o.path)+"/":base(o.path);name.title=o.path;
-        let clickTimer=null;
-        name.onclick=()=>{
-            clearTimeout(clickTimer);
-            clickTimer=setTimeout(()=>{
-                if(editingPath)return;
-                if(o.type==="folder"){dirs[current]=rel(o.path,z.prefix).replace(/^\/+|\/+$/g,"");refresh()}
-                else openPath(o.path)
-            },220)
-        };
-        name.ondblclick=e=>{e.preventDefault();clearTimeout(clickTimer);renameInline(o,name)};
-        row.append(cb,name);
-
-        if(o.type==="folder"){
-            const op=document.createElement("button");op.textContent="OPEN";op.onclick=()=>{dirs[current]=rel(o.path,z.prefix).replace(/^\/+|\/+$/g,"");refresh()};row.append(op);
-            if(z.key!=="system"){
-                const del=document.createElement("button");del.textContent="DEL";
-                del.onclick=async()=>{try{const r=await parent.FS.remove(o.path);if(r&&r.ok===false)showError(r.error||r.summary);else refresh()}catch(e){showError(e.message||e)}};
-                row.append(del)
-            }
-        }else{
-            const e=ext(o.path);
-            if(isArchive(o.path)){
-                const uz=document.createElement("button");uz.textContent="UNZIP";uz.onclick=()=>unzipArchive(o.path);row.append(uz);
-                const dl=document.createElement("button");dl.textContent="DL";dl.onclick=()=>downloadBinary(o.path);row.append(dl)
-            }
-            if(z.key!=="system"){
-                const ed=document.createElement("button");ed.textContent="EDIT";ed.onclick=()=>edit(o.path);row.append(ed);
-                if(["js","ts","py","java","c","cpp","cs","php","html","css","json","xml","kt","kts","glsl"].includes(e)){
-                    const c=document.createElement("button");c.textContent="CODE";c.onclick=()=>{selected=new Set([o.path]);code()};row.append(c)
-                }
-                const del=document.createElement("button");del.textContent="DEL";
-                del.onclick=async()=>{try{const r=await parent.FS.remove(o.path);if(r&&r.ok===false)showError(r.error||r.summary);else{selected.delete(o.path);refresh()}}catch(e){showError(e.message||e)}};
-                row.append(del)
-            }
-        }
-        list.appendChild(row)
-    })
-}
-
-async function unzipArchive(p){
-    const defaultOut=join(dirPath(),base(p).replace(/\.(zip|7z|rar|tar|gz|tgz)$/i,""));
-    const out=prompt("Extract archive to:",defaultOut);
-    if(!out)return;
-    for(const tool of ["unzip_files","unzip","extract_archive","extract_files"]){
-        const r=await toolExecute(tool,{archive_path:p,input_path:p,file:p,output_path:out,destination:out,destination_path:out});
-        if(r&&r.ok){showError("Archive extracted successfully.");refresh();return}
-    }
-    showError("Could not unzip this archive. No compatible unzip tool is available.")
-}
-
-async function importFiles(files,isFolder){
-    if(!files||!files.length)return;
-    const root=dirPath();let count=0;
-    for(const f of files){
-        try{
-            let rp=isFolder?norm(f.webkitRelativePath||f.name):norm(f.name);
-            rp=rp.replace(/^\/+/,"");
-            const parts=rp.split("/");
-            parts.pop();
-            if(parts.length){
-                const r=await ensureDirs(join(root,parts.join("/")));
-                if(r&&r.ok===false)throw new Error(r.error||"Could not create folders.")
-            }
-            const data=await new Promise((resolve,reject)=>{
-                const rd=new FileReader();
-                rd.onload=()=>resolve(rd.result);
-                rd.onerror=()=>reject(rd.error);
-                rd.readAsDataURL(f)
-            });
-            const r=await parent.FS.write(join(root,rp),data,true);
-            if(r&&r.ok!==false)count++
-        }catch(e){console.error(e)}
-    }
-    showError("Imported "+count+" file(s).");
-    fileInput.value="";
-    folderInput.value="";
-    refresh()
-}
-
-document.getElementById("import").onclick=()=>{
-    const choice=prompt("IMPORT\n\nType F for Folder\nType FILE for File(s)");
-    if(choice===null)return;
-    const c=choice.trim().toLowerCase();
-    if(c==="f"||c==="folder")folderInput.click();
-    else if(c==="file"||c==="files")fileInput.click();
-    else showError("Choose FOLDER or FILE.")
-};
-
+async function openPath(p){if(selectMode){parent.postMessage({type:"LH_FILE_SELECTED",path:p},"*");return}const e=ext(p);if(e==="zip"){await downloadBinary(p);return}try{const r=await parent.Tools.execute("open_file",{path:p});if(r&&!r.ok)showError(r.summary||r.error||"Could not open file.")}catch(err){showError(err.message||err)}}
+async function edit(p){try{const r=await parent.Tools.execute("open_notepad",{path:p});if(r&&!r.ok)showError(r.summary||r.error||"Could not open Notepad.")}catch(err){showError(err.message||err)}}
+async function code(){const paths=selectedPaths();if(!paths.length)return;const files=[];for(const p of paths){const r=await parent.FS.read(p);if(r.ok)files.push({name:base(p),content:r.content})}if(!files.length)return;parent.Apps.openOneCompiler({language:ext(files[0].name)==="py"?"python":"javascript",files,run:false})}
+function downloadData(data,name){const a=document.createElement("a");a.href=data;a.download=name;a.click()}
+async function downloadBinary(p){const r=await parent.FS.read(p);if(!r.ok){showError(r.error);return false}if(!/^data:/i.test(r.content)){showError("This ZIP does not contain downloadable binary data.");return false}downloadData(r.content,base(p));return true}
+async function makeDir(path){try{if(typeof parent.FS.mkdir==="function")return await parent.FS.mkdir(path)}catch(e){}try{if(typeof parent.FS.createFolder==="function")return await parent.FS.createFolder(path)}catch(e){}try{if(typeof parent.FS.makeDir==="function")return await parent.FS.makeDir(path)}catch(e){}try{const r=await parent.FS.write(join(path,".folder"),"",true);if(r&&r.ok){try{await parent.FS.remove(join(path,".folder"))}catch(e){}return{ok:true}}}catch(e){}return{ok:false,error:"This filesystem does not provide folder creation."}}
+async function ensureDirs(path){const parts=norm(path).split("/").filter(Boolean);if(!parts.length)return{ok:true};let cur=parts[0].includes(":")?parts.shift()+"/":"";for(const p of parts){cur=join(cur,p);try{const r=await makeDir(cur);if(r&&r.ok===false&&!/exist|already/i.test(String(r.error||r.summary||"")))return r}catch(e){}}return{ok:true}}
+async function renamePath(oldPath,newPath){try{if(typeof parent.FS.rename==="function")return await parent.FS.rename(oldPath,newPath)}catch(e){}try{if(typeof parent.FS.move==="function")return await parent.FS.move(oldPath,newPath)}catch(e){}for(const tool of["rename_file","rename","move_file"]){try{const r=await parent.Tools.execute(tool,{path:oldPath,old_path:oldPath,new_path:newPath,newPath:newPath});if(r&&r.ok)return r}catch(e){}}return{ok:false,error:"Could not rename item."}}
+async function finishRename(path,input){const oldName=base(path),newName=input.value.trim();if(!newName||newName===oldName){editingPath=null;refresh();return}if(!validPart(newName)||newName.includes("/")||newName.includes("\\")){showError("Rename only allows a single name. '/' is not allowed when renaming.");editingPath=null;refresh();return}const r=await renamePath(path,join(path.slice(0,path.length-oldName.length),newName));if(!r||r.ok===false){showError(r&&r.error||r&&r.summary||"Could not rename item.");editingPath=null;refresh();return}editingPath=null;refresh()}
+function renameInline(o,name){if(editingPath)return;editingPath=o.path;name.classList.add("editing");const input=document.createElement("input");input.className="renameInput";input.value=base(o.path);name.textContent="";name.appendChild(input);input.focus();input.select();let done=false;const finish=()=>{if(done)return;done=true;finishRename(o.path,input)};input.onkeydown=e=>{if(e.key==="Enter")finish();else if(e.key==="Escape"){done=true;editingPath=null;refresh()}};input.onblur=finish}
+function buildEntries(all,z){const folder=norm(dirs[current]).replace(/^\/+|\/+$/g,""),out=new Map();for(const raw of all){const p=norm(raw);if(!p.startsWith(z.prefix))continue;let r=rel(p,z.prefix).replace(/^\/+/,"");if(folder){if(r===folder||!r.startsWith(folder+"/"))continue;r=r.slice(folder.length+1)}if(!r)continue;const i=r.indexOf("/");if(i<0)out.set(r,{type:"file",path:p});else{const n=r.slice(0,i),fp=join(join(z.prefix,folder),n);out.set(n,{type:"folder",path:fp})}}return[...out.values()].sort((a,b)=>a.type!==b.type?(a.type==="folder"?-1:1):base(a.path).localeCompare(base(b.path),undefined,{numeric:true,sensitivity:"base"}))}
+async function refresh(){editingPath=null;const z=zones.find(x=>x.key===current),files=await parent.FS.list(z.prefix);list.innerHTML="";displayPath();if(z.key==="puter"&&!parent.FS.puterReady()){list.innerHTML='<div class="empty">Puter filesystem unavailable. Puter:/ is enabled only when Puter actually provides filesystem support.</div>';return}const entries=buildEntries(files,z);if(!entries.length){list.innerHTML='<div class="empty">No files or folders.</div>';return}entries.forEach(o=>{const row=document.createElement("div");row.className="row";const cb=document.createElement("input");cb.type="checkbox";cb.disabled=o.type==="folder";cb.checked=o.type==="file"&&selected.has(o.path);cb.onchange=()=>cb.checked?selected.add(o.path):selected.delete(o.path);const name=document.createElement("div");name.className="name"+(o.type==="folder"?" folder":"");name.textContent=o.type==="folder"?"[+] "+base(o.path)+"/":base(o.path);name.title=o.path;let timer=null;name.onclick=()=>{clearTimeout(timer);timer=setTimeout(()=>{if(o.type==="folder"){dirs[current]=rel(o.path,z.prefix).replace(/^\/+|\/+$/g,"");refresh()}else openPath(o.path)},220)};name.ondblclick=e=>{e.preventDefault();clearTimeout(timer);renameInline(o,name)};row.append(cb,name);if(o.type==="folder"){const op=document.createElement("button");op.textContent="OPEN";op.onclick=()=>{dirs[current]=rel(o.path,z.prefix).replace(/^\/+|\/+$/g,"");refresh()};row.append(op);if(z.key!=="system"){const del=document.createElement("button");del.textContent="DEL";del.onclick=async()=>{await parent.FS.remove(o.path);refresh()};row.append(del)}}else{const e=ext(o.path);if(e==="zip"){const uz=document.createElement("button");uz.textContent="UNZIP";uz.onclick=()=>unzipArchive(o.path);row.append(uz);const dl=document.createElement("button");dl.textContent="DL";dl.onclick=()=>downloadBinary(o.path);row.append(dl)}else if(z.key!=="system"){const ed=document.createElement("button");ed.textContent="EDIT";ed.onclick=()=>edit(o.path);row.append(ed);if(["js","ts","py","java","c","cpp","cs","php","html","css"].includes(e)){const c=document.createElement("button");c.textContent="CODE";c.onclick=()=>{selected=new Set([o.path]);code()};row.append(c)}const del=document.createElement("button");del.textContent="DEL";del.onclick=async()=>{await parent.FS.remove(o.path);selected.delete(o.path);refresh()};row.append(del)}}list.appendChild(row)})}
+async function unzipArchive(p){const out=prompt("Unzip output folder:",join(dirPath(),base(p).replace(/\.(zip|7z|rar|tar|gz|tgz)$/i,"")));if(!out)return;const r=await parent.Tools.execute("unzip_files",{archive_path:p,output_path:out,destination_path:out});if(r&&r.ok){showError("Archive extracted successfully.");refresh()}else showError(r&&r.summary||r&&r.error||"Could not unzip archive.")}
+async function importFiles(files,isFolder){if(!files||!files.length)return;const root=dirPath();let count=0;for(const f of files){try{let rp=norm(isFolder?(f.webkitRelativePath||f.name):f.name).replace(/^\/+/,"");const parentPath=rp.includes("/")?rp.slice(0,rp.lastIndexOf("/")):"";if(parentPath){const r=await ensureDirs(join(root,parentPath));if(r&&r.ok===false)throw new Error(r.error||"Could not create folders.")}const data=await new Promise((resolve,reject)=>{const rd=new FileReader();rd.onload=()=>resolve(rd.result);rd.onerror=()=>reject(rd.error);rd.readAsDataURL(f)});const r=await parent.FS.write(join(root,rp),data,true);if(r&&r.ok!==false)count++}catch(e){console.error(e)}}fileInput.value="";folderInput.value="";showError("Imported "+count+" file(s).");refresh()}
+document.getElementById("import").onclick=()=>{const c=prompt("IMPORT\n\nType F for Folder\nType FILE for File(s)");if(c===null)return;const v=c.trim().toLowerCase();if(v==="f"||v==="folder")folderInput.click();else if(v==="file"||v==="files")fileInput.click();else showError("Choose FOLDER or FILE.")};
 fileInput.onchange=()=>importFiles([...fileInput.files],false);
 folderInput.onchange=()=>importFiles([...folderInput.files],true);
-
 document.getElementById("root").onclick=()=>{dirs[current]="";refresh()};
 document.getElementById("up").onclick=()=>{const a=norm(dirs[current]).split("/").filter(Boolean);a.pop();dirs[current]=a.join("/");refresh()};
 document.getElementById("refresh").onclick=refresh;
-
-document.getElementById("selectAll").onclick=async()=>{
-    const z=zones.find(x=>x.key===current);
-    const all=await parent.FS.list(z.prefix);
-    const folder=norm(dirs[current]).replace(/^\/+|\/+$/g,"");
-    all.forEach(p=>{
-        let r=rel(norm(p),z.prefix);
-        if(folder){
-            if(!r.startsWith(folder+"/"))return;
-            r=r.slice(folder.length+1)
-        }
-        if(r&&!r.includes("/"))selected.add(p)
-    });
-    refresh()
-};
-
-document.getElementById("newFolder").onclick=async()=>{
-    let n=prompt("New folder path:","folder1/folder2");
-    if(n===null)return;
-    n=norm(n).trim().replace(/^\/+|\/+$/g,"");
-    if(!n){showError("Folder name cannot be empty.");return}
-    const parts=n.split("/").filter(Boolean);
-    if(parts.some(x=>!validPart(x)||/[<>:"\\|?*]/.test(x))){showError("Invalid folder path.");return}
-    const r=await ensureDirs(join(dirPath(),parts.join("/")));
-    if(!r||r.ok===false)showError(r&&r.error||"Could not create folder.");
-    refresh()
-};
-
-document.getElementById("newText").onclick=async()=>{
-    let n=prompt("New file path:","folder1/folder2/index.html");
-    if(n===null)return;
-    n=norm(n).trim().replace(/^\/+|\/+$/g,"");
-    if(!n){showError("File path cannot be empty.");return}
-    const parts=n.split("/").filter(Boolean),file=parts.pop();
-    if(!validPart(file)||/[<>:"|?*]/.test(file)||file==="."||file===".."){showError("Invalid file name.");return}
-    if(parts.some(x=>!validPart(x)||/[<>:"\\|?*]/.test(x))){showError("Invalid folder path.");return}
-    try{
-        if(parts.length){
-            const d=await ensureDirs(join(dirPath(),parts.join("/")));
-            if(d&&d.ok===false){showError(d.error||"Could not create parent folders.");return}
-        }
-        const p=join(dirPath(),n),r=await parent.FS.write(p,"",true);
-        if(!r.ok)showError(r.error);
-        else{refresh();edit(p)}
-    }catch(e){showError(e.message||e)}
-};
-
-document.getElementById("zip").onclick=async()=>{
-    const fs=selectedPaths();
-    if(!fs.length){showError("Select files first.");return}
-    const out=prompt("ZIP output path:",join(dirPath(),"archive.zip"));
-    if(!out)return;
-    const r=await toolExecute("zip_files",{files:fs,output_path:out});
-    if(!r)return;
-    if(!r.ok)showError(r.summary||r.error);
-    else{selected.clear();refresh()}
-};
-
-document.getElementById("unzip").onclick=async()=>{
-    const fs=selectedPaths().filter(isArchive);
-    if(!fs.length){showError("Select one or more archive files first.");return}
-    for(const p of fs)await unzipArchive(p);
-    selected.clear();
-    refresh()
-};
-
-box.onchange=async()=>{
-    const v=box.value.trim();
-    if(!v)return;
-    const r=await toolExecute("find_files",{pattern:v});
-    if(!r)return;
-    showError(r.files&&r.files.length?r.files.join("\n"):r.summary||r.error)
-};
-
+document.getElementById("selectAll").onclick=async()=>{const z=zones.find(x=>x.key===current),files=await parent.FS.list(z.prefix);const folder=norm(dirs[current]).replace(/^\/+|\/+$/g,"");files.forEach(p=>{let r=rel(norm(p),z.prefix);if(folder){if(!r.startsWith(folder+"/"))return;r=r.slice(folder.length+1)}if(r&&!r.includes("/"))selected.add(p)});refresh()};
+document.getElementById("newFolder").onclick=async()=>{let n=prompt("New folder path:","folder1/folder2");if(n===null)return;n=norm(n).trim().replace(/^\/+|\/+$/g,"");if(!n){showError("Folder name cannot be empty.");return}const parts=n.split("/").filter(Boolean);if(parts.some(x=>!validPart(x)||/[<>:"\\|?*]/.test(x))){showError("Invalid folder path.");return}const r=await ensureDirs(join(dirPath(),n));if(r&&r.ok===false)showError(r.error||"Could not create folder.");refresh()};
+document.getElementById("newText").onclick=async()=>{let n=prompt("New file path:","folder1/folder2/index.html");if(n===null)return;n=norm(n).trim().replace(/^\/+|\/+$/g,"");if(!n){showError("File path cannot be empty.");return}const parts=n.split("/").filter(Boolean),file=parts.pop();if(!validPart(file)||/[<>:"\\|?*]/.test(file)){showError("Invalid file name.");return}if(parts.some(x=>!validPart(x)||/[<>:"\\|?*]/.test(x))){showError("Invalid folder path.");return}try{if(parts.length){const r=await ensureDirs(join(dirPath(),parts.join("/")));if(r&&r.ok===false){showError(r.error);return}}const p=join(dirPath(),n),r=await parent.FS.write(p,"",true);if(!r.ok){showError(r.error);return}refresh();edit(p)}catch(e){showError(e.message||e)}};
+document.getElementById("zip").onclick=async()=>{const fs=selectedPaths();if(!fs.length){showError("Select files first.");return}const out=prompt("ZIP output path:",join(dirPath(),"archive.zip"));if(!out)return;const r=await parent.Tools.execute("zip_files",{files:fs,output_path:out});if(!r.ok)showError(r.summary);selected.clear();refresh()};
+document.getElementById("unzip").onclick=async()=>{const fs=selectedPaths().filter(isArchive);if(!fs.length){showError("Select archive files first.");return}for(const p of fs)await unzipArchive(p);selected.clear();refresh()};
+box.onchange=()=>{const v=box.value.trim();if(v){parent.Tools.execute("find_files",{pattern:v}).then(r=>{showError(r.files&&r.files.length?r.files.join("\n"):r.summary)}).catch(e=>showError(e.message||e))}};
 refresh();
 </script></body></html>
