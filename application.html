@@ -31,6 +31,7 @@ body{
 }
 
 #application-frame{
+
     position:fixed;
 
     left:0;
@@ -39,10 +40,10 @@ body{
     width:100vw;
     height:100vh;
 
+    border:0;
+
     margin:0;
     padding:0;
-
-    border:0;
 
     display:block;
 
@@ -76,34 +77,16 @@ body{
 
     /*
      * =========================================================
-     * MAIN PAGE → application.html
+     * MAIN PAGE → APPLICATION.HTML
      * =========================================================
-     *
-     * Receives:
-     *
-     * {
-     *     type:"load-app",
-     *     appId:"files",
-     *     title:"Files",
-     *     src:"files.html"
-     * }
-     *
-     * OR:
-     *
-     * {
-     *     type:"load-app",
-     *     appId:"editor",
-     *     title:"Editor",
-     *     srcDoc:"<html>...</html>"
-     * }
      */
     window.addEventListener(
         "message",
         function(event){
 
             /*
-             * Only the window that opened
-             * application.html may control it.
+             * Only the Main Page that opened this tab
+             * may control it.
              */
             if(
                 event.source!==
@@ -114,7 +97,7 @@ body{
 
 
             /*
-             * Same-origin only.
+             * Same origin
              */
             if(
                 event.origin!==
@@ -152,7 +135,7 @@ body{
 
 
                 /*
-                 * Change browser tab title.
+                 * Browser tab title
                  */
                 document.title=
                     message.title||
@@ -160,59 +143,43 @@ body{
 
 
                 /*
-                 * srcDoc takes priority when supplied.
+                 * srcDoc
                  */
                 if(
                     typeof message.srcDoc===
-                    "string"
-                    &&
+                    "string"&&
                     message.srcDoc.length>0
                 ){
 
-                    /*
-                     * Clear normal src first.
-                     */
                     iframe.removeAttribute(
                         "src"
                     );
 
-
-                    /*
-                     * Load inline HTML.
-                     */
                     iframe.srcdoc=
                         message.srcDoc;
 
+                }
 
-                }else if(
+
+                /*
+                 * Normal src
+                 */
+                else if(
                     typeof message.src===
-                    "string"
-                    &&
+                    "string"&&
                     message.src.length>0
                 ){
 
-                    /*
-                     * Clear srcdoc first.
-                     */
                     iframe.removeAttribute(
                         "srcdoc"
                     );
 
-
-                    /*
-                     * Load external HTML file.
-                     */
                     iframe.src=
                         message.src;
                 }
 
 
-                /*
-                 * Tell Main Page that the
-                 * application host accepted it.
-                 */
                 notifyReady();
-
 
                 return;
             }
@@ -222,39 +189,28 @@ body{
              * =================================================
              * MAIN PAGE → APP
              * =================================================
-             *
-             * Main Page sends:
-             *
-             * {
-             *     type:"main-to-application",
-             *     appId:"files",
-             *     message:{
-             *         type:"open-file"
-             *     }
-             * }
              */
             if(
                 message.type===
                 "main-to-application"
             ){
 
-                /*
-                 * Ignore messages intended for
-                 * a different application.
-                 */
                 if(
                     currentAppId&&
                     message.appId&&
-                    message.appId!==
-                    currentAppId
+                    message.appId!==currentAppId
                 ){
                     return;
                 }
 
 
-                sendToIframe(
-                    message.message
-                );
+                if(iframe.contentWindow){
+
+                    iframe.contentWindow.postMessage(
+                        message.message,
+                        event.origin
+                    );
+                }
 
 
                 return;
@@ -269,21 +225,18 @@ body{
      * APP → MAIN PAGE
      * =========================================================
      *
-     * This is the important compatibility part.
-     *
-     * Your existing iframe app can continue doing:
+     * Existing applications can keep using:
      *
      * window.parent.postMessage(...)
      *
-     * because application.html is its parent.
+     * because THIS iframe's parent is application.html.
      */
     window.addEventListener(
         "message",
         function(event){
 
             /*
-             * Make sure the message came
-             * from our one iframe.
+             * Only messages from our one iframe.
              */
             if(
                 !iframe.contentWindow||
@@ -295,8 +248,7 @@ body{
 
 
             /*
-             * Send it to the original
-             * Main Page.
+             * Forward to original Main Page.
              */
             if(
                 window.opener&&
@@ -321,27 +273,6 @@ body{
 
         }
     );
-
-
-    /*
-     * =========================================================
-     * SEND INTO THE APP
-     * =========================================================
-     */
-    function sendToIframe(message){
-
-        if(
-            !iframe.contentWindow
-        ){
-            return;
-        }
-
-
-        iframe.contentWindow.postMessage(
-            message,
-            window.location.origin
-        );
-    }
 
 
     /*
@@ -374,8 +305,8 @@ body{
 
 
     /*
-     * Notify Main Page when the actual
-     * application iframe finishes loading.
+     * Tell Main Page again when the actual app iframe
+     * finishes loading.
      */
     iframe.addEventListener(
         "load",
