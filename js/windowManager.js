@@ -491,134 +491,160 @@
      */
     function openApplicationTab(options){
 
-        options=options||{};
+    options=options||{};
 
-        const src=
-            options.src||null;
+    const src=options.src||null;
+    const srcDoc=options.srcDoc||null;
 
-        const srcDoc=
-            options.srcDoc||null;
+    if(!src&&!srcDoc){
 
+        console.error(
+            "WM.openApplicationTab: missing src or srcDoc"
+        );
 
-        if(!src&&!srcDoc){
+        return null;
+    }
 
-            console.error(
-                "WM.openApplicationTab: missing src or srcDoc"
-            );
+    const appId=
+        options.appId||
+        options.standaloneKey||
+        (
+            "application-"+
+            Date.now()+
+            "-"+
+            Math.random()
+        );
 
-            return null;
-        }
+    /*
+     * Reuse existing browser tab when requested.
+     */
+    if(options.standalone!==false){
 
+        const existing=
+            applicationTabs.get(appId);
 
-        /*
-         * Application ID
-         */
-        const appId=
-            options.appId||
-            options.standaloneKey||
-            (
-                "application-"+
-                Date.now()+
-                "-"+
-                Math.random()
-            );
+        if(
+            existing&&
+            existing.window&&
+            !existing.window.closed
+        ){
 
+            existing.window.focus();
 
-        /*
-         * Existing tab?
-         */
-        if(options.standalone!==false){
-
-            const existing=
-                applicationTabs.get(
-                    appId
-                );
-
-            if(existing){
-
-                if(
-                    existing.window&&
-                    !existing.window.closed
-                ){
-
-                    existing.window.focus();
-
-
-                    sendApplicationCommand(
-                        existing.window,
-                        {
-                            type:"load-app",
-
-                            appId,
-
-                            title:
-                                options.title||
-                                "APPLICATION",
-
-                            src,
-
-                            srcDoc
-                        }
-                    );
-
-                    return existing.window;
+            sendApplicationCommand(
+                existing.window,
+                {
+                    type:"load-app",
+                    appId,
+                    title:
+                        options.title||
+                        "APPLICATION",
+                    src,
+                    srcDoc
                 }
+            );
 
-
-                applicationTabs.delete(
-                    appId
-                );
-            }
+            return existing.window;
         }
 
+        applicationTabs.delete(appId);
+    }
 
-        /*
-         * Open the universal application host.
-         */
-        const appWindow=
+    /*
+     * IMPORTANT:
+     *
+     * This MUST happen immediately inside the user's
+     * click/tap handler.
+     *
+     * Do not put window.open() inside setTimeout,
+     * Promise, fetch, or another asynchronous callback.
+     */
+    let appWindow=null;
+
+    try{
+
+        appWindow=
             window.open(
-                "/application.html",
+                "about:blank",
                 "_blank"
             );
 
+    }catch(error){
 
-        if(!appWindow){
-
-            console.warn(
-                "Little Hollow: browser blocked the application tab."
-            );
-
-            return null;
-        }
-
-
-        const record={
-
-            window:appWindow,
-
-            appId,
-
-            ready:false
-        };
-
-
-        applicationTabs.set(
-            appId,
-            record
+        console.error(
+            "Little Hollow: could not open browser tab.",
+            error
         );
 
+        return null;
+    }
 
-        /*
-         * application.html may not have loaded yet.
-         *
-         * Keep sending the load command until the
-         * wrapper confirms that it is ready.
-         */
-        let attempts=0;
-        let retryTimer=null;
+    /*
+     * Browser blocked the new tab.
+     */
+    if(!appWindow){
 
+        console.warn(
+            "Little Hollow: popup/new-tab was blocked."
+        );
 
-        const sendInitial=()=>{
+        return null;
+    }
+
+    /*
+     * Store it immediately.
+     */
+    const record={
+        window:appWindow,
+        appId,
+        ready:false
+    };
+
+    applicationTabs.set(
+        appId,
+        record
+    );
+
+    /*
+     * Navigate the newly created tab to
+     * application.html.
+     */
+    try{
+
+        const applicationURL=
+            new URL(
+                "/application.html",
+                window.location.href
+            ).href;
+
+        appWindow.location.href=
+            applicationURL;
+
+    }catch(error){
+
+        console.error(
+            "Little Hollow: could not navigate application tab.",
+            error
+        );
+
+        try{
+            appWindow.close();
+        }catch(_){}
+
+        applicationTabs.delete(appId);
+
+        return null;
+    }
+
+    /*
+     * application.html needs time to load.
+     * Send the command repeatedly until its
+     * listener is active.
+     */
+    let attempts=0;
+
+    const retryTimer=
+        setInterval(()=>{
 
             if(
                 !appWindow||
@@ -636,50 +662,35 @@
                 return;
             }
 
-
-            attempts+=1;
-
+            attempts++;
 
             sendApplicationCommand(
                 appWindow,
                 {
                     type:"load-app",
-
                     appId,
-
                     title:
                         options.title||
                         "APPLICATION",
-
                     src,
-
                     srcDoc
                 }
             );
 
-
-            if(attempts>=30){
+            /*
+             * Stop retrying after a few seconds.
+             */
+            if(attempts>=40){
 
                 clearInterval(
                     retryTimer
                 );
             }
-        };
 
+        },250);
 
-        retryTimer=
-            setInterval(
-                sendInitial,
-                250
-            );
-
-
-        sendInitial();
-
-
-        return appWindow;
-    }
-
+    return appWindow;
+}
 
     /*
      * =========================================================
