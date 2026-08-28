@@ -8,10 +8,13 @@
         {type:"function",function:{name:"open_file_manager",description:"Open File Manager. In select mode it can be used as a file selector for another app.",parameters:{type:"object",properties:{select:{type:"boolean"}},required:[]}}},
         {type:"function",function:{name:"open_window",description:"Open a window showing text, code, HTML, generated content, results, or other structured output.",parameters:{type:"object",properties:{title:{type:"string"},content_type:{type:"string",enum:["text","code","html"]},content:{type:"string"}},required:["content_type","content"]}}},
         {type:"function",function:{name:"open_iframe",description:"Open an iframe window for a URL, including embeddable web pages or YouTube embeds when permitted.",parameters:{type:"object",properties:{title:{type:"string"},url:{type:"string"},width:{type:"integer",minimum:240},height:{type:"integer",minimum:180}},required:["url"]}}},
-        {type:"function",function:{name:"open_browser_url",description:"Open a URL in the embedded Browser as a new tab. The Browser handles supported URL normalization such as YouTube embeds.",parameters:{type:"object",properties:{url:{type:"string"},title:{type:"string"}},required:["url"]}}},
-        {type:"function",function:{name:"browser_new_tab",description:"Create a new empty tab in the embedded Browser.",parameters:{type:"object",properties:{}},required:[]}}},
-        {type:"function",function:{name:"browser_get_tabs",description:"Get the current Browser tabs with their zero-based index, id, title, URL, home state, and active state.",parameters:{type:"object",properties:{}},required:[]}}},
-        {type:"function",function:{name:"browser_close_tab",description:"Close a Browser tab using its zero-based tab index.",parameters:{type:"object",properties:{index:{type:"integer",minimum:0}},required:["index"]}}},
+        {type:"function",function:{name:"open_browser_url",description:"Open a URL in the embedded Little Hollow Browser as a new tab. The Browser automatically handles supported URL normalization such as YouTube embeds.",parameters:{type:"object",properties:{url:{type:"string"},title:{type:"string"}},required:["url"]}}},
+        {type:"function",function:{name:"browser_new_tab",description:"Create a new empty tab in the embedded Little Hollow Browser.",parameters:{type:"object",properties:{}},required:[]}}},
+        {type:"function",function:{name:"browser_get_tabs",description:"Get the current Little Hollow Browser tabs. Returns zero-based index, id, title, URL, home state, and active state.",parameters:{type:"object",properties:{}},required:[]}}},
+        {type:"function",function:{name:"browser_close_tab",description:"Close a Little Hollow Browser tab by its zero-based index.",parameters:{type:"object",properties:{index:{type:"integer",minimum:0}},required:["index"]}}},
+        {type:"function",function:{name:"create_folder",description:"Create a folder in the Little Hollow virtual filesystem.",parameters:{type:"object",properties:{path:{type:"string"}},required:["path"]}}},
+        {type:"function",function:{name:"remove_folder",description:"Remove an empty folder from the Little Hollow virtual filesystem.",parameters:{type:"object",properties:{path:{type:"string"}},required:["path"]}}},
+        {type:"function",function:{name:"list_folder",description:"List the files and folders directly under a virtual filesystem folder.",parameters:{type:"object",properties:{path:{type:"string"}},required:["path"]}}},
         {type:"function",function:{name:"web_search",description:"Search the public web for external information and return indexed results.",parameters:{type:"object",properties:{query:{type:"string"},max_results:{type:"integer",minimum:1,maximum:10}},required:["query"]}}},
         {type:"function",function:{name:"write_file",description:"Create or overwrite one virtual filesystem file. Paths can use chxd:/local/, chxd:/session/, chxd:/indexdb/ and puter:/ only when Puter filesystem support is actually available.",parameters:{type:"object",properties:{path:{type:"string"},content:{type:"string"},create:{type:"boolean"}},required:["path","content"]}}},
         {type:"function",function:{name:"write_files",description:"Create or overwrite multiple virtual filesystem files in one operation.",parameters:{type:"object",properties:{files:{type:"array",items:{type:"object",properties:{path:{type:"string"},content:{type:"string"},create:{type:"boolean"}},required:["path","content"]}}},required:["files"]}}},
@@ -70,6 +73,61 @@
         if(!result)return {ok:false,summary:"No Browser tab exists at index "+i+"."};
         return {ok:true,summary:"Closed Browser tab at index "+i+"."};
     }
+    function normalizeFolderPath(path){
+        let p=String(path||"").trim();
+        if(!p)return "";
+        try{p=FS.normalize(p);}catch(e){}
+        if(!p.endsWith("/"))p+="/";
+        return p;
+    }
+    async function createFolder(path){
+        const p=normalizeFolderPath(path);
+        if(!p)return {ok:false,summary:"Folder path is empty."};
+        try{
+            if(typeof FS.mkdir==="function"){
+                const r=await FS.mkdir(p);
+                if(r===true||r&&r.ok===true)return {ok:true,summary:"Created folder "+p+".",path:p};
+                return {ok:false,summary:r&&r.error?r.error:"Could not create folder "+p+"."};
+            }
+            if(typeof FS.createDirectory==="function"){
+                const r=await FS.createDirectory(p);
+                if(r===true||r&&r.ok===true)return {ok:true,summary:"Created folder "+p+".",path:p};
+                return {ok:false,summary:r&&r.error?r.error:"Could not create folder "+p+"."};
+            }
+            return {ok:false,summary:"Filesystem folder creation is not available."};
+        }catch(e){
+            return {ok:false,summary:e.message||String(e)};
+        }
+    }
+    async function removeFolder(path){
+        const p=normalizeFolderPath(path);
+        if(!p)return {ok:false,summary:"Folder path is empty."};
+        try{
+            if(typeof FS.rmdir==="function"){
+                const r=await FS.rmdir(p);
+                if(r===true||r&&r.ok===true)return {ok:true,summary:"Removed folder "+p+".",path:p};
+                return {ok:false,summary:r&&r.error?r.error:"Could not remove folder "+p+"."};
+            }
+            if(typeof FS.removeDirectory==="function"){
+                const r=await FS.removeDirectory(p);
+                if(r===true||r&&r.ok===true)return {ok:true,summary:"Removed folder "+p+".",path:p};
+                return {ok:false,summary:r&&r.error?r.error:"Could not remove folder "+p+"."};
+            }
+            return {ok:false,summary:"Filesystem folder removal is not available."};
+        }catch(e){
+            return {ok:false,summary:e.message||String(e)};
+        }
+    }
+    async function listFolder(path){
+        const p=normalizeFolderPath(path);
+        if(!p)return {ok:false,summary:"Folder path is empty."};
+        try{
+            const files=await FS.list(p);
+            return {ok:true,summary:files.length?files.length+" item(s) found in "+p+".":"Folder is empty.",path:p,files};
+        }catch(e){
+            return {ok:false,summary:e.message||String(e),path:p};
+        }
+    }
     async function webSearch(query,maxResults){
         query=String(query||"").trim();
         if(!query)return {ok:false,summary:"Search query is empty."};
@@ -79,10 +137,10 @@
             const url="https://api.duckduckgo.com/?q="+encodeURIComponent(query)+"&format=json&no_html=1&skip_disambig=0";
             const r=await fetch(url,{headers:{Accept:"application/json"}});
             if(!r.ok)throw new Error("HTTP "+r.status);
-            const d=await r.json();const results=[];
+            const d=await r.json(); const results=[];
             if(d.AbstractText)results.push({title:d.Heading||query,snippet:d.AbstractText,url:d.AbstractURL||""});
             const walk=a=>{for(const x of Array.isArray(a)?a:[]){if(results.length>=limit)break;if(x.Topics)walk(x.Topics);else if(x.Text)results.push({title:String(x.Text).split(" - ")[0].slice(0,120),snippet:x.Text,url:x.FirstURL||""});}};
-            walk(d.RelatedTopics);walk(d.Results);
+            walk(d.RelatedTopics); walk(d.Results);
             return {ok:true,summary:"Search completed for \""+query+"\" with "+results.length+" result(s).",results,query};
         }catch(e){return {ok:false,summary:"Web search failed: "+e.message,query};}
         finally{Avatar.setEye("normal");}
@@ -90,12 +148,12 @@
     function utf8(s){return new TextEncoder().encode(String(s));}
     function u16(n){return [n&255,(n>>>8)&255];}
     function u32(n){return [n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255];}
-    function crc32(bytes){let c=0xffffffff;for(const b of bytes){c^=b;for(let i=0;i<8;i++)c=(c>>>1)^((c&1)?0xedb88320:0);}return(c^0xffffffff)>>>0;}
+    function crc32(bytes){let c=0xffffffff;for(const b of bytes){c^=b;for(let i=0;i<8;i++)c=(c>>>1)^((c&1)?0xedb88320:0);}return (c^0xffffffff)>>>0;}
     function makeZip(entries){
         const parts=[],central=[];let offset=0;
         for(const entry of entries){const name=utf8(entry.name.replace(/^\/+/,"")),data=entry.data;const crc=crc32(data),header=new Uint8Array([...u32(0x04034b50),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...name,...data]);parts.push(header);central.push(new Uint8Array([...u32(0x02014b50),...u16(20),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(offset),...name]));offset+=header.length;}
         const cdStart=offset,cdSize=central.reduce((n,x)=>n+x.length,0),eocd=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(central.length),...u16(central.length),...u32(cdSize),...u32(cdStart),...u16(0)]);
-        const all=[...parts,...central,eocd],blob=new Blob(all,{type:"application/zip"});return blob;
+        const all=[...parts,...central,eocd],blob=new Blob(all,{type:"application/zip"}); return blob;
     }
     function blobDataURL(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(blob);});}
     async function zipFiles(files,output){
@@ -118,10 +176,9 @@ window.addEventListener("message",e=>{const d=e.data||{};if(d.type==="LH_SANDBOX
 const lh={readFile:p=>call("readFile",[p]),writeFile:(p,c)=>call("writeFile",[p,c]),listFiles:p=>call("listFiles",[p||""]),removeFile:p=>call("removeFile",[p]),log:(...a)=>parent.postMessage({type:"LH_SANDBOX_LOG",id:RID,args:a.map(String)},"*")};
 (async()=>{try{const result=await (async()=>{
 ${safeCode}
-})();parent.postMessage({type:"LH_SANDBOX_DONE",id:RID,ok:true,result:result==null?"":String(result)},"*")}catch(e){parent.postMessage({type:"LH_SANDBOX_DONE",id:RID,ok:false,error:e&&e.stack||String(e)},"*")}})();<\/script>`;
+})();parent.postMessage({type:"LH_SANDBOX_DONE",id:RID,ok:true,result:result==null?"":String(result)},"*")}catch(e){parent.postMessage({type:"LH_SANDBOX_DONE",id:RID,ok:false,error:e&&e.stack||String(e)},"*")}})();</script>`;
             document.body.appendChild(frame);
-            let done=false;
-            const finish=r=>{if(done)return;done=true;window.removeEventListener("message",onMessage);frame.remove();resolve(r);};
+            let done=false; const finish=r=>{if(done)return;done=true;window.removeEventListener("message",onMessage);frame.remove();resolve(r);};
             const onMessage=async e=>{const d=e.data||{};if(d.id!==id&&d.rid!==undefined&&!String(d.rid).startsWith(id+":"))return;if(d.type==="LH_SANDBOX_LOG")logs.push(d.args.join(" "));if(d.type==="LH_SANDBOX_REQ"&&String(d.rid).startsWith(id+":")){try{let value;const a=d.args||[];if(d.api==="readFile"){const r=await FS.read(a[0]);if(!r.ok)throw new Error(r.error);value=r.content;}else if(d.api==="writeFile"){const r=await FS.write(a[0],a[1],true);if(!r.ok)throw new Error(r.error);value=true;}else if(d.api==="listFiles")value=await FS.list(a[0]);else if(d.api==="removeFile"){const r=await FS.remove(a[0]);if(!r.ok)throw new Error(r.error);value=true;}else throw new Error("Unknown sandbox API: "+d.api);e.source.postMessage({type:"LH_SANDBOX_RES",rid:d.rid,ok:true,value},"*");}catch(err){e.source.postMessage({type:"LH_SANDBOX_RES",rid:d.rid,ok:false,error:String(err.message||err)},"*");}}if(d.type==="LH_SANDBOX_DONE")finish({ok:!!d.ok,summary:d.ok?("Sandbox JavaScript finished."+(d.result?" Result: "+d.result:"")):("Sandbox JavaScript failed: "+d.error),logs});};
             window.addEventListener("message",onMessage);
             setTimeout(()=>finish({ok:false,summary:"Sandbox JavaScript timed out after "+timeoutMs+" ms.",logs}),timeoutMs);
@@ -150,6 +207,9 @@ ${safeCode}
         if(name==="browser_new_tab")return browserNewTab();
         if(name==="browser_get_tabs")return browserGetTabs();
         if(name==="browser_close_tab")return browserCloseTab(args.index);
+        if(name==="create_folder")return await createFolder(args.path);
+        if(name==="remove_folder")return await removeFolder(args.path);
+        if(name==="list_folder")return await listFolder(args.path);
         if(name==="web_search")return await webSearch(args.query,args.max_results);
         if(name==="write_file"){const p=FS.normalize(args.path),r=await FS.write(p,args.content||"",args.create!==false);return r.ok?{ok:true,summary:"Wrote "+p+"."}:{ok:false,summary:r.error};}
         if(name==="write_files"){const fs=Array.isArray(args.files)?args.files:[];const done=[];for(const f of fs){const p=FS.normalize(f.path),r=await FS.write(p,f.content||"",f.create!==false);if(!r.ok)return {ok:false,summary:r.error,written:done};done.push(p);}return {ok:true,summary:"Wrote "+done.length+" file(s): "+done.join(", ")+"."};}
@@ -160,18 +220,32 @@ ${safeCode}
         if(name==="zip_files")return await zipFiles(args.files,args.output_path);
         if(name==="open_onecompiler")return Apps.openOneCompiler({language:args.language,code:args.code||"",name:args.name,files:args.files,run:!!args.run}).ok?{ok:true,summary:"Opened OneCompiler."}:{ok:false,summary:"Could not open OneCompiler."};
         if(name==="run_code"){
-            const p=FS.normalize(args.path),r=await FS.read(p);if(!r.ok)return {ok:false,summary:r.error};const ext=p.split(".").pop().toLowerCase(),lang=args.language||({js:"javascript",javascript:"javascript",py:"python",python:"python",java:"java",c:"c",cpp:"cpp",cs:"csharp",php:"php",ts:"typescript",html:"html",css:"css"}[ext]||"javascript");return Apps.openOneCompiler({language:lang,files:[{name:p.split("/").pop(),content:r.content}],run:args.run!==false}).ok?{ok:true,summary:"Opened "+p+" in OneCompiler."}:{ok:false,summary:"Could not open OneCompiler."};
+            const p=FS.normalize(args.path),r=await FS.read(p);if(!r.ok)return {ok:false,summary:r.error};
+            const ext=p.split(".").pop().toLowerCase();
+            const lang=args.language||({js:"javascript",javascript:"javascript",py:"python",python:"python",java:"java",c:"c",cpp:"cpp",cs:"csharp",php:"php",ts:"typescript",html:"html",css:"css"}[ext]||"javascript");
+            return Apps.openOneCompiler({language:lang,files:[{name:p.split("/").pop(),content:r.content}],run:args.run!==false}).ok?{ok:true,summary:"Opened "+p+" in OneCompiler."}:{ok:false,summary:"Could not open OneCompiler."};
         }
         if(name==="execute_javascript")return await sandboxRun(args.code||"",Math.max(250,Math.min(10000,Number(args.timeout_ms)||5000)));
-        if(name==="close_all_windows"){WM.closeAll();return {ok:true,summary:"Closed all windows."};}
+        if(name==="close_all_windows"){WM.closeAll();return {ok:true,summary:"Closed all currently open windows."};}
         return {ok:false,summary:"Unknown tool: "+name};
     }
     async function execute(name,args){
         Avatar.setEye(name==="web_search"?"search":"matrix",-1);
         const win=terminal(commandLine(name,args));
-        try{const result=await executeRaw(name,args);terminalUpdate(win,commandLine(name,args),result);if(result.ok)closeTerminalSoon(win,850);else closeTerminalSoon(win,1400);return result;}
-        catch(e){const r={ok:false,summary:"Tool error: "+(e.message||String(e))};terminalUpdate(win,commandLine(name,args),r);closeTerminalSoon(win,1600);return r;}
-        finally{if(name!=="web_search")Avatar.setEye("normal");}
+        try{
+            const result=await executeRaw(name,args);
+            terminalUpdate(win,commandLine(name,args),result);
+            if(result.ok)closeTerminalSoon(win,850);
+            else closeTerminalSoon(win,1400);
+            return result;
+        }catch(e){
+            const r={ok:false,summary:"Tool error: "+(e.message||String(e))};
+            terminalUpdate(win,commandLine(name,args),r);
+            closeTerminalSoon(win,1600);
+            return r;
+        }finally{
+            if(name!=="web_search")Avatar.setEye("normal");
+        }
     }
     window.Tools={definitions,execute};
 })();
