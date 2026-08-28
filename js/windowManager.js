@@ -221,17 +221,28 @@
      *     title:"My App"
      * });
      *
-     * application.html becomes the outer page and contains
-     * exactly one iframe.
+     * This opens:
+     *
+     * /application.html
+     *
+     * and tells it which app to load.
      */
     function openApplicationTab(options){
 
         options=options||{};
 
-        const src=options.src||null;
-        const srcDoc=options.srcDoc||null;
+        const src=
+            typeof options.src==="string"
+            ?options.src
+            :null;
+
+        const srcDoc=
+            typeof options.srcDoc==="string"
+            ?options.srcDoc
+            :null;
 
         if(!src&&!srcDoc){
+
             console.error(
                 "WM.openApplicationTab: missing src or srcDoc"
             );
@@ -245,7 +256,8 @@
             ("application-"+Date.now()+"-"+Math.random());
 
         /*
-         * If requested as standalone, reuse the existing tab.
+         * Reuse an already-open application tab when the same
+         * appId is used.
          */
         if(options.standalone!==false){
 
@@ -260,17 +272,14 @@
 
                     existing.window.focus();
 
-                    /*
-                     * Send a new load command if requested.
-                     */
                     sendApplicationCommand(
                         existing.window,
                         {
                             type:"load-app",
-                            appId,
+                            appId:appId,
                             title:options.title||"APPLICATION",
-                            src,
-                            srcDoc
+                            src:src,
+                            srcDoc:srcDoc
                         }
                     );
 
@@ -282,12 +291,7 @@
         }
 
         /*
-         * Open application.html.
-         *
-         * IMPORTANT:
-         * This should ideally be called directly from a user
-         * interaction such as a button click so popup blockers
-         * allow the new tab.
+         * Open the universal application host.
          */
         const appWindow=window.open(
             "/application.html",
@@ -305,24 +309,33 @@
 
         const record={
             window:appWindow,
-            appId,
+            appId:appId,
             ready:false
         };
 
-        applicationTabs.set(appId,record);
+        applicationTabs.set(
+            appId,
+            record
+        );
 
         /*
-         * We don't know exactly when application.html has
-         * finished loading yet, so send the command repeatedly
-         * for a short period until the wrapper confirms ready.
+         * application.html sends "application-ready" once it
+         * has loaded. Until then, retry the load message so the
+         * initial message is not lost during page navigation.
          */
         let attempts=0;
+        let retryTimer=null;
 
-        const sendInitial=()=>{
+        function sendInitial(){
 
-            if(!appWindow || appWindow.closed){
+            if(
+                !appWindow||
+                appWindow.closed
+            ){
 
-                clearInterval(retryTimer);
+                if(retryTimer){
+                    clearInterval(retryTimer);
+                }
 
                 applicationTabs.delete(appId);
 
@@ -335,20 +348,22 @@
                 appWindow,
                 {
                     type:"load-app",
-                    appId,
+                    appId:appId,
                     title:options.title||"APPLICATION",
-                    src,
-                    srcDoc
+                    src:src,
+                    srcDoc:srcDoc
                 }
             );
 
             if(attempts>=30){
 
-                clearInterval(retryTimer);
+                if(retryTimer){
+                    clearInterval(retryTimer);
+                }
             }
-        };
+        }
 
-        const retryTimer=setInterval(
+        retryTimer=setInterval(
             sendInitial,
             250
         );
@@ -364,7 +379,10 @@
      */
     function sendApplicationCommand(appWindow,message){
 
-        if(!appWindow||appWindow.closed){
+        if(
+            !appWindow||
+            appWindow.closed
+        ){
             return false;
         }
 
@@ -394,72 +412,103 @@
      * MAIN PAGE ←→ APPLICATION.HTML
      * =========================================================
      *
-     * application.html sends messages to this page.
-     *
-     * This listener also handles the READY message and forwards
-     * application messages to the appropriate existing code.
+     * application.html sends messages back to this page.
      */
-    window.addEventListener("message",function(event){
-
-        /*
-         * Ignore messages from other origins.
-         */
-        if(event.origin!==window.location.origin){
-            return;
-        }
-
-        if(!event.data||typeof event.data!=="object"){
-            return;
-        }
-
-        const message=event.data;
-
-        /*
-         * application.html announces that its iframe is ready.
-         */
-        if(message.type==="application-ready"){
-
-            const record=
-                applicationTabs.get(message.appId);
-
-            if(record){
-                record.ready=true;
-            }
-
-            return;
-        }
-
-        /*
-         * application.html has received a message FROM
-         * its iframe and is forwarding it to Main Page.
-         */
-        if(message.type==="application-to-main"){
-
-            const appMessage=message.message;
+    window.addEventListener(
+        "message",
+        function(event){
 
             /*
-             * Re-dispatch as a normal MessageEvent so the rest
-             * of Little Hollow can listen exactly as before.
+             * Only accept same-origin messages.
              */
-            window.dispatchEvent(
-                new MessageEvent(
-                    "message",
-                    {
-                        data:appMessage,
-                        origin:event.origin,
-                        source:event.source
-                    }
-                )
-            );
+            if(
+                event.origin!==
+                window.location.origin
+            ){
+                return;
+            }
 
-            return;
+            if(
+                !event.data||
+                typeof event.data!=="object"
+            ){
+                return;
+            }
+
+            const message=event.data;
+
+
+            /*
+             * application.html is ready.
+             */
+            if(message.type==="application-ready"){
+
+                const record=
+                    applicationTabs.get(
+                        message.appId
+                    );
+
+                if(record){
+
+                    record.ready=true;
+
+                    /*
+                     * Send the load command again now that
+                     * application.html has explicitly announced
+                     * that it is ready.
+                     */
+                    sendApplicationCommand(
+                        record.window,
+                        {
+                            type:"load-app",
+                            appId:record.appId,
+                            title:message.title||"APPLICATION",
+                            src:message.src||null,
+                            srcDoc:message.srcDoc||null
+                        }
+                    );
+                }
+
+                return;
+            }
+
+
+            /*
+             * application.html received a message from its
+             * iframe and forwarded it here.
+             */
+            if(message.type==="application-to-main"){
+
+                const appMessage=
+                    message.message;
+
+                /*
+                 * Deliver it through the normal window message
+                 * system so existing Main Page listeners can
+                 * receive it.
+                 */
+                window.dispatchEvent(
+                    new MessageEvent(
+                        "message",
+                        {
+                            data:appMessage,
+                            origin:event.origin,
+                            source:event.source
+                        }
+                    )
+                );
+
+                return;
+            }
+
         }
-
-    });
+    );
 
 
     /*
-     * Send a normal application message to a new-tab app.
+     * =========================================================
+     * MAIN PAGE → NEW-TAB APPLICATION
+     * =========================================================
      *
      * Example:
      *
@@ -470,13 +519,17 @@
      */
     function sendToApplicationTab(appId,message){
 
-        const record=applicationTabs.get(appId);
+        const record=
+            applicationTabs.get(appId);
 
         if(!record){
             return false;
         }
 
-        if(!record.window||record.window.closed){
+        if(
+            !record.window||
+            record.window.closed
+        ){
 
             applicationTabs.delete(appId);
 
@@ -487,8 +540,8 @@
             record.window,
             {
                 type:"main-to-application",
-                appId,
-                message
+                appId:appId,
+                message:message
             }
         );
     }
@@ -515,7 +568,7 @@
                 }
 
                 result.push({
-                    appId,
+                    appId:appId,
                     window:record.window,
                     ready:record.ready
                 });
@@ -592,26 +645,32 @@
         x.className="tb-x";
         x.textContent="×";
 
-        x.addEventListener("click",e=>{
+        x.addEventListener(
+            "click",
+            e=>{
 
-            e.stopPropagation();
+                e.stopPropagation();
 
-            closeWindow(win);
-        });
+                closeWindow(win);
+            }
+        );
 
         btn.appendChild(x);
 
-        btn.addEventListener("click",()=>{
+        btn.addEventListener(
+            "click",
+            ()=>{
 
-            if(win.minimized){
+                if(win.minimized){
 
-                toggleMinimize(win);
+                    toggleMinimize(win);
 
-            }else{
+                }else{
 
-                bringToFront(win);
+                    bringToFront(win);
+                }
             }
-        });
+        );
 
         taskbar.appendChild(btn);
 
@@ -627,15 +686,23 @@
 
         function start(clientX,clientY){
 
-            const rect=win.getBoundingClientRect();
+            const rect=
+                win.getBoundingClientRect();
 
             dragging=true;
 
-            offsetX=clientX-rect.left;
-            offsetY=clientY-rect.top;
+            offsetX=
+                clientX-
+                rect.left;
+
+            offsetY=
+                clientY-
+                rect.top;
 
             bringToFront(
-                windows.find(w=>w.el===win)
+                windows.find(
+                    w=>w.el===win
+                )
             );
         }
 
@@ -643,11 +710,17 @@
 
             if(!dragging) return;
 
-            let x=clientX-offsetX;
-            let y=clientY-offsetY;
+            let x=
+                clientX-
+                offsetX;
+
+            let y=
+                clientY-
+                offsetY;
 
             const maxX=
-                window.innerWidth-win.offsetWidth;
+                window.innerWidth-
+                win.offsetWidth;
 
             const maxY=
                 window.innerHeight-
@@ -656,33 +729,51 @@
 
             x=Math.max(
                 0,
-                Math.min(x,maxX)
+                Math.min(
+                    x,
+                    maxX
+                )
             );
 
             y=Math.max(
                 0,
-                Math.min(y,maxY)
+                Math.min(
+                    y,
+                    maxY
+                )
             );
 
-            win.style.left=x+"px";
-            win.style.top=y+"px";
+            win.style.left=
+                x+"px";
+
+            win.style.top=
+                y+"px";
         }
 
         function end(){
             dragging=false;
         }
 
-        handle.addEventListener("mousedown",e=>{
+        handle.addEventListener(
+            "mousedown",
+            e=>{
 
-            if(e.target.closest("button")) return;
+                if(
+                    e.target.closest(
+                        "button"
+                    )
+                ){
+                    return;
+                }
 
-            start(
-                e.clientX,
-                e.clientY
-            );
+                start(
+                    e.clientX,
+                    e.clientY
+                );
 
-            e.preventDefault();
-        });
+                e.preventDefault();
+            }
+        );
 
         window.addEventListener(
             "mousemove",
@@ -697,31 +788,46 @@
             end
         );
 
-        handle.addEventListener("touchstart",e=>{
+        handle.addEventListener(
+            "touchstart",
+            e=>{
 
-            if(e.target.closest("button")) return;
+                if(
+                    e.target.closest(
+                        "button"
+                    )
+                ){
+                    return;
+                }
 
-            const t=e.touches[0];
+                const t=
+                    e.touches[0];
 
-            start(
-                t.clientX,
-                t.clientY
-            );
+                start(
+                    t.clientX,
+                    t.clientY
+                );
 
-        },{passive:true});
+            },
+            {passive:true}
+        );
 
         window.addEventListener(
             "touchmove",
             e=>{
 
-                if(!dragging) return;
+                if(!dragging){
+                    return;
+                }
 
-                const t=e.touches[0];
+                const t=
+                    e.touches[0];
 
                 move(
                     t.clientX,
                     t.clientY
                 );
+
             },
             {passive:true}
         );
@@ -746,45 +852,67 @@
 
             resizing=true;
 
-            startW=win.offsetWidth;
-            startH=win.offsetHeight;
+            startW=
+                win.offsetWidth;
 
-            startX=clientX;
-            startY=clientY;
+            startH=
+                win.offsetHeight;
+
+            startX=
+                clientX;
+
+            startY=
+                clientY;
         }
 
         function move(clientX,clientY){
 
-            if(!resizing) return;
+            if(!resizing){
+                return;
+            }
 
             const w=Math.max(
                 220,
-                startW+(clientX-startX)
+                startW+
+                (
+                    clientX-
+                    startX
+                )
             );
 
             const h=Math.max(
                 150,
-                startH+(clientY-startY)
+                startH+
+                (
+                    clientY-
+                    startY
+                )
             );
 
-            win.style.width=w+"px";
-            win.style.height=h+"px";
+            win.style.width=
+                w+"px";
+
+            win.style.height=
+                h+"px";
         }
 
         function end(){
             resizing=false;
         }
 
-        handle.addEventListener("mousedown",e=>{
+        handle.addEventListener(
+            "mousedown",
+            e=>{
 
-            start(
-                e.clientX,
-                e.clientY
-            );
+                start(
+                    e.clientX,
+                    e.clientY
+                );
 
-            e.preventDefault();
-            e.stopPropagation();
-        });
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        );
 
         window.addEventListener(
             "mousemove",
@@ -799,31 +927,40 @@
             end
         );
 
-        handle.addEventListener("touchstart",e=>{
+        handle.addEventListener(
+            "touchstart",
+            e=>{
 
-            const t=e.touches[0];
+                const t=
+                    e.touches[0];
 
-            start(
-                t.clientX,
-                t.clientY
-            );
+                start(
+                    t.clientX,
+                    t.clientY
+                );
 
-            e.stopPropagation();
+                e.stopPropagation();
 
-        },{passive:true});
+            },
+            {passive:true}
+        );
 
         window.addEventListener(
             "touchmove",
             e=>{
 
-                if(!resizing) return;
+                if(!resizing){
+                    return;
+                }
 
-                const t=e.touches[0];
+                const t=
+                    e.touches[0];
 
                 move(
                     t.clientX,
                     t.clientY
                 );
+
             },
             {passive:true}
         );
