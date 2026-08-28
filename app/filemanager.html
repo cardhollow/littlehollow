@@ -1,30 +1,1247 @@
-<!DOCTYPE html>    
-<html lang="en"><head><meta charset="UTF-8"><title>File Manager</title>    
-<style>*{box-sizing:border-box;margin:0;padding:0;font-family:monospace}html,body{width:100%;height:100%;background:#000d0d;color:#00FFFF}.wrap{display:flex;flex-direction:column;height:100%}.bar{display:flex;gap:5px;padding:6px;border-bottom:1px solid #00FFFF;flex-wrap:wrap}.bar button,.bar input{border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:6px 8px;font-family:monospace;font-size:10px}.bar input{flex:1 1 150px}.bar button:active,.row button:active{background:#00FFFF;color:#000}.tabs{display:flex;border-bottom:1px solid #00FFFF}.tabs button{flex:1;border:0;border-right:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:7px 3px;cursor:pointer;font:11px monospace}.tabs button.active{background:rgba(0,255,255,.15)}.list{flex:1;overflow:auto}.row{display:flex;align-items:center;gap:5px;padding:7px 8px;border-bottom:1px solid rgba(0,255,255,.22);font-size:11px}.name{flex:1;min-width:0;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.name em{opacity:.5;font-style:normal}.row button{border:1px solid #00FFFF;background:transparent;color:#00FFFF;font:10px monospace;padding:3px 5px;cursor:pointer}.row input{accent-color:#00FFFF}.empty{padding:16px;opacity:.6;font-size:12px}.hint{padding:4px 8px;font-size:10px;opacity:.55;border-bottom:1px solid rgba(0,255,255,.2)}</style>    
-</head><body><div class="wrap"><div class="bar"><input id="pathBox" placeholder="path or wildcard"><button id="refresh">REFRESH</button><button id="newText">NEW TEXT</button><button id="zip">ZIP SELECTED</button><button id="selectAll">SELECT ALL</button></div><div class="tabs" id="tabs"></div><div class="hint" id="hint">Tap a file to open it. EDIT opens Notepad. CODE opens OneCompiler.</div><div class="hint" id="error" style="display:none"></div><div class="list" id="list"></div></div>    
-<script>    
-const zones=[{key:"local",label:"LOCAL",prefix:"chxd:/local/"},{key:"session",label:"SESSION",prefix:"chxd:/session/"},{key:"indexdb",label:"INDEXDB",prefix:"chxd:/indexdb/"},{key:"puter",label:"PUTER",prefix:"puter:/"},{key:"system",label:"SYSTEM",prefix:"chxd:/system/"}];    
-let current="local",selected=new Set();const params=new URLSearchParams(location.search),selectMode=params.get("select")==="1";    
-const tabs=document.getElementById("tabs"),list=document.getElementById("list"),box=document.getElementById("pathBox"),hint=document.getElementById("hint"),errorBox=document.getElementById("error");    
-function showError(s){errorBox.textContent=String(s||"Unknown error");errorBox.style.display="block";setTimeout(()=>{errorBox.style.display="none"},4500)}    
-if(selectMode)hint.textContent="SELECT MODE: choose a file to return it to the calling app. Multiple files can be selected for OneCompiler.";    
-zones.forEach(z=>{const b=document.createElement("button");b.textContent=z.label;b.dataset.k=z.key;if(z.key===current)b.classList.add("active");b.onclick=()=>{current=z.key;[...tabs.children].forEach(x=>x.classList.toggle("active",x.dataset.k===current));refresh()};tabs.appendChild(b)});    
-function ext(p){return(p.split("?")[0].split(".").pop()||"").toLowerCase()}    
-function selectedPaths(){return [...selected]}    
-async function openPath(p){    
- if(selectMode){parent.postMessage({type:"LH_FILE_SELECTED",path:p},"*");return}    
- const e=ext(p); if(e==="zip"){await downloadBinary(p);return}    
- try{const r=await parent.Tools.execute("open_file",{path:p});if(r&&!r.ok)showError(r.summary||r.error||"Could not open file.")}catch(err){showError(err.message||err)}    
-}    
-async function edit(p){try{const r=await parent.Tools.execute("open_notepad",{path:p});if(r&&!r.ok)showError(r.summary||r.error||"Could not open Notepad.")}catch(err){showError(err.message||err)}}    
-async function code(){const paths=selectedPaths();if(!paths.length){return}const files=[];for(const p of paths){const r=await parent.FS.read(p);if(r.ok)files.push({name:p.split("/").pop(),content:r.content})}if(!files.length)return;parent.Apps.openOneCompiler({language:ext(files[0].name)==="py"?"python":"javascript",files,run:false})}    
-function downloadData(data,name){const a=document.createElement("a");a.href=data;a.download=name;a.click()}    
-async function downloadBinary(p){const r=await parent.FS.read(p);if(!r.ok){showError(r.error);return false}if(!/^data:/i.test(r.content)){showError("This ZIP does not contain downloadable binary data.");return false}downloadData(r.content,p.split("/").pop());return true}    
-async function refresh(){const z=zones.find(x=>x.key===current),files=await parent.FS.list(z.prefix);list.innerHTML="";if(z.key==="puter"&&!parent.FS.puterReady()){list.innerHTML='<div class="empty">Puter filesystem unavailable. Puter:/ is enabled only when Puter actually provides filesystem support.</div>';return}if(!files.length){list.innerHTML='<div class="empty">No files.</div>';return}files.sort();files.forEach(p=>{const row=document.createElement("div");row.className="row";const cb=document.createElement("input");cb.type="checkbox";cb.checked=selected.has(p);cb.onchange=()=>cb.checked?selected.add(p):selected.delete(p);const name=document.createElement("div");name.className="name";name.textContent=p.replace(z.prefix,"");name.title=p;name.onclick=()=>openPath(p);row.append(cb,name);const e=ext(p);if(e==="zip") {const dl=document.createElement("button");dl.textContent="DL";dl.onclick=()=>downloadBinary(p);row.append(dl)}else if(z.key!=="system"){const editBtn=document.createElement("button");editBtn.textContent="EDIT";editBtn.onclick=()=>edit(p);row.append(editBtn);if(["js","ts","py","java","c","cpp","cs","php","html","css"].includes(e)){const codeBtn=document.createElement("button");codeBtn.textContent="CODE";codeBtn.onclick=()=>{selected=new Set([p]);code()};row.append(codeBtn)}const del=document.createElement("button");del.textContent="DEL";del.onclick=async()=>{await parent.FS.remove(p);selected.delete(p);refresh()};row.append(del)}list.appendChild(row)})}    
-document.getElementById("refresh").onclick=refresh;    
-document.getElementById("selectAll").onclick=async()=>{const z=zones.find(x=>x.key===current);const files=await parent.FS.list(z.prefix);files.forEach(p=>selected.add(p));refresh()};    
-document.getElementById("newText").onclick=async()=>{const name=prompt("New text file path:","chxd:/local/new.txt");if(!name)return;const r=await parent.FS.write(name,"",true);if(!r.ok)showError(r.error);refresh();if(r.ok)edit(name)};    
-document.getElementById("zip").onclick=async()=>{const fs=selectedPaths();if(!fs.length){showError("Select files first.");return}const out=prompt("ZIP output path:","chxd:/local/archive.zip");if(!out)return;const r=await parent.Tools.execute("zip_files",{files:fs,output_path:out});if(!r.ok)showError(r.summary);selected.clear();refresh()};    
-box.onchange=()=>{const v=box.value.trim();if(v){parent.Tools.execute("find_files",{pattern:v}).then(r=>{showError(r.files&&r.files.length?r.files.join("\n"):r.summary)}).catch(e=>showError(e.message||e))}};    
-refresh();    
-</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>File Manager</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:monospace
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    background:#000d0d;
+    color:#00FFFF
+}
+
+body{
+    overflow:hidden
+}
+
+.wrap{
+    display:flex;
+    flex-direction:column;
+    height:100%
+}
+
+.bar{
+    display:flex;
+    gap:5px;
+    padding:6px;
+    border-bottom:1px solid #00FFFF;
+    flex-wrap:wrap
+}
+
+.bar button,
+.bar input{
+    border:1px solid #00FFFF;
+    background:transparent;
+    color:#00FFFF;
+    padding:6px 8px;
+    font-family:monospace;
+    font-size:10px
+}
+
+.bar input{
+    flex:1 1 150px
+}
+
+.bar button:active,
+.row button:active,
+.ctx button:active{
+    background:#00FFFF;
+    color:#000
+}
+
+.tabs{
+    display:flex;
+    border-bottom:1px solid #00FFFF
+}
+
+.tabs button{
+    flex:1;
+    border:0;
+    border-right:1px solid #00FFFF;
+    background:transparent;
+    color:#00FFFF;
+    padding:7px 3px;
+    cursor:pointer;
+    font:11px monospace
+}
+
+.tabs button.active{
+    background:rgba(0,255,255,.15)
+}
+
+.pathbar{
+    display:flex;
+    gap:5px;
+    padding:5px 6px;
+    border-bottom:1px solid rgba(0,255,255,.25);
+    align-items:center
+}
+
+.pathbar button{
+    border:1px solid #00FFFF;
+    background:transparent;
+    color:#00FFFF;
+    padding:4px 7px;
+    font:10px monospace
+}
+
+.pathbar .current-path{
+    flex:1;
+    min-width:0;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+    font-size:10px;
+    opacity:.8
+}
+
+.hint{
+    padding:4px 8px;
+    font-size:10px;
+    opacity:.55;
+    border-bottom:1px solid rgba(0,255,255,.2)
+}
+
+#error{
+    color:#ff6666
+}
+
+.list{
+    flex:1;
+    overflow:auto;
+    -webkit-overflow-scrolling:touch
+}
+
+.row{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    padding:7px 8px;
+    border-bottom:1px solid rgba(0,255,255,.22);
+    font-size:11px
+}
+
+.row.folder{
+    background:rgba(0,255,255,.035)
+}
+
+.name{
+    flex:1;
+    min-width:0;
+    cursor:pointer;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap
+}
+
+.name em{
+    opacity:.5;
+    font-style:normal
+}
+
+.row.folder .name{
+    font-weight:bold
+}
+
+.row button{
+    border:1px solid #00FFFF;
+    background:transparent;
+    color:#00FFFF;
+    font:10px monospace;
+    padding:3px 5px;
+    cursor:pointer
+}
+
+.row input{
+    accent-color:#00FFFF
+}
+
+.empty{
+    padding:16px;
+    opacity:.6;
+    font-size:12px
+}
+
+/* CUSTOM CONTEXT MENU */
+.ctx{
+    position:fixed;
+    z-index:999999;
+    min-width:150px;
+    max-width:240px;
+    border:1px solid #00FFFF;
+    background:#000d0d;
+    box-shadow:0 0 0 1px rgba(0,255,255,.15);
+    padding:4px;
+    display:none
+}
+
+.ctx button{
+    display:block;
+    width:100%;
+    text-align:left;
+    border:0;
+    border-bottom:1px solid rgba(0,255,255,.2);
+    background:transparent;
+    color:#00FFFF;
+    padding:7px 8px;
+    font:10px monospace
+}
+
+.ctx button:last-child{
+    border-bottom:0
+}
+
+.ctx .danger{
+    color:#ff6666
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+    <div class="bar">
+        <input id="pathBox" placeholder="path or wildcard">
+
+        <button id="refresh">REFRESH</button>
+        <button id="up">UP</button>
+        <button id="newText">NEW TEXT</button>
+        <button id="zip">ZIP SELECTED</button>
+        <button id="selectAll">SELECT ALL</button>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+
+    <div class="pathbar">
+        <div class="current-path" id="currentPath"></div>
+    </div>
+
+    <div class="hint" id="hint">
+        Tap a file to open it. EDIT opens Notepad. CODE opens OneCompiler.
+        Tap a folder to enter it. Long-press/right-click for more actions.
+    </div>
+
+    <div class="hint" id="error" style="display:none"></div>
+
+    <div class="list" id="list"></div>
+
+</div>
+
+<div class="ctx" id="contextMenu"></div>
+
+<script>
+
+const zones=[
+    {
+        key:"local",
+        label:"LOCAL",
+        prefix:"chxd:/local/"
+    },
+    {
+        key:"session",
+        label:"SESSION",
+        prefix:"chxd:/session/"
+    },
+    {
+        key:"indexdb",
+        label:"INDEXDB",
+        prefix:"chxd:/indexdb/"
+    },
+    {
+        key:"puter",
+        label:"PUTER",
+        prefix:"puter:/"
+    },
+    {
+        key:"system",
+        label:"SYSTEM",
+        prefix:"chxd:/system/"
+    }
+];
+
+let current="local";
+let currentPrefix="";
+let selected=new Set();
+let contextPath=null;
+let contextIsFolder=false;
+
+const params=new URLSearchParams(location.search);
+const selectMode=params.get("select")==="1";
+
+const tabs=document.getElementById("tabs");
+const list=document.getElementById("list");
+const box=document.getElementById("pathBox");
+const hint=document.getElementById("hint");
+const errorBox=document.getElementById("error");
+const currentPathBox=document.getElementById("currentPath");
+const contextMenu=document.getElementById("contextMenu");
+
+function showError(s){
+    errorBox.textContent=String(s||"Unknown error");
+    errorBox.style.display="block";
+
+    setTimeout(()=>{
+        errorBox.style.display="none";
+    },4500);
+}
+
+if(selectMode){
+    hint.textContent=
+        "SELECT MODE: choose a file to return it to the calling app. Multiple files can be selected for OneCompiler.";
+}
+
+zones.forEach(z=>{
+    const b=document.createElement("button");
+
+    b.textContent=z.label;
+    b.dataset.k=z.key;
+
+    if(z.key===current){
+        b.classList.add("active");
+    }
+
+    b.onclick=()=>{
+        current=z.key;
+        currentPrefix="";
+        selected.clear();
+
+        [...tabs.children].forEach(x=>{
+            x.classList.toggle(
+                "active",
+                x.dataset.k===current
+            );
+        });
+
+        refresh();
+    };
+
+    tabs.appendChild(b);
+});
+
+function zone(){
+    return zones.find(x=>x.key===current);
+}
+
+function ext(p){
+    return (
+        p.split("?")[0]
+        .split(".")
+        .pop() || ""
+    ).toLowerCase();
+}
+
+function selectedPaths(){
+    return [...selected];
+}
+
+function normalizeFolderPath(p){
+    p=String(p||"");
+
+    if(!p.endsWith("/")){
+        p+="/";
+    }
+
+    return p;
+}
+
+function isFolderPath(p){
+    return String(p||"").endsWith("/");
+}
+
+function displayName(p){
+    const clean=String(p||"").replace(/\/+$/,"");
+    const i=clean.lastIndexOf("/");
+
+    return i>=0
+        ? clean.slice(i+1)
+        : clean;
+}
+
+function isInsideCurrentFolder(p){
+    const z=zone();
+
+    if(!z)return false;
+
+    return (
+        !currentPrefix ||
+        String(p).startsWith(currentPrefix)
+    );
+}
+
+function parentFolder(p){
+    p=String(p||"").replace(/\/+$/,"");
+
+    const root=zone().prefix.replace(/\/+$/,"");
+
+    if(p===root){
+        return root+"/";
+    }
+
+    const i=p.lastIndexOf("/");
+
+    if(i<=root.length){
+        return root+"/";
+    }
+
+    return p.slice(0,i+1);
+}
+
+function currentFolderName(){
+    if(!currentPrefix){
+        return zone().label;
+    }
+
+    return displayName(currentPrefix);
+}
+
+function updatePathDisplay(){
+    currentPathBox.textContent =
+        zone().prefix + currentPrefix.replace(zone().prefix,"");
+}
+
+function closeContextMenu(){
+    contextMenu.style.display="none";
+    contextPath=null;
+    contextIsFolder=false;
+}
+
+function showContextMenu(x,y,path,isFolder){
+    contextPath=path;
+    contextIsFolder=isFolder;
+
+    contextMenu.innerHTML="";
+
+    const add=(label,fn,danger=false)=>{
+        const b=document.createElement("button");
+
+        b.textContent=label;
+
+        if(danger){
+            b.className="danger";
+        }
+
+        b.onclick=()=>{
+            closeContextMenu();
+            fn();
+        };
+
+        contextMenu.appendChild(b);
+    };
+
+    if(isFolder){
+
+        add("OPEN",()=>{
+            enterFolder(path);
+        });
+
+        add("SELECT",()=>{
+            selected.add(path);
+            refresh();
+        });
+
+    }else{
+
+        add("OPEN",()=>{
+            openPath(path);
+        });
+
+        if(ext(path)!=="zip"){
+            add("EDIT",()=>{
+                edit(path);
+            });
+        }
+
+        if([
+            "js","ts","py","java",
+            "c","cpp","cs","php",
+            "html","css"
+        ].includes(ext(path))){
+
+            add("CODE",()=>{
+                selected=new Set([path]);
+                code();
+            });
+
+        }
+
+        if(ext(path)==="zip"){
+            add("DOWNLOAD",()=>{
+                downloadBinary(path);
+            });
+        }
+
+        if(zone().key!=="system"){
+            add("SELECT",()=>{
+                selected.add(path);
+                refresh();
+            });
+        }
+
+        if(zone().key!=="system"){
+            add("DELETE",async()=>{
+                const r=await parent.FS.remove(path);
+
+                if(!r.ok){
+                    showError(r.error||"Could not delete.");
+                    return;
+                }
+
+                selected.delete(path);
+                refresh();
+            },true);
+        }
+
+    }
+
+    if(selected.size){
+        add("ZIP SELECTED",async()=>{
+            const fs=selectedPaths();
+
+            const out=prompt(
+                "ZIP output path:",
+                zone().prefix+"archive.zip"
+            );
+
+            if(!out)return;
+
+            const r=await parent.Tools.execute(
+                "zip_files",
+                {
+                    files:fs,
+                    output_path:out
+                }
+            );
+
+            if(!r.ok){
+                showError(r.summary||"Could not create ZIP.");
+                return;
+            }
+
+            selected.clear();
+            refresh();
+        });
+    }
+
+    contextMenu.style.display="block";
+
+    const rect=contextMenu.getBoundingClientRect();
+
+    let left=x;
+    let top=y;
+
+    if(left+rect.width>window.innerWidth){
+        left=window.innerWidth-rect.width-4;
+    }
+
+    if(top+rect.height>window.innerHeight){
+        top=window.innerHeight-rect.height-4;
+    }
+
+    contextMenu.style.left=Math.max(2,left)+"px";
+    contextMenu.style.top=Math.max(2,top)+"px";
+}
+
+document.addEventListener("pointerdown",e=>{
+    if(
+        !contextMenu.contains(e.target) &&
+        !e.target.closest(".name")
+    ){
+        closeContextMenu();
+    }
+});
+
+document.addEventListener("scroll",closeContextMenu,true);
+
+async function openPath(p){
+
+    if(isFolderPath(p)){
+        enterFolder(p);
+        return;
+    }
+
+    if(selectMode){
+        parent.postMessage(
+            {
+                type:"LH_FILE_SELECTED",
+                path:p
+            },
+            "*"
+        );
+        return;
+    }
+
+    const e=ext(p);
+
+    if(e==="zip"){
+        await downloadBinary(p);
+        return;
+    }
+
+    try{
+
+        const r=await parent.Tools.execute(
+            "open_file",
+            {
+                path:p
+            }
+        );
+
+        if(r&&!r.ok){
+            showError(
+                r.summary ||
+                r.error ||
+                "Could not open file."
+            );
+        }
+
+    }catch(err){
+        showError(err.message||err);
+    }
+}
+
+function enterFolder(path){
+    currentPrefix=normalizeFolderPath(path);
+
+    closeContextMenu();
+    refresh();
+}
+
+function goUp(){
+    const z=zone();
+
+    if(!currentPrefix){
+        return;
+    }
+
+    const root=z.prefix.replace(/\/+$/,"");
+
+    let p=currentPrefix.replace(/\/+$/,"");
+
+    if(p===root){
+        currentPrefix="";
+        refresh();
+        return;
+    }
+
+    const i=p.lastIndexOf("/");
+
+    if(i<=root.length){
+        currentPrefix="";
+    }else{
+        currentPrefix=p.slice(0,i+1);
+    }
+
+    refresh();
+}
+
+async function edit(p){
+
+    try{
+
+        const r=await parent.Tools.execute(
+            "open_notepad",
+            {
+                path:p
+            }
+        );
+
+        if(r&&!r.ok){
+            showError(
+                r.summary ||
+                r.error ||
+                "Could not open Notepad."
+            );
+        }
+
+    }catch(err){
+        showError(err.message||err);
+    }
+}
+
+async function code(){
+
+    const paths=selectedPaths();
+
+    if(!paths.length){
+        return;
+    }
+
+    const files=[];
+
+    for(const p of paths){
+
+        const r=await parent.FS.read(p);
+
+        if(r.ok){
+            files.push({
+                name:p.split("/").pop(),
+                content:r.content
+            });
+        }
+    }
+
+    if(!files.length){
+        return;
+    }
+
+    parent.Apps.openOneCompiler({
+        language:
+            ext(files[0].name)==="py"
+            ? "python"
+            : "javascript",
+
+        files,
+        run:false
+    });
+}
+
+function downloadData(data,name){
+    const a=document.createElement("a");
+
+    a.href=data;
+    a.download=name;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+
+async function downloadBinary(p){
+
+    const r=await parent.FS.read(p);
+
+    if(!r.ok){
+        showError(r.error);
+        return false;
+    }
+
+    if(!/^data:/i.test(r.content)){
+        showError(
+            "This ZIP does not contain downloadable binary data."
+        );
+        return false;
+    }
+
+    downloadData(
+        r.content,
+        p.split("/").pop()
+    );
+
+    return true;
+}
+
+function sortPaths(files){
+
+    files.sort((a,b)=>{
+
+        const af=isFolderPath(a);
+        const bf=isFolderPath(b);
+
+        if(af!==bf){
+            return af ? -1 : 1;
+        }
+
+        return a.localeCompare(
+            b,
+            undefined,
+            {
+                numeric:true,
+                sensitivity:"base"
+            }
+        );
+    });
+
+    return files;
+}
+
+async function refresh(){
+
+    const z=zone();
+
+    if(!z){
+        return;
+    }
+
+    updatePathDisplay();
+
+    list.innerHTML=
+        '<div class="empty">Loading...</div>';
+
+    if(
+        z.key==="puter" &&
+        !parent.FS.puterReady()
+    ){
+        list.innerHTML=
+            '<div class="empty">Puter filesystem unavailable. Puter:/ is enabled only when Puter actually provides filesystem support.</div>';
+
+        return;
+    }
+
+    let files=[];
+
+    try{
+        files=await parent.FS.list(
+            currentPrefix || z.prefix
+        );
+    }catch(e){
+
+        showError(
+            e.message ||
+            "Could not list files."
+        );
+
+        list.innerHTML=
+            '<div class="empty">Could not read this folder.</div>';
+
+        return;
+    }
+
+    if(!Array.isArray(files)){
+        files=[];
+    }
+
+    /*
+        FS.list() may return absolute paths.
+        Only display the current folder level.
+
+        A folder is recognized by a trailing "/".
+        This preserves compatibility with the existing FS.list API.
+    */
+
+    const base=currentPrefix || z.prefix;
+
+    const visible=[];
+
+    for(const p0 of files){
+
+        const p=String(p0);
+
+        if(!p.startsWith(base)){
+            continue;
+        }
+
+        const rest=p.slice(base.length);
+
+        if(!rest){
+            continue;
+        }
+
+        /*
+            Keep only immediate children.
+
+            Example:
+            chxd:/local/a.txt
+            chxd:/local/folder/
+            chxd:/local/folder/test.txt
+
+            At chxd:/local/:
+            a.txt
+            folder/
+
+            At chxd:/local/folder/:
+            test.txt
+        */
+
+        const clean=rest.replace(/\/+$/,"");
+
+        const slash=clean.indexOf("/");
+
+        if(slash>=0){
+
+            const folderPath=
+                base +
+                clean.slice(0,slash+1);
+
+            if(!visible.includes(folderPath)){
+                visible.push(folderPath);
+            }
+
+            continue;
+        }
+
+        visible.push(p);
+    }
+
+    files=sortPaths(visible);
+
+    if(!files.length){
+
+        list.innerHTML=
+            '<div class="empty">No files.</div>';
+
+        return;
+    }
+
+    files.forEach(p=>{
+
+        const row=document.createElement("div");
+
+        const folder=isFolderPath(p);
+
+        row.className=
+            "row"+
+            (folder ? " folder" : "");
+
+        const cb=document.createElement("input");
+
+        cb.type="checkbox";
+        cb.checked=selected.has(p);
+
+        cb.onchange=()=>{
+
+            if(cb.checked){
+                selected.add(p);
+            }else{
+                selected.delete(p);
+            }
+        };
+
+        const name=document.createElement("div");
+
+        name.className="name";
+
+        name.textContent=
+            (folder ? "📁 " : "")+
+            displayName(p);
+
+        name.title=p;
+
+        name.onclick=()=>openPath(p);
+
+        /*
+            Desktop right-click
+        */
+        name.oncontextmenu=e=>{
+            e.preventDefault();
+
+            showContextMenu(
+                e.clientX,
+                e.clientY,
+                p,
+                folder
+            );
+        };
+
+        /*
+            Mobile long press
+        */
+        let pressTimer=null;
+
+        name.onpointerdown=e=>{
+
+            if(e.pointerType==="mouse"){
+                return;
+            }
+
+            pressTimer=setTimeout(()=>{
+
+                showContextMenu(
+                    e.clientX,
+                    e.clientY,
+                    p,
+                    folder
+                );
+
+            },550);
+        };
+
+        name.onpointerup=()=>{
+            clearTimeout(pressTimer);
+        };
+
+        name.onpointercancel=()=>{
+            clearTimeout(pressTimer);
+        };
+
+        name.onpointermove=()=>{
+            clearTimeout(pressTimer);
+        };
+
+        row.append(cb,name);
+
+        if(folder){
+
+            const openBtn=
+                document.createElement("button");
+
+            openBtn.textContent="OPEN";
+
+            openBtn.onclick=()=>{
+                enterFolder(p);
+            };
+
+            row.append(openBtn);
+
+        }else{
+
+            const e=ext(p);
+
+            if(e==="zip"){
+
+                const dl=
+                    document.createElement("button");
+
+                dl.textContent="DL";
+
+                dl.onclick=()=>{
+                    downloadBinary(p);
+                };
+
+                row.append(dl);
+
+            }else if(z.key!=="system"){
+
+                const editBtn=
+                    document.createElement("button");
+
+                editBtn.textContent="EDIT";
+
+                editBtn.onclick=()=>{
+                    edit(p);
+                };
+
+                row.append(editBtn);
+
+                if([
+                    "js","ts","py",
+                    "java","c","cpp",
+                    "cs","php","html",
+                    "css"
+                ].includes(e)){
+
+                    const codeBtn=
+                        document.createElement("button");
+
+                    codeBtn.textContent="CODE";
+
+                    codeBtn.onclick=()=>{
+
+                        selected=
+                            new Set([p]);
+
+                        code();
+                    };
+
+                    row.append(codeBtn);
+                }
+
+                const del=
+                    document.createElement("button");
+
+                del.textContent="DEL";
+
+                del.onclick=async()=>{
+
+                    const r=
+                        await parent.FS.remove(p);
+
+                    if(!r.ok){
+                        showError(
+                            r.error ||
+                            "Could not delete file."
+                        );
+                        return;
+                    }
+
+                    selected.delete(p);
+
+                    refresh();
+                };
+
+                row.append(del);
+            }
+        }
+
+        list.appendChild(row);
+    });
+}
+
+document.getElementById("refresh").onclick=
+    refresh;
+
+document.getElementById("up").onclick=
+    goUp;
+
+document.getElementById("selectAll").onclick=
+    async()=>{
+
+        const z=zone();
+
+        const files=
+            await parent.FS.list(
+                currentPrefix || z.prefix
+            );
+
+        if(!Array.isArray(files)){
+            return;
+        }
+
+        const base=currentPrefix || z.prefix;
+
+        files.forEach(p=>{
+            if(
+                String(p).startsWith(base) &&
+                String(p)!==base
+            ){
+                selected.add(p);
+            }
+        });
+
+        refresh();
+    };
+
+document.getElementById("newText").onclick=
+    async()=>{
+
+        const defaultPath=
+            (currentPrefix || zone().prefix)+
+            "new.txt";
+
+        const name=
+            prompt(
+                "New text file path:",
+                defaultPath
+            );
+
+        if(!name){
+            return;
+        }
+
+        const r=
+            await parent.FS.write(
+                name,
+                "",
+                true
+            );
+
+        if(!r.ok){
+            showError(r.error);
+            return;
+        }
+
+        refresh();
+
+        edit(name);
+    };
+
+document.getElementById("zip").onclick=
+    async()=>{
+
+        const fs=selectedPaths();
+
+        if(!fs.length){
+            showError(
+                "Select files first."
+            );
+            return;
+        }
+
+        const out=
+            prompt(
+                "ZIP output path:",
+                (currentPrefix || zone().prefix)+
+                "archive.zip"
+            );
+
+        if(!out){
+            return;
+        }
+
+        const r=
+            await parent.Tools.execute(
+                "zip_files",
+                {
+                    files:fs,
+                    output_path:out
+                }
+            );
+
+        if(!r.ok){
+            showError(r.summary);
+            return;
+        }
+
+        selected.clear();
+
+        refresh();
+    };
+
+box.onchange=()=>{
+
+    const v=box.value.trim();
+
+    if(!v){
+        return;
+    }
+
+    parent.Tools.execute(
+        "find_files",
+        {
+            pattern:v
+        }
+    )
+    .then(r=>{
+
+        showError(
+            r.files && r.files.length
+            ? r.files.join("\n")
+            : r.summary
+        );
+
+    })
+    .catch(e=>{
+        showError(e.message||e);
+    });
+};
+
+box.onkeydown=e=>{
+
+    if(e.key!=="Enter"){
+        return;
+    }
+
+    const v=box.value.trim();
+
+    if(!v){
+        return;
+    }
+
+    /*
+        Direct path navigation.
+        A path ending with "/" is treated as a folder.
+    */
+
+    if(/\/$/.test(v)){
+
+        const z=zone();
+
+        if(v.startsWith(z.prefix)){
+            currentPrefix=normalizeFolderPath(v);
+            refresh();
+        }
+
+        return;
+    }
+
+    /*
+        Normal file search behavior.
+    */
+
+    box.onchange();
+};
+
+refresh();
+
+</script>
+</body>
+</html>
