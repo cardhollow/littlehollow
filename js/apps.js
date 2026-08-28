@@ -12,6 +12,7 @@
         2048:{title:"2048",src:"app/2048.html",w:430,h:520},
         minesweeper:{title:"MINESWEEPER",src:"app/minesweeper.html",w:430,h:560},
         sudoku:{title:"SUDOKU",src:"app/sudoku.html",w:430,h:600},
+        sos:{title:"SOS",src:"app/sos.html",w:430,h:600},
         tetris:{title:"TETRIS",src:"app/tetris.html",w:400,h:620},
         wordle:{title:"WORDLE",src:"app/wordle.html",w:430,h:650},
         imageviewer:{title:"IMAGE VIEWER",src:"app/imageviewer.html",w:480,h:380},
