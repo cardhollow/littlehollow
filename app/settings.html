@@ -1,0 +1,2129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+/>
+
+<title>Settings</title>
+
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+
+html,
+body{
+
+    margin:0;
+
+    width:100%;
+    height:100%;
+
+    overflow:hidden;
+
+    background:#071014;
+
+    color:#c4fbff;
+
+    font-family:monospace;
+
+}
+
+
+body{
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+
+.header{
+
+    padding:14px 16px 11px;
+
+    border-bottom:
+        1px solid #16434a;
+
+    background:#09171b;
+
+}
+
+
+.title{
+
+    font-size:16px;
+
+    font-weight:bold;
+
+    letter-spacing:1px;
+
+}
+
+
+.subtitle{
+
+    margin-top:4px;
+
+    color:#648e95;
+
+    font-size:10px;
+
+}
+
+
+.layout{
+
+    flex:1;
+
+    min-height:0;
+
+    display:flex;
+
+}
+
+
+.sidebar{
+
+    width:145px;
+
+    flex-shrink:0;
+
+    padding:8px;
+
+    border-right:
+        1px solid #16434a;
+
+    background:#081418;
+
+}
+
+
+.nav{
+
+    width:100%;
+
+    margin-bottom:4px;
+
+    padding:10px 8px;
+
+    border:
+        1px solid transparent;
+
+    background:transparent;
+
+    color:#75afb6;
+
+    font:inherit;
+
+    font-size:10px;
+
+    text-align:left;
+
+    cursor:pointer;
+
+}
+
+
+.nav:hover{
+
+    background:#0b2226;
+
+}
+
+
+.nav.active{
+
+    border-color:#1d6871;
+
+    background:#0c292e;
+
+    color:#d4ffff;
+
+}
+
+
+.content{
+
+    flex:1;
+
+    min-width:0;
+
+    overflow:auto;
+
+    padding:15px;
+
+}
+
+
+.section{
+
+    display:none;
+
+}
+
+
+.section.active{
+
+    display:block;
+
+}
+
+
+.section-title{
+
+    margin-bottom:12px;
+
+    color:#d5ffff;
+
+    font-size:13px;
+
+    font-weight:bold;
+
+}
+
+
+.card{
+
+    margin-bottom:12px;
+
+    padding:12px;
+
+    border:
+        1px solid #16434a;
+
+    background:#09191d;
+
+}
+
+
+.card-title{
+
+    margin-bottom:6px;
+
+    color:#cffcff;
+
+    font-size:11px;
+
+    font-weight:bold;
+
+}
+
+
+.description{
+
+    margin-bottom:10px;
+
+    color:#648b91;
+
+    font-size:9px;
+
+    line-height:1.5;
+
+}
+
+
+label{
+
+    display:block;
+
+    margin-bottom:4px;
+
+    color:#7fb6bd;
+
+    font-size:9px;
+
+}
+
+
+input,
+select{
+
+    width:100%;
+
+    height:31px;
+
+    padding:0 8px;
+
+    border:
+        1px solid #1a4f57;
+
+    outline:none;
+
+    background:#061115;
+
+    color:#c8fcff;
+
+    font:inherit;
+
+    font-size:10px;
+
+}
+
+
+input:focus,
+select:focus{
+
+    border-color:#2ba3af;
+
+}
+
+
+.row{
+
+    display:flex;
+
+    gap:9px;
+
+}
+
+
+.field{
+
+    flex:1;
+
+}
+
+
+.provider{
+
+    display:flex;
+
+    gap:8px;
+
+    align-items:flex-start;
+
+    padding:9px;
+
+    margin-bottom:5px;
+
+    border:
+        1px solid #16434a;
+
+    background:#071419;
+
+    cursor:pointer;
+
+}
+
+
+.provider:hover{
+
+    background:#0b2024;
+
+}
+
+
+.provider.active{
+
+    border-color:#2ba3af;
+
+    background:#0d292f;
+
+}
+
+
+.provider input{
+
+    width:auto;
+
+    height:auto;
+
+    margin-top:2px;
+
+}
+
+
+.provider-name{
+
+    font-size:10px;
+
+}
+
+
+.provider-description{
+
+    margin-top:2px;
+
+    color:#648b91;
+
+    font-size:8px;
+
+}
+
+
+.mode{
+
+    padding:9px;
+
+    margin-bottom:5px;
+
+    border:
+        1px solid #16434a;
+
+    background:#071419;
+
+    cursor:pointer;
+
+}
+
+
+.mode.active{
+
+    border-color:#2ba3af;
+
+    background:#0d292f;
+
+}
+
+
+.mode-name{
+
+    color:#c9fbff;
+
+    font-size:10px;
+
+}
+
+
+.mode-description{
+
+    margin-top:2px;
+
+    color:#648b91;
+
+    font-size:8px;
+
+}
+
+
+button{
+
+    padding:8px 11px;
+
+    border:
+        1px solid #20757e;
+
+    background:#0a3339;
+
+    color:#c5fcff;
+
+    font:inherit;
+
+    font-size:9px;
+
+    cursor:pointer;
+
+}
+
+
+button:hover{
+
+    background:#10454d;
+
+}
+
+
+button.danger{
+
+    border-color:#713d45;
+
+    background:#28151a;
+
+    color:#ffb9c2;
+
+}
+
+
+.status{
+
+    margin-top:9px;
+
+    color:#69939a;
+
+    font-size:9px;
+
+}
+
+
+.status.ok{
+
+    color:#53c6aa;
+
+}
+
+
+.status.warn{
+
+    color:#dbb45a;
+
+}
+
+
+.status.error{
+
+    color:#e36a79;
+
+}
+
+
+hr{
+
+    border:0;
+
+    border-top:
+        1px solid #123b41;
+
+    margin:13px 0;
+
+}
+
+
+pre{
+
+    margin:0;
+
+    padding:9px;
+
+    border:
+        1px solid #10363c;
+
+    background:#040b0d;
+
+    color:#72b9c1;
+
+    font-size:8px;
+
+    white-space:pre-wrap;
+
+    word-break:break-word;
+
+}
+
+
+.small{
+
+    color:#537c82;
+
+    font-size:8px;
+
+    line-height:1.5;
+
+}
+
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="header">
+
+    <div class="title">
+        LITTLE HOLLOW // SETTINGS
+    </div>
+
+    <div class="subtitle">
+        AI backend and agent behavior
+    </div>
+
+</div>
+
+
+<div class="layout">
+
+
+<aside class="sidebar">
+
+    <button
+        class="nav active"
+        data-section="ai"
+    >
+        AI
+    </button>
+
+    <button
+        class="nav"
+        data-section="mode"
+    >
+        MODE
+    </button>
+
+    <button
+        class="nav"
+        data-section="live"
+    >
+        LIVE
+    </button>
+
+    <button
+        class="nav"
+        data-section="storage"
+    >
+        STORAGE
+    </button>
+
+</aside>
+
+
+<main class="content">
+
+
+<!-- ======================================================= -->
+<!-- AI -->
+<!-- ======================================================= -->
+
+<section
+    id="section-ai"
+    class="section active"
+>
+
+
+<div class="section-title">
+    AI PROVIDER
+</div>
+
+
+<div class="card">
+
+
+<div class="card-title">
+    PROVIDER
+</div>
+
+
+<div class="description">
+    The selected provider receives the same Little Hollow
+    system instructions and all current tools.
+    Tools cannot be disabled from Settings.
+</div>
+
+
+<label
+    class="provider"
+    data-provider="puter"
+>
+
+    <input
+        type="radio"
+        name="provider"
+        value="puter"
+    >
+
+    <div>
+
+        <div class="provider-name">
+            PUTER.JS
+        </div>
+
+        <div class="provider-description">
+            Cloud model through the existing Puter.js backend.
+        </div>
+
+    </div>
+
+</label>
+
+
+<label
+    class="provider"
+    data-provider="onnx"
+>
+
+    <input
+        type="radio"
+        name="provider"
+        value="onnx"
+    >
+
+    <div>
+
+        <div class="provider-name">
+            ONNX
+        </div>
+
+        <div class="provider-description">
+            Local browser inference using Transformers.js / ONNX Runtime Web.
+        </div>
+
+    </div>
+
+</label>
+
+
+<label
+    class="provider"
+    data-provider="gguf"
+>
+
+    <input
+        type="radio"
+        name="provider"
+        value="gguf"
+    >
+
+    <div>
+
+        <div class="provider-name">
+            GGUF
+        </div>
+
+        <div class="provider-description">
+            Local GGUF inference through a compatible browser runtime.
+        </div>
+
+    </div>
+
+</label>
+
+
+</div>
+
+
+<!-- PUTER -->
+
+<div
+    id="puter-card"
+    class="card"
+>
+
+<div class="card-title">
+    PUTER MODEL
+</div>
+
+<label for="puter-model">
+    MODEL ID
+</label>
+
+<input
+    id="puter-model"
+    type="text"
+/>
+
+<div
+    class="small"
+    style="margin-top:7px;"
+>
+The value is passed directly to Puter.js.
+</div>
+
+</div>
+
+
+<!-- ONNX -->
+
+<div
+    id="onnx-card"
+    class="card"
+>
+
+<div class="card-title">
+    ONNX MODEL
+</div>
+
+
+<label for="onnx-model">
+    MODEL ID / REPOSITORY
+</label>
+
+<input
+    id="onnx-model"
+    type="text"
+/>
+
+
+<div class="row" style="margin-top:9px;">
+
+<div class="field">
+
+<label for="onnx-device">
+    DEVICE
+</label>
+
+<select id="onnx-device">
+
+<option value="auto">
+    AUTO
+</option>
+
+<option value="webgpu">
+    WEBGPU
+</option>
+
+<option value="wasm">
+    WASM / CPU
+</option>
+
+</select>
+
+</div>
+
+
+<div class="field">
+
+<label for="onnx-dtype">
+    DTYPE
+</label>
+
+<select id="onnx-dtype">
+
+<option value="q4f16">
+    Q4F16
+</option>
+
+<option value="q4">
+    Q4
+</option>
+
+<option value="q8">
+    Q8
+</option>
+
+<option value="fp16">
+    FP16
+</option>
+
+<option value="fp32">
+    FP32
+</option>
+
+</select>
+
+</div>
+
+</div>
+
+
+<div class="row" style="margin-top:9px;">
+
+<div class="field">
+
+<label for="onnx-max">
+    MAX TOKENS
+</label>
+
+<input
+    id="onnx-max"
+    type="number"
+    min="16"
+    max="4096"
+/>
+
+</div>
+
+
+<div class="field">
+
+<label for="onnx-temperature">
+    TEMPERATURE
+</label>
+
+<input
+    id="onnx-temperature"
+    type="number"
+    min="0"
+    max="2"
+    step="0.05"
+/>
+
+</div>
+
+</div>
+
+
+<div style="margin-top:10px;">
+
+<button id="load-onnx">
+    LOAD ONNX MODEL
+</button>
+
+</div>
+
+
+<div
+    id="onnx-status"
+    class="status"
+>
+Not loaded.
+</div>
+
+</div>
+
+
+<!-- GGUF -->
+
+<div
+    id="gguf-card"
+    class="card"
+>
+
+<div class="card-title">
+    GGUF MODEL
+</div>
+
+
+<label for="gguf-model">
+    MODEL / FILE
+</label>
+
+<input
+    id="gguf-model"
+    type="text"
+    placeholder="my-model.gguf"
+/>
+
+
+<div class="row" style="margin-top:9px;">
+
+<div class="field">
+
+<label for="gguf-context">
+    CONTEXT
+</label>
+
+<input
+    id="gguf-context"
+    type="number"
+    min="512"
+    step="512"
+/>
+
+</div>
+
+
+<div class="field">
+
+<label for="gguf-threads">
+    THREADS
+</label>
+
+<input
+    id="gguf-threads"
+    type="number"
+    min="1"
+/>
+
+</div>
+
+</div>
+
+
+<div class="row" style="margin-top:9px;">
+
+<div class="field">
+
+<label for="gguf-max">
+    MAX TOKENS
+</label>
+
+<input
+    id="gguf-max"
+    type="number"
+    min="16"
+    max="4096"
+/>
+
+</div>
+
+
+<div class="field">
+
+<label for="gguf-temperature">
+    TEMPERATURE
+</label>
+
+<input
+    id="gguf-temperature"
+    type="number"
+    min="0"
+    max="2"
+    step="0.05"
+/>
+
+</div>
+
+</div>
+
+
+<div style="margin-top:10px;">
+
+<button id="load-gguf">
+    LOAD GGUF
+</button>
+
+</div>
+
+
+<div
+    id="gguf-status"
+    class="status"
+>
+Runtime not installed.
+</div>
+
+</div>
+
+
+</section>
+
+
+<!-- ======================================================= -->
+<!-- MODE -->
+<!-- ======================================================= -->
+
+<section
+    id="section-mode"
+    class="section"
+>
+
+
+<div class="section-title">
+    AI MODE
+</div>
+
+
+<div class="card">
+
+
+<div
+    class="mode"
+    data-mode="interactive"
+>
+
+<div class="mode-name">
+    INTERACTIVE
+</div>
+
+<div class="mode-description">
+    Runs when normal user input is sent.
+</div>
+
+</div>
+
+
+<div
+    class="mode"
+    data-mode="agent"
+>
+
+<div class="mode-name">
+    AGENT
+</div>
+
+<div class="mode-description">
+    Runs a multi-step tool loop until the task is complete.
+</div>
+
+</div>
+
+
+<div
+    class="mode"
+    data-mode="live"
+>
+
+<div class="mode-name">
+    LIVE
+</div>
+
+<div class="mode-description">
+    Observes important Little Hollow state changes and can act without requiring a new chat message.
+</div>
+
+</div>
+
+
+</div>
+
+
+<div class="card">
+
+<div class="card-title">
+    AGENT LIMIT
+</div>
+
+<label for="max-rounds">
+    MAX TOOL ROUNDS PER RUN
+</label>
+
+<input
+    id="max-rounds"
+    type="number"
+    min="1"
+    max="50"
+/>
+
+<div
+    class="small"
+    style="margin-top:7px;"
+>
+This prevents runaway tool loops.
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="card-title">
+    TOOLS
+</div>
+
+<div class="description">
+    All Little Hollow tools are always supplied to the selected model.
+    This setting is controlled by the application and cannot be disabled here.
+</div>
+
+<div class="status ok">
+    ● ALL TOOLS ENABLED
+</div>
+
+</div>
+
+
+</section>
+
+
+<!-- ======================================================= -->
+<!-- LIVE -->
+<!-- ======================================================= -->
+
+<section
+    id="section-live"
+    class="section"
+>
+
+
+<div class="section-title">
+    LIVE AGENT
+</div>
+
+
+<div class="card">
+
+<div class="card-title">
+    LIVE PROCESSING
+</div>
+
+<div class="description">
+    Live mode reacts to meaningful application-state changes.
+    It does not continuously submit the same state in a tight loop.
+</div>
+
+
+<label for="live-debounce">
+    DEBOUNCE
+</label>
+
+<input
+    id="live-debounce"
+    type="number"
+    min="250"
+    step="250"
+/>
+
+
+<label
+    for="live-min"
+    style="margin-top:10px;"
+>
+MINIMUM INTERVAL
+</label>
+
+<input
+    id="live-min"
+    type="number"
+    min="1000"
+    step="500"
+/>
+
+
+<div class="small" style="margin-top:8px;">
+
+Examples of useful state:
+active application,
+open windows,
+current file path,
+selected file,
+and recent important events.
+
+Little Hollow does not automatically send the entire DOM or page contents.
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="card-title">
+    LIVE STATUS
+</div>
+
+<div
+    id="live-status"
+    class="status"
+>
+Checking...
+</div>
+
+</div>
+
+
+</section>
+
+
+<!-- ======================================================= -->
+<!-- STORAGE -->
+<!-- ======================================================= -->
+
+<section
+    id="section-storage"
+    class="section"
+>
+
+
+<div class="section-title">
+    STORAGE
+</div>
+
+
+<div class="card">
+
+<div class="card-title">
+    LOCAL SETTINGS
+</div>
+
+<div class="description">
+    Provider and model configuration is stored locally in this browser.
+</div>
+
+
+<button
+    id="reset"
+    class="danger"
+>
+    RESET AI SETTINGS
+</button>
+
+</div>
+
+
+<div class="card">
+
+<div class="card-title">
+    CURRENT CONFIGURATION
+</div>
+
+<pre id="preview"></pre>
+
+</div>
+
+</section>
+
+
+</main>
+
+</div>
+
+
+<script>
+
+(function(){
+
+    const KEY =
+        "littlehollow.ai.settings";
+
+
+    const defaults = {
+
+        provider:"puter",
+
+        mode:"interactive",
+
+        puter:{
+            model:"claude-sonnet-5"
+        },
+
+        onnx:{
+            model:
+                "onnx-community/Qwen3-0.6B-ONNX",
+
+            device:"auto",
+
+            dtype:"q4f16",
+
+            maxNewTokens:512,
+
+            temperature:0.7
+        },
+
+        gguf:{
+            model:"",
+
+            context:8192,
+
+            threads:4,
+
+            maxNewTokens:512,
+
+            temperature:0.7
+        },
+
+        live:{
+            enabled:false,
+
+            debounceMs:1800,
+
+            minIntervalMs:2500
+        },
+
+        agent:{
+            maxToolRounds:8
+        }
+
+    };
+
+
+    function clone(value){
+
+        return JSON.parse(
+            JSON.stringify(value)
+        );
+
+    }
+
+
+    function merge(base, extra){
+
+        const result =
+            clone(base);
+
+
+        if(!extra)
+            return result;
+
+
+        for(
+            const key of Object.keys(extra)
+        ){
+
+            if(
+                extra[key] &&
+                typeof extra[key] === "object" &&
+                !Array.isArray(extra[key])
+            ){
+
+                result[key] =
+                    Object.assign(
+                        {},
+                        result[key] || {},
+                        extra[key]
+                    );
+
+            }else{
+
+                result[key] =
+                    extra[key];
+
+            }
+
+        }
+
+
+        return result;
+
+    }
+
+
+    function load(){
+
+        try{
+
+            const raw =
+                localStorage.getItem(
+                    KEY
+                );
+
+
+            if(!raw)
+                return clone(
+                    defaults
+                );
+
+
+            return merge(
+                defaults,
+                JSON.parse(raw)
+            );
+
+        }catch(error){
+
+            return clone(
+                defaults
+            );
+
+        }
+
+    }
+
+
+    let settings =
+        load();
+
+
+    function save(){
+
+        /*
+         * Live is represented by the mode.
+         */
+
+        settings.live.enabled =
+            settings.mode === "live";
+
+
+        localStorage.setItem(
+            KEY,
+            JSON.stringify(
+                settings
+            )
+        );
+
+
+        render();
+
+
+        /*
+         * Same-page notification.
+         *
+         * The storage event is not fired in the
+         * same browsing context, so explicitly tell
+         * listeners that settings changed.
+         */
+
+        window.dispatchEvent(
+
+            new CustomEvent(
+                "littlehollow:settingschange",
+                {
+                    detail:clone(settings)
+                }
+            )
+
+        );
+
+        try{
+
+            parent.postMessage(
+
+                {
+                    type:
+                        "LITTLE_HOLLOW_SETTINGS_CHANGED",
+
+                    settings:
+                        clone(settings)
+
+                },
+
+                "*"
+
+            );
+
+        }catch(error){}
+
+    }
+
+
+    function $(id){
+
+        return document.getElementById(
+            id
+        );
+
+    }
+
+
+    /*
+     * Navigation
+     */
+
+    document
+        .querySelectorAll(".nav")
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    document
+                        .querySelectorAll(".nav")
+                        .forEach(
+                            x =>
+                                x.classList.remove(
+                                    "active"
+                                )
+                        );
+
+
+                    document
+                        .querySelectorAll(".section")
+                        .forEach(
+                            x =>
+                                x.classList.remove(
+                                    "active"
+                                )
+                        );
+
+
+                    button.classList.add(
+                        "active"
+                    );
+
+
+                    const section =
+                        $(
+                            "section-" +
+                            button.dataset.section
+                        );
+
+
+                    if(section){
+
+                        section.classList.add(
+                            "active"
+                        );
+
+                    }
+
+                }
+            );
+
+        });
+
+
+    /*
+     * Provider cards
+     */
+
+    document
+        .querySelectorAll(
+            ".provider"
+        )
+        .forEach(card => {
+
+            card.addEventListener(
+                "click",
+                () => {
+
+                    settings.provider =
+                        card.dataset.provider;
+
+                    save();
+
+                }
+            );
+
+        });
+
+
+    /*
+     * Mode cards
+     */
+
+    document
+        .querySelectorAll(
+            ".mode"
+        )
+        .forEach(card => {
+
+            card.addEventListener(
+                "click",
+                () => {
+
+                    settings.mode =
+                        card.dataset.mode;
+
+                    save();
+
+                }
+            );
+
+        });
+
+
+    /*
+     * Puter
+     */
+
+    $("puter-model").addEventListener(
+        "change",
+        event => {
+
+            settings.puter.model =
+                event.target.value.trim() ||
+                defaults.puter.model;
+
+            save();
+
+        }
+    );
+
+
+    /*
+     * ONNX
+     */
+
+    $("onnx-model").addEventListener(
+        "change",
+        event => {
+
+            settings.onnx.model =
+                event.target.value.trim();
+
+            save();
+
+        }
+    );
+
+
+    $("onnx-device").addEventListener(
+        "change",
+        event => {
+
+            settings.onnx.device =
+                event.target.value;
+
+            save();
+
+        }
+    );
+
+
+    $("onnx-dtype").addEventListener(
+        "change",
+        event => {
+
+            settings.onnx.dtype =
+                event.target.value;
+
+            save();
+
+        }
+    );
+
+
+    $("onnx-max").addEventListener(
+        "change",
+        event => {
+
+            settings.onnx.maxNewTokens =
+                Math.max(
+                    16,
+                    Math.min(
+                        4096,
+                        Number(
+                            event.target.value
+                        ) || 512
+                    )
+                );
+
+            save();
+
+        }
+    );
+
+
+    $("onnx-temperature")
+        .addEventListener(
+            "change",
+            event => {
+
+                settings.onnx.temperature =
+                    Math.max(
+                        0,
+                        Math.min(
+                            2,
+                            Number(
+                                event.target.value
+                            ) || 0.7
+                        )
+                    );
+
+                save();
+
+            }
+        );
+
+
+    /*
+     * GGUF
+     */
+
+    $("gguf-model").addEventListener(
+        "change",
+        event => {
+
+            settings.gguf.model =
+                event.target.value.trim();
+
+            save();
+
+        }
+    );
+
+
+    $("gguf-context").addEventListener(
+        "change",
+        event => {
+
+            settings.gguf.context =
+                Math.max(
+                    512,
+                    Number(
+                        event.target.value
+                    ) || 8192
+                );
+
+            save();
+
+        }
+    );
+
+
+    $("gguf-threads").addEventListener(
+        "change",
+        event => {
+
+            settings.gguf.threads =
+                Math.max(
+                    1,
+                    Number(
+                        event.target.value
+                    ) || 4
+                );
+
+            save();
+
+        }
+    );
+
+
+    $("gguf-max").addEventListener(
+        "change",
+        event => {
+
+            settings.gguf.maxNewTokens =
+                Math.max(
+                    16,
+                    Math.min(
+                        4096,
+                        Number(
+                            event.target.value
+                        ) || 512
+                    )
+                );
+
+            save();
+
+        }
+    );
+
+
+    $("gguf-temperature")
+        .addEventListener(
+            "change",
+            event => {
+
+                settings.gguf.temperature =
+                    Math.max(
+                        0,
+                        Math.min(
+                            2,
+                            Number(
+                                event.target.value
+                            ) || 0.7
+                        )
+                    );
+
+                save();
+
+            }
+        );
+
+
+    /*
+     * Agent
+     */
+
+    $("max-rounds")
+        .addEventListener(
+            "change",
+            event => {
+
+                settings.agent.maxToolRounds =
+                    Math.max(
+                        1,
+                        Math.min(
+                            50,
+                            Number(
+                                event.target.value
+                            ) || 8
+                        )
+                    );
+
+                save();
+
+            }
+        );
+
+
+    /*
+     * Live
+     */
+
+    $("live-debounce")
+        .addEventListener(
+            "change",
+            event => {
+
+                settings.live.debounceMs =
+                    Math.max(
+                        250,
+                        Number(
+                            event.target.value
+                        ) || 1800
+                    );
+
+                save();
+
+            }
+        );
+
+
+    $("live-min")
+        .addEventListener(
+            "change",
+            event => {
+
+                settings.live.minIntervalMs =
+                    Math.max(
+                        1000,
+                        Number(
+                            event.target.value
+                        ) || 2500
+                    );
+
+                save();
+
+            }
+        );
+
+
+    /*
+     * Model loading requests.
+     */
+
+    $("load-onnx")
+        .addEventListener(
+            "click",
+            () => {
+
+                settings.provider =
+                    "onnx";
+
+                save();
+
+
+                $("onnx-status")
+                    .textContent =
+                    "ONNX model will load when AI is first used.";
+
+                $("onnx-status")
+                    .className =
+                    "status warn";
+
+
+                window.LittleHollowState &&
+                    window.LittleHollowState.recordEvent(
+                        "model_configuration_changed",
+                        {
+                            provider:"onnx"
+                        },
+                        "ONNX model configuration changed."
+                    );
+
+            }
+        );
+
+
+    $("load-gguf")
+        .addEventListener(
+            "click",
+            () => {
+
+                settings.provider =
+                    "gguf";
+
+                save();
+
+
+                $("gguf-status")
+                    .textContent =
+                    "GGUF provider selected. Runtime must expose LittleHollowGGUF.";
+
+                $("gguf-status")
+                    .className =
+                    "status warn";
+
+            }
+        );
+
+
+    /*
+     * Reset.
+     */
+
+    $("reset")
+        .addEventListener(
+            "click",
+            () => {
+
+                const yes =
+                    confirm(
+                        "Reset all Little Hollow AI settings?"
+                    );
+
+
+                if(!yes)
+                    return;
+
+
+                localStorage.removeItem(
+                    KEY
+                );
+
+
+                location.reload();
+
+            }
+        );
+
+
+    function render(){
+
+        /*
+         * Provider radio.
+         */
+
+        document
+            .querySelectorAll(
+                ".provider"
+            )
+            .forEach(card => {
+
+                const active =
+                    card.dataset.provider ===
+                    settings.provider;
+
+
+                card.classList.toggle(
+                    "active",
+                    active
+                );
+
+
+                const radio =
+                    card.querySelector(
+                        "input"
+                    );
+
+
+                radio.checked =
+                    active;
+
+            });
+
+
+        /*
+         * Provider cards.
+         */
+
+        $("puter-card")
+            .classList.toggle(
+                "hidden",
+                settings.provider !== "puter"
+            );
+
+
+        $("onnx-card")
+            .classList.toggle(
+                "hidden",
+                settings.provider !== "onnx"
+            );
+
+
+        $("gguf-card")
+            .classList.toggle(
+                "hidden",
+                settings.provider !== "gguf"
+            );
+
+
+        /*
+         * Mode.
+         */
+
+        document
+            .querySelectorAll(
+                ".mode"
+            )
+            .forEach(card => {
+
+                card.classList.toggle(
+                    "active",
+                    card.dataset.mode ===
+                    settings.mode
+                );
+
+            });
+
+
+        /*
+         * Values.
+         */
+
+        $("puter-model").value =
+            settings.puter.model;
+
+
+        $("onnx-model").value =
+            settings.onnx.model;
+
+
+        $("onnx-device").value =
+            settings.onnx.device;
+
+
+        $("onnx-dtype").value =
+            settings.onnx.dtype;
+
+
+        $("onnx-max").value =
+            settings.onnx.maxNewTokens;
+
+
+        $("onnx-temperature").value =
+            settings.onnx.temperature;
+
+
+        $("gguf-model").value =
+            settings.gguf.model;
+
+
+        $("gguf-context").value =
+            settings.gguf.context;
+
+
+        $("gguf-threads").value =
+            settings.gguf.threads;
+
+
+        $("gguf-max").value =
+            settings.gguf.maxNewTokens;
+
+
+        $("gguf-temperature").value =
+            settings.gguf.temperature;
+
+
+        $("max-rounds").value =
+            settings.agent.maxToolRounds;
+
+
+        $("live-debounce").value =
+            settings.live.debounceMs;
+
+
+        $("live-min").value =
+            settings.live.minIntervalMs;
+
+
+        /*
+         * Live status.
+         */
+
+        if(
+            settings.mode === "live"
+        ){
+
+            $("live-status").textContent =
+                "● LIVE MODE ENABLED";
+
+            $("live-status").className =
+                "status ok";
+
+        }else{
+
+            $("live-status").textContent =
+                "○ LIVE MODE OFF";
+
+            $("live-status").className =
+                "status";
+
+        }
+
+
+        /*
+         * Config preview.
+         */
+
+        $("preview").textContent =
+            JSON.stringify(
+                settings,
+                null,
+                2
+            );
+
+    }
+
+
+    render();
+
+
+    /*
+     * Configuration is intentionally exposed only
+     * through a read-only object.
+     */
+
+    window.LittleHollowSettings = {
+
+        get(){
+
+            return clone(
+                settings
+            );
+
+        }
+
+    };
+
+
+})();
+</script>
+
+
+</body>
+</html>
