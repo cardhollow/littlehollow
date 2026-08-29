@@ -24,7 +24,8 @@
                                 "imageViewer",
                                 "videoPlayer",
                                 "audioPlayer",
-                                "Messenger"
+                                "Messenger",
+                                "Settings"
                             ]
                         },
                         src:{type:"string"},
