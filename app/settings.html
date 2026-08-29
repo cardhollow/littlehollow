@@ -1,25 +1,15 @@
+<!-- app/settings.html -->
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
 <meta charset="UTF-8">
-
-<meta
-    name="viewport"
-    content="width=device-width,initial-scale=1"
-/>
-
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Settings</title>
 
 <style>
+*{box-sizing:border-box}
 
-*{
-    box-sizing:border-box;
-}
-
-html,
-body{
+html,body{
     margin:0;
     width:100%;
     height:100%;
@@ -335,264 +325,150 @@ pre{
 .hidden{
     display:none !important;
 }
-
 </style>
-
 </head>
 
 <body>
 
 <div class="header">
-
-    <div class="title">
-        LITTLE HOLLOW // SETTINGS
-    </div>
-
-    <div class="subtitle">
-        AI backend, model setup and agent configuration
-    </div>
-
+    <div class="title">LITTLE HOLLOW // SETTINGS</div>
+    <div class="subtitle">AI backend, local model setup and agent configuration</div>
 </div>
 
 <div class="layout">
 
 <aside class="sidebar">
-
-    <button class="nav active" data-section="ai">
-        AI
-    </button>
-
-    <button class="nav" data-section="mode">
-        MODE
-    </button>
-
-    <button class="nav" data-section="live">
-        LIVE
-    </button>
-
-    <button class="nav" data-section="storage">
-        STORAGE
-    </button>
-
+    <button class="nav active" data-section="ai">AI</button>
+    <button class="nav" data-section="mode">MODE</button>
+    <button class="nav" data-section="live">LIVE</button>
+    <button class="nav" data-section="storage">STORAGE</button>
 </aside>
 
 <main class="content">
 
 <section id="section-ai" class="section active">
 
-<div class="section-title">
-    AI PROVIDER
-</div>
+<div class="section-title">AI PROVIDER</div>
 
 <div class="card">
 
-<div class="card-title">
-    PROVIDER
-</div>
+<div class="card-title">PROVIDER</div>
 
 <div class="description">
-    Choose the AI backend. Nothing is initialized until you explicitly
-    initialize that provider.
+    Select the backend. Nothing is downloaded or initialized until
+    you explicitly press its setup button.
 </div>
 
 <label class="provider" data-provider="puter">
-
-    <input
-        type="radio"
-        name="provider"
-        value="puter"
-    >
-
+    <input type="radio" name="provider" value="puter">
     <div>
-        <div class="provider-name">
-            PUTER.JS
-        </div>
-
+        <div class="provider-name">PUTER.JS</div>
         <div class="provider-description">
-            Puter AI provider.
+            Remote AI provider.
         </div>
     </div>
-
 </label>
 
 <label class="provider" data-provider="onnx">
-
-    <input
-        type="radio"
-        name="provider"
-        value="onnx"
-    >
-
+    <input type="radio" name="provider" value="onnx">
     <div>
-        <div class="provider-name">
-            ONNX
-        </div>
-
+        <div class="provider-name">ONNX</div>
         <div class="provider-description">
-            Local browser inference.
+            Local ONNX inference using the browser device.
         </div>
     </div>
-
 </label>
 
 <label class="provider" data-provider="gguf">
-
-    <input
-        type="radio"
-        name="provider"
-        value="gguf"
-    >
-
+    <input type="radio" name="provider" value="gguf">
     <div>
-        <div class="provider-name">
-            GGUF
-        </div>
-
+        <div class="provider-name">GGUF</div>
         <div class="provider-description">
             Local GGUF runtime.
         </div>
     </div>
-
 </label>
 
 </div>
 
+
+<!-- PUTER -->
 
 <div id="puter-card" class="card hidden">
 
-<div class="card-title">
-    PUTER.JS
-</div>
+<div class="card-title">PUTER.JS</div>
 
-<label for="puter-model">
-    MODEL
-</label>
+<label for="puter-model">MODEL</label>
 
-<input
-    id="puter-model"
-    type="text"
-/>
+<input id="puter-model" type="text">
 
 <div style="margin-top:10px;">
-
-<button id="prepare-puter">
-    INITIALIZE PUTER.JS
-</button>
-
+    <button id="prepare-puter">
+        SET UP PUTER.JS
+    </button>
 </div>
 
 <div class="status-box">
-
-<span
-    id="puter-dot"
-    class="status-dot"
-></span>
-
-<div>
-
-<div
-    id="puter-status"
-    class="status-main"
->
-NOT INITIALIZED
-</div>
-
-<div
-    id="puter-detail"
-    class="status-detail"
->
-Puter.js has not been loaded.
+    <span id="puter-dot" class="status-dot"></span>
+    <div>
+        <div id="puter-status" class="status-main">
+            NOT SET UP
+        </div>
+        <div id="puter-detail" class="status-detail">
+            Puter.js is not initialized.
+        </div>
+    </div>
 </div>
 
 </div>
 
-</div>
 
-</div>
-
+<!-- ONNX -->
 
 <div id="onnx-card" class="card hidden">
 
-<div class="card-title">
-    ONNX LOCAL MODEL
-</div>
+<div class="card-title">ONNX LOCAL MODEL</div>
 
 <div class="description">
-    Nothing downloads or initializes until you press LOAD / SET UP MODEL.
-    This uses the same Qwen2.5 ONNX setup as the standalone working test.
+    The model is not loaded when Little Hollow starts.
+    This setup matches the standalone ONNX test:
+    Qwen2.5-0.5B-Instruct + Q4 + WebGPU.
 </div>
 
-<label for="onnx-model">
-    MODEL REPOSITORY
-</label>
+<label for="onnx-model">MODEL REPOSITORY</label>
 
 <input
     id="onnx-model"
     type="text"
+    spellcheck="false"
 />
 
 <div class="row" style="margin-top:9px;">
 
 <div class="field">
 
-<label for="onnx-device">
-    BACKEND
-</label>
+<label for="onnx-device">BACKEND</label>
 
 <select id="onnx-device">
-
-<option value="auto">
-    AUTO
-</option>
-
-<option value="webgpu">
-    WEBGPU
-</option>
-
-<option value="wasm">
-    WASM / CPU
-</option>
-
+    <option value="webgpu">WEBGPU</option>
+    <option value="wasm">WASM / CPU</option>
+    <option value="auto">AUTO</option>
 </select>
 
 </div>
 
 <div class="field">
 
-<label for="onnx-dtype">
-    MODEL VARIANT
-</label>
+<label for="onnx-dtype">MODEL VARIANT</label>
 
 <select id="onnx-dtype">
-
-<option value="q4">
-    Q4
-</option>
-
-<option value="q4f16">
-    Q4F16
-</option>
-
-<option value="q8">
-    Q8
-</option>
-
-<option value="int8">
-    INT8
-</option>
-
-<option value="uint8">
-    UINT8
-</option>
-
-<option value="fp16">
-    FP16
-</option>
-
-<option value="fp32">
-    FP32
-</option>
-
+    <option value="q4">Q4</option>
+    <option value="q4f16">Q4F16</option>
+    <option value="q8">Q8</option>
+    <option value="int8">INT8</option>
+    <option value="uint8">UINT8</option>
+    <option value="fp16">FP16</option>
+    <option value="fp32">FP32</option>
 </select>
 
 </div>
@@ -643,7 +519,7 @@ Puter.js has not been loaded.
 <div style="margin-top:10px;">
 
 <button id="load-onnx">
-    LOAD / SET UP MODEL
+    DOWNLOAD / LOAD MODEL
 </button>
 
 <button
@@ -660,7 +536,7 @@ Puter.js has not been loaded.
 
 <span
     id="onnx-dot"
-    class="status-dot yellow"
+    class="status-dot"
 ></span>
 
 <div style="flex:1;min-width:0;">
@@ -676,7 +552,7 @@ NOT SET UP
     id="onnx-detail"
     class="status-detail"
 >
-Model is not loaded.
+Click DOWNLOAD / LOAD MODEL to initialize it.
 </div>
 
 <div
@@ -703,19 +579,17 @@ Model is not loaded.
 </div>
 
 
+<!-- GGUF -->
+
 <div id="gguf-card" class="card hidden">
 
-<div class="card-title">
-    GGUF LOCAL MODEL
-</div>
+<div class="card-title">GGUF LOCAL MODEL</div>
 
 <div class="description">
-    GGUF requires a separate browser GGUF runtime.
+    GGUF needs its own browser-compatible GGUF runtime.
 </div>
 
-<label for="gguf-model">
-    MODEL
-</label>
+<label for="gguf-model">MODEL</label>
 
 <input
     id="gguf-model"
@@ -727,9 +601,7 @@ Model is not loaded.
 
 <div class="field">
 
-<label for="gguf-context">
-    CONTEXT
-</label>
+<label for="gguf-context">CONTEXT</label>
 
 <input
     id="gguf-context"
@@ -742,9 +614,7 @@ Model is not loaded.
 
 <div class="field">
 
-<label for="gguf-threads">
-    THREADS
-</label>
+<label for="gguf-threads">THREADS</label>
 
 <input
     id="gguf-threads"
@@ -759,34 +629,23 @@ Model is not loaded.
 <div style="margin-top:10px;">
 
 <button id="load-gguf">
-    LOAD / SET UP GGUF
+    SET UP GGUF
 </button>
 
 </div>
 
 <div class="status-box">
 
-<span
-    id="gguf-dot"
-    class="status-dot yellow"
-></span>
+<span id="gguf-dot" class="status-dot"></span>
 
 <div>
+    <div id="gguf-status" class="status-main">
+        NOT SET UP
+    </div>
 
-<div
-    id="gguf-status"
-    class="status-main"
->
-NOT INITIALIZED
-</div>
-
-<div
-    id="gguf-detail"
-    class="status-detail"
->
-A GGUF browser runtime is required.
-</div>
-
+    <div id="gguf-detail" class="status-detail">
+        No GGUF runtime initialized.
+    </div>
 </div>
 
 </div>
@@ -798,56 +657,37 @@ A GGUF browser runtime is required.
 
 <section id="section-mode" class="section">
 
-<div class="section-title">
-    AI MODE
-</div>
+<div class="section-title">AI MODE</div>
 
 <div class="card">
 
 <div class="mode" data-mode="interactive">
-
-<div class="mode-name">
-    INTERACTIVE
-</div>
-
-<div class="mode-description">
-    Runs when normal user input is submitted.
-</div>
-
+    <div class="mode-name">INTERACTIVE</div>
+    <div class="mode-description">
+        Runs when normal user input is submitted.
+    </div>
 </div>
 
 <div class="mode" data-mode="agent">
-
-<div class="mode-name">
-    AGENT
-</div>
-
-<div class="mode-description">
-    Allows multiple tool rounds for a task.
-</div>
-
+    <div class="mode-name">AGENT</div>
+    <div class="mode-description">
+        Allows multiple tool rounds for a task.
+    </div>
 </div>
 
 <div class="mode" data-mode="live">
-
-<div class="mode-name">
-    LIVE
-</div>
-
-<div class="mode-description">
-    Reacts to meaningful Little Hollow state changes.
-    Live never downloads or initializes a local model automatically.
-</div>
-
+    <div class="mode-name">LIVE</div>
+    <div class="mode-description">
+        Reacts to meaningful Little Hollow state changes.
+        Live never initializes a model by itself.
+    </div>
 </div>
 
 </div>
 
 <div class="card">
 
-<div class="card-title">
-    TOOL ROUNDS
-</div>
+<div class="card-title">AGENT</div>
 
 <label for="max-rounds">
     MAX TOOL ROUNDS
@@ -861,19 +701,18 @@ A GGUF browser runtime is required.
 />
 
 <div class="small" style="margin-top:7px;">
-All Little Hollow tools are always enabled.
+    All current Little Hollow tools are always enabled.
 </div>
 
 </div>
 
 <div class="card">
 
-<div class="card-title">
-    TOOLS
-</div>
+<div class="card-title">TOOLS</div>
 
 <div class="description">
-    Tools are controlled by Little Hollow and cannot be disabled here.
+    Tool availability is controlled by Little Hollow and is not
+    user-configurable.
 </div>
 
 <div class="status-box">
@@ -881,15 +720,13 @@ All Little Hollow tools are always enabled.
 <span class="status-dot green"></span>
 
 <div>
+    <div class="status-main">
+        ALL TOOLS ENABLED
+    </div>
 
-<div class="status-main">
-ALL TOOLS ENABLED
-</div>
-
-<div class="status-detail">
-Every provider uses the central Little Hollow tool registry.
-</div>
-
+    <div class="status-detail">
+        Tools.definitions is always passed to the selected AI provider.
+    </div>
 </div>
 
 </div>
@@ -901,19 +738,15 @@ Every provider uses the central Little Hollow tool registry.
 
 <section id="section-live" class="section">
 
-<div class="section-title">
-    LIVE AGENT
-</div>
+<div class="section-title">LIVE AGENT</div>
 
 <div class="card">
 
-<div class="card-title">
-    LIVE PROCESSING
-</div>
+<div class="card-title">LIVE PROCESSING</div>
 
 <div class="description">
-    Live mode is event-driven and receives compact application state.
-    It does not receive the entire DOM.
+    Live mode reacts to meaningful state changes. It does not
+    continuously initialize or download a model.
 </div>
 
 <label for="live-debounce">
@@ -941,23 +774,17 @@ Every provider uses the central Little Hollow tool registry.
     step="500"
 />
 
-<div class="small" style="margin-top:8px;">
-A local model must be explicitly loaded before Live can use it.
-</div>
-
 </div>
 
 <div class="card">
 
-<div class="card-title">
-    STATUS
-</div>
+<div class="card-title">STATUS</div>
 
 <div
     id="live-status"
     class="status-main"
 >
-INTERACTIVE MODE
+    INTERACTIVE MODE
 </div>
 
 </div>
@@ -967,18 +794,14 @@ INTERACTIVE MODE
 
 <section id="section-storage" class="section">
 
-<div class="section-title">
-    STORAGE
-</div>
+<div class="section-title">STORAGE</div>
 
 <div class="card">
 
-<div class="card-title">
-    LOCAL SETTINGS
-</div>
+<div class="card-title">LOCAL SETTINGS</div>
 
 <div class="description">
-    Provider and model configuration is stored locally in this browser.
+    Provider and model configuration is stored in this browser.
 </div>
 
 <button
@@ -1015,25 +838,40 @@ INTERACTIVE MODE
         "littlehollow.ai.settings";
 
 
+    /*
+     * These defaults intentionally match the standalone
+     * working ONNX HTML.
+     */
+
     const defaults = {
 
-        provider:"puter",
+        provider:
+            "puter",
 
-        mode:"interactive",
+        mode:
+            "interactive",
 
         puter:{
-            model:"claude-sonnet-5"
+            model:
+                "claude-sonnet-5"
         },
 
         onnx:{
-            /*
-             * Match the standalone working HTML.
-             */
-            model:"onnx-community/Qwen2.5-0.5B-Instruct",
-            device:"webgpu",
-            dtype:"q4",
-            maxNewTokens:256,
-            temperature:0.7
+            model:
+                "onnx-community/Qwen2.5-0.5B-Instruct",
+
+            device:
+                "webgpu",
+
+            dtype:
+                "q4",
+
+            maxNewTokens:
+                256,
+
+            temperature:
+                0.7
+
         },
 
         gguf:{
@@ -1122,10 +960,48 @@ INTERACTIVE MODE
                 return clone(defaults);
 
 
-            return merge(
-                defaults,
-                JSON.parse(raw)
-            );
+            const saved =
+                merge(
+                    defaults,
+                    JSON.parse(raw)
+                );
+
+
+            /*
+             * Migrate the previous Qwen3 configuration to
+             * the known-working standalone Qwen2.5 setup.
+             */
+
+            if(
+                saved.onnx.model ===
+                "onnx-community/Qwen3-0.6B-ONNX"
+            ){
+
+                saved.onnx.model =
+                    defaults.onnx.model;
+
+                saved.onnx.device =
+                    defaults.onnx.device;
+
+                saved.onnx.dtype =
+                    defaults.onnx.dtype;
+
+                saved.onnx.maxNewTokens =
+                    defaults.onnx.maxNewTokens;
+
+            }
+
+
+            /*
+             * Never allow an old setting to make the runtime
+             * initialize automatically.
+             */
+
+            saved.live.enabled =
+                saved.mode === "live";
+
+
+            return saved;
 
         }catch(error){
 
@@ -1144,34 +1020,6 @@ INTERACTIVE MODE
 
     let settings =
         load();
-
-
-    /*
-     * Force old ONNX configuration away from the
-     * problematic Qwen3/f16 setup.
-     *
-     * Only do this once.
-     */
-
-    if(
-        settings.provider === "onnx"
-    ){
-
-        if(
-            !settings.onnx.model ||
-            settings.onnx.model ===
-                "onnx-community/Qwen3-0.6B-ONNX"
-        ){
-
-            settings.onnx.model =
-                "onnx-community/Qwen2.5-0.5B-Instruct";
-
-            settings.onnx.dtype =
-                "q4";
-
-        }
-
-    }
 
 
     function save(){
@@ -1229,15 +1077,15 @@ INTERACTIVE MODE
 
     function $(id){
 
-        return document.getElementById(id);
+        return document.getElementById(
+            id
+        );
 
     }
 
 
     /*
-     * =========================================================
      * Navigation
-     * =========================================================
      */
 
     document
@@ -1273,20 +1121,17 @@ INTERACTIVE MODE
                     );
 
 
-                    const section =
+                    const target =
                         $(
                             "section-" +
                             button.dataset.section
                         );
 
 
-                    if(section){
-
-                        section.classList.add(
+                    if(target)
+                        target.classList.add(
                             "active"
                         );
-
-                    }
 
                 }
             );
@@ -1295,9 +1140,7 @@ INTERACTIVE MODE
 
 
     /*
-     * =========================================================
-     * Providers
-     * =========================================================
+     * Provider
      */
 
     document
@@ -1320,9 +1163,7 @@ INTERACTIVE MODE
 
 
     /*
-     * =========================================================
-     * Modes
-     * =========================================================
+     * Mode
      */
 
     document
@@ -1345,9 +1186,7 @@ INTERACTIVE MODE
 
 
     /*
-     * =========================================================
      * Puter
-     * =========================================================
      */
 
     $("puter-model")
@@ -1423,7 +1262,10 @@ INTERACTIVE MODE
 
                     $("puter-detail")
                         .textContent =
-                        error.message;
+                        error &&
+                        error.message
+                            ? error.message
+                            : String(error);
 
 
                     $("puter-dot")
@@ -1441,9 +1283,7 @@ INTERACTIVE MODE
 
 
     /*
-     * =========================================================
-     * ONNX
-     * =========================================================
+     * ONNX settings
      */
 
     $("onnx-model")
@@ -1470,7 +1310,7 @@ INTERACTIVE MODE
 
                 save();
 
-                showOnnxWarning();
+                showWarning();
 
             }
         );
@@ -1486,7 +1326,7 @@ INTERACTIVE MODE
 
                 save();
 
-                showOnnxWarning();
+                showWarning();
 
             }
         );
@@ -1536,6 +1376,10 @@ INTERACTIVE MODE
         );
 
 
+    /*
+     * Explicit ONNX setup
+     */
+
     $("load-onnx")
         .addEventListener(
             "click",
@@ -1576,9 +1420,11 @@ INTERACTIVE MODE
                         await parent
                             .LittleHollowAI
                             .prepareOnnx(
+
                                 clone(
                                     settings.onnx
                                 )
+
                             );
 
 
@@ -1654,9 +1500,7 @@ INTERACTIVE MODE
 
 
     /*
-     * =========================================================
      * GGUF
-     * =========================================================
      */
 
     $("gguf-model")
@@ -1722,21 +1566,6 @@ INTERACTIVE MODE
                 save();
 
 
-                $("gguf-status")
-                    .textContent =
-                    "LOADING";
-
-
-                $("gguf-detail")
-                    .textContent =
-                    "Initializing GGUF runtime...";
-
-
-                $("gguf-dot")
-                    .className =
-                    "status-dot yellow";
-
-
                 try{
 
                     await parent
@@ -1767,7 +1596,10 @@ INTERACTIVE MODE
 
                     $("gguf-detail")
                         .textContent =
-                        error.message;
+                        error &&
+                        error.message
+                            ? error.message
+                            : String(error);
 
 
                     $("gguf-dot")
@@ -1781,9 +1613,7 @@ INTERACTIVE MODE
 
 
     /*
-     * =========================================================
      * Agent
-     * =========================================================
      */
 
     $("max-rounds")
@@ -1809,9 +1639,7 @@ INTERACTIVE MODE
 
 
     /*
-     * =========================================================
      * Live
-     * =========================================================
      */
 
     $("live-debounce")
@@ -1853,9 +1681,7 @@ INTERACTIVE MODE
 
 
     /*
-     * =========================================================
      * Reset
-     * =========================================================
      */
 
     $("reset")
@@ -1867,11 +1693,8 @@ INTERACTIVE MODE
                     !confirm(
                         "Reset all Little Hollow AI settings?"
                     )
-                ){
-
+                )
                     return;
-
-                }
 
 
                 localStorage.removeItem(
@@ -1886,9 +1709,7 @@ INTERACTIVE MODE
 
 
     /*
-     * =========================================================
      * ONNX status
-     * =========================================================
      */
 
     function updateOnnxStatus(
@@ -2093,26 +1914,27 @@ INTERACTIVE MODE
 
         detail.textContent =
             message ||
-            "Click LOAD / SET UP MODEL.";
+            "Click DOWNLOAD / LOAD MODEL.";
 
     }
 
 
-    function showOnnxWarning(){
-
-        const f16 =
-            settings.onnx.dtype === "q4f16" ||
-            settings.onnx.dtype === "fp16";
-
+    function showWarning(){
 
         if(
-            f16 &&
-            settings.onnx.device === "webgpu"
+            settings.onnx.device ===
+            "webgpu" &&
+            (
+                settings.onnx.dtype ===
+                    "q4f16" ||
+                settings.onnx.dtype ===
+                    "fp16"
+            )
         ){
 
             $("onnx-warning")
                 .textContent =
-                "This uses an f16 WebGPU path. Your previous browser error indicates that this path may fail. Q4 + WebGPU matches the original working test.";
+                "Q4F16/FP16 uses an f16 WebGPU path. For the standalone configuration, use Qwen2.5 + WebGPU + Q4.";
 
         }else{
 
@@ -2126,9 +1948,7 @@ INTERACTIVE MODE
 
 
     /*
-     * =========================================================
      * Render
-     * =========================================================
      */
 
     function render(){
@@ -2159,21 +1979,24 @@ INTERACTIVE MODE
         $("puter-card")
             .classList.toggle(
                 "hidden",
-                settings.provider !== "puter"
+                settings.provider !==
+                    "puter"
             );
 
 
         $("onnx-card")
             .classList.toggle(
                 "hidden",
-                settings.provider !== "onnx"
+                settings.provider !==
+                    "onnx"
             );
 
 
         $("gguf-card")
             .classList.toggle(
                 "hidden",
-                settings.provider !== "gguf"
+                settings.provider !==
+                    "gguf"
             );
 
 
@@ -2244,7 +2067,7 @@ INTERACTIVE MODE
 
             $("live-status")
                 .textContent =
-                "LIVE MODE — runtime must already be loaded.";
+                "LIVE MODE — MODEL MUST BE EXPLICITLY LOADED";
 
         }else if(
             settings.mode === "agent"
@@ -2271,15 +2094,13 @@ INTERACTIVE MODE
             );
 
 
-        showOnnxWarning();
+        showWarning();
 
     }
 
 
     /*
-     * =========================================================
-     * Runtime status sync
-     * =========================================================
+     * Get runtime state from parent.
      */
 
     function syncRuntime(){
@@ -2326,22 +2147,13 @@ INTERACTIVE MODE
 
             }
 
-        }catch(error){
-
-            console.warn(
-                "Could not sync AI runtime:",
-                error
-            );
-
-        }
+        }catch(error){}
 
     }
 
 
     /*
-     * =========================================================
-     * Messages from parent
-     * =========================================================
+     * Parent runtime messages.
      */
 
     window.addEventListener(
@@ -2370,29 +2182,8 @@ INTERACTIVE MODE
             ){
 
                 if(
-                    data.status === "ready"
-                ){
-
-                    $("puter-status")
-                        .textContent =
-                        "READY";
-
-
-                    $("puter-detail")
-                        .textContent =
-                        data.message ||
-                        "Puter.js is ready.";
-
-
-                    $("puter-dot")
-                        .className =
-                        "status-dot green";
-
-                }
-
-
-                if(
-                    data.status === "loading"
+                    data.status ===
+                    "loading"
                 ){
 
                     $("puter-status")
@@ -2414,7 +2205,31 @@ INTERACTIVE MODE
 
 
                 if(
-                    data.status === "error"
+                    data.status ===
+                    "ready"
+                ){
+
+                    $("puter-status")
+                        .textContent =
+                        "READY";
+
+
+                    $("puter-detail")
+                        .textContent =
+                        data.message ||
+                        "Puter.js is ready.";
+
+
+                    $("puter-dot")
+                        .className =
+                        "status-dot green";
+
+                }
+
+
+                if(
+                    data.status ===
+                    "error"
                 ){
 
                     $("puter-status")
@@ -2449,5 +2264,4 @@ INTERACTIVE MODE
 </script>
 
 </body>
-
 </html>
