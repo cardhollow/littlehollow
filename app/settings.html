@@ -1,126 +1,3036 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Settings</title>
-<style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#071014;color:#c4fbff;font-family:monospace}body{display:flex;flex-direction:column}.header{padding:14px 16px 11px;border-bottom:1px solid #16434a;background:#09171b}.title{font-size:16px;font-weight:bold;letter-spacing:1px}.subtitle{margin-top:4px;color:#648e95;font-size:10px}.layout{flex:1;min-height:0;display:flex}.sidebar{width:145px;flex-shrink:0;padding:8px;border-right:1px solid #16434a;background:#081418}.nav{width:100%;margin-bottom:4px;padding:10px 8px;border:1px solid transparent;background:transparent;color:#75afb6;font:inherit;font-size:10px;text-align:left;cursor:pointer}.nav:hover{background:#0b2226}.nav.active{border-color:#1d6871;background:#0c292e;color:#d4ffff}.content{flex:1;min-width:0;overflow:auto;padding:15px}.section{display:none}.section.active{display:block}.section-title{margin-bottom:12px;color:#d5ffff;font-size:13px;font-weight:bold}.card{margin-bottom:12px;padding:12px;border:1px solid #16434a;background:#09191d}.card-title{margin-bottom:6px;color:#cffcff;font-size:11px;font-weight:bold}.description{margin-bottom:10px;color:#648b91;font-size:9px;line-height:1.5}label{display:block;margin-bottom:4px;color:#7fb6bd;font-size:9px}input,select{width:100%;height:31px;padding:0 8px;border:1px solid #1a4f57;outline:none;background:#061115;color:#c8fcff;font:inherit;font-size:10px}input:focus,select:focus{border-color:#2ba3af}.row{display:flex;gap:9px}.field{flex:1}.provider,.mode{display:flex;gap:8px;align-items:flex-start;padding:9px;margin-bottom:5px;border:1px solid #16434a;background:#071419;cursor:pointer}.provider:hover,.mode:hover{background:#0b2024}.provider.active,.mode.active{border-color:#2ba3af;background:#0d292f}.provider input{width:auto;height:auto;margin-top:2px}.provider-name,.mode-name{font-size:10px}.provider-description,.mode-description{margin-top:2px;color:#648b91;font-size:8px}.status{margin-top:9px;color:#69939a;font-size:9px;line-height:1.45}.status.ok{color:#53c6aa}.status.warn{color:#dbb45a}.status.error{color:#e36a79}.progress{height:8px;margin-top:9px;border:1px solid #163f45;background:#050c0e;overflow:hidden}.progress>div{height:100%;width:0;background:#2ba3af;transition:width .2s ease}.small{color:#537c82;font-size:8px;line-height:1.5}button{padding:8px 11px;border:1px solid #20757e;background:#0a3339;color:#c5fcff;font:inherit;font-size:9px;cursor:pointer}button:hover{background:#10454d}button.danger{border-color:#713d45;background:#28151a;color:#ffb9c2}button:disabled{opacity:.45;cursor:not-allowed}hr{border:0;border-top:1px solid #123b41;margin:13px 0}pre{margin:0;padding:9px;border:1px solid #10363c;background:#040b0d;color:#72b9c1;font-size:8px;white-space:pre-wrap;word-break:break-word}.badge{display:inline-block;padding:2px 5px;border:1px solid #245760;color:#80cbd2;font-size:8px}.hidden{display:none!important}.status-line{display:flex;justify-content:space-between;gap:10px;align-items:center}.dot{width:7px;height:7px;border-radius:50%;display:inline-block;background:#63777b}.dot.ok{background:#28c7a7}.dot.warn{background:#e6b84b}.dot.error{background:#d85b6a}
-</style>
-</head>
-<body>
-<div class="header"><div class="title">LITTLE HOLLOW // SETTINGS</div><div class="subtitle">AI backend, local models and agent mode</div></div>
-<div class="layout">
-<aside class="sidebar">
-<button class="nav active" data-section="ai">AI</button>
-<button class="nav" data-section="mode">MODE</button>
-<button class="nav" data-section="live">LIVE</button>
-<button class="nav" data-section="storage">STORAGE</button>
-</aside>
-<main class="content">
-<section id="section-ai" class="section active">
-<div class="section-title">AI PROVIDER</div>
-<div class="card">
-<div class="card-title">PROVIDER</div>
-<div class="description">The user chooses the backend and model. Little Hollow always owns the system prompt and all tools.</div>
-<label class="provider" data-provider="puter"><input type="radio" name="provider" value="puter"><div><div class="provider-name">PUTER.JS</div><div class="provider-description">Cloud AI through the existing Puter.js integration.</div></div></label>
-<label class="provider" data-provider="onnx"><input type="radio" name="provider" value="onnx"><div><div class="provider-name">ONNX</div><div class="provider-description">Local browser inference through Transformers.js / ONNX Runtime Web.</div></div></label>
-<label class="provider" data-provider="gguf"><input type="radio" name="provider" value="gguf"><div><div class="provider-name">GGUF</div><div class="provider-description">Local GGUF inference through a compatible browser runtime.</div></div></label>
-</div>
-<div id="puter-card" class="card">
-<div class="card-title">PUTER MODEL</div>
-<label for="puter-model">MODEL ID</label>
-<input id="puter-model" type="text">
-<div class="small" style="margin-top:7px">Any model identifier accepted by the current Puter.js AI backend can be entered here.</div>
-</div>
-<div id="onnx-card" class="card hidden">
-<div class="card-title">ONNX LOCAL MODEL</div>
-<div class="description">Enter a Transformers.js-compatible Hugging Face model repository. The selected ONNX variant is cached by the browser after it is loaded.</div>
-<label for="onnx-model">MODEL REPOSITORY</label>
-<input id="onnx-model" type="text" placeholder="onnx-community/Qwen3-0.6B-ONNX">
-<div class="row" style="margin-top:9px">
-<div class="field"><label for="onnx-variant">ONNX VARIANT</label><select id="onnx-variant"><option value="q4">Q4</option><option value="q4f16">Q4F16</option><option value="q8">Q8</option><option value="int8">INT8</option><option value="uint8">UINT8</option><option value="fp16">FP16</option><option value="fp32">FP32</option><option value="bnb4">BNB4</option></select></div>
-<div class="field"><label for="onnx-device">BACKEND</label><select id="onnx-device"><option value="auto">AUTO</option><option value="webgpu">WEBGPU</option><option value="wasm">WASM / CPU</option></select></div>
-</div>
-<div class="row" style="margin-top:9px">
-<div class="field"><label for="onnx-max">MAX TOKENS</label><input id="onnx-max" type="number" min="16" max="4096"></div>
-<div class="field"><label for="onnx-temp">TEMPERATURE</label><input id="onnx-temp" type="number" min="0" max="2" step="0.05"></div>
-</div>
-<div style="margin-top:10px"><button id="onnx-load">DOWNLOAD / LOAD MODEL</button> <button id="onnx-unload">UNLOAD RUNTIME</button></div>
-<div id="onnx-status" class="status"><span class="dot"></span> Configured — ready to load.</div>
-<div class="progress"><div id="onnx-progress"></div></div>
-<div id="onnx-detail" class="small" style="margin-top:6px">The model downloads from its repository and is cached locally by Transformers.js.</div>
-</div>
-<div id="gguf-card" class="card hidden">
-<div class="card-title">GGUF LOCAL MODEL</div>
-<div class="description">Configure a GGUF model here. The execution adapter is deliberately separate from the ONNX provider.</div>
-<label for="gguf-model">MODEL / FILE URL</label>
-<input id="gguf-model" type="text" placeholder="https://…/model.gguf">
-<div class="row" style="margin-top:9px"><div class="field"><label for="gguf-context">CONTEXT</label><input id="gguf-context" type="number" min="512" step="512"></div><div class="field"><label for="gguf-threads">THREADS</label><input id="gguf-threads" type="number" min="1"></div></div>
-<div style="margin-top:10px"><button id="gguf-load">SELECT GGUF PROVIDER</button></div>
-<div id="gguf-status" class="status warn"><span class="dot warn"></span> Waiting for a GGUF runtime adapter.</div>
-</div>
-</section>
-<section id="section-mode" class="section">
-<div class="section-title">AI MODE</div>
-<div class="card">
-<div class="mode" data-mode="interactive"><div><div class="mode-name">INTERACTIVE</div><div class="mode-description">Normal user request → model → tools → result.</div></div></div>
-<div class="mode" data-mode="agent"><div><div class="mode-name">AGENT</div><div class="mode-description">Multi-step autonomous tool execution until the task is complete or the safety limit is reached.</div></div></div>
-<div class="mode" data-mode="live"><div><div class="mode-name">LIVE</div><div class="mode-description">Reacts to meaningful Little Hollow state changes and may act without a new chat request.</div></div></div>
-</div>
-<div class="card"><div class="card-title">TOOLS</div><div class="description">All current Little Hollow tools are always supplied to the selected provider. Users cannot disable them here.</div><div class="status ok">● ALL TOOLS ENABLED</div></div>
-<div class="card"><div class="card-title">AGENT LIMIT</div><label for="max-rounds">MAX TOOL ROUNDS</label><input id="max-rounds" type="number" min="1" max="50"></div>
-</section>
-<section id="section-live" class="section">
-<div class="section-title">LIVE AGENT</div>
-<div class="card"><div class="card-title">EVENT THROTTLING</div><div class="description">Live mode uses a debounce and minimum interval so the agent does not continuously react to its own state changes.</div><label for="live-debounce">DEBOUNCE (MS)</label><input id="live-debounce" type="number" min="250" step="250"><label for="live-min" style="margin-top:10px">MINIMUM INTERVAL (MS)</label><input id="live-min" type="number" min="1000" step="500"></div>
-<div class="card"><div class="card-title">STATE FED TO THE MODEL</div><div class="description">Only structured, useful application state is sent: active app, open apps, focused window, file path/selection and recent important events. The entire DOM is not sent.</div><pre id="state-preview">Waiting for state…</pre></div>
-</section>
-<section id="section-storage" class="section">
-<div class="section-title">STORAGE</div>
-<div class="card"><div class="card-title">LOCAL SETTINGS</div><div class="description">AI provider configuration is stored in localStorage. Model files are cached by Transformers.js in browser storage.</div><button id="reset" class="danger">RESET AI SETTINGS</button></div>
-<div class="card"><div class="card-title">CONFIGURATION</div><pre id="preview"></pre></div>
-</section>
-</main>
-</div>
-<script>
-(function(){
-const KEY="littlehollow.ai.settings";
-const defaults={provider:"puter",mode:"interactive",puter:{model:"claude-sonnet-5"},onnx:{model:"onnx-community/Qwen3-0.6B-ONNX",variant:"q4",device:"auto",maxNewTokens:512,temperature:0.7},gguf:{model:"",context:8192,threads:4,maxNewTokens:512,temperature:0.7},live:{debounceMs:1800,minIntervalMs:2500},agent:{maxToolRounds:8}};
-const clone=v=>JSON.parse(JSON.stringify(v));
-function merge(base,extra){const out=clone(base);if(!extra)return out;for(const k of Object.keys(extra)){if(extra[k]&&typeof extra[k]==="object"&&!Array.isArray(extra[k]))out[k]=Object.assign({},out[k]||{},extra[k]);else out[k]=extra[k];}return out;}
-function load(){try{const raw=localStorage.getItem(KEY);return raw?merge(defaults,JSON.parse(raw)):clone(defaults);}catch(e){return clone(defaults);}}
-let settings=load();
-const $=id=>document.getElementById(id);
-function status(state,msg,progress){const dot=state==="ready"?"ok":state==="error"?"error":"warn";$('onnx-status').innerHTML='<span class="dot '+dot+'"></span> '+(msg||state);if(typeof progress==="number")$('onnx-progress').style.width=Math.max(0,Math.min(100,progress))+"%";}
-function save(){settings.live.enabled=settings.mode==="live";localStorage.setItem(KEY,JSON.stringify(settings));render();window.dispatchEvent(new CustomEvent("littlehollow:settingschange",{detail:clone(settings)}));try{parent.postMessage({type:"LITTLE_HOLLOW_SETTINGS_CHANGED",settings:clone(settings)},"*");}catch(e){}}
-function render(){document.querySelectorAll('.provider').forEach(x=>{const active=x.dataset.provider===settings.provider;x.classList.toggle('active',active);x.querySelector('input').checked=active;});$('puter-card').classList.toggle('hidden',settings.provider!=="puter");$('onnx-card').classList.toggle('hidden',settings.provider!=="onnx");$('gguf-card').classList.toggle('hidden',settings.provider!=="gguf");document.querySelectorAll('.mode').forEach(x=>x.classList.toggle('active',x.dataset.mode===settings.mode));$('puter-model').value=settings.puter.model;$('onnx-model').value=settings.onnx.model;$('onnx-variant').value=settings.onnx.variant;$('onnx-device').value=settings.onnx.device;$('onnx-max').value=settings.onnx.maxNewTokens;$('onnx-temp').value=settings.onnx.temperature;$('gguf-model').value=settings.gguf.model;$('gguf-context').value=settings.gguf.context;$('gguf-threads').value=settings.gguf.threads;$('max-rounds').value=settings.agent.maxToolRounds;$('live-debounce').value=settings.live.debounceMs;$('live-min').value=settings.live.minIntervalMs;$('preview').textContent=JSON.stringify(settings,null,2);}
-function setProvider(p){settings.provider=p;save();}
-function onChange(id,fn){$(id).addEventListener('change',e=>{fn(e.target.value);save();});}
 
-document.querySelectorAll('.nav').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));btn.classList.add('active');$('section-'+btn.dataset.section).classList.add('active');});
-document.querySelectorAll('.provider').forEach(x=>x.onclick=()=>setProvider(x.dataset.provider));
-document.querySelectorAll('.mode').forEach(x=>x.onclick=()=>{settings.mode=x.dataset.mode;save();});
-onChange('puter-model',v=>settings.puter.model=v.trim()||defaults.puter.model);
-onChange('onnx-model',v=>settings.onnx.model=v.trim());
-onChange('onnx-variant',v=>settings.onnx.variant=v);
-onChange('onnx-device',v=>settings.onnx.device=v);
-onChange('onnx-max',v=>settings.onnx.maxNewTokens=Math.max(16,Math.min(4096,Number(v)||512)));
-onChange('onnx-temp',v=>settings.onnx.temperature=Math.max(0,Math.min(2,Number(v)||0.7)));
-onChange('gguf-model',v=>settings.gguf.model=v.trim());
-onChange('gguf-context',v=>settings.gguf.context=Math.max(512,Number(v)||8192));
-onChange('gguf-threads',v=>settings.gguf.threads=Math.max(1,Number(v)||4));
-onChange('max-rounds',v=>settings.agent.maxToolRounds=Math.max(1,Math.min(50,Number(v)||8)));
-onChange('live-debounce',v=>settings.live.debounceMs=Math.max(250,Number(v)||1800));
-onChange('live-min',v=>settings.live.minIntervalMs=Math.max(1000,Number(v)||2500));
-$('onnx-load').onclick=()=>{settings.provider="onnx";save();status('loading','Requesting ONNX model…',0);parent.postMessage({type:'LITTLE_HOLLOW_PREPARE_ONNX',settings:clone(settings.onnx)},'*');};
-$('onnx-unload').onclick=()=>{parent.postMessage({type:'LITTLE_HOLLOW_CLEAR_ONNX'},'*');status('configured','Runtime unloaded — model remains cached.',0);};
-$('gguf-load').onclick=()=>{settings.provider="gguf";save();parent.postMessage({type:'LITTLE_HOLLOW_PREPARE_GGUF',settings:clone(settings.gguf)},'*');};
-window.addEventListener('message',e=>{const d=e.data||{};if(d.type==='LITTLE_HOLLOW_ONNX_STATUS'){status(d.state,d.message,d.progress);if(d.file)$('onnx-detail').textContent=d.file+(d.status?" • "+d.status:"");}if(d.type==='LITTLE_HOLLOW_STATE_SNAPSHOT')$('state-preview').textContent=JSON.stringify(d.snapshot||{},null,2);});
-$('reset').onclick=()=>{if(confirm('Reset all Little Hollow AI settings?')){localStorage.removeItem(KEY);location.reload();}};
-window.addEventListener('load',()=>{parent.postMessage({type:'LITTLE_HOLLOW_ONNX_STATUS_REQUEST'},'*');if(window.LittleHollowState) $('state-preview').textContent=JSON.stringify(window.LittleHollowState.getSnapshot(),null,2);});
-render();
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+/>
+
+<title>Settings</title>
+
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+
+html,
+body{
+
+    margin:0;
+
+    width:100%;
+    height:100%;
+
+    overflow:hidden;
+
+    background:#071014;
+
+    color:#c4fbff;
+
+    font-family:monospace;
+
+}
+
+
+body{
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+
+.header{
+
+    padding:14px 16px 11px;
+
+    border-bottom:
+        1px solid #16434a;
+
+    background:#09171b;
+
+}
+
+
+.title{
+
+    font-size:16px;
+
+    font-weight:bold;
+
+    letter-spacing:1px;
+
+}
+
+
+.subtitle{
+
+    margin-top:4px;
+
+    color:#648e95;
+
+    font-size:10px;
+
+}
+
+
+.layout{
+
+    flex:1;
+
+    min-height:0;
+
+    display:flex;
+
+}
+
+
+.sidebar{
+
+    width:145px;
+
+    flex-shrink:0;
+
+    padding:8px;
+
+    border-right:
+        1px solid #16434a;
+
+    background:#081418;
+
+}
+
+
+.nav{
+
+    width:100%;
+
+    margin-bottom:4px;
+
+    padding:10px 8px;
+
+    border:
+        1px solid transparent;
+
+    background:transparent;
+
+    color:#75afb6;
+
+    font:inherit;
+
+    font-size:10px;
+
+    text-align:left;
+
+    cursor:pointer;
+
+}
+
+
+.nav:hover{
+
+    background:#0b2226;
+
+}
+
+
+.nav.active{
+
+    border-color:#1d6871;
+
+    background:#0c292e;
+
+    color:#d4ffff;
+
+}
+
+
+.content{
+
+    flex:1;
+
+    min-width:0;
+
+    overflow:auto;
+
+    padding:15px;
+
+}
+
+
+.section{
+
+    display:none;
+
+}
+
+
+.section.active{
+
+    display:block;
+
+}
+
+
+.section-title{
+
+    margin-bottom:12px;
+
+    color:#d5ffff;
+
+    font-size:13px;
+
+    font-weight:bold;
+
+}
+
+
+.card{
+
+    margin-bottom:12px;
+
+    padding:12px;
+
+    border:
+        1px solid #16434a;
+
+    background:#09191d;
+
+}
+
+
+.card-title{
+
+    margin-bottom:6px;
+
+    color:#cffcff;
+
+    font-size:11px;
+
+    font-weight:bold;
+
+}
+
+
+.description{
+
+    margin-bottom:10px;
+
+    color:#648b91;
+
+    font-size:9px;
+
+    line-height:1.5;
+
+}
+
+
+label{
+
+    display:block;
+
+    margin-bottom:4px;
+
+    color:#7fb6bd;
+
+    font-size:9px;
+
+}
+
+
+input,
+select{
+
+    width:100%;
+
+    height:31px;
+
+    padding:0 8px;
+
+    border:
+        1px solid #1a4f57;
+
+    outline:none;
+
+    background:#061115;
+
+    color:#c8fcff;
+
+    font:inherit;
+
+    font-size:10px;
+
+}
+
+
+input:focus,
+select:focus{
+
+    border-color:#2ba3af;
+
+}
+
+
+.row{
+
+    display:flex;
+
+    gap:9px;
+
+}
+
+
+.field{
+
+    flex:1;
+
+}
+
+
+.provider{
+
+    display:flex;
+
+    gap:8px;
+
+    align-items:flex-start;
+
+    padding:9px;
+
+    margin-bottom:5px;
+
+    border:
+        1px solid #16434a;
+
+    background:#071419;
+
+    cursor:pointer;
+
+}
+
+
+.provider:hover{
+
+    background:#0b2024;
+
+}
+
+
+.provider.active{
+
+    border-color:#2ba3af;
+
+    background:#0d292f;
+
+}
+
+
+.provider input{
+
+    width:auto;
+
+    height:auto;
+
+    margin-top:2px;
+
+}
+
+
+.provider-name{
+
+    font-size:10px;
+
+}
+
+
+.provider-description{
+
+    margin-top:2px;
+
+    color:#648b91;
+
+    font-size:8px;
+
+}
+
+
+.mode{
+
+    padding:9px;
+
+    margin-bottom:5px;
+
+    border:
+        1px solid #16434a;
+
+    background:#071419;
+
+    cursor:pointer;
+
+}
+
+
+.mode:hover{
+
+    background:#0b2024;
+
+}
+
+
+.mode.active{
+
+    border-color:#2ba3af;
+
+    background:#0d292f;
+
+}
+
+
+.mode-name{
+
+    color:#c9fbff;
+
+    font-size:10px;
+
+}
+
+
+.mode-description{
+
+    margin-top:2px;
+
+    color:#648b91;
+
+    font-size:8px;
+
+}
+
+
+button{
+
+    padding:8px 11px;
+
+    border:
+        1px solid #20757e;
+
+    background:#0a3339;
+
+    color:#c5fcff;
+
+    font:inherit;
+
+    font-size:9px;
+
+    cursor:pointer;
+
+}
+
+
+button:hover{
+
+    background:#10454d;
+
+}
+
+
+button:disabled{
+
+    opacity:.45;
+
+    cursor:not-allowed;
+
+}
+
+
+button.danger{
+
+    border-color:#713d45;
+
+    background:#28151a;
+
+    color:#ffb9c2;
+
+}
+
+
+.status-box{
+
+    display:flex;
+
+    gap:9px;
+
+    align-items:flex-start;
+
+    padding:10px;
+
+    margin-top:10px;
+
+    border:
+        1px solid #123f46;
+
+    background:#061114;
+
+}
+
+
+.status-dot{
+
+    width:8px;
+
+    height:8px;
+
+    flex-shrink:0;
+
+    margin-top:3px;
+
+    border-radius:50%;
+
+    background:#64777b;
+
+}
+
+
+.status-dot.green{
+
+    background:#29c5a6;
+
+}
+
+
+.status-dot.yellow{
+
+    background:#dfb24d;
+
+}
+
+
+.status-dot.red{
+
+    background:#d75b6c;
+
+}
+
+
+.status-main{
+
+    color:#bffcff;
+
+    font-size:9px;
+
+}
+
+
+.status-detail{
+
+    margin-top:3px;
+
+    color:#648a91;
+
+    font-size:8px;
+
+    line-height:1.5;
+
+}
+
+
+.progress{
+
+    width:100%;
+
+    height:7px;
+
+    margin-top:9px;
+
+    overflow:hidden;
+
+    border:
+        1px solid #123f46;
+
+    background:#030a0c;
+
+}
+
+
+.progress-bar{
+
+    width:0%;
+
+    height:100%;
+
+    background:#2ba3af;
+
+    transition:
+        width .15s ease;
+
+}
+
+
+.small{
+
+    color:#537c82;
+
+    font-size:8px;
+
+    line-height:1.5;
+
+}
+
+
+pre{
+
+    margin:0;
+
+    padding:9px;
+
+    border:
+        1px solid #10363c;
+
+    background:#040b0d;
+
+    color:#72b9c1;
+
+    font-size:8px;
+
+    white-space:pre-wrap;
+
+    word-break:break-word;
+
+}
+
+
+.hidden{
+
+    display:none !important;
+
+}
+
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="header">
+
+    <div class="title">
+        LITTLE HOLLOW // SETTINGS
+    </div>
+
+    <div class="subtitle">
+        AI backend, model setup and agent configuration
+    </div>
+
+</div>
+
+
+<div class="layout">
+
+
+<aside class="sidebar">
+
+    <button
+        class="nav active"
+        data-section="ai"
+    >
+        AI
+    </button>
+
+    <button
+        class="nav"
+        data-section="mode"
+    >
+        MODE
+    </button>
+
+    <button
+        class="nav"
+        data-section="live"
+    >
+        LIVE
+    </button>
+
+    <button
+        class="nav"
+        data-section="storage"
+    >
+        STORAGE
+    </button>
+
+</aside>
+
+
+<main class="content">
+
+
+<!-- ======================================================= -->
+<!-- AI -->
+<!-- ======================================================= -->
+
+<section
+    id="section-ai"
+    class="section active"
+>
+
+
+<div class="section-title">
+    AI PROVIDER
+</div>
+
+
+<div class="card">
+
+
+<div class="card-title">
+    PROVIDER
+</div>
+
+
+<div class="description">
+    Choose the AI backend. Little Hollow keeps its system prompt
+    and tools under application control.
+</div>
+
+
+<label
+    class="provider"
+    data-provider="puter"
+>
+
+<input
+    type="radio"
+    name="provider"
+    value="puter"
+/>
+
+<div>
+
+<div class="provider-name">
+    PUTER.JS
+</div>
+
+<div class="provider-description">
+    Remote AI through Puter.js. The library is loaded only when
+    you explicitly initialize it or first use the provider.
+</div>
+
+</div>
+
+</label>
+
+
+<label
+    class="provider"
+    data-provider="onnx"
+>
+
+<input
+    type="radio"
+    name="provider"
+    value="onnx"
+/>
+
+<div>
+
+<div class="provider-name">
+    ONNX
+</div>
+
+<div class="provider-description">
+    Run an ONNX model locally in the browser.
+</div>
+
+</div>
+
+</label>
+
+
+<label
+    class="provider"
+    data-provider="gguf"
+>
+
+<input
+    type="radio"
+    name="provider"
+    value="gguf"
+/>
+
+<div>
+
+<div class="provider-name">
+    GGUF
+</div>
+
+<div class="provider-description">
+    Local GGUF runtime. A browser-compatible GGUF engine must be installed.
+</div>
+
+</div>
+
+</label>
+
+
+</div>
+
+
+<!-- ======================================================= -->
+<!-- PUTER -->
+<!-- ======================================================= -->
+
+<div
+    id="puter-card"
+    class="card"
+>
+
+
+<div class="card-title">
+    PUTER.JS
+</div>
+
+
+<label for="puter-model">
+    MODEL
+</label>
+
+<input
+    id="puter-model"
+    type="text"
+/>
+
+
+<button
+    id="prepare-puter"
+    style="margin-top:10px;"
+>
+    INITIALIZE PUTER.JS
+</button>
+
+
+<div class="status-box">
+
+<span
+    id="puter-dot"
+    class="status-dot"
+></span>
+
+<div>
+
+<div
+    id="puter-status"
+    class="status-main"
+>
+Not initialized.
+</div>
+
+<div
+    id="puter-detail"
+    class="status-detail"
+>
+Puter.js has not been loaded.
+</div>
+
+</div>
+
+</div>
+
+
+</div>
+
+
+<!-- ======================================================= -->
+<!-- ONNX -->
+<!-- ======================================================= -->
+
+<div
+    id="onnx-card"
+    class="card hidden"
+>
+
+
+<div class="card-title">
+    ONNX LOCAL MODEL
+</div>
+
+
+<div class="description">
+    Nothing is downloaded or initialized until you press
+    LOAD / SET UP MODEL.
+</div>
+
+
+<label for="onnx-model">
+    MODEL REPOSITORY
+</label>
+
+<input
+    id="onnx-model"
+    type="text"
+/>
+
+
+<div class="row" style="margin-top:9px;">
+
+
+<div class="field">
+
+<label for="onnx-device">
+    BACKEND
+</label>
+
+<select id="onnx-device">
+
+<option value="auto">
+    AUTO
+</option>
+
+<option value="webgpu">
+    WEBGPU
+</option>
+
+<option value="wasm">
+    WASM / CPU
+</option>
+
+</select>
+
+</div>
+
+
+<div class="field">
+
+<label for="onnx-dtype">
+    MODEL VARIANT
+</label>
+
+<select id="onnx-dtype">
+
+<option value="q4">
+    Q4
+</option>
+
+<option value="q4f16">
+    Q4F16
+</option>
+
+<option value="q8">
+    Q8
+</option>
+
+<option value="int8">
+    INT8
+</option>
+
+<option value="uint8">
+    UINT8
+</option>
+
+<option value="fp16">
+    FP16
+</option>
+
+<option value="fp32">
+    FP32
+</option>
+
+</select>
+
+</div>
+
+
+</div>
+
+
+<div class="row" style="margin-top:9px;">
+
+
+<div class="field">
+
+<label for="onnx-max">
+    MAX TOKENS
+</label>
+
+<input
+    id="onnx-max"
+    type="number"
+    min="16"
+    max="4096"
+/>
+
+</div>
+
+
+<div class="field">
+
+<label for="onnx-temperature">
+    TEMPERATURE
+</label>
+
+<input
+    id="onnx-temperature"
+    type="number"
+    min="0"
+    max="2"
+    step="0.05"
+/>
+
+</div>
+
+
+</div>
+
+
+<div
+    id="onnx-warning"
+    class="small"
+    style="margin-top:9px;"
+></div>
+
+
+<div style="margin-top:10px;">
+
+<button id="load-onnx">
+    LOAD / SET UP MODEL
+</button>
+
+<button
+    id="unload-onnx"
+    class="danger"
+    style="margin-left:5px;"
+>
+    UNLOAD
+</button>
+
+</div>
+
+
+<div class="status-box">
+
+
+<span
+    id="onnx-dot"
+    class="status-dot yellow"
+></span>
+
+
+<div style="flex:1;min-width:0;">
+
+<div
+    id="onnx-status"
+    class="status-main"
+>
+Not set up.
+</div>
+
+
+<div
+    id="onnx-detail"
+    class="status-detail"
+>
+Choose a model, then click LOAD / SET UP MODEL.
+</div>
+
+
+<div
+    id="onnx-progress-wrap"
+    class="progress hidden"
+>
+
+<div
+    id="onnx-progress"
+    class="progress-bar"
+></div>
+
+</div>
+
+
+<div
+    id="onnx-progress-text"
+    class="status-detail hidden"
+>
+</div>
+
+
+</div>
+
+</div>
+
+
+</div>
+
+
+<!-- ======================================================= -->
+<!-- GGUF -->
+<!-- ======================================================= -->
+
+<div
+    id="gguf-card"
+    class="card hidden"
+>
+
+
+<div class="card-title">
+    GGUF LOCAL MODEL
+</div>
+
+
+<div class="description">
+    GGUF is kept behind a separate browser runtime interface.
+    This page does not pretend a GGUF file can be executed by ONNX Runtime.
+</div>
+
+
+<label for="gguf-model">
+    MODEL
+</label>
+
+<input
+    id="gguf-model"
+    type="text"
+    placeholder="model.gguf"
+/>
+
+
+<div class="row" style="margin-top:9px;">
+
+
+<div class="field">
+
+<label for="gguf-context">
+    CONTEXT
+</label>
+
+<input
+    id="gguf-context"
+    type="number"
+    min="512"
+    step="512"
+/>
+
+</div>
+
+
+<div class="field">
+
+<label for="gguf-threads">
+    THREADS
+</label>
+
+<input
+    id="gguf-threads"
+    type="number"
+    min="1"
+/>
+
+</div>
+
+
+</div>
+
+
+<div style="margin-top:10px;">
+
+<button id="load-gguf">
+    LOAD / SET UP GGUF
+</button>
+
+</div>
+
+
+<div class="status-box">
+
+
+<span
+    id="gguf-dot"
+    class="status-dot yellow"
+></span>
+
+
+<div>
+
+<div
+    id="gguf-status"
+    class="status-main"
+>
+Not initialized.
+</div>
+
+<div
+    id="gguf-detail"
+    class="status-detail"
+>
+A compatible GGUF browser runtime must expose LittleHollowGGUF.
+</div>
+
+</div>
+
+</div>
+
+
+</div>
+
+
+</section>
+
+
+<!-- ======================================================= -->
+<!-- MODE -->
+<!-- ======================================================= -->
+
+<section
+    id="section-mode"
+    class="section"
+>
+
+
+<div class="section-title">
+    AI MODE
+</div>
+
+
+<div class="card">
+
+
+<div
+    class="mode"
+    data-mode="interactive"
+>
+
+<div class="mode-name">
+    INTERACTIVE
+</div>
+
+<div class="mode-description">
+    Runs when normal user input is submitted.
+</div>
+
+</div>
+
+
+<div
+    class="mode"
+    data-mode="agent"
+>
+
+<div class="mode-name">
+    AGENT
+</div>
+
+<div class="mode-description">
+    Allows the model to perform multiple tool rounds before finishing.
+</div>
+
+</div>
+
+
+<div
+    class="mode"
+    data-mode="live"
+>
+
+<div class="mode-name">
+    LIVE
+</div>
+
+<div class="mode-description">
+    Observes meaningful Little Hollow state changes and can act without a new chat message.
+    Live mode never automatically downloads a model.
+</div>
+
+</div>
+
+
+</div>
+
+
+<div class="card">
+
+
+<div class="card-title">
+    TOOL ROUNDS
+</div>
+
+
+<label for="max-rounds">
+    MAX TOOL ROUNDS
+</label>
+
+
+<input
+    id="max-rounds"
+    type="number"
+    min="1"
+    max="50"
+/>
+
+
+<div class="small" style="margin-top:7px;">
+All Little Hollow tools remain enabled.
+</div>
+
+
+</div>
+
+
+<div class="card">
+
+
+<div class="card-title">
+    TOOLS
+</div>
+
+
+<div class="description">
+    Tools are controlled by Little Hollow and are always supplied
+    to the selected provider. Users cannot disable them here.
+</div>
+
+
+<div class="status-box">
+
+<span class="status-dot green"></span>
+
+<div>
+
+<div class="status-main">
+ALL TOOLS ENABLED
+</div>
+
+<div class="status-detail">
+Current and future application tools use the central Tools registry.
+</div>
+
+</div>
+
+</div>
+
+
+</div>
+
+
+</section>
+
+
+<!-- ======================================================= -->
+<!-- LIVE -->
+<!-- ======================================================= -->
+
+<section
+    id="section-live"
+    class="section"
+>
+
+
+<div class="section-title">
+    LIVE AGENT
+</div>
+
+
+<div class="card">
+
+
+<div class="card-title">
+    LIVE PROCESSING
+</div>
+
+
+<div class="description">
+    Live mode is event-driven. The agent receives compact
+    application state rather than the entire DOM.
+</div>
+
+
+<label for="live-debounce">
+    DEBOUNCE
+</label>
+
+
+<input
+    id="live-debounce"
+    type="number"
+    min="250"
+    step="250"
+/>
+
+
+<label
+    for="live-min"
+    style="margin-top:10px;"
+>
+MINIMUM INTERVAL
+</label>
+
+
+<input
+    id="live-min"
+    type="number"
+    min="1000"
+    step="500"
+/>
+
+
+<div class="small" style="margin-top:8px;">
+
+Important state may include active application,
+open applications, current filesystem path, selected item,
+and recent meaningful events.
+
+Live mode does not initialize a local model.
+A local model must already be explicitly loaded.
+
+</div>
+
+
+</div>
+
+
+<div class="card">
+
+
+<div class="card-title">
+    STATUS
+</div>
+
+
+<div
+    id="live-status"
+    class="status-main"
+>
+Interactive mode.
+</div>
+
+
+</div>
+
+
+</section>
+
+
+<!-- ======================================================= -->
+<!-- STORAGE -->
+<!-- ======================================================= -->
+
+<section
+    id="section-storage"
+    class="section"
+>
+
+
+<div class="section-title">
+    STORAGE
+</div>
+
+
+<div class="card">
+
+
+<div class="card-title">
+    AI SETTINGS
+</div>
+
+
+<div class="description">
+    Provider/model configuration is stored locally in this browser.
+    Browser model cache is managed by Transformers.js.
+</div>
+
+
+<button
+    id="reset"
+    class="danger"
+>
+    RESET AI SETTINGS
+</button>
+
+
+</div>
+
+
+<div class="card">
+
+
+<div class="card-title">
+    CURRENT CONFIGURATION
+</div>
+
+
+<pre id="preview"></pre>
+
+
+</div>
+
+
+</section>
+
+
+</main>
+
+</div>
+
+
+<script>
+
+(function(){
+
+    const KEY =
+        "littlehollow.ai.settings";
+
+
+    const defaults = {
+
+        provider:
+            "puter",
+
+        mode:
+            "interactive",
+
+        puter: {
+
+            model:
+                "claude-sonnet-5"
+
+        },
+
+        onnx: {
+
+            model:
+                "onnx-community/Qwen3-0.6B-ONNX",
+
+            device:
+                "auto",
+
+            dtype:
+                "q4",
+
+            maxNewTokens:
+                512,
+
+            temperature:
+                0.7
+
+        },
+
+        gguf: {
+
+            model:
+                "",
+
+            context:
+                8192,
+
+            threads:
+                4,
+
+            maxNewTokens:
+                512,
+
+            temperature:
+                0.7
+
+        },
+
+        live: {
+
+            enabled:
+                false,
+
+            debounceMs:
+                1800,
+
+            minIntervalMs:
+                2500
+
+        },
+
+        agent: {
+
+            maxToolRounds:
+                8
+
+        }
+
+    };
+
+
+    function clone(value){
+
+        return JSON.parse(
+            JSON.stringify(value)
+        );
+
+    }
+
+
+    function merge(base, extra){
+
+        const result =
+            clone(base);
+
+
+        if(!extra)
+            return result;
+
+
+        for(
+            const key of Object.keys(extra)
+        ){
+
+            if(
+                extra[key] &&
+                typeof extra[key] === "object" &&
+                !Array.isArray(extra[key])
+            ){
+
+                result[key] =
+                    Object.assign(
+                        {},
+                        result[key] || {},
+                        extra[key]
+                    );
+
+            }else{
+
+                result[key] =
+                    extra[key];
+
+            }
+
+        }
+
+
+        return result;
+
+    }
+
+
+    function load(){
+
+        try{
+
+            const raw =
+                localStorage.getItem(
+                    KEY
+                );
+
+
+            if(!raw){
+
+                return clone(
+                    defaults
+                );
+
+            }
+
+
+            return merge(
+                defaults,
+                JSON.parse(raw)
+            );
+
+        }catch(error){
+
+            console.error(
+                "Settings load failed:",
+                error
+            );
+
+
+            return clone(
+                defaults
+            );
+
+        }
+
+    }
+
+
+    let settings =
+        load();
+
+
+    function save(){
+
+        settings.live.enabled =
+            settings.mode === "live";
+
+
+        localStorage.setItem(
+            KEY,
+            JSON.stringify(
+                settings
+            )
+        );
+
+
+        render();
+
+
+        /*
+         * Same browsing context:
+         */
+
+        try{
+
+            window.dispatchEvent(
+
+                new CustomEvent(
+                    "littlehollow:settingschange",
+                    {
+                        detail:
+                            clone(settings)
+                    }
+                )
+
+            );
+
+        }catch(error){}
+
+
+        /*
+         * Parent page:
+         */
+
+        try{
+
+            parent.postMessage(
+
+                {
+                    type:
+                        "LITTLE_HOLLOW_SETTINGS_CHANGED",
+
+                    settings:
+                        clone(settings)
+
+                },
+
+                "*"
+
+            );
+
+        }catch(error){}
+
+    }
+
+
+    function $(id){
+
+        return document.getElementById(
+            id
+        );
+
+    }
+
+
+    /*
+     * Navigation
+     */
+
+    document
+        .querySelectorAll(".nav")
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    document
+                        .querySelectorAll(
+                            ".nav"
+                        )
+                        .forEach(
+                            item =>
+                                item.classList.remove(
+                                    "active"
+                                )
+                        );
+
+
+                    document
+                        .querySelectorAll(
+                            ".section"
+                        )
+                        .forEach(
+                            item =>
+                                item.classList.remove(
+                                    "active"
+                                )
+                        );
+
+
+                    button.classList.add(
+                        "active"
+                    );
+
+
+                    const target =
+                        $(
+                            "section-" +
+                            button.dataset.section
+                        );
+
+
+                    if(target){
+
+                        target.classList.add(
+                            "active"
+                        );
+
+                    }
+
+                }
+            );
+
+        });
+
+
+    /*
+     * Provider selection
+     */
+
+    document
+        .querySelectorAll(
+            ".provider"
+        )
+        .forEach(card => {
+
+            card.addEventListener(
+                "click",
+                () => {
+
+                    settings.provider =
+                        card.dataset.provider;
+
+                    save();
+
+                }
+            );
+
+        });
+
+
+    /*
+     * Mode selection
+     */
+
+    document
+        .querySelectorAll(
+            ".mode"
+        )
+        .forEach(card => {
+
+            card.addEventListener(
+                "click",
+                () => {
+
+                    settings.mode =
+                        card.dataset.mode;
+
+                    save();
+
+                }
+            );
+
+        });
+
+
+    /*
+     * Puter
+     */
+
+    $("puter-model")
+        .addEventListener(
+            "change",
+            event => {
+
+                settings.puter.model =
+                    event.target.value.trim() ||
+                    defaults.puter.model;
+
+                save();
+
+            }
+        );
+
+
+    $("prepare-puter")
+        .addEventListener(
+            "click",
+            async () => {
+
+                const button =
+                    $("prepare-puter");
+
+
+                button.disabled =
+                    true;
+
+
+                $("puter-status")
+                    .textContent =
+                    "Loading Puter.js...";
+
+
+                $("puter-detail")
+                    .textContent =
+                    "Preparing remote AI provider.";
+
+
+                $("puter-dot")
+                    .className =
+                    "status-dot yellow";
+
+
+                try{
+
+                    if(
+                        !parent.LittleHollowAI ||
+                        typeof
+                            parent.LittleHollowAI
+                                .preparePuter !==
+                            "function"
+                    ){
+
+                        throw new Error(
+                            "Little Hollow AI runtime is unavailable."
+                        );
+
+                    }
+
+
+                    await parent
+                        .LittleHollowAI
+                        .preparePuter();
+
+
+                    $("puter-status")
+                        .textContent =
+                        "READY";
+
+
+                    $("puter-detail")
+                        .textContent =
+                        "Puter.js is initialized.";
+
+                    $("puter-dot")
+                        .className =
+                        "status-dot green";
+
+
+                }catch(error){
+
+                    $("puter-status")
+                        .textContent =
+                        "ERROR";
+
+
+                    $("puter-detail")
+                        .textContent =
+                        error.message;
+
+
+                    $("puter-dot")
+                        .className =
+                        "status-dot red";
+
+                }
+
+
+                button.disabled =
+                    false;
+
+            }
+        );
+
+
+    window.addEventListener(
+        "message",
+        event => {
+
+            const data =
+                event.data || {};
+
+
+            /*
+             * ONNX status
+             */
+
+            if(
+                data.type ===
+                "LITTLE_HOLLOW_ONNX_STATUS"
+            ){
+
+                updateOnnxStatus(
+                    data.status || {}
+                );
+
+            }
+
+
+            /*
+             * Puter status
+             */
+
+            if(
+                data.type ===
+                "LITTLE_HOLLOW_PUTER_STATUS"
+            ){
+
+                const status =
+                    data.status;
+
+
+                if(
+                    status === "ready"
+                ){
+
+                    $("puter-status")
+                        .textContent =
+                        "READY";
+
+
+                    $("puter-detail")
+                        .textContent =
+                        data.message ||
+                        "Puter.js is ready.";
+
+                    $("puter-dot")
+                        .className =
+                        "status-dot green";
+
+                }else if(
+                    status === "loading"
+                ){
+
+                    $("puter-status")
+                        .textContent =
+                        "LOADING";
+
+
+                    $("puter-detail")
+                        .textContent =
+                        data.message ||
+                        "Loading Puter.js...";
+
+                    $("puter-dot")
+                        .className =
+                        "status-dot yellow";
+
+                }else if(
+                    status === "error"
+                ){
+
+                    $("puter-status")
+                        .textContent =
+                        "ERROR";
+
+
+                    $("puter-detail")
+                        .textContent =
+                        data.message ||
+                        "Puter.js failed.";
+
+                    $("puter-dot")
+                        .className =
+                        "status-dot red";
+
+                }
+
+            }
+
+        }
+    );
+
+
+    /*
+     * Load ONNX
+     */
+
+    $("load-onnx")
+        .addEventListener(
+            "click",
+            async () => {
+
+                const button =
+                    $("load-onnx");
+
+
+                button.disabled =
+                    true;
+
+
+                settings.provider =
+                    "onnx";
+
+
+                save();
+
+
+                updateOnnxStatus({
+
+                    state:
+                        "loading",
+
+                    progress:
+                        0,
+
+                    message:
+                        "Preparing ONNX model..."
+
+                });
+
+
+                try{
+
+                    if(
+                        !parent.LittleHollowAI ||
+                        typeof
+                            parent.LittleHollowAI
+                                .prepareOnnx !==
+                            "function"
+                    ){
+
+                        throw new Error(
+                            "Little Hollow AI runtime is unavailable."
+                        );
+
+                    }
+
+
+                    await parent
+                        .LittleHollowAI
+                        .prepareOnnx(
+
+                            clone(
+                                settings.onnx
+                            )
+
+                        );
+
+
+                    /*
+                     * Re-render after runtime becomes ready.
+                     */
+
+                    render();
+
+                }catch(error){
+
+                    updateOnnxStatus({
+
+                        state:
+                            "error",
+
+                        progress:
+                            0,
+
+                        message:
+                            error.message ||
+                            String(error)
+
+                    });
+
+                }
+
+
+                button.disabled =
+                    false;
+
+            }
+        );
+
+
+    /*
+     * Unload ONNX
+     */
+
+    $("unload-onnx")
+        .addEventListener(
+            "click",
+            async () => {
+
+                try{
+
+                    if(
+                        parent.LittleHollowAI &&
+                        typeof
+                            parent.LittleHollowAI
+                                .unloadOnnx ===
+                            "function"
+                    ){
+
+                        parent
+                            .LittleHollowAI
+                            .unloadOnnx();
+
+                    }
+
+                }catch(error){
+
+                    console.error(
+                        error
+                    );
+
+                }
+
+
+                updateOnnxStatus({
+
+                    state:
+                        "not_loaded",
+
+                    progress:
+                        0,
+
+                    message:
+                        "ONNX runtime unloaded."
+
+                });
+
+            }
+        );
+
+
+    /*
+     * ONNX fields
+     */
+
+    $("onnx-model")
+        .addEventListener(
+            "change",
+            event => {
+
+                settings.onnx.model =
+                    event.target.value.trim();
+
+                save();
+
+                showOnnxConfigWarning();
+
+            }
+        );
+
+
+    $("onnx-device")
+        .addEventListener(
+            "change",
+            event => {
+
+                settings.onnx.device =
+                    event.target.value;
+
+                save();
+
+                showOnnxConfigWarning();
+
+            }
+        );
+
+
+    $("onnx-dtype")
+        .addEventListener(
+            "change",
+            event => {
+
+                settings.onnx.dtype =
+                    event.target.value;
+
+                save();
+
+                showOnnxConfigWarning();
+
+            }
+        );
+
+
+    $("onnx-max")
+        .addEventListener(
+            "change",
+            event => {
+
+                settings.onnx.maxNewTokens =
+                    Math.max(
+                        16,
+                        Math.min(
+                            4096,
+                            Number(
+                                event.target.value
+                            ) || 512
+                        )
+                    );
+
+                save();
+
+            }
+        );
+
+
+    $("onnx-temperature")
+        .addEventListener(
+            "change",
+            event => {
+
+                settings.onnx.temperature =
+                    Math.max(
+                        0,
+                        Math.min(
+                            2,
+                            Number(
+                                event.target.value
+                            ) || 0.7
+                        )
+                    );
+
+                save();
+
+            }
+        );
+
+
+    /*
+     * GGUF
+     */
+
+    $("gguf-model")
+        .addEventListener(
+            "change",
+            event => {
+
+                settings.gguf.model =
+                    event.target.value.trim();
+
+                save();
+
+            }
+        );
+
+
+    $("gguf-context")
+        .addEventListener(
+            "change",
+            event => {
+
+                settings.gguf.context =
+                    Math.max(
+                        512,
+                        Number(
+                            event.target.value
+                        ) || 8192
+                    );
+
+                save();
+
+            }
+        );
+
+
+    $("gguf-threads")
+        .addEventListener(
+            "change",
+            event => {
+
+                settings.gguf.threads =
+                    Math.max(
+                        1,
+                        Number(
+                            event.target.value
+                        ) || 4
+                    );
+
+                save();
+
+            }
+        );
+
+
+    $("load-gguf")
+        .addEventListener(
+            "click",
+            async () => {
+
+                settings.provider =
+                    "gguf";
+
+                save();
+
+
+                try{
+
+                    if(
+                        !parent.LittleHollowAI ||
+                        typeof
+                            parent.LittleHollowAI
+                                .prepareGguf !==
+                            "function"
+                    ){
+
+                        throw new Error(
+                            "Little Hollow AI runtime is unavailable."
+                        );
+
+                    }
+
+
+                    await parent
+                        .LittleHollowAI
+                        .prepareGguf();
+
+                    $("gguf-status")
+                        .textContent =
+                        "READY";
+
+
+                    $("gguf-detail")
+                        .textContent =
+                        "GGUF runtime initialized.";
+
+                    $("gguf-dot")
+                        .className =
+                        "status-dot green";
+
+                }catch(error){
+
+                    $("gguf-status")
+                        .textContent =
+                        "ERROR";
+
+                    $("gguf-detail")
+                        .textContent =
+                        error.message;
+
+                    $("gguf-dot")
+                        .className =
+                        "status-dot red";
+
+                }
+
+            }
+        );
+
+
+    /*
+     * Agent
+     */
+
+    $("max-rounds")
+        .addEventListener(
+            "change",
+            event => {
+
+                settings.agent.maxToolRounds =
+                    Math.max(
+                        1,
+                        Math.min(
+                            50,
+                            Number(
+                                event.target.value
+                            ) || 8
+                        )
+                    );
+
+                save();
+
+            }
+        );
+
+
+    /*
+     * Live
+     */
+
+    $("live-debounce")
+        .addEventListener(
+            "change",
+            event => {
+
+                settings.live.debounceMs =
+                    Math.max(
+                        250,
+                        Number(
+                            event.target.value
+                        ) || 1800
+                    );
+
+                save();
+
+            }
+        );
+
+
+    $("live-min")
+        .addEventListener(
+            "change",
+            event => {
+
+                settings.live.minIntervalMs =
+                    Math.max(
+                        1000,
+                        Number(
+                            event.target.value
+                        ) || 2500
+                    );
+
+                save();
+
+            }
+        );
+
+
+    /*
+     * Reset
+     */
+
+    $("reset")
+        .addEventListener(
+            "click",
+            () => {
+
+                if(
+                    !confirm(
+                        "Reset all Little Hollow AI settings?"
+                    )
+                ){
+
+                    return;
+
+                }
+
+
+                localStorage.removeItem(
+                    KEY
+                );
+
+
+                location.reload();
+
+            }
+        );
+
+
+    /*
+     * ONNX UI
+     */
+
+    function updateOnnxStatus(
+        status
+    ){
+
+        const state =
+            status.state ||
+            "not_loaded";
+
+
+        const progress =
+            Number(
+                status.progress
+            ) || 0;
+
+
+        const message =
+            status.message ||
+            "";
+
+
+        const dot =
+            $("onnx-dot");
+
+
+        const main =
+            $("onnx-status");
+
+
+        const detail =
+            $("onnx-detail");
+
+
+        const progressWrap =
+            $("onnx-progress-wrap");
+
+
+        const progressBar =
+            $("onnx-progress");
+
+
+        const progressText =
+            $("onnx-progress-text");
+
+
+        if(
+            state ===
+            "ready"
+        ){
+
+            dot.className =
+                "status-dot green";
+
+
+            main.textContent =
+                "READY — LOCAL AI";
+
+
+            detail.textContent =
+                message ||
+                "ONNX model is initialized and ready.";
+
+
+            progressWrap.classList.add(
+                "hidden"
+            );
+
+
+            progressText.classList.add(
+                "hidden"
+            );
+
+
+            return;
+
+        }
+
+
+        if(
+            state ===
+            "downloading"
+        ){
+
+            dot.className =
+                "status-dot yellow";
+
+
+            main.textContent =
+                "DOWNLOADING MODEL";
+
+
+            detail.textContent =
+                message;
+
+
+            progressWrap.classList.remove(
+                "hidden"
+            );
+
+
+            progressBar.style.width =
+                progress + "%";
+
+
+            progressText.classList.remove(
+                "hidden"
+            );
+
+
+            progressText.textContent =
+                (
+                    Math.round(
+                        progress
+                    ) +
+                    "% " +
+                    message
+                );
+
+
+            return;
+
+        }
+
+
+        if(
+            state ===
+            "loading_runtime" ||
+            state ===
+            "loading"
+        ){
+
+            dot.className =
+                "status-dot yellow";
+
+
+            main.textContent =
+                "LOADING";
+
+
+            detail.textContent =
+                message;
+
+
+            progressWrap.classList.remove(
+                "hidden"
+            );
+
+
+            progressBar.style.width =
+                Math.max(
+                    2,
+                    progress
+                ) + "%";
+
+
+            progressText.classList.remove(
+                "hidden"
+            );
+
+
+            progressText.textContent =
+                message;
+
+
+            return;
+
+        }
+
+
+        if(
+            state ===
+            "error"
+        ){
+
+            dot.className =
+                "status-dot red";
+
+
+            main.textContent =
+                "ERROR";
+
+
+            detail.textContent =
+                message;
+
+
+            progressWrap.classList.add(
+                "hidden"
+            );
+
+
+            progressText.classList.add(
+                "hidden"
+            );
+
+
+            return;
+
+        }
+
+
+        dot.className =
+            "status-dot yellow";
+
+
+        main.textContent =
+            "NOT SET UP";
+
+
+        detail.textContent =
+            message ||
+            "Choose a model and click LOAD / SET UP MODEL.";
+
+
+        progressWrap.classList.add(
+            "hidden"
+        );
+
+
+        progressText.classList.add(
+            "hidden"
+        );
+
+    }
+
+
+    function showOnnxConfigWarning(){
+
+        const dtype =
+            settings.onnx.dtype;
+
+
+        const device =
+            settings.onnx.device;
+
+
+        if(
+            (
+                dtype === "q4f16" ||
+                dtype === "fp16"
+            ) &&
+            device === "webgpu"
+        ){
+
+            $("onnx-warning")
+                .textContent =
+                "Warning: this variant uses f16. Your current WebGPU error indicates shader-f16 may be unavailable. Q4 or WASM is safer.";
+
+        }else{
+
+            $("onnx-warning")
+                .textContent =
+                "";
+
+        }
+
+    }
+
+
+    /*
+     * Render
+     */
+
+    function render(){
+
+        /*
+         * Provider
+         */
+
+        document
+            .querySelectorAll(
+                ".provider"
+            )
+            .forEach(card => {
+
+                const active =
+                    card.dataset.provider ===
+                    settings.provider;
+
+
+                card.classList.toggle(
+                    "active",
+                    active
+                );
+
+
+                card.querySelector(
+                    "input"
+                ).checked =
+                    active;
+
+            });
+
+
+        $("puter-card")
+            .classList.toggle(
+                "hidden",
+                settings.provider !==
+                    "puter"
+            );
+
+
+        $("onnx-card")
+            .classList.toggle(
+                "hidden",
+                settings.provider !==
+                    "onnx"
+            );
+
+
+        $("gguf-card")
+            .classList.toggle(
+                "hidden",
+                settings.provider !==
+                    "gguf"
+            );
+
+
+        /*
+         * Mode
+         */
+
+        document
+            .querySelectorAll(
+                ".mode"
+            )
+            .forEach(card => {
+
+                card.classList.toggle(
+                    "active",
+                    card.dataset.mode ===
+                    settings.mode
+                );
+
+            });
+
+
+        /*
+         * Values
+         */
+
+        $("puter-model").value =
+            settings.puter.model;
+
+
+        $("onnx-model").value =
+            settings.onnx.model;
+
+
+        $("onnx-device").value =
+            settings.onnx.device;
+
+
+        $("onnx-dtype").value =
+            settings.onnx.dtype;
+
+
+        $("onnx-max").value =
+            settings.onnx.maxNewTokens;
+
+
+        $("onnx-temperature").value =
+            settings.onnx.temperature;
+
+
+        $("gguf-model").value =
+            settings.gguf.model;
+
+
+        $("gguf-context").value =
+            settings.gguf.context;
+
+
+        $("gguf-threads").value =
+            settings.gguf.threads;
+
+
+        $("max-rounds").value =
+            settings.agent.maxToolRounds;
+
+
+        $("live-debounce").value =
+            settings.live.debounceMs;
+
+
+        $("live-min").value =
+            settings.live.minIntervalMs;
+
+
+        /*
+         * Mode status
+         */
+
+        if(
+            settings.mode ===
+            "interactive"
+        ){
+
+            $("live-status")
+                .textContent =
+                "INTERACTIVE MODE";
+
+        }else if(
+            settings.mode ===
+            "agent"
+        ){
+
+            $("live-status")
+                .textContent =
+                "AGENT MODE";
+
+        }else{
+
+            $("live-status")
+                .textContent =
+                "LIVE MODE — local runtimes must be loaded manually.";
+
+        }
+
+
+        $("preview").textContent =
+            JSON.stringify(
+                settings,
+                null,
+                2
+            );
+
+
+        showOnnxConfigWarning();
+
+    }
+
+
+    /*
+     * Request current runtime status after Settings
+     * iframe opens.
+     */
+
+    function syncRuntimeStatus(){
+
+        try{
+
+            if(
+                parent.LittleHollowAI &&
+                typeof
+                    parent.LittleHollowAI
+                        .getRuntimeStatus ===
+                    "function"
+            ){
+
+                const runtime =
+                    parent
+                        .LittleHollowAI
+                        .getRuntimeStatus();
+
+
+                if(
+                    runtime &&
+                    runtime.onnx &&
+                    runtime.onnx.status
+                ){
+
+                    updateOnnxStatus(
+                        runtime.onnx.status
+                    );
+
+                }
+
+
+                if(
+                    runtime &&
+                    runtime.puterReady
+                ){
+
+                    $("puter-status")
+                        .textContent =
+                        "READY";
+
+
+                    $("puter-detail")
+                        .textContent =
+                        "Puter.js is initialized.";
+
+                    $("puter-dot")
+                        .className =
+                        "status-dot green";
+
+                }
+
+            }
+
+        }catch(error){
+
+            console.warn(
+                "Runtime status unavailable:",
+                error
+            );
+
+        }
+
+    }
+
+
+    render();
+
+    syncRuntimeStatus();
+
 })();
 </script>
+
+
 </body>
+
 </html>
+]
