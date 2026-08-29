@@ -2,10 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0"
-  />
+  >
 
   <title>Offline AI - ONNX</title>
 
@@ -14,8 +18,14 @@
       box-sizing: border-box;
     }
 
+    html,
     body {
       margin: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
       font-family:
         Inter,
         system-ui,
@@ -27,19 +37,24 @@
       background: #0b0f14;
       color: #f1f5f9;
 
-      height: 100vh;
       overflow: hidden;
     }
 
     .app {
+      width: 100%;
       height: 100vh;
+
       display: flex;
       flex-direction: column;
     }
 
+    /* =========================================================
+       HEADER
+       ========================================================= */
+
     header {
       height: 70px;
-      flex-shrink: 0;
+      min-height: 70px;
 
       display: flex;
       align-items: center;
@@ -47,8 +62,8 @@
 
       padding: 0 24px;
 
-      border-bottom: 1px solid #202833;
       background: #10151c;
+      border-bottom: 1px solid #202833;
     }
 
     .brand {
@@ -65,10 +80,11 @@
       place-items: center;
 
       border-radius: 10px;
+
       background: #2563eb;
 
       font-size: 20px;
-      font-weight: bold;
+      font-weight: 800;
     }
 
     .title {
@@ -78,6 +94,7 @@
 
     .subtitle {
       margin-top: 2px;
+
       font-size: 12px;
       color: #8b98a8;
     }
@@ -94,7 +111,11 @@
     .status-dot {
       width: 9px;
       height: 9px;
+
+      flex-shrink: 0;
+
       border-radius: 50%;
+
       background: #64748b;
     }
 
@@ -117,6 +138,10 @@
       }
     }
 
+    /* =========================================================
+       MAIN
+       ========================================================= */
+
     main {
       flex: 1;
       min-height: 0;
@@ -125,18 +150,32 @@
       flex-direction: column;
     }
 
+    /* =========================================================
+       MESSAGES
+       ========================================================= */
+
     #messages {
       flex: 1;
+      min-height: 0;
+
       overflow-y: auto;
 
       padding: 30px 20px;
 
       scroll-behavior: smooth;
+
+      /*
+       * Helps keep rendering isolated from the rest of
+       * the page when the message list becomes large.
+       */
+      contain: layout paint;
     }
 
     .message-wrapper {
       max-width: 900px;
+
       margin: 0 auto 22px;
+
       display: flex;
     }
 
@@ -156,6 +195,11 @@
 
       line-height: 1.55;
       font-size: 14px;
+
+      /*
+       * Prevent layout weirdness while streamed text grows.
+       */
+      contain: content;
     }
 
     .assistant .message {
@@ -168,18 +212,13 @@
       color: white;
     }
 
-    .system-message {
-      max-width: 900px;
-      margin: 10px auto 25px;
-
-      text-align: center;
-
-      color: #7f8b9a;
-      font-size: 13px;
-    }
+    /* =========================================================
+       LOADING
+       ========================================================= */
 
     .loading-screen {
       max-width: 700px;
+
       margin: auto;
 
       padding: 30px;
@@ -193,6 +232,7 @@
 
     .loading-screen p {
       color: #94a3b8;
+
       line-height: 1.6;
     }
 
@@ -205,6 +245,7 @@
       overflow: hidden;
 
       border-radius: 999px;
+
       background: #1e293b;
     }
 
@@ -219,20 +260,26 @@
 
     #progressText {
       color: #94a3b8;
+
       font-size: 13px;
     }
+
+    /* =========================================================
+       INPUT
+       ========================================================= */
 
     .input-area {
       flex-shrink: 0;
 
       padding: 16px 20px;
 
-      border-top: 1px solid #202833;
       background: #10151c;
+      border-top: 1px solid #202833;
     }
 
     .input-container {
       max-width: 900px;
+
       margin: auto;
 
       display: flex;
@@ -259,15 +306,20 @@
 
       font-family: inherit;
       font-size: 14px;
+
+      line-height: 1.4;
     }
 
     textarea:focus {
       border-color: #3b82f6;
     }
 
+    textarea:disabled {
+      opacity: 0.6;
+    }
+
     button {
       border: 0;
-
       border-radius: 12px;
 
       padding: 0 20px;
@@ -280,7 +332,7 @@
       cursor: pointer;
     }
 
-    button:hover {
+    button:hover:not(:disabled) {
       background: #1d4ed8;
     }
 
@@ -291,6 +343,7 @@
 
     .controls {
       max-width: 900px;
+
       margin: 10px auto 0;
 
       display: flex;
@@ -298,22 +351,31 @@
       align-items: center;
 
       color: #64748b;
+
       font-size: 11px;
     }
 
     .clear-btn {
       padding: 6px 10px;
+
       background: transparent;
       color: #94a3b8;
+
       border: 1px solid #293442;
+
       font-size: 11px;
     }
 
-    .clear-btn:hover {
+    .clear-btn:hover:not(:disabled) {
       background: #18202a;
     }
 
+    /* =========================================================
+       MOBILE
+       ========================================================= */
+
     @media (max-width: 700px) {
+
       header {
         padding: 0 14px;
       }
@@ -333,6 +395,10 @@
       button {
         padding: 0 15px;
       }
+
+      .subtitle {
+        display: none;
+      }
     }
   </style>
 </head>
@@ -340,6 +406,10 @@
 <body>
 
 <div class="app">
+
+  <!-- =======================================================
+       HEADER
+       ======================================================= -->
 
   <header>
 
@@ -350,6 +420,7 @@
       </div>
 
       <div>
+
         <div class="title">
           Offline AI
         </div>
@@ -357,9 +428,11 @@
         <div class="subtitle">
           ONNX • Runs on your device
         </div>
+
       </div>
 
     </div>
+
 
     <div class="status">
 
@@ -369,13 +442,17 @@
       ></div>
 
       <span id="statusText">
-        Loading model...
+        Starting worker...
       </span>
 
     </div>
 
   </header>
 
+
+  <!-- =======================================================
+       MAIN
+       ======================================================= -->
 
   <main>
 
@@ -391,13 +468,12 @@
         </h2>
 
         <p>
-          The ONNX model is being downloaded and cached
-          in your browser.
+          The AI is running inside a background Web Worker
+          so model processing does not block the interface.
         </p>
 
         <p>
-          After the first download, the browser can reuse
-          the cached model instead of downloading it again.
+          The model is downloaded and cached by the browser.
         </p>
 
         <div class="progress-container">
@@ -414,6 +490,10 @@
 
     </div>
 
+
+    <!-- =====================================================
+         INPUT
+         ===================================================== -->
 
     <div class="input-area">
 
@@ -438,12 +518,13 @@
       <div class="controls">
 
         <span>
-          No prompt is sent to a server.
+          Model processing happens in a Web Worker.
         </span>
 
         <button
           id="clear"
           class="clear-btn"
+          disabled
         >
           Clear
         </button>
@@ -457,581 +538,1950 @@
 </div>
 
 
-<script type="module">
+<script>
+/* ============================================================
+   MAIN THREAD
+   ============================================================
 
-  /*
-   * ============================================================
-   * OFFLINE ONNX AI
-   * ============================================================
-   *
-   * Library:
-   * Hugging Face Transformers.js
-   *
-   * Model:
-   * onnx-community/Qwen2.5-0.5B-Instruct
-   *
-   * The model is downloaded to the browser cache.
-   *
-   * Inference happens locally.
-   *
-   * No prompt is sent to an AI API.
-   *
-   * ============================================================
-   */
+   The important architectural change is:
 
-  import {
-    pipeline,
-    env
-  } from
-    "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0";
+       MAIN THREAD
+            |
+            |  messages
+            v
+       WEB WORKER
+            |
+            v
+       Transformers.js
+            |
+            v
+       ONNX Runtime
+            |
+            +--> WebGPU
+            |
+            +--> WASM / CPU
 
+   The model never runs directly on the UI thread.
 
-  /*
-   * ------------------------------------------------------------
-   * Configuration
-   * ------------------------------------------------------------
-   */
-
-  const MODEL_ID =
-    "onnx-community/Qwen2.5-0.5B-Instruct";
+   ============================================================ */
 
 
-  /*
-   * Allow Hugging Face to download the model.
-   *
-   * After the files are cached locally, subsequent runs
-   * can reuse the cached files.
-   */
+/* ============================================================
+   DOM
+   ============================================================ */
 
-  env.allowLocalModels = false;
+const messages =
+  document.getElementById(
+    "messages"
+  );
 
-  env.useBrowserCache = true;
+const loadingScreen =
+  document.getElementById(
+    "loadingScreen"
+  );
 
+const progress =
+  document.getElementById(
+    "progress"
+  );
 
-  /*
-   * ------------------------------------------------------------
-   * DOM
-   * ------------------------------------------------------------
-   */
+const progressText =
+  document.getElementById(
+    "progressText"
+  );
 
-  const messages =
-    document.getElementById("messages");
+const input =
+  document.getElementById(
+    "input"
+  );
 
-  const loadingScreen =
-    document.getElementById("loadingScreen");
+const send =
+  document.getElementById(
+    "send"
+  );
 
-  const progress =
-    document.getElementById("progress");
+const clear =
+  document.getElementById(
+    "clear"
+  );
 
-  const progressText =
-    document.getElementById("progressText");
+const statusText =
+  document.getElementById(
+    "statusText"
+  );
 
-  const input =
-    document.getElementById("input");
-
-  const send =
-    document.getElementById("send");
-
-  const clear =
-    document.getElementById("clear");
-
-  const statusText =
-    document.getElementById("statusText");
-
-  const statusDot =
-    document.getElementById("statusDot");
-
-
-  /*
-   * ------------------------------------------------------------
-   * Application state
-   * ------------------------------------------------------------
-   */
-
-  let generator = null;
-
-  let busy = false;
-
-  const conversation = [];
+const statusDot =
+  document.getElementById(
+    "statusDot"
+  );
 
 
-  /*
-   * ------------------------------------------------------------
-   * Status
-   * ------------------------------------------------------------
-   */
+/* ============================================================
+   STATE
+   ============================================================ */
 
-  function setStatus(
-    text,
-    type = ""
-  ) {
+let worker = null;
 
-    statusText.textContent = text;
+let workerReady =
+  false;
 
-    statusDot.className =
-      "status-dot " + type;
-  }
+let busy =
+  false;
 
+let assistantBubble =
+  null;
 
-  /*
-   * ------------------------------------------------------------
-   * Progress
-   * ------------------------------------------------------------
-   */
-
-  function setProgress(
-    percent,
-    text
-  ) {
-
-    const safePercent =
-      Math.max(
-        0,
-        Math.min(
-          100,
-          percent
-        )
-      );
-
-    progress.style.width =
-      safePercent + "%";
-
-    progressText.textContent =
-      text;
-  }
+let currentResponse =
+  "";
 
 
-  /*
-   * ------------------------------------------------------------
-   * Add message
-   * ------------------------------------------------------------
-   */
+/*
+ * Keep the frontend history too.
+ *
+ * The worker maintains the authoritative model history,
+ * but the frontend only needs this for clear/reset state.
+ */
 
-  function addMessage(
-    role,
-    text
-  ) {
-
-    const wrapper =
-      document.createElement("div");
-
-    wrapper.className =
-      "message-wrapper " +
-      role;
-
-    const bubble =
-      document.createElement("div");
-
-    bubble.className =
-      "message";
-
-    bubble.textContent =
-      text;
-
-    wrapper.appendChild(
-      bubble
-    );
-
-    messages.appendChild(
-      wrapper
-    );
-
-    messages.scrollTop =
-      messages.scrollHeight;
-
-    return bubble;
-  }
+let conversationStarted =
+  false;
 
 
-  /*
-   * ------------------------------------------------------------
-   * Download / model progress
-   * ------------------------------------------------------------
-   */
+/* ============================================================
+   STATUS
+   ============================================================ */
 
-  function handleProgress(data) {
+function setStatus(
+  text,
+  type = ""
+) {
 
-    /*
-     * Transformers.js emits different progress objects
-     * depending on the file being downloaded.
-     */
+  statusText.textContent =
+    text;
 
-    if (
-      data &&
-      typeof data.progress === "number"
-    ) {
-
-      const percent =
-        Math.round(
-          data.progress
-        );
-
-      const name =
-        data.file ||
-        data.name ||
-        "model";
-
-      setProgress(
-        percent,
-        `Downloading ${name}: ${percent}%`
-      );
-
-      setStatus(
-        `Downloading model ${percent}%`,
-        "loading"
-      );
-
-      return;
-    }
+  statusDot.className =
+    "status-dot " +
+    type;
+}
 
 
-    if (
-      data &&
-      data.status === "ready"
-    ) {
+/* ============================================================
+   PROGRESS
+   ============================================================ */
 
-      setProgress(
+function setProgress(
+  percent,
+  text
+) {
+
+  const safe =
+    Math.max(
+      0,
+      Math.min(
         100,
-        "Model downloaded."
-      );
+        Number(percent) || 0
+      )
+    );
 
-      return;
-    }
+  progress.style.width =
+    safe + "%";
+
+  progressText.textContent =
+    text;
+}
 
 
-    if (
-      data &&
-      data.status === "initiate"
-    ) {
+/* ============================================================
+   ADD MESSAGE
+   ============================================================ */
 
-      setStatus(
-        "Downloading model...",
-        "loading"
-      );
+function addMessage(
+  role,
+  text
+) {
 
-      return;
-    }
-  }
+  const wrapper =
+    document.createElement(
+      "div"
+    );
+
+  wrapper.className =
+    "message-wrapper " +
+    role;
+
+
+  const bubble =
+    document.createElement(
+      "div"
+    );
+
+  bubble.className =
+    "message";
+
+  bubble.textContent =
+    text;
+
+
+  wrapper.appendChild(
+    bubble
+  );
+
+  messages.appendChild(
+    wrapper
+  );
 
 
   /*
-   * ------------------------------------------------------------
-   * Load AI
-   * ------------------------------------------------------------
+   * Scroll only after the DOM operation.
    */
 
-  async function loadModel() {
+  requestAnimationFrame(
+    () => {
 
-  try {
-
-    setStatus(
-      "Checking hardware...",
-      "loading"
-    );
-
-    setProgress(
-      1,
-      "Checking WebGPU availability..."
-    );
-
-
-    /*
-     * ----------------------------------------------------------
-     * First determine whether WebGPU can actually create
-     * a GPU adapter.
-     *
-     * navigator.gpu existing is NOT enough.
-     * ----------------------------------------------------------
-     */
-
-    let device = "wasm";
-
-    if (
-      "gpu" in navigator &&
-      navigator.gpu
-    ) {
-
-      try {
-
-        setStatus(
-          "Testing WebGPU...",
-          "loading"
-        );
-
-        const adapter =
-          await navigator.gpu.requestAdapter();
-
-        if (adapter) {
-
-          device = "webgpu";
-
-          console.log(
-            "WebGPU adapter found:",
-            adapter
-          );
-
-          setStatus(
-            "WebGPU available",
-            "loading"
-          );
-
-        } else {
-
-          console.warn(
-            "WebGPU exists, but requestAdapter() returned null."
-          );
-
-          device = "wasm";
-
-        }
-
-      } catch (gpuError) {
-
-        console.warn(
-          "WebGPU initialization failed:",
-          gpuError
-        );
-
-        device = "wasm";
-
-      }
+      messages.scrollTop =
+        messages.scrollHeight;
 
     }
+  );
 
 
-    /*
-     * ----------------------------------------------------------
-     * Load model
-     * ----------------------------------------------------------
-     */
-
-    try {
-
-      setStatus(
-        device === "webgpu"
-          ? "Loading with WebGPU..."
-          : "Loading with CPU...",
-        "loading"
-      );
-
-      setProgress(
-        2,
-        device === "webgpu"
-          ? "Starting WebGPU model..."
-          : "Starting CPU model..."
-      );
+  return bubble;
+}
 
 
-      generator =
-        await pipeline(
-          "text-generation",
-          MODEL_ID,
-          {
-            device: device,
+/* ============================================================
+   UPDATE ASSISTANT MESSAGE
+   ============================================================ */
 
-            dtype:
-              device === "webgpu"
-                ? "q4"
-                : "q8",
-
-            progress_callback:
-              handleProgress
-          }
-        );
-
-    } catch (firstError) {
-
-      /*
-       * --------------------------------------------------------
-       * WebGPU failed.
-       *
-       * Retry using WASM instead of killing the application.
-       * --------------------------------------------------------
-       */
-
-      console.error(
-        `${device} model initialization failed:`,
-        firstError
-      );
+let scrollScheduled =
+  false;
 
 
-      if (device === "webgpu") {
+function updateAssistantBubble(
+  text
+) {
 
-        console.warn(
-          "WebGPU failed. Falling back to WASM/CPU..."
-        );
+  if (
+    !assistantBubble
+  ) {
 
+    return;
 
-        setStatus(
-          "WebGPU failed • Switching to CPU...",
-          "loading"
-        );
-
-        setProgress(
-          0,
-          "WebGPU unavailable. Starting CPU fallback..."
-        );
+  }
 
 
-        /*
-         * Important:
-         * Destroy the failed pipeline reference before
-         * creating the WASM pipeline.
-         */
-
-        generator = null;
+  assistantBubble.textContent =
+    text;
 
 
-        generator =
-          await pipeline(
-            "text-generation",
-            MODEL_ID,
-            {
-              device: "wasm",
+  /*
+   * DO NOT force layout on every token.
+   *
+   * Schedule one scroll per animation frame.
+   */
 
-              dtype: "q8",
+  if (
+    !scrollScheduled
+  ) {
 
-              progress_callback:
-                handleProgress
-            }
-          );
+    scrollScheduled =
+      true;
 
 
-          device = "wasm";
+    requestAnimationFrame(
+      () => {
 
-      } else {
+        messages.scrollTop =
+          messages.scrollHeight;
 
-        throw firstError;
+        scrollScheduled =
+          false;
 
       }
-
-    }
-
-
-    /*
-     * ----------------------------------------------------------
-     * Model is ready
-     * ----------------------------------------------------------
-     */
-
-    setProgress(
-      100,
-      "AI model ready."
-    );
-
-
-    setStatus(
-      device === "webgpu"
-        ? "Ready • WebGPU"
-        : "Ready • CPU",
-      "ready"
-    );
-
-
-    loadingScreen.remove();
-
-
-    input.disabled =
-      false;
-
-    send.disabled =
-      false;
-
-
-    addMessage(
-      "assistant",
-      device === "webgpu"
-        ? "I'm running locally on your device using WebGPU."
-        : "I'm running locally on your device using CPU/WASM."
-    );
-
-
-    input.focus();
-
-
-  } catch (error) {
-
-    console.error(
-      "FINAL MODEL ERROR:",
-      error
-    );
-
-
-    setStatus(
-      "Model failed to load",
-      "error"
-    );
-
-
-    progressText.textContent =
-      error.message ||
-      "Could not load model.";
-
-
-    addMessage(
-      "assistant",
-      "Could not load the ONNX model. Check the browser console for the full error."
     );
 
   }
 
 }
 
+
+/* ============================================================
+   WEB WORKER CODE
+   ============================================================
+
+   This is embedded directly inside this HTML file.
+
+   No separate worker.js file is needed.
+
+   ============================================================ */
+
+const workerSource = `
+
+/* ===========================================================
+   WORKER IMPORT
+   =========================================================== */
+
+import {
+  pipeline,
+  TextStreamer,
+  env
+} from
+  "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0";
+
+
+/* ===========================================================
+   CONFIG
+   =========================================================== */
+
+const MODEL_ID =
+  "onnx-community/Qwen2.5-0.5B-Instruct";
+
+
+const MAX_NEW_TOKENS =
+  64;
+
+
+const MAX_HISTORY_MESSAGES =
+  8;
+
+
+/*
+ * Only send UI stream updates every ~50 ms.
+ *
+ * The model can generate many token callbacks per second.
+ * Sending every token to the main thread is unnecessary.
+ */
+
+const STREAM_INTERVAL =
+  50;
+
+
+/* ===========================================================
+   TRANSFORMERS ENVIRONMENT
+   =========================================================== */
+
+env.allowLocalModels =
+  false;
+
+env.useBrowserCache =
+  true;
+
+env.useWasmCache =
+  true;
+
+
+/* ===========================================================
+   STATE
+   =========================================================== */
+
+let generator =
+  null;
+
+let device =
+  "wasm";
+
+
+let conversation = [
+  {
+    role: "system",
+
+    content:
+      "You are a helpful AI assistant. " +
+      "You are running completely locally " +
+      "in the user's browser. " +
+      "Be concise, useful, and direct."
+  }
+];
+
+
+/*
+ * Streaming state.
+ */
+
+let streamedText =
+  "";
+
+let lastStreamSend =
+  0;
+
+let streamTimer =
+  null;
+
+
+/* ===========================================================
+   SEND TO MAIN THREAD
+   =========================================================== */
+
+function send(
+  message
+) {
+
+  self.postMessage(
+    message
+  );
+
+}
+
+
+/* ===========================================================
+   PROGRESS
+   =========================================================== */
+
+function handleProgress(
+  data
+) {
+
+  if (
+    !data
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    typeof data.progress ===
+    "number"
+  ) {
+
+    const percent =
+      Math.round(
+        data.progress
+      );
+
+
+    const fileName =
+      data.file ||
+      data.name ||
+      "model";
+
+
+    send({
+
+      type:
+        "progress",
+
+      percent:
+        percent,
+
+      text:
+        \`Downloading \${fileName}: \${percent}%\`
+
+    });
+
+
+    return;
+
+  }
+
+
+  if (
+    data.status ===
+    "initiate"
+  ) {
+
+    send({
+
+      type:
+        "status",
+
+      text:
+        "Downloading model..."
+
+    });
+
+  }
+
+}
+
+
+/* ===========================================================
+   WEBGPU TEST
+   =========================================================== */
+
+async function canUseWebGPU() {
+
   /*
-   * ------------------------------------------------------------
-   * Build prompt
-   * ------------------------------------------------------------
+   * Workers normally have navigator.
    */
 
-  function buildPrompt() {
+  if (
+    typeof navigator ===
+    "undefined"
+  ) {
+
+    return false;
+
+  }
+
+
+  if (
+    !navigator.gpu
+  ) {
+
+    return false;
+
+  }
+
+
+  try {
 
     /*
-     * Qwen uses a chat template.
+     * This is the REAL test.
      *
-     * We manually create a simple ChatML-style prompt.
+     * Merely checking navigator.gpu is not enough.
      */
 
-    let prompt =
-      "<|im_start|>system\n" +
-      "You are a helpful AI assistant. " +
-      "You are running completely locally in the user's browser. " +
-      "Be concise and useful." +
-      "<|im_end|>\n";
+    const adapter =
+      await navigator.gpu.requestAdapter();
 
 
-    for (
-      const item of conversation
+    if (
+      !adapter
     ) {
 
-      prompt +=
-        "<|im_start|>" +
-        item.role +
-        "\n" +
-        item.content +
-        "<|im_end|>\n";
+      send({
+
+        type:
+          "log",
+
+        message:
+          "WebGPU exists, but no GPU adapter is available."
+
+      });
+
+      return false;
 
     }
 
 
-    prompt +=
-      "<|im_start|>assistant\n";
+    send({
+
+      type:
+        "log",
+
+      message:
+        "WebGPU adapter successfully detected."
+
+    });
 
 
-    return prompt;
+    return true;
+
+  } catch (
+    error
+  ) {
+
+    send({
+
+      type:
+        "log",
+
+      message:
+        "WebGPU adapter test failed: " +
+        (
+          error?.message ||
+          String(error)
+        )
+
+    });
+
+
+    return false;
+
+  }
+
+}
+
+
+/* ===========================================================
+   CREATE PIPELINE
+   =========================================================== */
+
+async function createModel(
+  selectedDevice
+) {
+
+  const dtype =
+    selectedDevice ===
+      "webgpu"
+      ? "q4"
+      : "q8";
+
+
+  send({
+
+    type:
+      "status",
+
+    text:
+      selectedDevice ===
+        "webgpu"
+        ? "Loading ONNX with WebGPU..."
+        : "Loading ONNX with CPU/WASM..."
+
+  });
+
+
+  send({
+
+    type:
+      "progress",
+
+    percent:
+      2,
+
+    text:
+      selectedDevice ===
+        "webgpu"
+        ? "Starting WebGPU model..."
+        : "Starting CPU/WASM model..."
+
+  });
+
+
+  return await pipeline(
+
+    "text-generation",
+
+    MODEL_ID,
+
+    {
+
+      device:
+        selectedDevice,
+
+      dtype:
+        dtype,
+
+      progress_callback:
+        handleProgress
+
+    }
+
+  );
+
+}
+
+
+/* ===========================================================
+   TRIM HISTORY
+   =========================================================== */
+
+function trimHistory() {
+
+  const system =
+    conversation[0];
+
+
+  const recent =
+    conversation.slice(
+      -MAX_HISTORY_MESSAGES
+    );
+
+
+  conversation = [
+    system,
+    ...recent
+  ];
+
+}
+
+
+/* ===========================================================
+   STREAM SEND
+   =========================================================== */
+
+function sendStreamUpdate(
+  force = false
+) {
+
+  const now =
+    performance.now();
+
+
+  if (
+    !force &&
+    now - lastStreamSend <
+    STREAM_INTERVAL
+  ) {
+
+    return;
+
+  }
+
+
+  lastStreamSend =
+    now;
+
+
+  send({
+
+    type:
+      "token",
+
+    text:
+      streamedText
+
+  });
+
+}
+
+
+/* ===========================================================
+   FLUSH STREAM TIMER
+   =========================================================== */
+
+function clearStreamTimer() {
+
+  if (
+    streamTimer
+  ) {
+
+    clearTimeout(
+      streamTimer
+    );
+
+    streamTimer =
+      null;
+
+  }
+
+}
+
+
+/* ===========================================================
+   GENERATE
+   =========================================================== */
+
+async function generate(
+  userText
+) {
+
+  /*
+   * Add user message.
+   */
+
+  conversation.push({
+
+    role:
+      "user",
+
+    content:
+      userText
+
+  });
+
+
+  trimHistory();
+
+
+  streamedText =
+    "";
+
+  lastStreamSend =
+    0;
+
+
+  clearStreamTimer();
+
+
+  /*
+   * Create streamer.
+   *
+   * The computation remains inside this worker.
+   */
+
+  const streamer =
+    new TextStreamer(
+      generator.tokenizer,
+
+      {
+
+        skip_prompt:
+          true,
+
+        skip_special_tokens:
+          true,
+
+
+        callback_function:
+          (chunk) => {
+
+            streamedText +=
+              chunk;
+
+
+            const now =
+              performance.now();
+
+
+            /*
+             * Send at a controlled rate.
+             */
+
+            if (
+              now - lastStreamSend >=
+              STREAM_INTERVAL
+            ) {
+
+              sendStreamUpdate(
+                true
+              );
+
+            } else if (
+              !streamTimer
+            ) {
+
+              streamTimer =
+                setTimeout(
+                  () => {
+
+                    streamTimer =
+                      null;
+
+                    sendStreamUpdate(
+                      true
+                    );
+
+                  },
+
+                  STREAM_INTERVAL
+
+                );
+
+            }
+
+          }
+
+      }
+    );
+
+
+  try {
+
+    send({
+
+      type:
+        "status",
+
+      text:
+        device ===
+          "webgpu"
+          ? "Generating • WebGPU"
+          : "Generating • CPU",
+
+      mode:
+        "generating"
+
+    });
+
+
+    /*
+     * Generate.
+     *
+     * IMPORTANT:
+     * This function is executing in the worker,
+     * not in the UI thread.
+     */
+
+    const output =
+      await generator(
+
+        conversation,
+
+        {
+
+          max_new_tokens:
+            MAX_NEW_TOKENS,
+
+          do_sample:
+            true,
+
+          temperature:
+            0.7,
+
+          top_p:
+            0.9,
+
+          repetition_penalty:
+            1.05,
+
+          streamer:
+            streamer,
+
+          return_full_text:
+            false
+
+        }
+
+      );
+
+
+    clearStreamTimer();
+
+
+    /*
+     * Final token update.
+     */
+
+    sendStreamUpdate(
+      true
+    );
+
+
+    /*
+     * If streamer did not produce text,
+     * retrieve it from the output.
+     */
+
+    let finalText =
+      streamedText;
+
+
+    if (
+      !finalText.trim() &&
+      Array.isArray(output) &&
+      output.length > 0
+    ) {
+
+      const result =
+        output[0];
+
+
+      if (
+        typeof result.generated_text ===
+        "string"
+      ) {
+
+        finalText =
+          result.generated_text;
+
+      } else if (
+        Array.isArray(
+          result.generated_text
+        )
+      ) {
+
+        const chat =
+          result.generated_text;
+
+
+        const last =
+          chat[
+            chat.length - 1
+          ];
+
+
+        if (
+          last &&
+          typeof last.content ===
+          "string"
+        ) {
+
+          finalText =
+            last.content;
+
+        }
+
+      }
+
+    }
+
+
+    /*
+     * Remove special tokens.
+     */
+
+    finalText =
+      finalText
+
+        .replace(
+          /<\\\\|im_end\\\\|>/g,
+          ""
+        )
+
+        .replace(
+          /<\\\\|im_start\\\\|>/g,
+          ""
+        )
+
+        .trim();
+
+
+    if (
+      !finalText
+    ) {
+
+      finalText =
+        "I couldn't generate a response.";
+
+    }
+
+
+    /*
+     * Store assistant response.
+     */
+
+    conversation.push({
+
+      role:
+        "assistant",
+
+      content:
+        finalText
+
+    });
+
+
+    trimHistory();
+
+
+    /*
+     * Final response.
+     */
+
+    send({
+
+      type:
+        "complete",
+
+      text:
+        finalText,
+
+      device:
+        device
+
+    });
+
+
+  } catch (
+    error
+  ) {
+
+    clearStreamTimer();
+
+
+    send({
+
+      type:
+        "error",
+
+      message:
+        error?.message ||
+        String(error)
+
+    });
+
+  }
+
+}
+
+
+/* ===========================================================
+   INITIALIZE
+   =========================================================== */
+
+async function initialize() {
+
+  try {
+
+    send({
+
+      type:
+        "status",
+
+      text:
+        "Checking hardware..."
+
+    });
+
+
+    send({
+
+      type:
+        "progress",
+
+      percent:
+        1,
+
+      text:
+        "Checking WebGPU..."
+
+    });
+
+
+    /*
+     * Default to WASM.
+     */
+
+    device =
+      "wasm";
+
+
+    /*
+     * Test REAL WebGPU.
+     */
+
+    if (
+      await canUseWebGPU()
+    ) {
+
+      device =
+        "webgpu";
+
+    }
+
+
+    /*
+     * Try preferred backend.
+     */
+
+    try {
+
+      generator =
+        await createModel(
+          device
+        );
+
+    } catch (
+      error
+    ) {
+
+      send({
+
+        type:
+          "log",
+
+        message:
+          device +
+          " initialization failed: " +
+          (
+            error?.message ||
+            String(error)
+          )
+
+      });
+
+
+      /*
+       * WebGPU failed.
+       *
+       * Fall back to WASM.
+       */
+
+      if (
+        device ===
+        "webgpu"
+      ) {
+
+        send({
+
+          type:
+            "status",
+
+          text:
+            "WebGPU failed • Switching to CPU..."
+
+        });
+
+
+        send({
+
+          type:
+            "progress",
+
+          percent:
+            0,
+
+          text:
+            "Starting CPU/WASM fallback..."
+
+        });
+
+
+        generator =
+          null;
+
+
+        device =
+          "wasm";
+
+
+        generator =
+          await createModel(
+            "wasm"
+          );
+
+      } else {
+
+        throw error;
+
+      }
+
+    }
+
+
+    /*
+     * READY
+     */
+
+    send({
+
+      type:
+        "ready",
+
+      device:
+        device
+
+    });
+
+
+  } catch (
+    error
+  ) {
+
+    send({
+
+      type:
+        "fatal",
+
+      message:
+        error?.message ||
+        String(error)
+
+    });
+
+  }
+
+}
+
+
+/* ===========================================================
+   MESSAGE HANDLER
+   =========================================================== */
+
+self.addEventListener(
+  "message",
+
+  async (
+    event
+  ) => {
+
+    const data =
+      event.data;
+
+
+    if (
+      !data
+    ) {
+
+      return;
+
+    }
+
+
+    if (
+      data.type ===
+      "generate"
+    ) {
+
+      if (
+        !generator
+      ) {
+
+        send({
+
+          type:
+            "error",
+
+          message:
+            "Model is not ready."
+
+        });
+
+        return;
+
+      }
+
+
+      await generate(
+        data.text
+      );
+
+
+      return;
+
+    }
+
+
+    if (
+      data.type ===
+      "clear"
+    ) {
+
+      conversation = [
+
+        {
+
+          role:
+            "system",
+
+          content:
+            "You are a helpful AI assistant. " +
+            "You are running completely locally " +
+            "in the user's browser. " +
+            "Be concise, useful, and direct."
+
+        }
+
+      ];
+
+
+      send({
+
+        type:
+          "cleared"
+
+      });
+
+
+      return;
+
+    }
+
+  }
+
+);
+
+
+/* ===========================================================
+   START WORKER
+   =========================================================== */
+
+initialize();
+
+`;
+
+
+/* ============================================================
+   CREATE WORKER FROM BLOB
+   ============================================================ */
+
+/*
+ * This is what lets everything stay in ONE HTML file.
+ */
+
+const workerBlob =
+  new Blob(
+    [workerSource],
+    {
+      type:
+        "text/javascript"
+    }
+  );
+
+
+const workerURL =
+  URL.createObjectURL(
+    workerBlob
+  );
+
+
+worker =
+  new Worker(
+    workerURL,
+    {
+      type:
+        "module"
+    }
+  );
+
+
+/*
+ * The Blob URL is no longer needed after Worker creation.
+ */
+
+URL.revokeObjectURL(
+  workerURL
+);
+
+
+/* ============================================================
+   WORKER MESSAGE HANDLER
+   ============================================================ */
+
+worker.addEventListener(
+  "message",
+
+  (event) => {
+
+    const data =
+      event.data;
+
+
+    if (
+      !data
+    ) {
+
+      return;
+
+    }
+
+
+    /* --------------------------------------------------------
+       STATUS
+       -------------------------------------------------------- */
+
+    if (
+      data.type ===
+      "status"
+    ) {
+
+      setStatus(
+        data.text,
+        "loading"
+      );
+
+
+      return;
+
+    }
+
+
+    /* --------------------------------------------------------
+       PROGRESS
+       -------------------------------------------------------- */
+
+    if (
+      data.type ===
+      "progress"
+    ) {
+
+      setProgress(
+        data.percent,
+        data.text
+      );
+
+
+      setStatus(
+        data.text,
+        "loading"
+      );
+
+
+      return;
+
+    }
+
+
+    /* --------------------------------------------------------
+       LOG
+       -------------------------------------------------------- */
+
+    if (
+      data.type ===
+      "log"
+    ) {
+
+      console.log(
+        "[AI Worker]",
+        data.message
+      );
+
+
+      return;
+
+    }
+
+
+    /* --------------------------------------------------------
+       READY
+       -------------------------------------------------------- */
+
+    if (
+      data.type ===
+      "ready"
+    ) {
+
+      workerReady =
+        true;
+
+
+      busy =
+        false;
+
+
+      setProgress(
+        100,
+        "AI model ready."
+      );
+
+
+      setStatus(
+
+        data.device ===
+          "webgpu"
+          ? "Ready • WebGPU"
+          : "Ready • CPU/WASM",
+
+        "ready"
+
+      );
+
+
+      loadingScreen.remove();
+
+
+      input.disabled =
+        false;
+
+      send.disabled =
+        false;
+
+      clear.disabled =
+        false;
+
+
+      addMessage(
+
+        "assistant",
+
+        data.device ===
+          "webgpu"
+
+          ? "Local AI is ready. WebGPU is running the model."
+
+          : "Local AI is ready. CPU/WASM is running the model."
+
+      );
+
+
+      input.focus();
+
+
+      return;
+
+    }
+
+
+    /* --------------------------------------------------------
+       STREAMING TOKEN UPDATE
+       -------------------------------------------------------- */
+
+    if (
+      data.type ===
+      "token"
+    ) {
+
+      updateAssistantBubble(
+        data.text
+      );
+
+
+      return;
+
+    }
+
+
+    /* --------------------------------------------------------
+       GENERATION COMPLETE
+       -------------------------------------------------------- */
+
+    if (
+      data.type ===
+      "complete"
+    ) {
+
+      currentResponse =
+        data.text;
+
+
+      updateAssistantBubble(
+        currentResponse
+      );
+
+
+      busy =
+        false;
+
+
+      send.disabled =
+        false;
+
+      input.disabled =
+        false;
+
+      clear.disabled =
+        false;
+
+
+      setStatus(
+
+        data.device ===
+          "webgpu"
+          ? "Ready • WebGPU"
+          : "Ready • CPU/WASM",
+
+        "ready"
+
+      );
+
+
+      assistantBubble =
+        null;
+
+
+      input.focus();
+
+
+      return;
+
+    }
+
+
+    /* --------------------------------------------------------
+       GENERATION ERROR
+       -------------------------------------------------------- */
+
+    if (
+      data.type ===
+      "error"
+    ) {
+
+      if (
+        assistantBubble
+      ) {
+
+        assistantBubble.textContent =
+          "Generation error: " +
+          data.message;
+
+      } else {
+
+        addMessage(
+          "assistant",
+          "Generation error: " +
+          data.message
+        );
+
+      }
+
+
+      busy =
+        false;
+
+
+      send.disabled =
+        false;
+
+      input.disabled =
+        false;
+
+      clear.disabled =
+        false;
+
+
+      setStatus(
+        "Generation error",
+        "error"
+      );
+
+
+      assistantBubble =
+        null;
+
+
+      input.focus();
+
+
+      return;
+
+    }
+
+
+    /* --------------------------------------------------------
+       FATAL MODEL ERROR
+       -------------------------------------------------------- */
+
+    if (
+      data.type ===
+      "fatal"
+    ) {
+
+      workerReady =
+        false;
+
+
+      busy =
+        false;
+
+
+      setStatus(
+        "Model failed to load",
+        "error"
+      );
+
+
+      setProgress(
+        0,
+        data.message ||
+          "Could not load model."
+      );
+
+
+      input.disabled =
+        true;
+
+      send.disabled =
+        true;
+
+
+      addMessage(
+
+        "assistant",
+
+        "Could not load the ONNX model. " +
+        (
+          data.message ||
+          "Check the browser console."
+        )
+
+      );
+
+
+      return;
+
+    }
+
+
+    /* --------------------------------------------------------
+       CLEARED
+       -------------------------------------------------------- */
+
+    if (
+      data.type ===
+      "cleared"
+    ) {
+
+      conversationStarted =
+        false;
+
+
+      return;
+
+    }
+
+  }
+
+);
+
+
+/* ============================================================
+   WORKER ERROR
+   ============================================================ */
+
+worker.addEventListener(
+  "error",
+
+  (event) => {
+
+    console.error(
+      "AI Worker error:",
+      event
+    );
+
+
+    setStatus(
+      "Worker error",
+      "error"
+    );
+
+
+    progressText.textContent =
+      event.message ||
+      "The background AI worker crashed.";
+
+  }
+
+);
+
+
+/* ============================================================
+   GENERATE
+   ============================================================ */
+
+function generate() {
+
+  if (
+    !workerReady
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    busy
+  ) {
+
+    return;
+
+  }
+
+
+  const text =
+    input.value.trim();
+
+
+  if (
+    !text
+  ) {
+
+    return;
 
   }
 
 
   /*
-   * ------------------------------------------------------------
-   * Generate response
-   * ------------------------------------------------------------
+   * Clear input immediately.
    */
 
-  async function generate() {
+  input.value =
+    "";
+
+  input.style.height =
+    "auto";
+
+
+  /*
+   * Show user message.
+   */
+
+  addMessage(
+    "user",
+    text
+  );
+
+
+  /*
+   * Create empty assistant message.
+   *
+   * Worker streaming updates will fill this.
+   */
+
+  currentResponse =
+    "";
+
+  assistantBubble =
+    addMessage(
+      "assistant",
+      ""
+    );
+
+
+  busy =
+    true;
+
+
+  send.disabled =
+    true;
+
+  input.disabled =
+    true;
+
+  clear.disabled =
+    true;
+
+
+  /*
+   * Tell worker to generate.
+   */
+
+  worker.postMessage({
+
+    type:
+      "generate",
+
+    text:
+      text
+
+  });
+
+}
+
+
+/* ============================================================
+   SEND BUTTON
+   ============================================================ */
+
+send.addEventListener(
+  "click",
+  generate
+);
+
+
+/* ============================================================
+   ENTER TO SEND
+   ============================================================ */
+
+input.addEventListener(
+  "keydown",
+
+  (event) => {
 
     if (
-      !generator ||
+      event.key ===
+        "Enter" &&
+      !event.shiftKey
+    ) {
+
+      event.preventDefault();
+
+      generate();
+
+    }
+
+  }
+
+);
+
+
+/* ============================================================
+   AUTO RESIZE
+   ============================================================ */
+
+input.addEventListener(
+  "input",
+
+  () => {
+
+    input.style.height =
+      "auto";
+
+
+    input.style.height =
+      Math.min(
+        input.scrollHeight,
+        180
+      ) + "px";
+
+  }
+
+);
+
+
+/* ============================================================
+   CLEAR
+   ============================================================ */
+
+clear.addEventListener(
+  "click",
+
+  () => {
+
+    if (
       busy
     ) {
 
@@ -1040,291 +2490,29 @@
     }
 
 
-    const text =
-      input.value.trim();
-
-
-    if (!text) {
-
-      return;
-
-    }
-
-
-    input.value =
+    messages.innerHTML =
       "";
 
-    input.style.height =
-      "auto";
-
-
-    /*
-     * Display user message.
-     */
 
     addMessage(
-      "user",
-      text
+      "assistant",
+      "Conversation cleared."
     );
 
 
-    conversation.push({
-      role: "user",
-      content: text
+    worker.postMessage({
+
+      type:
+        "clear"
+
     });
 
-
-    busy =
-      true;
-
-    send.disabled =
-      true;
-
-    input.disabled =
-      true;
-
-
-    const assistantBubble =
-      addMessage(
-        "assistant",
-        "Thinking..."
-      );
-
-
-    try {
-
-      setStatus(
-        "Generating locally...",
-        "loading"
-      );
-
-
-      const prompt =
-        buildPrompt();
-
-
-      /*
-       * Generate text.
-       */
-
-      const output =
-        await generator(
-          prompt,
-          {
-            max_new_tokens: 256,
-
-            temperature: 0.7,
-
-            do_sample: true,
-
-            top_p: 0.9,
-
-            repetition_penalty: 1.05
-          }
-        );
-
-
-      let response =
-        "";
-
-
-      if (
-        Array.isArray(output) &&
-        output.length > 0
-      ) {
-
-        response =
-          output[0].generated_text ||
-          "";
-
-      }
-
-
-      /*
-       * Remove the original prompt from generated output.
-       */
-
-      if (
-        response.startsWith(prompt)
-      ) {
-
-        response =
-          response.slice(
-            prompt.length
-          );
-
-      }
-
-
-      /*
-       * Remove common special tokens.
-       */
-
-      response =
-        response
-          .replace(
-            /<\|im_end\|>/g,
-            ""
-          )
-          .replace(
-            /<\|im_start\|>assistant/g,
-            ""
-          )
-          .trim();
-
-
-      if (!response) {
-
-        response =
-          "I couldn't generate a response.";
-
-      }
-
-
-      assistantBubble.textContent =
-        response;
-
-
-      conversation.push({
-        role: "assistant",
-        content: response
-      });
-
-
-      setStatus(
-        "Ready • Local AI",
-        "ready"
-      );
-
-
-    } catch (error) {
-
-      console.error(
-        error
-      );
-
-      assistantBubble.textContent =
-        "Generation error: " +
-        error.message;
-
-
-      setStatus(
-        "Generation error",
-        "error"
-      );
-
-    }
-
-
-    busy =
-      false;
-
-    send.disabled =
-      false;
-
-    input.disabled =
-      false;
 
     input.focus();
 
   }
 
-
-  /*
-   * ------------------------------------------------------------
-   * Send button
-   * ------------------------------------------------------------
-   */
-
-  send.addEventListener(
-    "click",
-    generate
-  );
-
-
-  /*
-   * ------------------------------------------------------------
-   * Enter key
-   *
-   * Enter = send
-   * Shift + Enter = newline
-   * ------------------------------------------------------------
-   */
-
-  input.addEventListener(
-    "keydown",
-    event => {
-
-      if (
-        event.key === "Enter" &&
-        !event.shiftKey
-      ) {
-
-        event.preventDefault();
-
-        generate();
-
-      }
-
-    }
-  );
-
-
-  /*
-   * ------------------------------------------------------------
-   * Auto-resize textarea
-   * ------------------------------------------------------------
-   */
-
-  input.addEventListener(
-    "input",
-    () => {
-
-      input.style.height =
-        "auto";
-
-      input.style.height =
-        Math.min(
-          input.scrollHeight,
-          180
-        ) + "px";
-
-    }
-  );
-
-
-  /*
-   * ------------------------------------------------------------
-   * Clear conversation
-   * ------------------------------------------------------------
- */
-
-  clear.addEventListener(
-    "click",
-    () => {
-
-      conversation.length =
-        0;
-
-      messages.innerHTML =
-        "";
-
-      addMessage(
-        "assistant",
-        "Conversation cleared."
-      );
-
-    }
-  );
-
-
-  /*
-   * ------------------------------------------------------------
-   * Start
-   * ------------------------------------------------------------
-   */
-
-  loadModel();
+);
 
 </script>
 
