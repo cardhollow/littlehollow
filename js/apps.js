@@ -21,7 +21,13 @@
         gamefinder:{title: "GAME FINDER",src:"app/gamefinder.html",w:360,h:340},
         browser:{title:"BROWSER",src:"app/browser.html",w:360,h:340},
         imageeditor:{title:"imageeditor",src:"app/imageEditor.html",w:480,h:380},
-        messenger:{title:"MESSENGER",src:"app/messenger.html",w:430,h:360}
+        messenger:{title:"MESSENGER",src:"app/messenger.html",w:430,h:360},
+        settings:{
+            title:"SETTINGS",
+            src:"app/settings.html",
+            w:720,
+            h:560
+        }
     };
     function normalizeName(name){return String(name||"").trim().toLowerCase();}
     function openApp(name,opts){
