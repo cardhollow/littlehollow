@@ -12,614 +12,335 @@
 
 <title>Settings</title>
 
-
 <style>
 
 *{
     box-sizing:border-box;
 }
 
-
 html,
 body{
-
     margin:0;
-
     width:100%;
     height:100%;
-
     overflow:hidden;
-
     background:#071014;
-
     color:#c4fbff;
-
     font-family:monospace;
-
 }
-
 
 body{
-
     display:flex;
-
     flex-direction:column;
-
 }
-
 
 .header{
-
     padding:14px 16px 11px;
-
-    border-bottom:
-        1px solid #16434a;
-
+    border-bottom:1px solid #16434a;
     background:#09171b;
-
 }
-
 
 .title{
-
     font-size:16px;
-
     font-weight:bold;
-
     letter-spacing:1px;
-
 }
-
 
 .subtitle{
-
     margin-top:4px;
-
     color:#648e95;
-
     font-size:10px;
-
 }
-
 
 .layout{
-
     flex:1;
-
     min-height:0;
-
     display:flex;
-
 }
-
 
 .sidebar{
-
     width:145px;
-
     flex-shrink:0;
-
     padding:8px;
-
-    border-right:
-        1px solid #16434a;
-
+    border-right:1px solid #16434a;
     background:#081418;
-
 }
-
 
 .nav{
-
     width:100%;
-
     margin-bottom:4px;
-
     padding:10px 8px;
-
-    border:
-        1px solid transparent;
-
+    border:1px solid transparent;
     background:transparent;
-
     color:#75afb6;
-
     font:inherit;
-
     font-size:10px;
-
     text-align:left;
-
     cursor:pointer;
-
 }
-
 
 .nav:hover{
-
     background:#0b2226;
-
 }
-
 
 .nav.active{
-
     border-color:#1d6871;
-
     background:#0c292e;
-
     color:#d4ffff;
-
 }
-
 
 .content{
-
     flex:1;
-
     min-width:0;
-
     overflow:auto;
-
     padding:15px;
-
 }
-
 
 .section{
-
     display:none;
-
 }
-
 
 .section.active{
-
     display:block;
-
 }
-
 
 .section-title{
-
     margin-bottom:12px;
-
     color:#d5ffff;
-
     font-size:13px;
-
     font-weight:bold;
-
 }
-
 
 .card{
-
     margin-bottom:12px;
-
     padding:12px;
-
-    border:
-        1px solid #16434a;
-
+    border:1px solid #16434a;
     background:#09191d;
-
 }
-
 
 .card-title{
-
     margin-bottom:6px;
-
     color:#cffcff;
-
     font-size:11px;
-
     font-weight:bold;
-
 }
-
 
 .description{
-
     margin-bottom:10px;
-
     color:#648b91;
-
     font-size:9px;
-
     line-height:1.5;
-
 }
-
 
 label{
-
     display:block;
-
     margin-bottom:4px;
-
     color:#7fb6bd;
-
     font-size:9px;
-
 }
-
 
 input,
 select{
-
     width:100%;
-
     height:31px;
-
     padding:0 8px;
-
-    border:
-        1px solid #1a4f57;
-
+    border:1px solid #1a4f57;
     outline:none;
-
     background:#061115;
-
     color:#c8fcff;
-
     font:inherit;
-
     font-size:10px;
-
 }
-
 
 input:focus,
 select:focus{
-
     border-color:#2ba3af;
-
 }
-
 
 .row{
-
     display:flex;
-
     gap:9px;
-
 }
-
 
 .field{
-
     flex:1;
-
 }
-
 
 .provider{
-
     display:flex;
-
     gap:8px;
-
     align-items:flex-start;
-
     padding:9px;
-
     margin-bottom:5px;
-
-    border:
-        1px solid #16434a;
-
+    border:1px solid #16434a;
     background:#071419;
-
     cursor:pointer;
-
 }
-
 
 .provider:hover{
-
     background:#0b2024;
-
 }
-
 
 .provider.active{
-
     border-color:#2ba3af;
-
     background:#0d292f;
-
 }
-
 
 .provider input{
-
     width:auto;
-
     height:auto;
-
     margin-top:2px;
-
 }
-
 
 .provider-name{
-
     font-size:10px;
-
 }
-
 
 .provider-description{
-
     margin-top:2px;
-
     color:#648b91;
-
     font-size:8px;
-
 }
-
 
 .mode{
-
     padding:9px;
-
     margin-bottom:5px;
-
-    border:
-        1px solid #16434a;
-
+    border:1px solid #16434a;
     background:#071419;
-
     cursor:pointer;
-
 }
-
 
 .mode:hover{
-
     background:#0b2024;
-
 }
-
 
 .mode.active{
-
     border-color:#2ba3af;
-
     background:#0d292f;
-
 }
-
 
 .mode-name{
-
     color:#c9fbff;
-
     font-size:10px;
-
 }
-
 
 .mode-description{
-
     margin-top:2px;
-
     color:#648b91;
-
     font-size:8px;
-
 }
-
 
 button{
-
     padding:8px 11px;
-
-    border:
-        1px solid #20757e;
-
+    border:1px solid #20757e;
     background:#0a3339;
-
     color:#c5fcff;
-
     font:inherit;
-
     font-size:9px;
-
     cursor:pointer;
-
 }
-
 
 button:hover{
-
     background:#10454d;
-
 }
-
 
 button:disabled{
-
     opacity:.45;
-
     cursor:not-allowed;
-
 }
-
 
 button.danger{
-
     border-color:#713d45;
-
     background:#28151a;
-
     color:#ffb9c2;
-
 }
-
 
 .status-box{
-
     display:flex;
-
     gap:9px;
-
     align-items:flex-start;
-
     padding:10px;
-
     margin-top:10px;
-
-    border:
-        1px solid #123f46;
-
+    border:1px solid #123f46;
     background:#061114;
-
 }
-
 
 .status-dot{
-
     width:8px;
-
     height:8px;
-
     flex-shrink:0;
-
     margin-top:3px;
-
     border-radius:50%;
-
     background:#64777b;
-
 }
-
 
 .status-dot.green{
-
     background:#29c5a6;
-
 }
-
 
 .status-dot.yellow{
-
     background:#dfb24d;
-
 }
-
 
 .status-dot.red{
-
     background:#d75b6c;
-
 }
-
 
 .status-main{
-
     color:#bffcff;
-
     font-size:9px;
-
 }
-
 
 .status-detail{
-
     margin-top:3px;
-
     color:#648a91;
-
     font-size:8px;
-
     line-height:1.5;
-
+    word-break:break-word;
 }
-
 
 .progress{
-
     width:100%;
-
     height:7px;
-
     margin-top:9px;
-
     overflow:hidden;
-
-    border:
-        1px solid #123f46;
-
+    border:1px solid #123f46;
     background:#030a0c;
-
 }
-
 
 .progress-bar{
-
     width:0%;
-
     height:100%;
-
     background:#2ba3af;
-
-    transition:
-        width .15s ease;
-
+    transition:width .15s ease;
 }
-
 
 .small{
-
     color:#537c82;
-
     font-size:8px;
-
     line-height:1.5;
-
 }
-
 
 pre{
-
     margin:0;
-
     padding:9px;
-
-    border:
-        1px solid #10363c;
-
+    border:1px solid #10363c;
     background:#040b0d;
-
     color:#72b9c1;
-
     font-size:8px;
-
     white-space:pre-wrap;
-
     word-break:break-word;
-
 }
-
 
 .hidden{
-
     display:none !important;
-
 }
-
 
 </style>
 
 </head>
 
-
 <body>
-
 
 <div class="header">
 
@@ -633,171 +354,115 @@ pre{
 
 </div>
 
-
 <div class="layout">
-
 
 <aside class="sidebar">
 
-    <button
-        class="nav active"
-        data-section="ai"
-    >
+    <button class="nav active" data-section="ai">
         AI
     </button>
 
-    <button
-        class="nav"
-        data-section="mode"
-    >
+    <button class="nav" data-section="mode">
         MODE
     </button>
 
-    <button
-        class="nav"
-        data-section="live"
-    >
+    <button class="nav" data-section="live">
         LIVE
     </button>
 
-    <button
-        class="nav"
-        data-section="storage"
-    >
+    <button class="nav" data-section="storage">
         STORAGE
     </button>
 
 </aside>
 
-
 <main class="content">
 
-
-<!-- ======================================================= -->
-<!-- AI -->
-<!-- ======================================================= -->
-
-<section
-    id="section-ai"
-    class="section active"
->
-
+<section id="section-ai" class="section active">
 
 <div class="section-title">
     AI PROVIDER
 </div>
 
-
 <div class="card">
-
 
 <div class="card-title">
     PROVIDER
 </div>
 
-
 <div class="description">
-    Choose the AI backend. Little Hollow keeps its system prompt
-    and tools under application control.
+    Choose the AI backend. Nothing is initialized until you explicitly
+    initialize that provider.
 </div>
 
+<label class="provider" data-provider="puter">
 
-<label
-    class="provider"
-    data-provider="puter"
->
+    <input
+        type="radio"
+        name="provider"
+        value="puter"
+    >
 
-<input
-    type="radio"
-    name="provider"
-    value="puter"
-/>
+    <div>
+        <div class="provider-name">
+            PUTER.JS
+        </div>
 
-<div>
-
-<div class="provider-name">
-    PUTER.JS
-</div>
-
-<div class="provider-description">
-    Remote AI through Puter.js. The library is loaded only when
-    you explicitly initialize it or first use the provider.
-</div>
-
-</div>
+        <div class="provider-description">
+            Puter AI provider.
+        </div>
+    </div>
 
 </label>
 
+<label class="provider" data-provider="onnx">
 
-<label
-    class="provider"
-    data-provider="onnx"
->
+    <input
+        type="radio"
+        name="provider"
+        value="onnx"
+    >
 
-<input
-    type="radio"
-    name="provider"
-    value="onnx"
-/>
+    <div>
+        <div class="provider-name">
+            ONNX
+        </div>
 
-<div>
-
-<div class="provider-name">
-    ONNX
-</div>
-
-<div class="provider-description">
-    Run an ONNX model locally in the browser.
-</div>
-
-</div>
+        <div class="provider-description">
+            Local browser inference.
+        </div>
+    </div>
 
 </label>
 
+<label class="provider" data-provider="gguf">
 
-<label
-    class="provider"
-    data-provider="gguf"
->
+    <input
+        type="radio"
+        name="provider"
+        value="gguf"
+    >
 
-<input
-    type="radio"
-    name="provider"
-    value="gguf"
-/>
+    <div>
+        <div class="provider-name">
+            GGUF
+        </div>
 
-<div>
-
-<div class="provider-name">
-    GGUF
-</div>
-
-<div class="provider-description">
-    Local GGUF runtime. A browser-compatible GGUF engine must be installed.
-</div>
-
-</div>
+        <div class="provider-description">
+            Local GGUF runtime.
+        </div>
+    </div>
 
 </label>
 
-
 </div>
 
 
-<!-- ======================================================= -->
-<!-- PUTER -->
-<!-- ======================================================= -->
-
-<div
-    id="puter-card"
-    class="card"
->
-
+<div id="puter-card" class="card hidden">
 
 <div class="card-title">
     PUTER.JS
 </div>
-
 
 <label for="puter-model">
     MODEL
@@ -808,14 +473,13 @@ pre{
     type="text"
 />
 
+<div style="margin-top:10px;">
 
-<button
-    id="prepare-puter"
-    style="margin-top:10px;"
->
+<button id="prepare-puter">
     INITIALIZE PUTER.JS
 </button>
 
+</div>
 
 <div class="status-box">
 
@@ -830,7 +494,7 @@ pre{
     id="puter-status"
     class="status-main"
 >
-Not initialized.
+NOT INITIALIZED
 </div>
 
 <div
@@ -844,30 +508,19 @@ Puter.js has not been loaded.
 
 </div>
 
-
 </div>
 
 
-<!-- ======================================================= -->
-<!-- ONNX -->
-<!-- ======================================================= -->
-
-<div
-    id="onnx-card"
-    class="card hidden"
->
-
+<div id="onnx-card" class="card hidden">
 
 <div class="card-title">
     ONNX LOCAL MODEL
 </div>
 
-
 <div class="description">
-    Nothing is downloaded or initialized until you press
-    LOAD / SET UP MODEL.
+    Nothing downloads or initializes until you press LOAD / SET UP MODEL.
+    This uses the same Qwen2.5 ONNX setup as the standalone working test.
 </div>
-
 
 <label for="onnx-model">
     MODEL REPOSITORY
@@ -878,9 +531,7 @@ Puter.js has not been loaded.
     type="text"
 />
 
-
 <div class="row" style="margin-top:9px;">
-
 
 <div class="field">
 
@@ -905,7 +556,6 @@ Puter.js has not been loaded.
 </select>
 
 </div>
-
 
 <div class="field">
 
@@ -947,12 +597,9 @@ Puter.js has not been loaded.
 
 </div>
 
-
 </div>
 
-
 <div class="row" style="margin-top:9px;">
-
 
 <div class="field">
 
@@ -968,7 +615,6 @@ Puter.js has not been loaded.
 />
 
 </div>
-
 
 <div class="field">
 
@@ -986,16 +632,13 @@ Puter.js has not been loaded.
 
 </div>
 
-
 </div>
-
 
 <div
     id="onnx-warning"
     class="small"
     style="margin-top:9px;"
 ></div>
-
 
 <div style="margin-top:10px;">
 
@@ -1013,15 +656,12 @@ Puter.js has not been loaded.
 
 </div>
 
-
 <div class="status-box">
-
 
 <span
     id="onnx-dot"
     class="status-dot yellow"
 ></span>
-
 
 <div style="flex:1;min-width:0;">
 
@@ -1029,17 +669,15 @@ Puter.js has not been loaded.
     id="onnx-status"
     class="status-main"
 >
-Not set up.
+NOT SET UP
 </div>
-
 
 <div
     id="onnx-detail"
     class="status-detail"
 >
-Choose a model, then click LOAD / SET UP MODEL.
+Model is not loaded.
 </div>
-
 
 <div
     id="onnx-progress-wrap"
@@ -1053,42 +691,27 @@ Choose a model, then click LOAD / SET UP MODEL.
 
 </div>
 
-
 <div
     id="onnx-progress-text"
     class="status-detail hidden"
->
-</div>
-
+></div>
 
 </div>
 
 </div>
 
-
 </div>
 
 
-<!-- ======================================================= -->
-<!-- GGUF -->
-<!-- ======================================================= -->
-
-<div
-    id="gguf-card"
-    class="card hidden"
->
-
+<div id="gguf-card" class="card hidden">
 
 <div class="card-title">
     GGUF LOCAL MODEL
 </div>
 
-
 <div class="description">
-    GGUF is kept behind a separate browser runtime interface.
-    This page does not pretend a GGUF file can be executed by ONNX Runtime.
+    GGUF requires a separate browser GGUF runtime.
 </div>
-
 
 <label for="gguf-model">
     MODEL
@@ -1100,9 +723,7 @@ Choose a model, then click LOAD / SET UP MODEL.
     placeholder="model.gguf"
 />
 
-
 <div class="row" style="margin-top:9px;">
-
 
 <div class="field">
 
@@ -1119,7 +740,6 @@ Choose a model, then click LOAD / SET UP MODEL.
 
 </div>
 
-
 <div class="field">
 
 <label for="gguf-threads">
@@ -1134,9 +754,7 @@ Choose a model, then click LOAD / SET UP MODEL.
 
 </div>
 
-
 </div>
-
 
 <div style="margin-top:10px;">
 
@@ -1146,15 +764,12 @@ Choose a model, then click LOAD / SET UP MODEL.
 
 </div>
 
-
 <div class="status-box">
-
 
 <span
     id="gguf-dot"
     class="status-dot yellow"
 ></span>
-
 
 <div>
 
@@ -1162,49 +777,34 @@ Choose a model, then click LOAD / SET UP MODEL.
     id="gguf-status"
     class="status-main"
 >
-Not initialized.
+NOT INITIALIZED
 </div>
 
 <div
     id="gguf-detail"
     class="status-detail"
 >
-A compatible GGUF browser runtime must expose LittleHollowGGUF.
+A GGUF browser runtime is required.
 </div>
 
 </div>
 
 </div>
 
-
 </div>
-
 
 </section>
 
 
-<!-- ======================================================= -->
-<!-- MODE -->
-<!-- ======================================================= -->
-
-<section
-    id="section-mode"
-    class="section"
->
-
+<section id="section-mode" class="section">
 
 <div class="section-title">
     AI MODE
 </div>
 
-
 <div class="card">
 
-
-<div
-    class="mode"
-    data-mode="interactive"
->
+<div class="mode" data-mode="interactive">
 
 <div class="mode-name">
     INTERACTIVE
@@ -1216,55 +816,42 @@ A compatible GGUF browser runtime must expose LittleHollowGGUF.
 
 </div>
 
-
-<div
-    class="mode"
-    data-mode="agent"
->
+<div class="mode" data-mode="agent">
 
 <div class="mode-name">
     AGENT
 </div>
 
 <div class="mode-description">
-    Allows the model to perform multiple tool rounds before finishing.
+    Allows multiple tool rounds for a task.
 </div>
 
 </div>
 
-
-<div
-    class="mode"
-    data-mode="live"
->
+<div class="mode" data-mode="live">
 
 <div class="mode-name">
     LIVE
 </div>
 
 <div class="mode-description">
-    Observes meaningful Little Hollow state changes and can act without a new chat message.
-    Live mode never automatically downloads a model.
+    Reacts to meaningful Little Hollow state changes.
+    Live never downloads or initializes a local model automatically.
 </div>
 
 </div>
 
-
 </div>
-
 
 <div class="card">
-
 
 <div class="card-title">
     TOOL ROUNDS
 </div>
 
-
 <label for="max-rounds">
     MAX TOOL ROUNDS
 </label>
-
 
 <input
     id="max-rounds"
@@ -1273,28 +860,21 @@ A compatible GGUF browser runtime must expose LittleHollowGGUF.
     max="50"
 />
 
-
 <div class="small" style="margin-top:7px;">
-All Little Hollow tools remain enabled.
+All Little Hollow tools are always enabled.
 </div>
 
-
 </div>
-
 
 <div class="card">
-
 
 <div class="card-title">
     TOOLS
 </div>
 
-
 <div class="description">
-    Tools are controlled by Little Hollow and are always supplied
-    to the selected provider. Users cannot disable them here.
+    Tools are controlled by Little Hollow and cannot be disabled here.
 </div>
-
 
 <div class="status-box">
 
@@ -1307,53 +887,38 @@ ALL TOOLS ENABLED
 </div>
 
 <div class="status-detail">
-Current and future application tools use the central Tools registry.
+Every provider uses the central Little Hollow tool registry.
 </div>
 
 </div>
 
 </div>
 
-
 </div>
-
 
 </section>
 
 
-<!-- ======================================================= -->
-<!-- LIVE -->
-<!-- ======================================================= -->
-
-<section
-    id="section-live"
-    class="section"
->
-
+<section id="section-live" class="section">
 
 <div class="section-title">
     LIVE AGENT
 </div>
 
-
 <div class="card">
-
 
 <div class="card-title">
     LIVE PROCESSING
 </div>
 
-
 <div class="description">
-    Live mode is event-driven. The agent receives compact
-    application state rather than the entire DOM.
+    Live mode is event-driven and receives compact application state.
+    It does not receive the entire DOM.
 </div>
-
 
 <label for="live-debounce">
     DEBOUNCE
 </label>
-
 
 <input
     id="live-debounce"
@@ -1362,14 +927,12 @@ Current and future application tools use the central Tools registry.
     step="250"
 />
 
-
 <label
     for="live-min"
     style="margin-top:10px;"
 >
-MINIMUM INTERVAL
+    MINIMUM INTERVAL
 </label>
-
 
 <input
     id="live-min"
@@ -1378,72 +941,45 @@ MINIMUM INTERVAL
     step="500"
 />
 
-
 <div class="small" style="margin-top:8px;">
-
-Important state may include active application,
-open applications, current filesystem path, selected item,
-and recent meaningful events.
-
-Live mode does not initialize a local model.
-A local model must already be explicitly loaded.
-
+A local model must be explicitly loaded before Live can use it.
 </div>
 
-
 </div>
-
 
 <div class="card">
-
 
 <div class="card-title">
     STATUS
 </div>
 
-
 <div
     id="live-status"
     class="status-main"
 >
-Interactive mode.
+INTERACTIVE MODE
 </div>
 
-
 </div>
-
 
 </section>
 
 
-<!-- ======================================================= -->
-<!-- STORAGE -->
-<!-- ======================================================= -->
-
-<section
-    id="section-storage"
-    class="section"
->
-
+<section id="section-storage" class="section">
 
 <div class="section-title">
     STORAGE
 </div>
 
-
 <div class="card">
 
-
 <div class="card-title">
-    AI SETTINGS
+    LOCAL SETTINGS
 </div>
-
 
 <div class="description">
-    Provider/model configuration is stored locally in this browser.
-    Browser model cache is managed by Transformers.js.
+    Provider and model configuration is stored locally in this browser.
 </div>
-
 
 <button
     id="reset"
@@ -1452,26 +988,19 @@ Interactive mode.
     RESET AI SETTINGS
 </button>
 
-
 </div>
 
-
 <div class="card">
-
 
 <div class="card-title">
     CURRENT CONFIGURATION
 </div>
 
-
 <pre id="preview"></pre>
-
 
 </div>
 
-
 </section>
-
 
 </main>
 
@@ -1488,75 +1017,41 @@ Interactive mode.
 
     const defaults = {
 
-        provider:
-            "puter",
+        provider:"puter",
 
-        mode:
-            "interactive",
+        mode:"interactive",
 
-        puter: {
-
-            model:
-                "claude-sonnet-5"
-
+        puter:{
+            model:"claude-sonnet-5"
         },
 
-        onnx: {
-
-            model:
-                "onnx-community/Qwen3-0.6B-ONNX",
-
-            device:
-                "auto",
-
-            dtype:
-                "q4",
-
-            maxNewTokens:
-                512,
-
-            temperature:
-                0.7
-
+        onnx:{
+            /*
+             * Match the standalone working HTML.
+             */
+            model:"onnx-community/Qwen2.5-0.5B-Instruct",
+            device:"webgpu",
+            dtype:"q4",
+            maxNewTokens:256,
+            temperature:0.7
         },
 
-        gguf: {
-
-            model:
-                "",
-
-            context:
-                8192,
-
-            threads:
-                4,
-
-            maxNewTokens:
-                512,
-
-            temperature:
-                0.7
-
+        gguf:{
+            model:"",
+            context:8192,
+            threads:4,
+            maxNewTokens:512,
+            temperature:0.7
         },
 
-        live: {
-
-            enabled:
-                false,
-
-            debounceMs:
-                1800,
-
-            minIntervalMs:
-                2500
-
+        live:{
+            enabled:false,
+            debounceMs:1800,
+            minIntervalMs:2500
         },
 
-        agent: {
-
-            maxToolRounds:
-                8
-
+        agent:{
+            maxToolRounds:8
         }
 
     };
@@ -1623,13 +1118,8 @@ Interactive mode.
                 );
 
 
-            if(!raw){
-
-                return clone(
-                    defaults
-                );
-
-            }
+            if(!raw)
+                return clone(defaults);
 
 
             return merge(
@@ -1645,9 +1135,7 @@ Interactive mode.
             );
 
 
-            return clone(
-                defaults
-            );
+            return clone(defaults);
 
         }
 
@@ -1658,6 +1146,34 @@ Interactive mode.
         load();
 
 
+    /*
+     * Force old ONNX configuration away from the
+     * problematic Qwen3/f16 setup.
+     *
+     * Only do this once.
+     */
+
+    if(
+        settings.provider === "onnx"
+    ){
+
+        if(
+            !settings.onnx.model ||
+            settings.onnx.model ===
+                "onnx-community/Qwen3-0.6B-ONNX"
+        ){
+
+            settings.onnx.model =
+                "onnx-community/Qwen2.5-0.5B-Instruct";
+
+            settings.onnx.dtype =
+                "q4";
+
+        }
+
+    }
+
+
     function save(){
 
         settings.live.enabled =
@@ -1666,18 +1182,12 @@ Interactive mode.
 
         localStorage.setItem(
             KEY,
-            JSON.stringify(
-                settings
-            )
+            JSON.stringify(settings)
         );
 
 
         render();
 
-
-        /*
-         * Same browsing context:
-         */
 
         try{
 
@@ -1696,10 +1206,6 @@ Interactive mode.
         }catch(error){}
 
 
-        /*
-         * Parent page:
-         */
-
         try{
 
             parent.postMessage(
@@ -1710,7 +1216,6 @@ Interactive mode.
 
                     settings:
                         clone(settings)
-
                 },
 
                 "*"
@@ -1724,15 +1229,15 @@ Interactive mode.
 
     function $(id){
 
-        return document.getElementById(
-            id
-        );
+        return document.getElementById(id);
 
     }
 
 
     /*
+     * =========================================================
      * Navigation
+     * =========================================================
      */
 
     document
@@ -1744,9 +1249,7 @@ Interactive mode.
                 () => {
 
                     document
-                        .querySelectorAll(
-                            ".nav"
-                        )
+                        .querySelectorAll(".nav")
                         .forEach(
                             item =>
                                 item.classList.remove(
@@ -1756,9 +1259,7 @@ Interactive mode.
 
 
                     document
-                        .querySelectorAll(
-                            ".section"
-                        )
+                        .querySelectorAll(".section")
                         .forEach(
                             item =>
                                 item.classList.remove(
@@ -1772,16 +1273,16 @@ Interactive mode.
                     );
 
 
-                    const target =
+                    const section =
                         $(
                             "section-" +
                             button.dataset.section
                         );
 
 
-                    if(target){
+                    if(section){
 
-                        target.classList.add(
+                        section.classList.add(
                             "active"
                         );
 
@@ -1794,13 +1295,13 @@ Interactive mode.
 
 
     /*
-     * Provider selection
+     * =========================================================
+     * Providers
+     * =========================================================
      */
 
     document
-        .querySelectorAll(
-            ".provider"
-        )
+        .querySelectorAll(".provider")
         .forEach(card => {
 
             card.addEventListener(
@@ -1819,13 +1320,13 @@ Interactive mode.
 
 
     /*
-     * Mode selection
+     * =========================================================
+     * Modes
+     * =========================================================
      */
 
     document
-        .querySelectorAll(
-            ".mode"
-        )
+        .querySelectorAll(".mode")
         .forEach(card => {
 
             card.addEventListener(
@@ -1844,7 +1345,9 @@ Interactive mode.
 
 
     /*
+     * =========================================================
      * Puter
+     * =========================================================
      */
 
     $("puter-model")
@@ -1877,12 +1380,12 @@ Interactive mode.
 
                 $("puter-status")
                     .textContent =
-                    "Loading Puter.js...";
+                    "LOADING";
 
 
                 $("puter-detail")
                     .textContent =
-                    "Preparing remote AI provider.";
+                    "Loading Puter.js...";
 
 
                 $("puter-dot")
@@ -1891,21 +1394,6 @@ Interactive mode.
 
 
                 try{
-
-                    if(
-                        !parent.LittleHollowAI ||
-                        typeof
-                            parent.LittleHollowAI
-                                .preparePuter !==
-                            "function"
-                    ){
-
-                        throw new Error(
-                            "Little Hollow AI runtime is unavailable."
-                        );
-
-                    }
-
 
                     await parent
                         .LittleHollowAI
@@ -1921,10 +1409,10 @@ Interactive mode.
                         .textContent =
                         "Puter.js is initialized.";
 
+
                     $("puter-dot")
                         .className =
                         "status-dot green";
-
 
                 }catch(error){
 
@@ -1952,256 +1440,10 @@ Interactive mode.
         );
 
 
-    window.addEventListener(
-        "message",
-        event => {
-
-            const data =
-                event.data || {};
-
-
-            /*
-             * ONNX status
-             */
-
-            if(
-                data.type ===
-                "LITTLE_HOLLOW_ONNX_STATUS"
-            ){
-
-                updateOnnxStatus(
-                    data.status || {}
-                );
-
-            }
-
-
-            /*
-             * Puter status
-             */
-
-            if(
-                data.type ===
-                "LITTLE_HOLLOW_PUTER_STATUS"
-            ){
-
-                const status =
-                    data.status;
-
-
-                if(
-                    status === "ready"
-                ){
-
-                    $("puter-status")
-                        .textContent =
-                        "READY";
-
-
-                    $("puter-detail")
-                        .textContent =
-                        data.message ||
-                        "Puter.js is ready.";
-
-                    $("puter-dot")
-                        .className =
-                        "status-dot green";
-
-                }else if(
-                    status === "loading"
-                ){
-
-                    $("puter-status")
-                        .textContent =
-                        "LOADING";
-
-
-                    $("puter-detail")
-                        .textContent =
-                        data.message ||
-                        "Loading Puter.js...";
-
-                    $("puter-dot")
-                        .className =
-                        "status-dot yellow";
-
-                }else if(
-                    status === "error"
-                ){
-
-                    $("puter-status")
-                        .textContent =
-                        "ERROR";
-
-
-                    $("puter-detail")
-                        .textContent =
-                        data.message ||
-                        "Puter.js failed.";
-
-                    $("puter-dot")
-                        .className =
-                        "status-dot red";
-
-                }
-
-            }
-
-        }
-    );
-
-
     /*
-     * Load ONNX
-     */
-
-    $("load-onnx")
-        .addEventListener(
-            "click",
-            async () => {
-
-                const button =
-                    $("load-onnx");
-
-
-                button.disabled =
-                    true;
-
-
-                settings.provider =
-                    "onnx";
-
-
-                save();
-
-
-                updateOnnxStatus({
-
-                    state:
-                        "loading",
-
-                    progress:
-                        0,
-
-                    message:
-                        "Preparing ONNX model..."
-
-                });
-
-
-                try{
-
-                    if(
-                        !parent.LittleHollowAI ||
-                        typeof
-                            parent.LittleHollowAI
-                                .prepareOnnx !==
-                            "function"
-                    ){
-
-                        throw new Error(
-                            "Little Hollow AI runtime is unavailable."
-                        );
-
-                    }
-
-
-                    await parent
-                        .LittleHollowAI
-                        .prepareOnnx(
-
-                            clone(
-                                settings.onnx
-                            )
-
-                        );
-
-
-                    /*
-                     * Re-render after runtime becomes ready.
-                     */
-
-                    render();
-
-                }catch(error){
-
-                    updateOnnxStatus({
-
-                        state:
-                            "error",
-
-                        progress:
-                            0,
-
-                        message:
-                            error.message ||
-                            String(error)
-
-                    });
-
-                }
-
-
-                button.disabled =
-                    false;
-
-            }
-        );
-
-
-    /*
-     * Unload ONNX
-     */
-
-    $("unload-onnx")
-        .addEventListener(
-            "click",
-            async () => {
-
-                try{
-
-                    if(
-                        parent.LittleHollowAI &&
-                        typeof
-                            parent.LittleHollowAI
-                                .unloadOnnx ===
-                            "function"
-                    ){
-
-                        parent
-                            .LittleHollowAI
-                            .unloadOnnx();
-
-                    }
-
-                }catch(error){
-
-                    console.error(
-                        error
-                    );
-
-                }
-
-
-                updateOnnxStatus({
-
-                    state:
-                        "not_loaded",
-
-                    progress:
-                        0,
-
-                    message:
-                        "ONNX runtime unloaded."
-
-                });
-
-            }
-        );
-
-
-    /*
-     * ONNX fields
+     * =========================================================
+     * ONNX
+     * =========================================================
      */
 
     $("onnx-model")
@@ -2213,8 +1455,6 @@ Interactive mode.
                     event.target.value.trim();
 
                 save();
-
-                showOnnxConfigWarning();
 
             }
         );
@@ -2230,7 +1470,7 @@ Interactive mode.
 
                 save();
 
-                showOnnxConfigWarning();
+                showOnnxWarning();
 
             }
         );
@@ -2246,7 +1486,7 @@ Interactive mode.
 
                 save();
 
-                showOnnxConfigWarning();
+                showOnnxWarning();
 
             }
         );
@@ -2264,7 +1504,7 @@ Interactive mode.
                             4096,
                             Number(
                                 event.target.value
-                            ) || 512
+                            ) || 256
                         )
                     );
 
@@ -2296,8 +1536,127 @@ Interactive mode.
         );
 
 
+    $("load-onnx")
+        .addEventListener(
+            "click",
+            async () => {
+
+                const button =
+                    $("load-onnx");
+
+
+                button.disabled =
+                    true;
+
+
+                settings.provider =
+                    "onnx";
+
+
+                save();
+
+
+                updateOnnxStatus({
+
+                    state:
+                        "loading",
+
+                    progress:
+                        0,
+
+                    message:
+                        "Starting local ONNX setup..."
+
+                });
+
+
+                try{
+
+                    const result =
+                        await parent
+                            .LittleHollowAI
+                            .prepareOnnx(
+                                clone(
+                                    settings.onnx
+                                )
+                            );
+
+
+                    updateOnnxStatus({
+
+                        state:
+                            "ready",
+
+                        progress:
+                            100,
+
+                        message:
+                            (
+                                "READY — " +
+                                result.model +
+                                " • " +
+                                result.device.toUpperCase() +
+                                " • " +
+                                result.dtype.toUpperCase()
+                            )
+
+                    });
+
+                }catch(error){
+
+                    updateOnnxStatus({
+
+                        state:
+                            "error",
+
+                        progress:
+                            0,
+
+                        message:
+                            error &&
+                            error.message
+                                ? error.message
+                                : String(error)
+
+                    });
+
+                }
+
+
+                button.disabled =
+                    false;
+
+            }
+        );
+
+
+    $("unload-onnx")
+        .addEventListener(
+            "click",
+            () => {
+
+                try{
+
+                    parent
+                        .LittleHollowAI
+                        .unloadOnnx();
+
+                }catch(error){
+
+                    console.error(
+                        error
+                    );
+
+                }
+
+            }
+        );
+
+
     /*
+     * =========================================================
      * GGUF
+     * =========================================================
      */
 
     $("gguf-model")
@@ -2363,26 +1722,27 @@ Interactive mode.
                 save();
 
 
+                $("gguf-status")
+                    .textContent =
+                    "LOADING";
+
+
+                $("gguf-detail")
+                    .textContent =
+                    "Initializing GGUF runtime...";
+
+
+                $("gguf-dot")
+                    .className =
+                    "status-dot yellow";
+
+
                 try{
-
-                    if(
-                        !parent.LittleHollowAI ||
-                        typeof
-                            parent.LittleHollowAI
-                                .prepareGguf !==
-                            "function"
-                    ){
-
-                        throw new Error(
-                            "Little Hollow AI runtime is unavailable."
-                        );
-
-                    }
-
 
                     await parent
                         .LittleHollowAI
                         .prepareGguf();
+
 
                     $("gguf-status")
                         .textContent =
@@ -2392,6 +1752,7 @@ Interactive mode.
                     $("gguf-detail")
                         .textContent =
                         "GGUF runtime initialized.";
+
 
                     $("gguf-dot")
                         .className =
@@ -2403,9 +1764,11 @@ Interactive mode.
                         .textContent =
                         "ERROR";
 
+
                     $("gguf-detail")
                         .textContent =
                         error.message;
+
 
                     $("gguf-dot")
                         .className =
@@ -2418,7 +1781,9 @@ Interactive mode.
 
 
     /*
+     * =========================================================
      * Agent
+     * =========================================================
      */
 
     $("max-rounds")
@@ -2444,7 +1809,9 @@ Interactive mode.
 
 
     /*
+     * =========================================================
      * Live
+     * =========================================================
      */
 
     $("live-debounce")
@@ -2486,7 +1853,9 @@ Interactive mode.
 
 
     /*
+     * =========================================================
      * Reset
+     * =========================================================
      */
 
     $("reset")
@@ -2517,7 +1886,9 @@ Interactive mode.
 
 
     /*
-     * ONNX UI
+     * =========================================================
+     * ONNX status
+     * =========================================================
      */
 
     function updateOnnxStatus(
@@ -2552,21 +1923,20 @@ Interactive mode.
             $("onnx-detail");
 
 
-        const progressWrap =
+        const wrap =
             $("onnx-progress-wrap");
 
 
-        const progressBar =
+        const bar =
             $("onnx-progress");
 
 
-        const progressText =
+        const text =
             $("onnx-progress-text");
 
 
         if(
-            state ===
-            "ready"
+            state === "ready"
         ){
 
             dot.className =
@@ -2579,15 +1949,15 @@ Interactive mode.
 
             detail.textContent =
                 message ||
-                "ONNX model is initialized and ready.";
+                "ONNX model is ready.";
 
 
-            progressWrap.classList.add(
+            wrap.classList.add(
                 "hidden"
             );
 
 
-            progressText.classList.add(
+            text.classList.add(
                 "hidden"
             );
 
@@ -2598,99 +1968,7 @@ Interactive mode.
 
 
         if(
-            state ===
-            "downloading"
-        ){
-
-            dot.className =
-                "status-dot yellow";
-
-
-            main.textContent =
-                "DOWNLOADING MODEL";
-
-
-            detail.textContent =
-                message;
-
-
-            progressWrap.classList.remove(
-                "hidden"
-            );
-
-
-            progressBar.style.width =
-                progress + "%";
-
-
-            progressText.classList.remove(
-                "hidden"
-            );
-
-
-            progressText.textContent =
-                (
-                    Math.round(
-                        progress
-                    ) +
-                    "% " +
-                    message
-                );
-
-
-            return;
-
-        }
-
-
-        if(
-            state ===
-            "loading_runtime" ||
-            state ===
-            "loading"
-        ){
-
-            dot.className =
-                "status-dot yellow";
-
-
-            main.textContent =
-                "LOADING";
-
-
-            detail.textContent =
-                message;
-
-
-            progressWrap.classList.remove(
-                "hidden"
-            );
-
-
-            progressBar.style.width =
-                Math.max(
-                    2,
-                    progress
-                ) + "%";
-
-
-            progressText.classList.remove(
-                "hidden"
-            );
-
-
-            progressText.textContent =
-                message;
-
-
-            return;
-
-        }
-
-
-        if(
-            state ===
-            "error"
+            state === "error"
         ){
 
             dot.className =
@@ -2705,14 +1983,99 @@ Interactive mode.
                 message;
 
 
-            progressWrap.classList.add(
+            wrap.classList.add(
                 "hidden"
             );
 
 
-            progressText.classList.add(
+            text.classList.add(
                 "hidden"
             );
+
+
+            return;
+
+        }
+
+
+        if(
+            state === "downloading"
+        ){
+
+            dot.className =
+                "status-dot yellow";
+
+
+            main.textContent =
+                "DOWNLOADING MODEL";
+
+
+            detail.textContent =
+                message;
+
+
+            wrap.classList.remove(
+                "hidden"
+            );
+
+
+            bar.style.width =
+                progress + "%";
+
+
+            text.classList.remove(
+                "hidden"
+            );
+
+
+            text.textContent =
+                Math.round(
+                    progress
+                ) +
+                "%";
+
+
+            return;
+
+        }
+
+
+        if(
+            state === "loading_runtime" ||
+            state === "loading"
+        ){
+
+            dot.className =
+                "status-dot yellow";
+
+
+            main.textContent =
+                "LOADING";
+
+
+            detail.textContent =
+                message;
+
+
+            wrap.classList.remove(
+                "hidden"
+            );
+
+
+            bar.style.width =
+                Math.max(
+                    2,
+                    progress
+                ) + "%";
+
+
+            text.classList.remove(
+                "hidden"
+            );
+
+
+            text.textContent =
+                message;
 
 
             return;
@@ -2730,42 +2093,26 @@ Interactive mode.
 
         detail.textContent =
             message ||
-            "Choose a model and click LOAD / SET UP MODEL.";
-
-
-        progressWrap.classList.add(
-            "hidden"
-        );
-
-
-        progressText.classList.add(
-            "hidden"
-        );
+            "Click LOAD / SET UP MODEL.";
 
     }
 
 
-    function showOnnxConfigWarning(){
+    function showOnnxWarning(){
 
-        const dtype =
-            settings.onnx.dtype;
-
-
-        const device =
-            settings.onnx.device;
+        const f16 =
+            settings.onnx.dtype === "q4f16" ||
+            settings.onnx.dtype === "fp16";
 
 
         if(
-            (
-                dtype === "q4f16" ||
-                dtype === "fp16"
-            ) &&
-            device === "webgpu"
+            f16 &&
+            settings.onnx.device === "webgpu"
         ){
 
             $("onnx-warning")
                 .textContent =
-                "Warning: this variant uses f16. Your current WebGPU error indicates shader-f16 may be unavailable. Q4 or WASM is safer.";
+                "This uses an f16 WebGPU path. Your previous browser error indicates that this path may fail. Q4 + WebGPU matches the original working test.";
 
         }else{
 
@@ -2779,19 +2126,15 @@ Interactive mode.
 
 
     /*
+     * =========================================================
      * Render
+     * =========================================================
      */
 
     function render(){
 
-        /*
-         * Provider
-         */
-
         document
-            .querySelectorAll(
-                ".provider"
-            )
+            .querySelectorAll(".provider")
             .forEach(card => {
 
                 const active =
@@ -2816,35 +2159,26 @@ Interactive mode.
         $("puter-card")
             .classList.toggle(
                 "hidden",
-                settings.provider !==
-                    "puter"
+                settings.provider !== "puter"
             );
 
 
         $("onnx-card")
             .classList.toggle(
                 "hidden",
-                settings.provider !==
-                    "onnx"
+                settings.provider !== "onnx"
             );
 
 
         $("gguf-card")
             .classList.toggle(
                 "hidden",
-                settings.provider !==
-                    "gguf"
+                settings.provider !== "gguf"
             );
 
 
-        /*
-         * Mode
-         */
-
         document
-            .querySelectorAll(
-                ".mode"
-            )
+            .querySelectorAll(".mode")
             .forEach(card => {
 
                 card.classList.toggle(
@@ -2855,10 +2189,6 @@ Interactive mode.
 
             });
 
-
-        /*
-         * Values
-         */
 
         $("puter-model").value =
             settings.puter.model;
@@ -2908,22 +2238,16 @@ Interactive mode.
             settings.live.minIntervalMs;
 
 
-        /*
-         * Mode status
-         */
-
         if(
-            settings.mode ===
-            "interactive"
+            settings.mode === "live"
         ){
 
             $("live-status")
                 .textContent =
-                "INTERACTIVE MODE";
+                "LIVE MODE — runtime must already be loaded.";
 
         }else if(
-            settings.mode ===
-            "agent"
+            settings.mode === "agent"
         ){
 
             $("live-status")
@@ -2934,7 +2258,7 @@ Interactive mode.
 
             $("live-status")
                 .textContent =
-                "LIVE MODE — local runtimes must be loaded manually.";
+                "INTERACTIVE MODE";
 
         }
 
@@ -2947,50 +2271,106 @@ Interactive mode.
             );
 
 
-        showOnnxConfigWarning();
+        showOnnxWarning();
 
     }
 
 
     /*
-     * Request current runtime status after Settings
-     * iframe opens.
+     * =========================================================
+     * Runtime status sync
+     * =========================================================
      */
 
-    function syncRuntimeStatus(){
+    function syncRuntime(){
 
         try{
 
+            const runtime =
+                parent
+                    .LittleHollowAI
+                    .getRuntimeStatus();
+
+
             if(
-                parent.LittleHollowAI &&
-                typeof
-                    parent.LittleHollowAI
-                        .getRuntimeStatus ===
-                    "function"
+                runtime &&
+                runtime.onnx &&
+                runtime.onnx.status
             ){
 
-                const runtime =
-                    parent
-                        .LittleHollowAI
-                        .getRuntimeStatus();
-
-
-                if(
-                    runtime &&
-                    runtime.onnx &&
+                updateOnnxStatus(
                     runtime.onnx.status
-                ){
+                );
 
-                    updateOnnxStatus(
-                        runtime.onnx.status
-                    );
+            }
 
-                }
 
+            if(
+                runtime &&
+                runtime.puterReady
+            ){
+
+                $("puter-status")
+                    .textContent =
+                    "READY";
+
+
+                $("puter-detail")
+                    .textContent =
+                    "Puter.js is initialized.";
+
+
+                $("puter-dot")
+                    .className =
+                    "status-dot green";
+
+            }
+
+        }catch(error){
+
+            console.warn(
+                "Could not sync AI runtime:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /*
+     * =========================================================
+     * Messages from parent
+     * =========================================================
+     */
+
+    window.addEventListener(
+        "message",
+        event => {
+
+            const data =
+                event.data || {};
+
+
+            if(
+                data.type ===
+                "LITTLE_HOLLOW_ONNX_STATUS"
+            ){
+
+                updateOnnxStatus(
+                    data.status || {}
+                );
+
+            }
+
+
+            if(
+                data.type ===
+                "LITTLE_HOLLOW_PUTER_STATUS"
+            ){
 
                 if(
-                    runtime &&
-                    runtime.puterReady
+                    data.status === "ready"
                 ){
 
                     $("puter-status")
@@ -3000,7 +2380,9 @@ Interactive mode.
 
                     $("puter-detail")
                         .textContent =
-                        "Puter.js is initialized.";
+                        data.message ||
+                        "Puter.js is ready.";
+
 
                     $("puter-dot")
                         .className =
@@ -3008,29 +2390,64 @@ Interactive mode.
 
                 }
 
+
+                if(
+                    data.status === "loading"
+                ){
+
+                    $("puter-status")
+                        .textContent =
+                        "LOADING";
+
+
+                    $("puter-detail")
+                        .textContent =
+                        data.message ||
+                        "Loading Puter.js...";
+
+
+                    $("puter-dot")
+                        .className =
+                        "status-dot yellow";
+
+                }
+
+
+                if(
+                    data.status === "error"
+                ){
+
+                    $("puter-status")
+                        .textContent =
+                        "ERROR";
+
+
+                    $("puter-detail")
+                        .textContent =
+                        data.message ||
+                        "Puter.js failed.";
+
+
+                    $("puter-dot")
+                        .className =
+                        "status-dot red";
+
+                }
+
             }
 
-        }catch(error){
-
-            console.warn(
-                "Runtime status unavailable:",
-                error
-            );
-
         }
-
-    }
+    );
 
 
     render();
 
-    syncRuntimeStatus();
+    syncRuntime();
 
 })();
-</script>
 
+</script>
 
 </body>
 
 </html>
-]
