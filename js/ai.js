@@ -1,32 +1,35 @@
+/* js/ai.js */
+
 (function(){
 
     /*
      * ============================================================
      * LITTLE HOLLOW AI
-     * ============================================================
+     *
+     * Local ONNX behavior intentionally mirrors the original
+     * standalone working HTML:
+     *
+     *   Transformers.js 4.2.0
+     *   Qwen2.5-0.5B-Instruct
+     *   Q4
+     *   WebGPU
      *
      * IMPORTANT:
      *
-     * NO PROVIDER IS LOADED AT STARTUP.
+     * No ONNX model is loaded at startup.
      *
-     * ONNX is loaded ONLY when:
+     * The model is loaded ONLY by:
      *
-     *   LittleHollowAI.prepareOnnx()
+     *     LittleHollowAI.prepareOnnx()
      *
-     * is explicitly called from Settings.
-     *
-     * This intentionally mirrors the known-working standalone
-     * ONNX setup:
-     *
-     *   transformers 4.2.0
-     *   Qwen2.5-0.5B-Instruct
-     *   WebGPU + Q4
+     * which Settings calls explicitly.
      *
      * ============================================================
      */
 
     const SETTINGS_KEY =
         "littlehollow.ai.settings";
+
 
     const DEFAULTS = {
 
@@ -146,19 +149,45 @@
                 );
 
 
-            if(!raw){
-
+            if(!raw)
                 return clone(
                     DEFAULTS
                 );
 
+
+            const saved =
+                merge(
+                    DEFAULTS,
+                    JSON.parse(raw)
+                );
+
+
+            /*
+             * Migrate the Qwen3 configuration we were testing
+             * to the exact model used by the standalone HTML.
+             */
+
+            if(
+                saved.onnx.model ===
+                "onnx-community/Qwen3-0.6B-ONNX"
+            ){
+
+                saved.onnx.model =
+                    DEFAULTS.onnx.model;
+
+                saved.onnx.device =
+                    DEFAULTS.onnx.device;
+
+                saved.onnx.dtype =
+                    DEFAULTS.onnx.dtype;
+
+                saved.onnx.maxNewTokens =
+                    DEFAULTS.onnx.maxNewTokens;
+
             }
 
 
-            return merge(
-                DEFAULTS,
-                JSON.parse(raw)
-            );
+            return saved;
 
         }catch(error){
 
@@ -183,12 +212,9 @@
 
     /*
      * ============================================================
-     * HISTORY
+     * SYSTEM PROMPT
      * ============================================================
      */
-
-    let history = [];
-
 
     function getSystemPrompt(){
 
@@ -199,7 +225,16 @@
     }
 
 
-    function createSystemMessage(){
+    /*
+     * ============================================================
+     * HISTORY
+     * ============================================================
+     */
+
+    let history = [];
+
+
+    function makeSystemMessage(){
 
         return {
 
@@ -217,7 +252,7 @@
     function createHistory(){
 
         return [
-            createSystemMessage()
+            makeSystemMessage()
         ];
 
     }
@@ -227,36 +262,55 @@
         createHistory();
 
 
+    function trimHistory(){
+
+        if(
+            history.length <= 80
+        )
+            return;
+
+
+        history = [
+
+            history[0],
+
+            ...history.slice(
+                -79
+            )
+
+        ];
+
+    }
+
+
     /*
      * ============================================================
-     * RUNTIME STATE
+     * ONNX RUNTIME STATE
      * ============================================================
      */
 
     let transformersModule =
         null;
 
+
     let onnxGenerator =
         null;
+
 
     let onnxLoadingPromise =
         null;
 
+
     let onnxModelId =
         null;
+
 
     let onnxDevice =
         null;
 
+
     let onnxDtype =
         null;
-
-
-    let puterLoadingPromise =
-        null;
-
-    let puterReady =
-        false;
 
 
     let onnxStatus = {
@@ -275,7 +329,21 @@
 
     /*
      * ============================================================
-     * STATUS
+     * PUTER STATE
+     * ============================================================
+     */
+
+    let puterLoadingPromise =
+        null;
+
+
+    let puterReady =
+        false;
+
+
+    /*
+     * ============================================================
+     * SEND STATUS TO SETTINGS
      * ============================================================
      */
 
@@ -491,11 +559,8 @@
 
         if(
             typeof raw === "object"
-        ){
-
+        )
             return raw;
-
-        }
 
 
         try{
@@ -505,6 +570,12 @@
             );
 
         }catch(error){
+
+            console.warn(
+                "Invalid tool arguments:",
+                raw
+            );
+
 
             return {};
 
@@ -516,10 +587,6 @@
     /*
      * ============================================================
      * PUTER
-     * ============================================================
-     *
-     * No Puter.js script is fetched until this function is called.
-     *
      * ============================================================
      */
 
@@ -584,75 +651,6 @@
                     }
 
 
-                    const existing =
-                        document.querySelector(
-                            'script[data-littlehollow-puter="1"]'
-                        );
-
-
-                    if(existing){
-
-                        existing.addEventListener(
-                            "load",
-                            () => {
-
-                                if(
-                                    window.puter
-                                ){
-
-                                    puterReady =
-                                        true;
-
-
-                                    setPuterStatus(
-                                        "ready",
-                                        "Puter.js is ready."
-                                    );
-
-
-                                    resolve(
-                                        window.puter
-                                    );
-
-                                }else{
-
-                                    reject(
-                                        new Error(
-                                            "Puter.js loaded but window.puter is unavailable."
-                                        )
-                                    );
-
-                                }
-
-                            },
-                            {
-                                once:true
-                            }
-                        );
-
-
-                        existing.addEventListener(
-                            "error",
-                            () => {
-
-                                reject(
-                                    new Error(
-                                        "Puter.js failed to load."
-                                    )
-                                );
-
-                            },
-                            {
-                                once:true
-                            }
-                        );
-
-
-                        return;
-
-                    }
-
-
                     const script =
                         document.createElement(
                             "script"
@@ -667,7 +665,8 @@
                         "https://js.puter.com/v2/";
 
 
-                    script.dataset.littlehollowPuter =
+                    script.dataset
+                        .littlehollowPuter =
                         "1";
 
 
@@ -753,11 +752,11 @@
         currentSettings
     ){
 
-        const puterApi =
+        const puter =
             await preparePuter();
 
 
-        return puterApi.ai.chat(
+        return puter.ai.chat(
 
             messages,
 
@@ -783,8 +782,7 @@
      * TRANSFORMERS.JS
      * ============================================================
      *
-     * This import ONLY happens from prepareOnnx().
-     *
+     * Only imported after Settings explicitly requests ONNX.
      * ============================================================
      */
 
@@ -828,21 +826,13 @@
 
     /*
      * ============================================================
-     * ONNX DEVICE
+     * DEVICE
      * ============================================================
      *
-     * IMPORTANT:
+     * Match the original standalone test.
      *
-     * The standalone working HTML simply checked:
-     *
-     *     "gpu" in navigator
-     *
-     * and selected WebGPU.
-     *
-     * We do the same here instead of calling requestAdapter()
-     * and potentially rejecting a browser that successfully
-     * handled the standalone pipeline.
-     *
+     * We check navigator.gpu rather than rejecting based on a
+     * manual adapter feature probe before pipeline().
      * ============================================================
      */
 
@@ -851,17 +841,16 @@
     ){
 
         if(
-            requested === "webgpu"
+            requested ===
+            "webgpu"
         ){
 
             if(
-                !(
-                    "gpu" in navigator
-                )
+                !("gpu" in navigator)
             ){
 
                 throw new Error(
-                    "WebGPU is not exposed by this browser context."
+                    "WebGPU is not available in this browser context."
                 );
 
             }
@@ -873,7 +862,8 @@
 
 
         if(
-            requested === "wasm"
+            requested ===
+            "wasm"
         ){
 
             return "wasm";
@@ -882,9 +872,7 @@
 
 
         /*
-         * AUTO:
-         *
-         * Match the standalone page.
+         * AUTO
          */
 
         if(
@@ -903,7 +891,7 @@
 
     /*
      * ============================================================
-     * ONNX PREPARE
+     * PREPARE ONNX
      * ============================================================
      */
 
@@ -912,9 +900,7 @@
     ){
 
         /*
-         * This is explicit.
-         *
-         * Nothing calls this at startup.
+         * Explicitly invoked ONLY from Settings.
          */
 
         if(
@@ -969,58 +955,50 @@
 
 
         /*
-         * Match the first known-working HTML.
-         *
-         * If the UI still contains the old Qwen3 model,
-         * intentionally use Qwen2.5 instead.
+         * Make this exactly match the standalone page.
          */
 
-        let model =
-            String(
-                modelSettings.model || ""
-            ).trim();
+        const model =
+            (
+                modelSettings.model &&
+                modelSettings.model.trim()
+            )
+                ? modelSettings.model.trim()
+                : "onnx-community/Qwen2.5-0.5B-Instruct";
 
 
-        if(
-            !model ||
-            model ===
-                "onnx-community/Qwen3-0.6B-ONNX"
-        ){
-
-            model =
-                "onnx-community/Qwen2.5-0.5B-Instruct";
-
-        }
+        const device =
+            resolveOnnxDevice(
+                modelSettings.device || "webgpu"
+            );
 
 
         /*
-         * Match the standalone page by default.
+         * Use the selected dtype, but default to Q4.
          */
-
-        const requestedDevice =
-            modelSettings.device ||
-            "webgpu";
-
 
         let dtype =
             modelSettings.dtype ||
             "q4";
 
 
+        /*
+         * The standalone working configuration is Q4.
+         *
+         * Do not silently use the problematic f16 path.
+         */
+
         if(
             dtype === "q4f16" &&
-            requestedDevice === "webgpu"
+            device === "webgpu"
         ){
-
-            /*
-             * Do not silently enter the f16 path that was
-             * producing the shader errors.
-             *
-             * The working standalone test uses Q4.
-             */
 
             dtype =
                 "q4";
+
+            console.warn(
+                "Q4F16 was selected for WebGPU. Using Q4 to match the known-working standalone configuration."
+            );
 
         }
 
@@ -1030,25 +1008,12 @@
 
                 try{
 
-                    const device =
-                        resolveOnnxDevice(
-                            requestedDevice
-                        );
-
-
-                    setOnnxStatus({
-
-                        state:
-                            "loading",
-
-                        progress:
-                            0,
-
-                        message:
-                            "Preparing ONNX model..."
-
-                    });
-
+                    /*
+                     * IMPORTANT:
+                     *
+                     * This is the same runtime shape as the
+                     * standalone HTML.
+                     */
 
                     const {
                         pipeline,
@@ -1079,28 +1044,13 @@
 
                         message:
                             (
-                                "Downloading " +
+                                "Preparing " +
                                 model +
                                 "..."
                             )
 
                     });
 
-
-                    /*
-                     * This is intentionally shaped like the
-                     * original standalone working HTML:
-                     *
-                     * pipeline(
-                     *   "text-generation",
-                     *   MODEL_ID,
-                     *   {
-                     *      device,
-                     *      dtype,
-                     *      progress_callback
-                     *   }
-                     * )
-                     */
 
                     const generator =
                         await pipeline(
@@ -1111,9 +1061,13 @@
 
                             {
 
-                                device,
+                                device:
 
-                                dtype,
+                                    device,
+
+                                dtype:
+
+                                    dtype,
 
                                 progress_callback:
                                     data => {
@@ -1193,6 +1147,12 @@
                         );
 
 
+                    /*
+                     * IMPORTANT:
+                     *
+                     * Only now do we commit the runtime.
+                     */
+
                     onnxGenerator =
                         generator;
 
@@ -1230,6 +1190,21 @@
                     });
 
 
+                    /*
+                     * If Live was selected already, it can
+                     * start ONLY after the explicit setup.
+                     */
+
+                    if(
+                        getSettings().mode ===
+                        "live"
+                    ){
+
+                        enableLive();
+
+                    }
+
+
                     return {
 
                         ok:
@@ -1257,11 +1232,14 @@
                     onnxGenerator =
                         null;
 
+
                     onnxModelId =
                         null;
 
+
                     onnxDevice =
                         null;
+
 
                     onnxDtype =
                         null;
@@ -1306,11 +1284,14 @@
         onnxGenerator =
             null;
 
+
         onnxModelId =
             null;
 
+
         onnxDevice =
             null;
+
 
         onnxDtype =
             null;
@@ -1437,26 +1418,83 @@
      * ============================================================
      * ONNX GENERATION
      * ============================================================
+     *
+     * Keep this close to the original standalone HTML.
+     *
+     * Qwen2.5 receives a rendered ChatML-style prompt.
+     *
+     * ============================================================
      */
 
+    function buildOnnxPrompt(){
+
+        let prompt =
+            "<|im_start|>system\n" +
+            getSystemPrompt() +
+            "\n<|im_end|>\n";
+
+
+        for(
+            const item of history.slice(1)
+        ){
+
+            const role =
+                item.role ||
+                "user";
+
+
+            /*
+             * Ignore internal tool messages in the basic
+             * standalone-style ONNX text path.
+             */
+
+            if(
+                role === "tool"
+            )
+                continue;
+
+
+            let content =
+                messageText(
+                    item
+                );
+
+
+            if(
+                !content
+            )
+                continue;
+
+
+            prompt +=
+                "<|im_start|>" +
+                role +
+                "\n" +
+                content +
+                "\n<|im_end|>\n";
+
+        }
+
+
+        prompt +=
+            "<|im_start|>assistant\n";
+
+
+        return prompt;
+
+    }
+
+
     async function generateOnnx(
-        messages,
         currentSettings
     ){
-
-        /*
-         * NEVER prepare here.
-         *
-         * If user hasn't loaded ONNX from Settings,
-         * fail without downloading anything.
-         */
 
         if(
             !onnxGenerator
         ){
 
             throw new Error(
-                "ONNX is not loaded. Open Settings → AI → ONNX and click LOAD / SET UP MODEL."
+                "ONNX is not loaded. Open Settings → AI → ONNX and click DOWNLOAD / LOAD MODEL."
             );
 
         }
@@ -1466,54 +1504,266 @@
             onnxGenerator;
 
 
+        const prompt =
+            buildOnnxPrompt();
+
+
+        const output =
+            await generator(
+
+                prompt,
+
+                {
+
+                    max_new_tokens:
+                        Math.max(
+                            16,
+                            Number(
+                                currentSettings
+                                    .onnx
+                                    .maxNewTokens
+                            ) || 256
+                        ),
+
+                    temperature:
+                        Number(
+                            currentSettings
+                                .onnx
+                                .temperature
+                        ) || 0.7,
+
+                    do_sample:
+                        true,
+
+                    top_p:
+                        0.9,
+
+                    repetition_penalty:
+                        1.05
+
+                }
+
+            );
+
+
+        let response =
+            "";
+
+
+        if(
+            Array.isArray(output) &&
+            output.length
+        ){
+
+            response =
+                output[0] &&
+                output[0].generated_text
+                    ? output[0].generated_text
+                    : "";
+
+        }
+
+
         /*
-         * Start with the same generation method as
-         * the standalone working HTML.
+         * Strip the prompt.
          */
 
-        const options = {
+        if(
+            response.startsWith(
+                prompt
+            )
+        ){
 
-            max_new_tokens:
-                Math.max(
-                    1,
-                    Number(
-                        currentSettings
-                            .onnx
-                            .maxNewTokens
-                    ) || 256
-                ),
+            response =
+                response.slice(
+                    prompt.length
+                );
 
-            temperature:
-                Number(
-                    currentSettings
-                        .onnx
-                        .temperature
-                ) || 0.7,
+        }
 
-            do_sample:
-                true,
 
-            top_p:
-                0.9,
+        /*
+         * Clean Qwen special tokens.
+         */
 
-            repetition_penalty:
-                1.05
+        response =
+            response
+                .replace(
+                    /<\|im_end\|>/g,
+                    ""
+                )
+                .replace(
+                    /<\|im_start\|>assistant/g,
+                    ""
+                )
+                .trim();
+
+
+        return {
+
+            role:
+                "assistant",
+
+            content:
+                response
 
         };
 
+    }
 
-        /*
-         * For now, use the model's chat interface when
-         * available.
-         *
-         * Qwen2.5 can use the tokenizer/model chat template
-         * through Transformers.js.
-         */
 
-        return generator(
-            messages,
-            options
-        );
+    /*
+     * ============================================================
+     * PROVIDER
+     * ============================================================
+     */
+
+    async function generate(
+        currentSettings
+    ){
+
+        switch(
+            currentSettings.provider
+        ){
+
+            case "puter":
+
+                return generatePuter(
+                    history,
+                    currentSettings
+                );
+
+
+            case "onnx":
+
+                return generateOnnx(
+                    currentSettings
+                );
+
+
+            case "gguf":
+
+                return generateGguf(
+                    history,
+                    currentSettings
+                );
+
+
+            default:
+
+                throw new Error(
+                    "Unsupported AI provider: " +
+                    currentSettings.provider
+                );
+
+        }
+
+    }
+
+
+    /*
+     * ============================================================
+     * TOOL EXECUTION
+     * ============================================================
+     */
+
+    async function executeToolCall(
+        call,
+        log
+    ){
+
+        const name =
+            call &&
+            call.function
+                ? call.function.name
+                : call &&
+                  call.name;
+
+
+        const rawArgs =
+            call &&
+            call.function
+                ? call.function.arguments
+                : call &&
+                  call.input;
+
+
+        if(!name){
+
+            return {
+
+                ok:
+                    false,
+
+                summary:
+                    "Malformed tool call."
+
+            };
+
+        }
+
+
+        const args =
+            safeParseArgs(
+                rawArgs
+            );
+
+
+        let result;
+
+
+        try{
+
+            Avatar.setEye(
+                "matrix"
+            );
+
+
+            result =
+                await Tools.execute(
+                    name,
+                    args
+                );
+
+        }catch(error){
+
+            console.error(
+                "Tool execution failed:",
+                name,
+                error
+            );
+
+
+            result = {
+
+                ok:
+                    false,
+
+                summary:
+                    error &&
+                    error.message
+                        ? error.message
+                        : String(error)
+
+            };
+
+        }
+
+
+        log.push({
+
+            name,
+
+            summary:
+                result &&
+                result.summary
+                    ? result.summary
+                    : "completed"
+
+        });
+
+
+        return result;
 
     }
 
@@ -1565,7 +1815,7 @@
 
 
         if(
-            !state
+            state == null
         ){
 
             return String(
@@ -1588,21 +1838,13 @@
                     2
                 );
 
-        }catch(error){
-
-            serialized =
-                "";
-
-        }
+        }catch(error){}
 
 
-        if(!serialized){
-
+        if(!serialized)
             return String(
                 text || ""
             );
-
-        }
 
 
         return (
@@ -1624,7 +1866,7 @@
 
     /*
      * ============================================================
-     * AGENT
+     * MAIN AGENT
      * ============================================================
      */
 
@@ -1643,7 +1885,7 @@
 
 
         /*
-         * Local providers MUST have been explicitly prepared.
+         * No implicit local setup.
          */
 
         if(
@@ -1658,7 +1900,7 @@
                     false,
 
                 visibleMessage:
-                    "ONNX is not loaded. Open Settings → AI → ONNX and click LOAD / SET UP MODEL.",
+                    "ONNX is not loaded. Open Settings and explicitly load the model first.",
 
                 log:[]
 
@@ -1684,7 +1926,7 @@
                     false,
 
                 visibleMessage:
-                    "GGUF is not loaded. Open Settings and initialize the GGUF runtime.",
+                    "GGUF is not loaded. Open Settings and initialize it first.",
 
                 log:[]
 
@@ -1723,25 +1965,7 @@
         });
 
 
-        /*
-         * Prevent unbounded history.
-         */
-
-        if(
-            history.length > 80
-        ){
-
-            history = [
-
-                history[0],
-
-                ...history.slice(
-                    -79
-                )
-
-            ];
-
-        }
+        trimHistory();
 
 
         Avatar.setEye(
@@ -1762,7 +1986,9 @@
                 Math.max(
                     1,
                     Number(
-                        settings.agent.maxToolRounds
+                        settings
+                            .agent
+                            .maxToolRounds
                     ) || 8
                 );
 
@@ -1775,7 +2001,6 @@
 
                 const response =
                     await generate(
-                        history,
                         settings
                     );
 
@@ -1785,6 +2010,10 @@
                         response
                     );
 
+
+                /*
+                 * Puter can return native tool_calls.
+                 */
 
                 const toolCalls =
                     Array.isArray(
@@ -1822,69 +2051,11 @@
                             toolCalls
                     ){
 
-                        const name =
-                            call.function
-                                ? call.function.name
-                                : call.name;
-
-
-                        const rawArgs =
-                            call.function
-                                ? call.function.arguments
-                                : call.input;
-
-
-                        const args =
-                            safeParseArgs(
-                                rawArgs
+                        const result =
+                            await executeToolCall(
+                                call,
+                                log
                             );
-
-
-                        let result;
-
-
-                        try{
-
-                            Avatar.setEye(
-                                "matrix"
-                            );
-
-
-                            result =
-                                await Tools.execute(
-                                    name,
-                                    args
-                                );
-
-                        }catch(error){
-
-                            result = {
-
-                                ok:
-                                    false,
-
-                                summary:
-                                    error &&
-                                    error.message
-                                        ? error.message
-                                        : String(error)
-
-                            };
-
-                        }
-
-
-                        log.push({
-
-                            name,
-
-                            summary:
-                                result &&
-                                result.summary
-                                    ? result.summary
-                                    : "completed"
-
-                        });
 
 
                         history.push({
@@ -1911,6 +2082,9 @@
                         });
 
                     }
+
+
+                    trimHistory();
 
 
                     continue;
@@ -1985,58 +2159,7 @@
 
     /*
      * ============================================================
-     * PROVIDER ROUTER
-     * ============================================================
-     */
-
-    async function generate(
-        messages,
-        currentSettings
-    ){
-
-        switch(
-            currentSettings.provider
-        ){
-
-            case "puter":
-
-                return generatePuter(
-                    messages,
-                    currentSettings
-                );
-
-
-            case "onnx":
-
-                return generateOnnx(
-                    messages,
-                    currentSettings
-                );
-
-
-            case "gguf":
-
-                return generateGguf(
-                    messages,
-                    currentSettings
-                );
-
-
-            default:
-
-                throw new Error(
-                    "Unsupported AI provider: " +
-                    currentSettings.provider
-                );
-
-        }
-
-    }
-
-
-    /*
-     * ============================================================
-     * PUBLIC SEND
+     * SEND
      * ============================================================
      */
 
@@ -2055,7 +2178,8 @@
             {
 
                 includeState:
-                    settings.mode === "live"
+                    settings.mode ===
+                    "live"
 
             }
 
@@ -2067,16 +2191,6 @@
     /*
      * ============================================================
      * LIVE
-     * ============================================================
-     *
-     * NOTHING HERE STARTS BY ITSELF.
-     *
-     * Live only runs when:
-     *
-     *   - mode = live
-     *   - a provider is already prepared
-     *   - a real state-change event occurs
-     *
      * ============================================================
      */
 
@@ -2097,7 +2211,7 @@
 
 
     function hashState(
-        state
+        value
     ){
 
         let text =
@@ -2108,14 +2222,14 @@
 
             text =
                 JSON.stringify(
-                    state
+                    value
                 );
 
         }catch(error){
 
             text =
                 String(
-                    state
+                    value
                 );
 
         }
@@ -2133,6 +2247,7 @@
 
             hash ^=
                 text.charCodeAt(i);
+
 
             hash +=
                 (
@@ -2180,7 +2295,7 @@
 
 
         /*
-         * Absolutely no local runtime initialization here.
+         * NEVER initialize a model here.
          */
 
         if(
@@ -2240,6 +2355,7 @@
                             .live
                             .debounceMs
                     ) || 1800
+
                 )
 
             );
@@ -2288,22 +2404,6 @@
         }
 
 
-        if(
-            currentSettings.provider ===
-            "gguf" &&
-            !(
-                window.LittleHollowGGUF &&
-                typeof
-                    window.LittleHollowGGUF.chat ===
-                    "function"
-            )
-        ){
-
-            return;
-
-        }
-
-
         const now =
             Date.now();
 
@@ -2328,6 +2428,7 @@
                 reason
             );
 
+
             return;
 
         }
@@ -2337,19 +2438,16 @@
             getStateSnapshot();
 
 
-        const currentHash =
+        const stateHash =
             hashState(
                 state
             );
 
 
         if(
-            currentHash ===
+            stateHash ===
             lastLiveHash
         ){
-
-            livePending =
-                false;
 
             return;
 
@@ -2357,7 +2455,7 @@
 
 
         lastLiveHash =
-            currentHash;
+            stateHash;
 
         livePending =
             false;
@@ -2380,11 +2478,12 @@
                         "Little Hollow state changed."
                     ) +
                     ". Observe the current state and act only if useful. " +
-                    "Do not generate unnecessary user-facing text."
+                    "Do not produce unnecessary user-facing text."
                 ),
 
                 {
-                    includeState:true
+                    includeState:
+                        true
                 }
 
             );
@@ -2419,8 +2518,7 @@
     function enableLive(){
 
         /*
-         * Explicitly called after a local model has already
-         * been loaded.
+         * Called only when a runtime is already loaded.
          */
 
         clearTimeout(
@@ -2460,7 +2558,7 @@
 
     /*
      * ============================================================
-     * STATE EVENTS
+     * STATE CHANGES
      * ============================================================
      */
 
@@ -2475,11 +2573,8 @@
             if(
                 currentSettings.mode !==
                 "live"
-            ){
-
+            )
                 return;
-
-            }
 
 
             scheduleLive(
@@ -2497,7 +2592,7 @@
 
     /*
      * ============================================================
-     * SETTINGS EVENTS
+     * SETTINGS CHANGES
      * ============================================================
      */
 
@@ -2508,8 +2603,12 @@
 
 
         history[0] =
-            createSystemMessage();
+            makeSystemMessage();
 
+
+        /*
+         * Changing settings NEVER initializes a model.
+         */
 
         if(
             settings.mode !==
@@ -2524,12 +2623,8 @@
 
 
         /*
-         * Do NOT load a model.
-         *
-         * Do NOT call prepareOnnx().
-         *
-         * Live only becomes usable after the user explicitly
-         * initialized the provider from Settings.
+         * Only an already-loaded ONNX runtime can be
+         * activated by Live.
          */
 
         if(
@@ -2683,10 +2778,16 @@
 
     /*
      * ============================================================
-     * NO STARTUP MODEL LOADING.
+     * NO STARTUP CALLS.
      *
-     * DO NOT PUT ANY prepareOnnx(), preparePuter(),
-     * enableLive(), or pipeline() call here.
+     * There is deliberately NO:
+     *
+     *   prepareOnnx()
+     *   preparePuter()
+     *   enableLive()
+     *   pipeline()
+     *
+     * here.
      * ============================================================
      */
 
