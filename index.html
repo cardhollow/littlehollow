@@ -1,44 +1,165 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
+
+<meta
+    name="viewport"
+    content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"
+/>
+
+<meta
+    http-equiv="Cache-Control"
+    content="no-cache, no-store, must-revalidate"
+/>
+
+<meta
+    http-equiv="Pragma"
+    content="no-cache"
+/>
+
+<meta
+    http-equiv="Expires"
+    content="0"
+/>
+
 
 <title>Little Hollow</title>
-<link rel="stylesheet" href="style.css">
+
+
+<link
+    rel="stylesheet"
+    href="style.css"
+/>
+
 </head>
+
+
 <body>
-<canvas id="avatarCanvas"></canvas>
-<button id="launcher-icon" title="Messenger">
-    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+
+
+<canvas
+    id="avatarCanvas"
+></canvas>
+
+
+<button
+    id="launcher-icon"
+    title="Messenger"
+>
+
+    <svg
+        viewBox="0 0 24 24"
+    >
+
+        <path
+            d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+        />
+
+    </svg>
+
 </button>
-<div id="windows-root"></div>
-<div id="taskbar">
-    <button class="tb-apps-btn" id="taskbar-apps-btn">☰ APPS</button>
-    <div id="taskbar-items" style="display:flex;gap:6px;align-items:center;"></div>
+
+
+<div
+    id="windows-root"
+></div>
+
+
+<div
+    id="taskbar"
+>
+
+    <button
+        class="tb-apps-btn"
+        id="taskbar-apps-btn"
+    >
+        ☰ APPS
+    </button>
+
+
+    <div
+        id="taskbar-items"
+        style="display:flex;gap:6px;align-items:center;"
+    ></div>
+
 </div>
-<!-- Puter.js — provides puter.ai.chat() with no API key required -->
-<script src="https://js.puter.com/v2/"></script>
-<script>
-if(!window.puter){
-    const script=document.createElement("script");
-    script.src="https://js.puter.com/v2/";
-    script.onerror=()=>console.error("Puter.js failed to load.");
-    document.head.appendChild(script);
-}
-</script>
-<script defer src="js/systemPrompt.js"></script>
-<script defer src="js/filesystem.js"></script>
-<script defer src="js/avatar.js"></script>
-<script defer src="js/avatarText.js"></script>
-<script defer src="js/windowManager.js"></script>
-<script defer src="js/state.js"></script>
-<script defer src="js/apps.js"></script>
-<script defer src="js/tools.js"></script>
-<script defer src="js/ai.js"></script>
-<script defer src="js/main.js"></script>
+
+
+<!--
+    AI providers are intentionally NOT loaded here.
+
+    Puter.js is loaded lazily by js/ai.js when explicitly needed.
+
+    Transformers.js / ONNX is imported only when the user clicks
+    LOAD / SET UP MODEL inside Settings.
+
+    GGUF is loaded only through its own provider/runtime.
+-->
+
+
+<script
+    defer
+    src="js/systemPrompt.js"
+></script>
+
+
+<script
+    defer
+    src="js/filesystem.js"
+></script>
+
+
+<script
+    defer
+    src="js/avatar.js"
+></script>
+
+
+<script
+    defer
+    src="js/avatarText.js"
+></script>
+
+
+<script
+    defer
+    src="js/windowManager.js"
+></script>
+
+
+<script
+    defer
+    src="js/state.js"
+></script>
+
+
+<script
+    defer
+    src="js/apps.js"
+></script>
+
+
+<script
+    defer
+    src="js/tools.js"
+></script>
+
+
+<script
+    defer
+    src="js/ai.js"
+></script>
+
+
+<script
+    defer
+    src="js/main.js"
+></script>
+
+
 </body>
+
 </html>
