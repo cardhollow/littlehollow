@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>Offline AI - ONNX</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+      background: #0b0f14;
+      color: #f1f5f9;
+
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .app {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      height: 70px;
+      flex-shrink: 0;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      padding: 0 24px;
+
+      border-bottom: 1px solid #202833;
+      background: #10151c;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 38px;
+      height: 38px;
+
+      display: grid;
+      place-items: center;
+
+      border-radius: 10px;
+      background: #2563eb;
+
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      margin-top: 2px;
+      font-size: 12px;
+      color: #8b98a8;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #64748b;
+    }
+
+    .status-dot.ready {
+      background: #22c55e;
+    }
+
+    .status-dot.loading {
+      background: #eab308;
+      animation: pulse 1s infinite;
+    }
+
+    .status-dot.error {
+      background: #ef4444;
+    }
+
+    @keyframes pulse {
+      50% {
+        opacity: 0.35;
+      }
+    }
+
+    main {
+      flex: 1;
+      min-height: 0;
+
+      display: flex;
+      flex-direction: column;
+    }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+
+      padding: 30px 20px;
+
+      scroll-behavior: smooth;
+    }
+
+    .message-wrapper {
+      max-width: 900px;
+      margin: 0 auto 22px;
+      display: flex;
+    }
+
+    .message-wrapper.user {
+      justify-content: flex-end;
+    }
+
+    .message {
+      max-width: 78%;
+
+      padding: 13px 16px;
+
+      border-radius: 16px;
+
+      white-space: pre-wrap;
+      word-break: break-word;
+
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .assistant .message {
+      background: #151b23;
+      border: 1px solid #242d38;
+    }
+
+    .user .message {
+      background: #2563eb;
+      color: white;
+    }
+
+    .system-message {
+      max-width: 900px;
+      margin: 10px auto 25px;
+
+      text-align: center;
+
+      color: #7f8b9a;
+      font-size: 13px;
+    }
+
+    .loading-screen {
+      max-width: 700px;
+      margin: auto;
+
+      padding: 30px;
+
+      text-align: center;
+    }
+
+    .loading-screen h2 {
+      margin-top: 0;
+    }
+
+    .loading-screen p {
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+
+    .progress-container {
+      width: 100%;
+      height: 8px;
+
+      margin: 20px 0;
+
+      overflow: hidden;
+
+      border-radius: 999px;
+      background: #1e293b;
+    }
+
+    #progress {
+      width: 0%;
+      height: 100%;
+
+      background: #2563eb;
+
+      transition: width 0.2s ease;
+    }
+
+    #progressText {
+      color: #94a3b8;
+      font-size: 13px;
+    }
+
+    .input-area {
+      flex-shrink: 0;
+
+      padding: 16px 20px;
+
+      border-top: 1px solid #202833;
+      background: #10151c;
+    }
+
+    .input-container {
+      max-width: 900px;
+      margin: auto;
+
+      display: flex;
+      gap: 10px;
+    }
+
+    textarea {
+      flex: 1;
+
+      min-height: 50px;
+      max-height: 180px;
+
+      resize: none;
+
+      padding: 14px 16px;
+
+      border: 1px solid #293442;
+      border-radius: 14px;
+
+      background: #151b23;
+      color: #f8fafc;
+
+      outline: none;
+
+      font-family: inherit;
+      font-size: 14px;
+    }
+
+    textarea:focus {
+      border-color: #3b82f6;
+    }
+
+    button {
+      border: 0;
+
+      border-radius: 12px;
+
+      padding: 0 20px;
+
+      background: #2563eb;
+      color: white;
+
+      font-weight: 600;
+
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .controls {
+      max-width: 900px;
+      margin: 10px auto 0;
+
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      color: #64748b;
+      font-size: 11px;
+    }
+
+    .clear-btn {
+      padding: 6px 10px;
+      background: transparent;
+      color: #94a3b8;
+      border: 1px solid #293442;
+      font-size: 11px;
+    }
+
+    .clear-btn:hover {
+      background: #18202a;
+    }
+
+    @media (max-width: 700px) {
+      header {
+        padding: 0 14px;
+      }
+
+      #messages {
+        padding: 20px 12px;
+      }
+
+      .message {
+        max-width: 90%;
+      }
+
+      .input-area {
+        padding: 12px;
+      }
+
+      button {
+        padding: 0 15px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <header>
+
+    <div class="brand">
+
+      <div class="logo">
+        AI
+      </div>
+
+      <div>
+        <div class="title">
+          Offline AI
+        </div>
+
+        <div class="subtitle">
+          ONNX • Runs on your device
+        </div>
+      </div>
+
+    </div>
+
+    <div class="status">
+
+      <div
+        id="statusDot"
+        class="status-dot"
+      ></div>
+
+      <span id="statusText">
+        Loading model...
+      </span>
+
+    </div>
+
+  </header>
+
+
+  <main>
+
+    <div id="messages">
+
+      <div
+        id="loadingScreen"
+        class="loading-screen"
+      >
+
+        <h2>
+          Loading local AI
+        </h2>
+
+        <p>
+          The ONNX model is being downloaded and cached
+          in your browser.
+        </p>
+
+        <p>
+          After the first download, the browser can reuse
+          the cached model instead of downloading it again.
+        </p>
+
+        <div class="progress-container">
+
+          <div id="progress"></div>
+
+        </div>
+
+        <div id="progressText">
+          Starting...
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <div class="input-area">
+
+      <div class="input-container">
+
+        <textarea
+          id="input"
+          placeholder="Ask the local AI..."
+          disabled
+        ></textarea>
+
+        <button
+          id="send"
+          disabled
+        >
+          Send
+        </button>
+
+      </div>
+
+
+      <div class="controls">
+
+        <span>
+          No prompt is sent to a server.
+        </span>
+
+        <button
+          id="clear"
+          class="clear-btn"
+        >
+          Clear
+        </button>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<script type="module">
+
+  /*
+   * ============================================================
+   * OFFLINE ONNX AI
+   * ============================================================
+   *
+   * Library:
+   * Hugging Face Transformers.js
+   *
+   * Model:
+   * onnx-community/Qwen2.5-0.5B-Instruct
+   *
+   * The model is downloaded to the browser cache.
+   *
+   * Inference happens locally.
+   *
+   * No prompt is sent to an AI API.
+   *
+   * ============================================================
+   */
+
+  import {
+    pipeline,
+    env
+  } from
+    "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0";
+
+
+  /*
+   * ------------------------------------------------------------
+   * Configuration
+   * ------------------------------------------------------------
+   */
+
+  const MODEL_ID =
+    "onnx-community/Qwen2.5-0.5B-Instruct";
+
+
+  /*
+   * Allow Hugging Face to download the model.
+   *
+   * After the files are cached locally, subsequent runs
+   * can reuse the cached files.
+   */
+
+  env.allowLocalModels = false;
+
+  env.useBrowserCache = true;
+
+
+  /*
+   * ------------------------------------------------------------
+   * DOM
+   * ------------------------------------------------------------
+   */
+
+  const messages =
+    document.getElementById("messages");
+
+  const loadingScreen =
+    document.getElementById("loadingScreen");
+
+  const progress =
+    document.getElementById("progress");
+
+  const progressText =
+    document.getElementById("progressText");
+
+  const input =
+    document.getElementById("input");
+
+  const send =
+    document.getElementById("send");
+
+  const clear =
+    document.getElementById("clear");
+
+  const statusText =
+    document.getElementById("statusText");
+
+  const statusDot =
+    document.getElementById("statusDot");
+
+
+  /*
+   * ------------------------------------------------------------
+   * Application state
+   * ------------------------------------------------------------
+   */
+
+  let generator = null;
+
+  let busy = false;
+
+  const conversation = [];
+
+
+  /*
+   * ------------------------------------------------------------
+   * Status
+   * ------------------------------------------------------------
+   */
+
+  function setStatus(
+    text,
+    type = ""
+  ) {
+
+    statusText.textContent = text;
+
+    statusDot.className =
+      "status-dot " + type;
+  }
+
+
+  /*
+   * ------------------------------------------------------------
+   * Progress
+   * ------------------------------------------------------------
+   */
+
+  function setProgress(
+    percent,
+    text
+  ) {
+
+    const safePercent =
+      Math.max(
+        0,
+        Math.min(
+          100,
+          percent
+        )
+      );
+
+    progress.style.width =
+      safePercent + "%";
+
+    progressText.textContent =
+      text;
+  }
+
+
+  /*
+   * ------------------------------------------------------------
+   * Add message
+   * ------------------------------------------------------------
+   */
+
+  function addMessage(
+    role,
+    text
+  ) {
+
+    const wrapper =
+      document.createElement("div");
+
+    wrapper.className =
+      "message-wrapper " +
+      role;
+
+    const bubble =
+      document.createElement("div");
+
+    bubble.className =
+      "message";
+
+    bubble.textContent =
+      text;
+
+    wrapper.appendChild(
+      bubble
+    );
+
+    messages.appendChild(
+      wrapper
+    );
+
+    messages.scrollTop =
+      messages.scrollHeight;
+
+    return bubble;
+  }
+
+
+  /*
+   * ------------------------------------------------------------
+   * Download / model progress
+   * ------------------------------------------------------------
+   */
+
+  function handleProgress(data) {
+
+    /*
+     * Transformers.js emits different progress objects
+     * depending on the file being downloaded.
+     */
+
+    if (
+      data &&
+      typeof data.progress === "number"
+    ) {
+
+      const percent =
+        Math.round(
+          data.progress
+        );
+
+      const name =
+        data.file ||
+        data.name ||
+        "model";
+
+      setProgress(
+        percent,
+        `Downloading ${name}: ${percent}%`
+      );
+
+      setStatus(
+        `Downloading model ${percent}%`,
+        "loading"
+      );
+
+      return;
+    }
+
+
+    if (
+      data &&
+      data.status === "ready"
+    ) {
+
+      setProgress(
+        100,
+        "Model downloaded."
+      );
+
+      return;
+    }
+
+
+    if (
+      data &&
+      data.status === "initiate"
+    ) {
+
+      setStatus(
+        "Downloading model...",
+        "loading"
+      );
+
+      return;
+    }
+  }
+
+
+  /*
+   * ------------------------------------------------------------
+   * Load AI
+   * ------------------------------------------------------------
+   */
+
+  async function loadModel() {
+
+  try {
+
+    setStatus(
+      "Checking hardware...",
+      "loading"
+    );
+
+    setProgress(
+      1,
+      "Checking WebGPU availability..."
+    );
+
+
+    /*
+     * ----------------------------------------------------------
+     * First determine whether WebGPU can actually create
+     * a GPU adapter.
+     *
+     * navigator.gpu existing is NOT enough.
+     * ----------------------------------------------------------
+     */
+
+    let device = "wasm";
+
+    if (
+      "gpu" in navigator &&
+      navigator.gpu
+    ) {
+
+      try {
+
+        setStatus(
+          "Testing WebGPU...",
+          "loading"
+        );
+
+        const adapter =
+          await navigator.gpu.requestAdapter();
+
+        if (adapter) {
+
+          device = "webgpu";
+
+          console.log(
+            "WebGPU adapter found:",
+            adapter
+          );
+
+          setStatus(
+            "WebGPU available",
+            "loading"
+          );
+
+        } else {
+
+          console.warn(
+            "WebGPU exists, but requestAdapter() returned null."
+          );
+
+          device = "wasm";
+
+        }
+
+      } catch (gpuError) {
+
+        console.warn(
+          "WebGPU initialization failed:",
+          gpuError
+        );
+
+        device = "wasm";
+
+      }
+
+    }
+
+
+    /*
+     * ----------------------------------------------------------
+     * Load model
+     * ----------------------------------------------------------
+     */
+
+    try {
+
+      setStatus(
+        device === "webgpu"
+          ? "Loading with WebGPU..."
+          : "Loading with CPU...",
+        "loading"
+      );
+
+      setProgress(
+        2,
+        device === "webgpu"
+          ? "Starting WebGPU model..."
+          : "Starting CPU model..."
+      );
+
+
+      generator =
+        await pipeline(
+          "text-generation",
+          MODEL_ID,
+          {
+            device: device,
+
+            dtype:
+              device === "webgpu"
+                ? "q4"
+                : "q8",
+
+            progress_callback:
+              handleProgress
+          }
+        );
+
+    } catch (firstError) {
+
+      /*
+       * --------------------------------------------------------
+       * WebGPU failed.
+       *
+       * Retry using WASM instead of killing the application.
+       * --------------------------------------------------------
+       */
+
+      console.error(
+        `${device} model initialization failed:`,
+        firstError
+      );
+
+
+      if (device === "webgpu") {
+
+        console.warn(
+          "WebGPU failed. Falling back to WASM/CPU..."
+        );
+
+
+        setStatus(
+          "WebGPU failed • Switching to CPU...",
+          "loading"
+        );
+
+        setProgress(
+          0,
+          "WebGPU unavailable. Starting CPU fallback..."
+        );
+
+
+        /*
+         * Important:
+         * Destroy the failed pipeline reference before
+         * creating the WASM pipeline.
+         */
+
+        generator = null;
+
+
+        generator =
+          await pipeline(
+            "text-generation",
+            MODEL_ID,
+            {
+              device: "wasm",
+
+              dtype: "q8",
+
+              progress_callback:
+                handleProgress
+            }
+          );
+
+
+          device = "wasm";
+
+      } else {
+
+        throw firstError;
+
+      }
+
+    }
+
+
+    /*
+     * ----------------------------------------------------------
+     * Model is ready
+     * ----------------------------------------------------------
+     */
+
+    setProgress(
+      100,
+      "AI model ready."
+    );
+
+
+    setStatus(
+      device === "webgpu"
+        ? "Ready • WebGPU"
+        : "Ready • CPU",
+      "ready"
+    );
+
+
+    loadingScreen.remove();
+
+
+    input.disabled =
+      false;
+
+    send.disabled =
+      false;
+
+
+    addMessage(
+      "assistant",
+      device === "webgpu"
+        ? "I'm running locally on your device using WebGPU."
+        : "I'm running locally on your device using CPU/WASM."
+    );
+
+
+    input.focus();
+
+
+  } catch (error) {
+
+    console.error(
+      "FINAL MODEL ERROR:",
+      error
+    );
+
+
+    setStatus(
+      "Model failed to load",
+      "error"
+    );
+
+
+    progressText.textContent =
+      error.message ||
+      "Could not load model.";
+
+
+    addMessage(
+      "assistant",
+      "Could not load the ONNX model. Check the browser console for the full error."
+    );
+
+  }
+
+}
+
+  /*
+   * ------------------------------------------------------------
+   * Build prompt
+   * ------------------------------------------------------------
+   */
+
+  function buildPrompt() {
+
+    /*
+     * Qwen uses a chat template.
+     *
+     * We manually create a simple ChatML-style prompt.
+     */
+
+    let prompt =
+      "<|im_start|>system\n" +
+      "You are a helpful AI assistant. " +
+      "You are running completely locally in the user's browser. " +
+      "Be concise and useful." +
+      "<|im_end|>\n";
+
+
+    for (
+      const item of conversation
+    ) {
+
+      prompt +=
+        "<|im_start|>" +
+        item.role +
+        "\n" +
+        item.content +
+        "<|im_end|>\n";
+
+    }
+
+
+    prompt +=
+      "<|im_start|>assistant\n";
+
+
+    return prompt;
+
+  }
+
+
+  /*
+   * ------------------------------------------------------------
+   * Generate response
+   * ------------------------------------------------------------
+   */
+
+  async function generate() {
+
+    if (
+      !generator ||
+      busy
+    ) {
+
+      return;
+
+    }
+
+
+    const text =
+      input.value.trim();
+
+
+    if (!text) {
+
+      return;
+
+    }
+
+
+    input.value =
+      "";
+
+    input.style.height =
+      "auto";
+
+
+    /*
+     * Display user message.
+     */
+
+    addMessage(
+      "user",
+      text
+    );
+
+
+    conversation.push({
+      role: "user",
+      content: text
+    });
+
+
+    busy =
+      true;
+
+    send.disabled =
+      true;
+
+    input.disabled =
+      true;
+
+
+    const assistantBubble =
+      addMessage(
+        "assistant",
+        "Thinking..."
+      );
+
+
+    try {
+
+      setStatus(
+        "Generating locally...",
+        "loading"
+      );
+
+
+      const prompt =
+        buildPrompt();
+
+
+      /*
+       * Generate text.
+       */
+
+      const output =
+        await generator(
+          prompt,
+          {
+            max_new_tokens: 256,
+
+            temperature: 0.7,
+
+            do_sample: true,
+
+            top_p: 0.9,
+
+            repetition_penalty: 1.05
+          }
+        );
+
+
+      let response =
+        "";
+
+
+      if (
+        Array.isArray(output) &&
+        output.length > 0
+      ) {
+
+        response =
+          output[0].generated_text ||
+          "";
+
+      }
+
+
+      /*
+       * Remove the original prompt from generated output.
+       */
+
+      if (
+        response.startsWith(prompt)
+      ) {
+
+        response =
+          response.slice(
+            prompt.length
+          );
+
+      }
+
+
+      /*
+       * Remove common special tokens.
+       */
+
+      response =
+        response
+          .replace(
+            /<\|im_end\|>/g,
+            ""
+          )
+          .replace(
+            /<\|im_start\|>assistant/g,
+            ""
+          )
+          .trim();
+
+
+      if (!response) {
+
+        response =
+          "I couldn't generate a response.";
+
+      }
+
+
+      assistantBubble.textContent =
+        response;
+
+
+      conversation.push({
+        role: "assistant",
+        content: response
+      });
+
+
+      setStatus(
+        "Ready • Local AI",
+        "ready"
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        error
+      );
+
+      assistantBubble.textContent =
+        "Generation error: " +
+        error.message;
+
+
+      setStatus(
+        "Generation error",
+        "error"
+      );
+
+    }
+
+
+    busy =
+      false;
+
+    send.disabled =
+      false;
+
+    input.disabled =
+      false;
+
+    input.focus();
+
+  }
+
+
+  /*
+   * ------------------------------------------------------------
+   * Send button
+   * ------------------------------------------------------------
+   */
+
+  send.addEventListener(
+    "click",
+    generate
+  );
+
+
+  /*
+   * ------------------------------------------------------------
+   * Enter key
+   *
+   * Enter = send
+   * Shift + Enter = newline
+   * ------------------------------------------------------------
+   */
+
+  input.addEventListener(
+    "keydown",
+    event => {
+
+      if (
+        event.key === "Enter" &&
+        !event.shiftKey
+      ) {
+
+        event.preventDefault();
+
+        generate();
+
+      }
+
+    }
+  );
+
+
+  /*
+   * ------------------------------------------------------------
+   * Auto-resize textarea
+   * ------------------------------------------------------------
+   */
+
+  input.addEventListener(
+    "input",
+    () => {
+
+      input.style.height =
+        "auto";
+
+      input.style.height =
+        Math.min(
+          input.scrollHeight,
+          180
+        ) + "px";
+
+    }
+  );
+
+
+  /*
+   * ------------------------------------------------------------
+   * Clear conversation
+   * ------------------------------------------------------------
+ */
+
+  clear.addEventListener(
+    "click",
+    () => {
+
+      conversation.length =
+        0;
+
+      messages.innerHTML =
+        "";
+
+      addMessage(
+        "assistant",
+        "Conversation cleared."
+      );
+
+    }
+  );
+
+
+  /*
+   * ------------------------------------------------------------
+   * Start
+   * ------------------------------------------------------------
+   */
+
+  loadModel();
+
+</script>
+
+</body>
+</html>
