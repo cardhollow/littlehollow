@@ -5,24 +5,24 @@
     /*
      * ============================================================
      * LITTLE HOLLOW AI
+     * ============================================================
      *
-     * Local ONNX behavior intentionally mirrors the original
-     * standalone working HTML:
+     * Supports:
      *
-     *   Transformers.js 4.2.0
-     *   Qwen2.5-0.5B-Instruct
-     *   Q4
-     *   WebGPU
+     *   PUTER
+     *   ONNX / Transformers.js
+     *   GGUF
      *
-     * IMPORTANT:
+     * Tool calling is normalized through ONE path:
      *
-     * No ONNX model is loaded at startup.
+     *   native tool_calls
+     *   tool_use content blocks
+     *   text <tool_call> blocks
+     *   plain JSON tool calls
      *
-     * The model is loaded ONLY by:
+     * All normalized tool calls eventually reach:
      *
-     *     LittleHollowAI.prepareOnnx()
-     *
-     * which Settings calls explicitly.
+     *   Tools.execute(name, args)
      *
      * ============================================================
      */
@@ -163,8 +163,7 @@
 
 
             /*
-             * Migrate the Qwen3 configuration we were testing
-             * to the exact model used by the standalone HTML.
+             * Migrate the old Qwen3 configuration.
              */
 
             if(
@@ -343,7 +342,7 @@
 
     /*
      * ============================================================
-     * SEND STATUS TO SETTINGS
+     * STATUS
      * ============================================================
      */
 
@@ -511,8 +510,13 @@
         message
     ){
 
+        if(
+            !message
+        )
+            return "";
+
+
         const content =
-            message &&
             message.content;
 
 
@@ -531,13 +535,30 @@
 
             return content
                 .map(
-                    part =>
-                        typeof part === "string"
-                            ? part
-                            : part &&
-                              part.text
-                                ? part.text
-                                : ""
+                    part => {
+
+                        if(
+                            typeof part === "string"
+                        ){
+
+                            return part;
+
+                        }
+
+
+                        if(
+                            part &&
+                            typeof part.text === "string"
+                        ){
+
+                            return part.text;
+
+                        }
+
+
+                        return "";
+
+                    }
                 )
                 .join("");
 
@@ -553,7 +574,9 @@
         raw
     ){
 
-        if(raw == null)
+        if(
+            raw == null
+        )
             return {};
 
 
@@ -580,6 +603,696 @@
             return {};
 
         }
+
+    }
+
+
+    function makeToolId(){
+
+        return (
+            "call_" +
+            Date.now() +
+            "_" +
+            Math.random()
+                .toString(36)
+                .slice(2)
+        );
+
+    }
+
+
+    /*
+     * ============================================================
+     * TOOL CALL NORMALIZATION
+     * ============================================================
+     *
+     * Everything eventually becomes:
+     *
+     * {
+     *   id,
+     *   type:"function",
+     *   function:{
+     *      name,
+     *      arguments:"{}"
+     *   }
+     * }
+     *
+     * ============================================================
+     */
+
+    function normalizeToolCall(
+        call
+    ){
+
+        if(
+            !call
+        ){
+
+            return null;
+
+        }
+
+
+        /*
+         * Standard OpenAI / Puter format:
+         *
+         * {
+         *   id,
+         *   type:"function",
+         *   function:{
+         *      name,
+         *      arguments
+         *   }
+         * }
+         */
+
+        if(
+            call.function &&
+            call.function.name
+        ){
+
+            return {
+
+                id:
+                    call.id ||
+                    makeToolId(),
+
+                type:
+                    "function",
+
+                function:{
+
+                    name:
+                        String(
+                            call.function.name
+                        ),
+
+                    arguments:
+                        typeof call.function.arguments ===
+                        "string"
+                            ? call.function.arguments
+                            : JSON.stringify(
+                                call.function.arguments ||
+                                {}
+                              )
+
+                }
+
+            };
+
+        }
+
+
+        /*
+         * Anthropic / Puter tool_use style:
+         *
+         * {
+         *   type:"tool_use",
+         *   id,
+         *   name,
+         *   input
+         * }
+         */
+
+        if(
+            call.type === "tool_use" &&
+            call.name
+        ){
+
+            return {
+
+                id:
+                    call.id ||
+                    makeToolId(),
+
+                type:
+                    "function",
+
+                function:{
+
+                    name:
+                        String(
+                            call.name
+                        ),
+
+                    arguments:
+                        JSON.stringify(
+                            call.input ||
+                            {}
+                        )
+
+                }
+
+            };
+
+        }
+
+
+        /*
+         * Generic:
+         *
+         * {
+         *   name,
+         *   arguments
+         * }
+         */
+
+        if(
+            call.name
+        ){
+
+            return {
+
+                id:
+                    call.id ||
+                    makeToolId(),
+
+                type:
+                    "function",
+
+                function:{
+
+                    name:
+                        String(
+                            call.name
+                        ),
+
+                    arguments:
+                        typeof call.arguments === "string"
+                            ? call.arguments
+                            : JSON.stringify(
+                                call.arguments ||
+                                {}
+                              )
+
+                }
+
+            };
+
+        }
+
+
+        return null;
+
+    }
+
+
+    function extractNativeToolCalls(
+        message
+    ){
+
+        const calls = [];
+
+
+        if(
+            !message
+        )
+            return calls;
+
+
+        /*
+         * Standard:
+         */
+
+        if(
+            Array.isArray(
+                message.tool_calls
+            )
+        ){
+
+            for(
+                const call of
+                message.tool_calls
+            ){
+
+                const normalized =
+                    normalizeToolCall(
+                        call
+                    );
+
+                if(
+                    normalized
+                ){
+
+                    calls.push(
+                        normalized
+                    );
+
+                }
+
+            }
+
+        }
+
+
+        /*
+         * Some runtimes put tool calls in:
+         *
+         * message.content[]
+         */
+
+        if(
+            Array.isArray(
+                message.content
+            )
+        ){
+
+            for(
+                const part of
+                message.content
+            ){
+
+                if(
+                    part &&
+                    (
+                        part.type ===
+                            "tool_use" ||
+                        part.type ===
+                            "function_call"
+                    )
+                ){
+
+                    const normalized =
+                        normalizeToolCall(
+                            part
+                        );
+
+                    if(
+                        normalized
+                    ){
+
+                        calls.push(
+                            normalized
+                        );
+
+                    }
+
+                }
+
+            }
+
+        }
+
+
+        /*
+         * Remove duplicates by ID.
+         */
+
+        const unique = [];
+        const ids = new Set();
+
+
+        for(
+            const call of
+            calls
+        ){
+
+            const id =
+                call.id ||
+                makeToolId();
+
+
+            if(
+                ids.has(id)
+            ){
+
+                continue;
+
+            }
+
+
+            ids.add(id);
+
+            unique.push(
+                call
+            );
+
+        }
+
+
+        return unique;
+
+    }
+
+
+    /*
+     * ============================================================
+     * TEXT TOOL CALL PARSER
+     * ============================================================
+     *
+     * Supports local models such as Qwen producing:
+     *
+     * <tool_call>
+     * {"name":"open_application","arguments":{"name":"Snake"}}
+     * </tool_call>
+     *
+     * Also supports:
+     *
+     * <function=...>
+     * {...}
+     *
+     * and plain JSON.
+     *
+     * ============================================================
+     */
+
+    function parseTextToolCalls(
+        text
+    ){
+
+        const calls = [];
+
+        text =
+            String(
+                text || ""
+            );
+
+
+        /*
+         * --------------------------------------------------------
+         * <tool_call>...</tool_call>
+         * --------------------------------------------------------
+         */
+
+        const blockRegex =
+            /<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/gi;
+
+
+        let match;
+
+
+        while(
+            (match = blockRegex.exec(text))
+        ){
+
+            const raw =
+                match[1]
+                    .trim();
+
+
+            /*
+             * First try JSON object.
+             */
+
+            try{
+
+                const data =
+                    JSON.parse(
+                        raw
+                    );
+
+
+                const normalized =
+                    normalizeToolCall(
+                        data
+                    );
+
+
+                if(
+                    normalized
+                ){
+
+                    calls.push(
+                        normalized
+                    );
+
+                    continue;
+
+                }
+
+            }catch(error){}
+
+
+            /*
+             * Sometimes the inner payload itself is:
+             *
+             * {"function":{"name":"...","arguments":"..."}}
+             */
+
+            try{
+
+                const data =
+                    JSON.parse(
+                        raw
+                    );
+
+
+                if(
+                    data &&
+                    data.function &&
+                    data.function.name
+                ){
+
+                    const normalized =
+                        normalizeToolCall(
+                            data
+                        );
+
+                    if(
+                        normalized
+                    ){
+
+                        calls.push(
+                            normalized
+                        );
+
+                    }
+
+                }
+
+            }catch(error){}
+
+        }
+
+
+        /*
+         * --------------------------------------------------------
+         * <function=name>...</function>
+         * --------------------------------------------------------
+         */
+
+        const functionRegex =
+            /<function\s*=\s*([A-Za-z0-9_.-]+)\s*>([\s\S]*?)<\/function>/gi;
+
+
+        while(
+            (match = functionRegex.exec(text))
+        ){
+
+            const name =
+                match[1]
+                    .trim();
+
+
+            const raw =
+                match[2]
+                    .trim();
+
+
+            let args = {};
+
+
+            try{
+
+                args =
+                    JSON.parse(
+                        raw
+                    );
+
+            }catch(error){
+
+                /*
+                 * Leave empty if malformed.
+                 */
+
+                args = {};
+
+            }
+
+
+            calls.push({
+
+                id:
+                    makeToolId(),
+
+                type:
+                    "function",
+
+                function:{
+
+                    name,
+
+                    arguments:
+                        JSON.stringify(
+                            args
+                        )
+
+                }
+
+            });
+
+        }
+
+
+        /*
+         * --------------------------------------------------------
+         * Bare JSON object.
+         *
+         * Only use when the entire response is JSON.
+         * --------------------------------------------------------
+         */
+
+        if(
+            !calls.length
+        ){
+
+            const trimmed =
+                text.trim();
+
+
+            if(
+                trimmed.startsWith("{") &&
+                trimmed.endsWith("}")
+            ){
+
+                try{
+
+                    const data =
+                        JSON.parse(
+                            trimmed
+                        );
+
+
+                    const normalized =
+                        normalizeToolCall(
+                            data
+                        );
+
+
+                    if(
+                        normalized
+                    ){
+
+                        calls.push(
+                            normalized
+                        );
+
+                    }
+
+                }catch(error){}
+
+            }
+
+        }
+
+
+        /*
+         * --------------------------------------------------------
+         * Remove duplicate calls.
+         * --------------------------------------------------------
+         */
+
+        const unique = [];
+        const signatures = new Set();
+
+
+        for(
+            const call of
+            calls
+        ){
+
+            const signature =
+                (
+                    call.function.name
+                ) +
+                "|" +
+                (
+                    call.function.arguments
+                );
+
+
+            if(
+                signatures.has(
+                    signature
+                )
+            ){
+
+                continue;
+
+            }
+
+
+            signatures.add(
+                signature
+            );
+
+
+            unique.push(
+                call
+            );
+
+        }
+
+
+        return unique;
+
+    }
+
+
+    function extractToolCalls(
+        message,
+        provider
+    ){
+
+        /*
+         * First:
+         *
+         * native tool_calls /
+         * content tool_use
+         */
+
+        const native =
+            extractNativeToolCalls(
+                message
+            );
+
+
+        if(
+            native.length
+        ){
+
+            return native;
+
+        }
+
+
+        /*
+         * Text fallback.
+         *
+         * Needed especially for local ONNX models.
+         *
+         * Also harmless for Puter if a vendor sends a
+         * textual tool call instead of a structured one.
+         */
+
+        const text =
+            messageText(
+                message
+            );
+
+
+        if(
+            text
+        ){
+
+            return parseTextToolCalls(
+                text
+            );
+
+        }
+
+
+        return [];
 
     }
 
@@ -756,23 +1469,48 @@
             await preparePuter();
 
 
-        return puter.ai.chat(
+        if(
+            !puter ||
+            !puter.ai ||
+            typeof puter.ai.chat !==
+                "function"
+        ){
 
-            messages,
+            throw new Error(
+                "Puter AI API is unavailable."
+            );
 
-            {
+        }
 
-                model:
-                    currentSettings
-                        .puter
-                        .model,
 
-                tools:
-                    Tools.definitions
+        /*
+         * Puter documents tools as standard function
+         * definitions and returns message.tool_calls.
+         *
+         * Keep the request in that format.
+         */
 
-            }
+        const options = {
 
-        );
+            model:
+                currentSettings
+                    .puter
+                    .model,
+
+            tools:
+                Tools.definitions
+
+        };
+
+
+        const response =
+            await puter.ai.chat(
+                messages,
+                options
+            );
+
+
+        return response;
 
     }
 
@@ -780,9 +1518,6 @@
     /*
      * ============================================================
      * TRANSFORMERS.JS
-     * ============================================================
-     *
-     * Only imported after Settings explicitly requests ONNX.
      * ============================================================
      */
 
@@ -813,9 +1548,7 @@
 
         transformersModule =
             await import(
-
                 "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0"
-
             );
 
 
@@ -827,12 +1560,6 @@
     /*
      * ============================================================
      * DEVICE
-     * ============================================================
-     *
-     * Match the original standalone test.
-     *
-     * We check navigator.gpu rather than rejecting based on a
-     * manual adapter feature probe before pipeline().
      * ============================================================
      */
 
@@ -871,10 +1598,6 @@
         }
 
 
-        /*
-         * AUTO
-         */
-
         if(
             "gpu" in navigator
         ){
@@ -898,10 +1621,6 @@
     async function prepareOnnx(
         overrideSettings
     ){
-
-        /*
-         * Explicitly invoked ONLY from Settings.
-         */
 
         if(
             onnxGenerator
@@ -944,19 +1663,11 @@
 
         const modelSettings =
             Object.assign(
-
                 {},
-
                 currentSettings.onnx,
-
                 overrideSettings || {}
-
             );
 
-
-        /*
-         * Make this exactly match the standalone page.
-         */
 
         const model =
             (
@@ -973,20 +1684,10 @@
             );
 
 
-        /*
-         * Use the selected dtype, but default to Q4.
-         */
-
         let dtype =
             modelSettings.dtype ||
             "q4";
 
-
-        /*
-         * The standalone working configuration is Q4.
-         *
-         * Do not silently use the problematic f16 path.
-         */
 
         if(
             dtype === "q4f16" &&
@@ -997,7 +1698,7 @@
                 "q4";
 
             console.warn(
-                "Q4F16 was selected for WebGPU. Using Q4 to match the known-working standalone configuration."
+                "Q4F16 selected for WebGPU. Using Q4."
             );
 
         }
@@ -1007,13 +1708,6 @@
             (async () => {
 
                 try{
-
-                    /*
-                     * IMPORTANT:
-                     *
-                     * This is the same runtime shape as the
-                     * standalone HTML.
-                     */
 
                     const {
                         pipeline,
@@ -1025,10 +1719,8 @@
                     env.allowLocalModels =
                         false;
 
-
                     env.allowRemoteModels =
                         true;
-
 
                     env.useBrowserCache =
                         true;
@@ -1043,11 +1735,9 @@
                             0,
 
                         message:
-                            (
-                                "Preparing " +
-                                model +
-                                "..."
-                            )
+                            "Preparing " +
+                            model +
+                            "..."
 
                     });
 
@@ -1062,11 +1752,9 @@
                             {
 
                                 device:
-
                                     device,
 
                                 dtype:
-
                                     dtype,
 
                                 progress_callback:
@@ -1074,8 +1762,7 @@
 
                                         if(
                                             data &&
-                                            typeof
-                                                data.progress ===
+                                            typeof data.progress ===
                                                 "number"
                                         ){
 
@@ -1099,13 +1786,11 @@
                                                 progress,
 
                                                 message:
-                                                    (
-                                                        "Downloading " +
-                                                        file +
-                                                        " — " +
-                                                        progress +
-                                                        "%"
-                                                    )
+                                                    "Downloading " +
+                                                    file +
+                                                    " — " +
+                                                    progress +
+                                                    "%"
 
                                             });
 
@@ -1129,11 +1814,9 @@
 
                                                 message:
                                                     file
-                                                        ? (
-                                                            "Loading " +
-                                                            file +
-                                                            "..."
-                                                          )
+                                                        ? "Loading " +
+                                                          file +
+                                                          "..."
                                                         : "Initializing ONNX Runtime..."
 
                                             });
@@ -1146,12 +1829,6 @@
 
                         );
 
-
-                    /*
-                     * IMPORTANT:
-                     *
-                     * Only now do we commit the runtime.
-                     */
 
                     onnxGenerator =
                         generator;
@@ -1178,22 +1855,15 @@
                             100,
 
                         message:
-                            (
-                                "READY — " +
-                                model +
-                                " • " +
-                                device.toUpperCase() +
-                                " • " +
-                                dtype.toUpperCase()
-                            )
+                            "READY — " +
+                            model +
+                            " • " +
+                            device.toUpperCase() +
+                            " • " +
+                            dtype.toUpperCase()
 
                     });
 
-
-                    /*
-                     * If Live was selected already, it can
-                     * start ONLY after the explicit setup.
-                     */
 
                     if(
                         getSettings().mode ===
@@ -1232,14 +1902,11 @@
                     onnxGenerator =
                         null;
 
-
                     onnxModelId =
                         null;
 
-
                     onnxDevice =
                         null;
-
 
                     onnxDtype =
                         null;
@@ -1284,14 +1951,11 @@
         onnxGenerator =
             null;
 
-
         onnxModelId =
             null;
 
-
         onnxDevice =
             null;
-
 
         onnxDtype =
             null;
@@ -1337,7 +2001,7 @@
             window.LittleHollowGGUF &&
             typeof
                 window.LittleHollowGGUF.prepare ===
-                "function"
+                    "function"
         ){
 
             return window
@@ -1365,7 +2029,7 @@
             !window.LittleHollowGGUF ||
             typeof
                 window.LittleHollowGGUF.chat !==
-                "function"
+                    "function"
         ){
 
             throw new Error(
@@ -1416,13 +2080,7 @@
 
     /*
      * ============================================================
-     * ONNX GENERATION
-     * ============================================================
-     *
-     * Keep this close to the original standalone HTML.
-     *
-     * Qwen2.5 receives a rendered ChatML-style prompt.
-     *
+     * ONNX PROMPT
      * ============================================================
      */
 
@@ -1431,11 +2089,37 @@
         let prompt =
             "<|im_start|>system\n" +
             getSystemPrompt() +
+            "\n\n" +
+
+            "AVAILABLE TOOLS:\n" +
+
+            JSON.stringify(
+                Tools.definitions,
+                null,
+                2
+            ) +
+
+            "\n\n" +
+
+            "TOOL CALL RULES:\n" +
+
+            "If you need to perform an action in Little Hollow, " +
+            "you MUST call the appropriate tool instead of merely saying you did it.\n" +
+
+            "For a tool call, output ONLY:\n" +
+
+            "<tool_call>{\"name\":\"TOOL_NAME\",\"arguments\":{}}</tool_call>\n" +
+
+            "Do not invent tool results.\n" +
+
+            "Wait for the tool result before claiming the action succeeded." +
+
             "\n<|im_end|>\n";
 
 
         for(
-            const item of history.slice(1)
+            const item of
+            history.slice(1)
         ){
 
             const role =
@@ -1444,17 +2128,101 @@
 
 
             /*
-             * Ignore internal tool messages in the basic
-             * standalone-style ONNX text path.
+             * Tool messages are inserted separately in the
+             * ONNX prompt below when needed.
              */
 
             if(
                 role === "tool"
-            )
+            ){
+
+                prompt +=
+                    "<|im_start|>tool\n" +
+                    messageText(
+                        item
+                    ) +
+                    "\n<|im_end|>\n";
+
                 continue;
 
+            }
 
-            let content =
+
+            /*
+             * Assistant tool call history.
+             *
+             * Reconstruct a textual tool call so the small
+             * local model understands the previous action.
+             */
+
+            if(
+                role === "assistant" &&
+                Array.isArray(
+                    item.tool_calls
+                ) &&
+                item.tool_calls.length
+            ){
+
+                const text =
+                    messageText(
+                        item
+                    );
+
+
+                if(
+                    text
+                ){
+
+                    prompt +=
+                        "<|im_start|>assistant\n" +
+                        text +
+                        "\n<|im_end|>\n";
+
+                }
+
+
+                for(
+                    const call of
+                    item.tool_calls
+                ){
+
+                    const name =
+                        call &&
+                        call.function &&
+                        call.function.name
+                            ? call.function.name
+                            : "";
+
+
+                    const args =
+                        call &&
+                        call.function
+                            ? call.function.arguments || "{}"
+                            : "{}";
+
+
+                    prompt +=
+                        "<|im_start|>assistant\n" +
+                        "<tool_call>" +
+                        JSON.stringify({
+                            name,
+                            arguments:
+                                safeParseArgs(
+                                    args
+                                )
+                        }) +
+                        "</tool_call>\n" +
+                        "<|im_end|>\n";
+
+                }
+
+
+                continue;
+
+            }
+
+
+            const content =
                 messageText(
                     item
                 );
@@ -1484,6 +2252,12 @@
 
     }
 
+
+    /*
+     * ============================================================
+     * ONNX GENERATION
+     * ============================================================
+     */
 
     async function generateOnnx(
         currentSettings
@@ -1565,7 +2339,8 @@
 
 
         /*
-         * Strip the prompt.
+         * Remove the prompt when Transformers returns
+         * the complete generated sequence.
          */
 
         if(
@@ -1581,10 +2356,6 @@
 
         }
 
-
-        /*
-         * Clean Qwen special tokens.
-         */
 
         response =
             response
@@ -1672,25 +2443,17 @@
         log
     ){
 
-        const name =
-            call &&
-            call.function
-                ? call.function.name
-                : call &&
-                  call.name;
+        const normalized =
+            normalizeToolCall(
+                call
+            );
 
 
-        const rawArgs =
-            call &&
-            call.function
-                ? call.function.arguments
-                : call &&
-                  call.input;
+        if(
+            !normalized
+        ){
 
-
-        if(!name){
-
-            return {
+            const malformed = {
 
                 ok:
                     false,
@@ -1700,7 +2463,29 @@
 
             };
 
+
+            log.push({
+
+                name:
+                    "(unknown)",
+
+                summary:
+                    malformed.summary
+
+            });
+
+
+            return malformed;
+
         }
+
+
+        const name =
+            normalized.function.name;
+
+
+        const rawArgs =
+            normalized.function.arguments;
 
 
         const args =
@@ -1714,6 +2499,13 @@
 
         try{
 
+            console.log(
+                "[Little Hollow AI] Executing tool:",
+                name,
+                args
+            );
+
+
             Avatar.setEye(
                 "matrix"
             );
@@ -1724,6 +2516,7 @@
                     name,
                     args
                 );
+
 
         }catch(error){
 
@@ -1780,7 +2573,7 @@
             window.LittleHollowState &&
             typeof
                 window.LittleHollowState.getSnapshot ===
-                "function"
+                    "function"
         ){
 
             try{
@@ -1841,7 +2634,9 @@
         }catch(error){}
 
 
-        if(!serialized)
+        if(
+            !serialized
+        )
             return String(
                 text || ""
             );
@@ -1916,7 +2711,7 @@
                 window.LittleHollowGGUF &&
                 typeof
                     window.LittleHollowGGUF.chat ===
-                    "function"
+                        "function"
             )
         ){
 
@@ -1976,6 +2771,7 @@
 
         const log = [];
 
+
         let finalText =
             "";
 
@@ -1999,10 +2795,22 @@
                 round++
             ){
 
+                console.log(
+                    "[Little Hollow AI] Round:",
+                    round + 1
+                );
+
+
                 const response =
                     await generate(
                         settings
                     );
+
+
+                console.log(
+                    "[Little Hollow AI] Raw response:",
+                    response
+                );
 
 
                 const message =
@@ -2012,35 +2820,69 @@
 
 
                 /*
-                 * Puter can return native tool_calls.
+                 * IMPORTANT:
+                 *
+                 * Normalize EVERY supported tool-call format.
                  */
 
                 const toolCalls =
-                    Array.isArray(
-                        message.tool_calls
-                    )
-                        ? message.tool_calls
-                        : [];
+                    extractToolCalls(
+                        message,
+                        settings.provider
+                    );
 
 
-                history.push({
+                console.log(
+                    "[Little Hollow AI] Detected tool calls:",
+                    toolCalls
+                );
+
+
+                /*
+                 * Store assistant response.
+                 *
+                 * For native calls, preserve the native
+                 * tool_calls field.
+                 */
+
+                const assistantHistory = {
 
                     role:
                         "assistant",
 
                     content:
-                        message.content ||
-                        "",
+                        typeof message.content ===
+                        "string"
+                            ? message.content
+                            : (
+                                messageText(
+                                    message
+                                ) || ""
+                              )
 
-                    ...(toolCalls.length
-                        ? {
-                            tool_calls:
-                                toolCalls
-                          }
-                        : {})
+                };
 
-                });
 
+                if(
+                    toolCalls.length
+                ){
+
+                    assistantHistory.tool_calls =
+                        toolCalls;
+
+                }
+
+
+                history.push(
+                    assistantHistory
+                );
+
+
+                /*
+                 * =================================================
+                 * TOOLS
+                 * =================================================
+                 */
 
                 if(
                     toolCalls.length
@@ -2048,7 +2890,7 @@
 
                     for(
                         const call of
-                            toolCalls
+                        toolCalls
                     ){
 
                         const result =
@@ -2058,6 +2900,16 @@
                             );
 
 
+                        /*
+                         * Standard OpenAI / Puter tool result.
+                         *
+                         * Puter explicitly documents:
+                         *
+                         * role: "tool"
+                         * tool_call_id
+                         * content
+                         */
+
                         history.push({
 
                             role:
@@ -2065,14 +2917,7 @@
 
                             tool_call_id:
                                 call.id ||
-                                (
-                                    "call_" +
-                                    Date.now() +
-                                    "_" +
-                                    Math.random()
-                                        .toString(36)
-                                        .slice(2)
-                                ),
+                                makeToolId(),
 
                             content:
                                 JSON.stringify(
@@ -2087,14 +2932,39 @@
                     trimHistory();
 
 
+                    /*
+                     * DO NOT stop here.
+                     *
+                     * The model must get another round so it
+                     * can observe the actual tool result.
+                     */
+
                     continue;
 
                 }
 
 
+                /*
+                 * No tool call.
+                 *
+                 * This is the final answer.
+                 */
+
                 finalText =
                     messageText(
                         message
+                    );
+
+
+                /*
+                 * Prevent raw tool markup from appearing
+                 * as the user-facing answer if the model
+                 * produced malformed text.
+                 */
+
+                finalText =
+                    cleanAssistantText(
+                        finalText
                     );
 
 
@@ -2159,6 +3029,46 @@
 
     /*
      * ============================================================
+     * CLEAN TEXT
+     * ============================================================
+     */
+
+    function cleanAssistantText(
+        text
+    ){
+
+        text =
+            String(
+                text || ""
+            );
+
+
+        /*
+         * Remove tool-call blocks if one somehow remains
+         * after execution.
+         */
+
+        text =
+            text.replace(
+                /<tool_call>[\s\S]*?<\/tool_call>/gi,
+                ""
+            );
+
+
+        text =
+            text.replace(
+                /<function\s*=\s*[^>]+>[\s\S]*?<\/function>/gi,
+                ""
+            );
+
+
+        return text.trim();
+
+    }
+
+
+    /*
+     * ============================================================
      * SEND
      * ============================================================
      */
@@ -2197,14 +3107,18 @@
     let liveTimer =
         null;
 
+
     let liveRunning =
         false;
+
 
     let livePending =
         false;
 
+
     let lastLiveRun =
         0;
+
 
     let lastLiveHash =
         "";
@@ -2294,10 +3208,6 @@
         }
 
 
-        /*
-         * NEVER initialize a model here.
-         */
-
         if(
             currentSettings.provider ===
             "onnx" &&
@@ -2316,7 +3226,7 @@
                 window.LittleHollowGGUF &&
                 typeof
                     window.LittleHollowGGUF.chat ===
-                    "function"
+                        "function"
             )
         ){
 
@@ -2355,7 +3265,6 @@
                             .live
                             .debounceMs
                     ) || 1800
-
                 )
 
             );
@@ -2457,11 +3366,14 @@
         lastLiveHash =
             stateHash;
 
+
         livePending =
             false;
 
+
         liveRunning =
             true;
+
 
         lastLiveRun =
             now;
@@ -2482,8 +3394,10 @@
                 ),
 
                 {
+
                     includeState:
                         true
+
                 }
 
             );
@@ -2517,10 +3431,6 @@
 
     function enableLive(){
 
-        /*
-         * Called only when a runtime is already loaded.
-         */
-
         clearTimeout(
             liveTimer
         );
@@ -2547,8 +3457,10 @@
         liveTimer =
             null;
 
+
         livePending =
             false;
+
 
         liveRunning =
             false;
@@ -2606,10 +3518,6 @@
             makeSystemMessage();
 
 
-        /*
-         * Changing settings NEVER initializes a model.
-         */
-
         if(
             settings.mode !==
             "live"
@@ -2621,11 +3529,6 @@
 
         }
 
-
-        /*
-         * Only an already-loaded ONNX runtime can be
-         * activated by Live.
-         */
 
         if(
             settings.provider ===
@@ -2702,7 +3605,7 @@
                     window.LittleHollowGGUF &&
                     typeof
                         window.LittleHollowGGUF.chat ===
-                        "function"
+                            "function"
                 )
 
         };
@@ -2720,6 +3623,7 @@
 
         history =
             createHistory();
+
 
         lastLiveHash =
             "";
@@ -2771,23 +3675,24 @@
 
         getHistory:
             () =>
-                history.slice()
+                history.slice(),
+
+        /*
+         * Expose these for debugging.
+         */
+
+        parseTextToolCalls,
+
+        extractToolCalls,
+
+        executeToolCall
 
     };
-
+console.log("FIXED")
 
     /*
      * ============================================================
-     * NO STARTUP CALLS.
-     *
-     * There is deliberately NO:
-     *
-     *   prepareOnnx()
-     *   preparePuter()
-     *   enableLive()
-     *   pipeline()
-     *
-     * here.
+     * NO STARTUP CALLS
      * ============================================================
      */
 
