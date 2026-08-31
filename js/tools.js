@@ -451,11 +451,11 @@
                 esc(text||"")+
                 "\n<span class='cursor'>█</span>";
         }
-    }
+    }console.log("terminal/tools")
 
     function closeTerminalSoon(
         win,
-        delay=900
+        delay=2000
     ){
         setTimeout(()=>{
             if(win&&!win.closed){
