@@ -19,6 +19,8 @@
         videoplayer:{title:"VIDEO PLAYER",src:"app/videoplayer.html",w:480,h:360},
         audioplayer:{title:"AUDIO PLAYER",src:"app/audioplayer.html",w:420,h:260},
         gamefinder:{title: "GAME FINDER",src:"app/gamefinder.html",w:360,h:340},
+        doom:{title:"Doom",src:"https://js-dos.com/games/doom.exe.html",w:360,h:340},
+        pacman:{title:"Pacman",src:"https://funhtml5games.com?embed=pacman",w:360,h:340},
         browser:{title:"BROWSER",src:"app/browser.html",w:360,h:340},
         imageeditor:{title:"imageeditor",src:"app/imageEditor.html",w:480,h:380},
         messenger:{title:"MESSENGER",src:"app/messenger.html",w:430,h:360},
