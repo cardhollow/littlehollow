@@ -49,6 +49,7 @@ body{overflow:hidden}
 <button id="refresh">REFRESH</button>
 <button id="up">UP</button>
 <button id="newText">NEW TEXT</button>
+<button id="mountFolder">UPLOAD FOLDER</button>
 <button id="zip">ZIP SELECTED</button>
 <button id="selectAll">SELECT ALL</button>
 </div>
@@ -102,6 +103,11 @@ const zones=[
         key:"puter",
         label:"PUTER",
         prefix:"puter:/"
+    },
+    {
+        key:"device",
+        label:"DEVICE",
+        prefix:"chxd:/device/"
     },
     {
         key:"system",
@@ -4547,7 +4553,41 @@ box.onkeydown=e=>{
 /* =========================================================
    START
 ========================================================= */
+document.getElementById(
+    "mountFolder"
+).onclick = async () => {
+    const result =
+        await parent.FS.mountDeviceFolder();
 
+    if(!result.ok){
+        if(!result.cancelled){
+            showError(
+                result.error ||
+                "Could not upload folder."
+            );
+        }
+
+        return;
+    }
+
+    current = "device";
+    currentPrefix = "";
+
+    [
+        ...tabs.children
+    ].forEach(
+        x => {
+            x.classList.toggle(
+                "active",
+                x.dataset.k === "device"
+            );
+        }
+    );
+
+    selected.clear();
+
+    await refresh();
+};
 refresh();
 
 </script>
