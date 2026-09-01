@@ -1,0 +1,31 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width,initial-scale=1"> <title>GBA IFRAME</title> <style> *{ box-sizing:border-box; margin:0; padding:0; font-family:monospace; } html, body{ width:100%; height:100%; background:transparent; color:#00FFFF; } body{ overflow:hidden; } .wrap{ width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:16px; } .panel{ width:min(520px,100%); border:1px solid #00FFFF; background:rgba(0,13,13,.35); padding:14px; } .title{ text-align:center; font-size:14px; margin-bottom:12px; letter-spacing:2px; } .input-row{ display:flex; gap:6px; width:100%; } input, button{ border:1px solid #00FFFF; background:transparent; color:#00FFFF; font-family:monospace; font-size:11px; padding:8px 9px; outline:none; } input{ flex:1; min-width:0; } input::placeholder{ color:#00FFFF; opacity:.45; } button{ cursor:pointer; } button:active{ background:#00FFFF; color:#000; } .status{ min-height:16px; margin-top:8px; font-size:10px; opacity:.65; text-align:center; } .status.error{ color:#ff6666; opacity:1; } .status.ok{ color:#00FFFF; opacity:1; } </style> </head> <body> <div class="wrap">
+<div class="panel">
+
+    <div class="title">
+        GBA IFRAME
+    </div>
+
+    <div class="input-row">
+
+        <input
+            id="url"
+            type="url"
+            placeholder="ENTER GBA URL..."
+            autocomplete="off"
+            spellcheck="false"
+        >
+
+        <button id="open">
+            OPEN
+        </button>
+
+    </div>
+
+    <div
+        id="status"
+        class="status"
+    ></div>
+
+</div>
+
+</div> <script> const urlInput = document.getElementById("url"); const openButton = document.getElementById("open"); const status = document.getElementById("status"); function setStatus( message, type="" ){ status.textContent = message; status.className = "status " + type; } function getURL(){ let url = urlInput.value.trim(); if(!url){ setStatus( "ENTER A URL.", "error" ); urlInput.focus(); return null; } /* * Allow users to type: * * https://example.com/game.html * * or simply: * * example.com/game.html */ if( !/^https?:\/\//i.test(url) ){ url = "https://" + url; } try{ const parsed = new URL(url); if( parsed.protocol !== "http:" && parsed.protocol !== "https:" ){ throw new Error( "Only HTTP/HTTPS URLs are supported." ); } } catch(err){ setStatus( "INVALID URL.", "error" ); return null; } return url; } function openGBA(){ const url = getURL(); if(!url){ return; } /* * The important part: * * parent.Apps.openApp() * * creates a new application window * in the parent environment. */ try{ if( !parent.Apps || typeof parent.Apps.openApp !== "function" ){ throw new Error( "Apps.openApp() is unavailable." ); } const result = parent.Apps.openApp( "gbaiframe", { title:"GBA IFRAME", width:800, height:600, allowMultiple:true } ); if( !result || !result.ok || !result.win ){ throw new Error( result && ( result.error || result.summary ) || "Could not create GBA window." ); } const win = result.win; function getIframe(){ if( !win || !win.el ){ return null; } return win.el.querySelector( "iframe" ); } function loadIframe(){ const iframe = getIframe(); if(!iframe){ return false; } iframe.src = url; iframe.style.cssText = ` position:absolute; inset:0; width:100%; height:100%; border:0; background:#000; `; iframe.setAttribute( "allow", "autoplay; fullscreen; gamepad" ); iframe.setAttribute( "allowfullscreen", "" ); iframe.setAttribute( "frameborder", "0" ); return true; } /* * If the iframe already exists, * load immediately. */ if( loadIframe() ){ setStatus( "OPENED.", "ok" ); return; } /* * Apps.openApp() may create the * iframe asynchronously, so watch * briefly for it to appear. */ let tries = 0; const timer = setInterval( ()=>{ tries++; if( loadIframe() ){ clearInterval( timer ); setStatus( "OPENED.", "ok" ); return; } if( tries >= 50 ){ clearInterval( timer ); setStatus( "WINDOW CREATED, IFRAME NOT FOUND.", "error" ); } }, 100 ); } catch(err){ setStatus( err && err.message ?err.message :String(err), "error" ); } } openButton.onclick = openGBA; urlInput.addEventListener( "keydown", e=>{ if( e.key === "Enter" ){ e.preventDefault(); openGBA(); } } ); urlInput.focus(); </script> </body> </html>
