@@ -79,10 +79,6 @@ Long-press/right-click for more actions.
 
 <script>
 
-/* =========================================================
-   ZONES
-========================================================= */
-
 const zones=[
     {
         key:"local",
@@ -158,10 +154,6 @@ const contextMenu=
     document.getElementById("contextMenu");
 
 
-/* =========================================================
-   ERROR
-========================================================= */
-
 function showError(s){
 
     errorBox.textContent=
@@ -188,10 +180,6 @@ function showError(s){
 }
 
 
-/* =========================================================
-   SELECT MODE
-========================================================= */
-
 if(selectMode){
 
     hint.textContent=
@@ -199,10 +187,6 @@ if(selectMode){
 
 }
 
-
-/* =========================================================
-   BUILD TABS
-========================================================= */
 
 zones.forEach(z=>{
 
@@ -260,10 +244,6 @@ zones.forEach(z=>{
 });
 
 
-/* =========================================================
-   ZONE
-========================================================= */
-
 function zone(){
 
     return zones.find(
@@ -272,10 +252,6 @@ function zone(){
 
 }
 
-
-/* =========================================================
-   EXTENSION
-========================================================= */
 
 function ext(p){
 
@@ -289,10 +265,6 @@ function ext(p){
 
 }
 
-
-/* =========================================================
-   IMAGE DETECTION
-========================================================= */
 
 function isImagePath(path){
 
@@ -317,10 +289,6 @@ function isImagePath(path){
 }
 
 
-/* =========================================================
-   SELECTED
-========================================================= */
-
 function selectedPaths(){
 
     return[
@@ -329,10 +297,6 @@ function selectedPaths(){
 
 }
 
-
-/* =========================================================
-   FOLDER PATH
-========================================================= */
 
 function normalizeFolderPath(p){
 
@@ -356,10 +320,35 @@ function isFolderPath(p){
 
 }
 
+function isTopLevelDeviceMount(p){
 
-/* =========================================================
-   DISPLAY NAME
-========================================================= */
+    const clean=
+        String(
+            p||""
+        ).replace(
+            /\/+$/,
+            ""
+        );
+
+    const prefix=
+        "chxd:/device/";
+
+    if(!clean.startsWith(prefix)){
+        return false;
+    }
+
+    const relative=
+        clean.slice(
+            prefix.length
+        );
+
+    return(
+        relative.length>0 &&
+        !relative.includes("/")
+    );
+
+}
+
 
 function displayName(p){
 
@@ -380,10 +369,6 @@ function displayName(p){
 
 }
 
-
-/* =========================================================
-   PARENT FOLDER
-========================================================= */
 
 function parentFolder(p){
 
@@ -408,10 +393,6 @@ function parentFolder(p){
 }
 
 
-/* =========================================================
-   PATH DISPLAY
-========================================================= */
-
 function updatePathDisplay(){
 
     const z=
@@ -427,10 +408,6 @@ function updatePathDisplay(){
 }
 
 
-/* =========================================================
-   CLOSE CONTEXT
-========================================================= */
-
 function closeContextMenu(){
 
     contextMenu.style.display=
@@ -442,10 +419,6 @@ function closeContextMenu(){
 
 }
 
-
-/* =========================================================
-   CONTEXT BUTTON
-========================================================= */
 
 function addContextButton(
     label,
@@ -483,18 +456,9 @@ function addContextButton(
 }
 
 
-/* =========================================================
-   IMAGE EDITOR
-   USES THE ACTUAL Apps.openApp() FROM app.js
-========================================================= */
-
 async function openImageEditor(path){
 
     try{
-
-        /*
-         * Only images should be sent to the Image Editor.
-         */
 
         if(!isImagePath(path)){
 
@@ -507,14 +471,6 @@ async function openImageEditor(path){
 
         }
 
-
-        /*
-         * Read the original image from the Little Hollow
-         * filesystem before opening the editor.
-         *
-         * This is the same data the File Manager can
-         * download correctly.
-         */
 
         const r=
             await parent.FS.read(
@@ -544,23 +500,6 @@ async function openImageEditor(path){
         const imageName=
             displayName(path);
 
-
-        /*
-         * IMPORTANT:
-         *
-         * Your app.js registry contains:
-         *
-         * imageeditor:
-         * {
-         *   title:"imageeditor",
-         *   src:"app/imageEditor.html"
-         * }
-         *
-         * and Apps.openApp() is the correct launcher.
-         *
-         * We pass the path immediately. The editor itself
-         * can use the path as a fallback on startup.
-         */
 
         if(
             !parent.Apps ||
@@ -609,10 +548,6 @@ async function openImageEditor(path){
             result.win;
 
 
-        /*
-         * Payload for the Image Editor API.
-         */
-
         const payload={
             type:"LH_RECEIVE_IMAGE",
             data:imageData,
@@ -621,13 +556,6 @@ async function openImageEditor(path){
             filename:imageName
         };
 
-
-        /*
-         * Find the editor iframe.
-         *
-         * WM.openWindow() already returns the window object,
-         * but the iframe may not have been inserted yet.
-         */
 
         function getIframe(){
 
@@ -647,15 +575,6 @@ async function openImageEditor(path){
 
         }
 
-
-        /*
-         * Send once the iframe exists and again after
-         * its load event.
-         *
-         * This is intentional because the editor's own
-         * message listener must exist before postMessage
-         * can be useful.
-         */
 
         let sent=false;
 
@@ -702,10 +621,6 @@ async function openImageEditor(path){
         }
 
 
-        /*
-         * If the iframe already exists, attach to load.
-         */
-
         const existing=
             getIframe();
 
@@ -723,19 +638,10 @@ async function openImageEditor(path){
             );
 
 
-            /*
-             * Try immediately too.
-             */
-
             sendToEditor();
 
         }
 
-
-        /*
-         * Poll briefly because WM may not have created
-         * the iframe when openApp() returns.
-         */
 
         let tries=0;
 
@@ -772,12 +678,6 @@ async function openImageEditor(path){
                     }
 
 
-                    /*
-                     * Stop polling after a reasonable window.
-                     * The editor was already opened with path=,
-                     * so it can still load the image itself.
-                     */
-
                     if(
                         sent ||
                         tries>=30
@@ -793,10 +693,6 @@ async function openImageEditor(path){
                 100
             );
 
-
-        /*
-         * If the editor closes, stop the timer.
-         */
 
         const oldOnClose=
             win.onClose;
@@ -841,10 +737,6 @@ async function openImageEditor(path){
 }
 
 
-/* =========================================================
-   CONTEXT MENU
-========================================================= */
-
 function showContextMenu(
     x,
     y,
@@ -870,11 +762,39 @@ function showContextMenu(
             ()=>enterFolder(path)
         );
 
+        const topLevelMount=
+            isTopLevelDeviceMount(path);
 
-        addContextButton(
-            "RENAME",
-            ()=>startRenameByPath(path)
-        );
+        if(topLevelMount){
+            addContextButton(
+                "DISMOUNT",
+                async()=>{
+                    const result=
+                        await parent.FS.unmountDeviceFolder(
+                            displayName(path)
+                        );
+
+                    if(!result || !result.ok){
+                        showError(
+                            result && result.error
+                                ?result.error
+                                :"Could not dismount folder."
+                        );
+                        return;
+                    }
+
+                    selected.delete(path);
+                    currentPrefix="";
+                    await refresh();
+                },
+                "danger"
+            );
+        }else{
+            addContextButton(
+                "RENAME",
+                ()=>startRenameByPath(path)
+            );
+        }
 
 
         addContextButton(
@@ -900,12 +820,6 @@ function showContextMenu(
         );
 
 
-        /*
-         * IMAGE EDITOR
-         *
-         * This is the image-specific action.
-         */
-
         if(isImagePath(path)){
 
             addContextButton(
@@ -928,13 +842,6 @@ function showContextMenu(
             ()=>downloadItem(path)
         );
 
-
-        /*
-         * Existing EDIT behavior.
-         *
-         * For images, edit() itself also redirects to
-         * Image Editor, so this remains compatible.
-         */
 
         if(
             ext(path)!=="zip"
@@ -1116,10 +1023,6 @@ function showContextMenu(
 
 }
 
-
-/* =========================================================
-   RENAME
-========================================================= */
 
 function startRenameByPath(path){
 
@@ -1335,10 +1238,6 @@ function buildNewPath(
 
 }
 
-
-/* =========================================================
-   RENAME USING FS
-========================================================= */
 
 async function renameUsingFS(
     oldPath,
@@ -1582,10 +1481,6 @@ async function renameUsingFS(
 }
 
 
-/* =========================================================
-   FINISH RENAME
-========================================================= */
-
 async function finishRename(){
 
     if(
@@ -1782,10 +1677,6 @@ function cancelRename(){
 }
 
 
-/* =========================================================
-   GLOBAL POINTER
-========================================================= */
-
 document.addEventListener(
     "pointerdown",
     e=>{
@@ -1837,10 +1728,6 @@ document.addEventListener(
     true
 );
 
-
-/* =========================================================
-   OPEN PATH
-========================================================= */
 
 async function openPath(p){
 
@@ -1918,10 +1805,6 @@ async function openPath(p){
 }
 
 
-/* =========================================================
-   ENTER FOLDER
-========================================================= */
-
 function enterFolder(path){
 
     cancelRename();
@@ -1937,10 +1820,6 @@ function enterFolder(path){
 
 }
 
-
-/* =========================================================
-   GO UP
-========================================================= */
 
 function goUp(){
 
@@ -2007,15 +1886,7 @@ function goUp(){
 }
 
 
-/* =========================================================
-   EDIT
-========================================================= */
-
 async function edit(p){
-
-    /*
-     * Images always use the dedicated Image Editor.
-     */
 
     if(isImagePath(p)){
 
@@ -2064,10 +1935,6 @@ async function edit(p){
 
 }
 
-
-/* =========================================================
-   CODE
-========================================================= */
 
 async function code(){
 
@@ -2136,10 +2003,6 @@ async function code(){
 
 }
 
-
-/* =========================================================
-   DOWNLOAD
-========================================================= */
 
 function downloadData(
     data,
@@ -2215,10 +2078,6 @@ async function downloadBinary(p){
 }
 
 
-/* =========================================================
-   DATA URL -> BYTES
-========================================================= */
-
 function dataURLToBytes(data){
 
     const comma=
@@ -2291,10 +2150,6 @@ function dataURLToBytes(data){
 
 }
 
-
-/* =========================================================
-   ZIP
-========================================================= */
 
 function readU16(
     bytes,
@@ -2405,10 +2260,6 @@ function safeZipPath(name){
 
 }
 
-
-/* =========================================================
-   UNZIP
-========================================================= */
 
 async function unzipFile(
     zipPath
@@ -2820,10 +2671,6 @@ async function unzipFile(
 }
 
 
-/* =========================================================
-   ZIP HELPERS
-========================================================= */
-
 function utf8(s){
 
     return new TextEncoder()
@@ -3084,10 +2931,6 @@ function blobDataURL(blob){
 }
 
 
-/* =========================================================
-   COLLECT FILES
-========================================================= */
-
 async function collectFiles(paths){
 
     const entries=[];
@@ -3255,10 +3098,6 @@ async function collectFiles(paths){
 }
 
 
-/* =========================================================
-   DOWNLOAD ITEM
-========================================================= */
-
 async function downloadItem(path){
 
     try{
@@ -3382,10 +3221,6 @@ async function downloadItem(path){
 }
 
 
-/* =========================================================
-   DOWNLOAD SELECTED
-========================================================= */
-
 async function downloadSelected(){
 
     const paths=
@@ -3455,10 +3290,6 @@ async function downloadSelected(){
 }
 
 
-/* =========================================================
-   SORT
-========================================================= */
-
 function sortPaths(files){
 
     files.sort(
@@ -3498,10 +3329,6 @@ function sortPaths(files){
 
 }
 
-
-/* =========================================================
-   REFRESH
-========================================================= */
 
 async function refresh(){
 
@@ -3784,13 +3611,6 @@ async function refresh(){
             };
 
 
-            /*
-             * Double-click:
-             *
-             * image -> Image Editor
-             * other file -> rename
-             */
-
             name.ondblclick=e=>{
 
                 e.preventDefault();
@@ -3822,10 +3642,6 @@ async function refresh(){
             };
 
 
-            /*
-             * Right click
-             */
-
             name.oncontextmenu=e=>{
 
                 e.preventDefault();
@@ -3840,10 +3656,6 @@ async function refresh(){
 
             };
 
-
-            /*
-             * Long press for touch
-             */
 
             let pressTimer=null;
 
@@ -3905,10 +3717,6 @@ async function refresh(){
             );
 
 
-            /* =================================================
-               FOLDER
-            ================================================= */
-
             if(folder){
 
                 const openBtn=
@@ -3931,6 +3739,44 @@ async function refresh(){
                     openBtn
                 );
 
+                if(
+                    isTopLevelDeviceMount(p)
+                ){
+                    const dismountBtn=
+                        document.createElement(
+                            "button"
+                        );
+
+                    dismountBtn.textContent=
+                        "DISMOUNT";
+
+                    dismountBtn.onclick=
+                        async e=>{
+                            e.stopPropagation();
+
+                            const result=
+                                await parent.FS.unmountDeviceFolder(
+                                    displayName(p)
+                                );
+
+                            if(!result || !result.ok){
+                                showError(
+                                    result && result.error
+                                        ?result.error
+                                        :"Could not dismount folder."
+                                );
+                                return;
+                            }
+
+                            selected.delete(p);
+                            currentPrefix="";
+                            await refresh();
+                        };
+
+                    row.append(
+                        dismountBtn
+                    );
+                }
 
                 const dlBtn=
                     document.createElement(
@@ -3955,19 +3801,11 @@ async function refresh(){
             }
 
 
-            /* =================================================
-               FILE
-            ================================================= */
-
             else{
 
                 const e=
                     ext(p);
 
-
-                /*
-                 * IMAGE EDIT
-                 */
 
                 if(image){
 
@@ -4000,10 +3838,6 @@ async function refresh(){
                 }
 
 
-                /*
-                 * DOWNLOAD
-                 */
-
                 const dlBtn=
                     document.createElement(
                         "button"
@@ -4024,10 +3858,6 @@ async function refresh(){
                     dlBtn
                 );
 
-
-                /*
-                 * Existing EDIT for non-image files.
-                 */
 
                 if(
                     e!=="zip" &&
@@ -4058,10 +3888,6 @@ async function refresh(){
                 }
 
 
-                /*
-                 * ZIP
-                 */
-
                 if(
                     e==="zip"
                 ){
@@ -4088,10 +3914,6 @@ async function refresh(){
 
                 }
 
-
-                /*
-                 * CODE
-                 */
 
                 if(
                     z.key!=="system" &&
@@ -4137,10 +3959,6 @@ async function refresh(){
 
                 }
 
-
-                /*
-                 * DELETE
-                 */
 
                 if(
                     z.key!=="system"
@@ -4229,29 +4047,17 @@ async function refresh(){
 }
 
 
-/* =========================================================
-   REFRESH
-========================================================= */
-
 document.getElementById(
     "refresh"
 ).onclick=
     refresh;
 
 
-/* =========================================================
-   UP
-========================================================= */
-
 document.getElementById(
     "up"
 ).onclick=
     goUp;
 
-
-/* =========================================================
-   SELECT ALL
-========================================================= */
 
 document.getElementById(
     "selectAll"
@@ -4309,10 +4115,6 @@ document.getElementById(
     };
 
 
-/* =========================================================
-   NEW TEXT
-========================================================= */
-
 document.getElementById(
     "newText"
 ).onclick=
@@ -4369,10 +4171,6 @@ document.getElementById(
 
     };
 
-
-/* =========================================================
-   ZIP SELECTED
-========================================================= */
 
 document.getElementById(
     "zip"
@@ -4446,10 +4244,6 @@ document.getElementById(
 
     };
 
-
-/* =========================================================
-   PATH BOX
-========================================================= */
 
 box.onchange=()=>{
 
@@ -4550,9 +4344,6 @@ box.onkeydown=e=>{
 };
 
 
-/* =========================================================
-   START
-========================================================= */
 document.getElementById(
     "mountFolder"
 ).onclick = async () => {
