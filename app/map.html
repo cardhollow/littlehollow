@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Maps</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <style>
         * {
             margin: 0;
@@ -276,6 +277,27 @@
             background: #2ba3af;
             border-radius: 4px;
         }
+
+        .leaflet-popup-content {
+            color: #071014 !important;
+            font-family: monospace !important;
+        }
+
+        .leaflet-control {
+            border: 1px solid #16434a !important;
+            background: #09191d !important;
+            color: #c8fcff !important;
+        }
+
+        .leaflet-control a, .leaflet-control button {
+            color: #c8fcff !important;
+            background: #0a3339 !important;
+            border: 1px solid #20757e !important;
+        }
+
+        .leaflet-control a:hover, .leaflet-control button:hover {
+            background: #10454d !important;
+        }
     </style>
 </head>
 <body>
@@ -291,17 +313,6 @@
                 <div class="section-title">Search Location</div>
                 <input type="text" id="searchInput" class="search-box" placeholder="Address, city, place...">
                 <button class="button" id="searchBtn">Search</button>
-
-                <!-- Map Type Section -->
-                <div class="section-title">Map Type</div>
-                <div class="control-group">
-                    <select id="mapTypeSelect">
-                        <option value="roadmap">ROADMAP</option>
-                        <option value="satellite">SATELLITE</option>
-                        <option value="hybrid">HYBRID</option>
-                        <option value="terrain">TERRAIN</option>
-                    </select>
-                </div>
 
                 <!-- Zoom Section -->
                 <div class="section-title">Zoom Level</div>
@@ -333,9 +344,9 @@
                 </div>
 
                 <!-- Geocoding Info -->
-                <div class="section-title">Address</div>
+                <div class="section-title">Coordinates</div>
                 <div class="info-box">
-                    <div class="info-value" id="addressValue">Search for a location</div>
+                    <div class="info-value" id="addressValue">Click on the map</div>
                 </div>
 
                 <!-- Export Section -->
@@ -354,57 +365,45 @@
         </div>
     </div>
 
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDemoKey&libraries=places"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script>
         let map;
-        let geocoder;
         let currentMarker = null;
-        let currentInfoWindow = null;
-        let searchBox;
+        let searchController = null;
 
         const defaultLocation = { lat: 40.7128, lng: -74.0060 }; // New York
+        const locations = {
+            'New York': { lat: 40.7128, lng: -74.0060, name: 'New York, NY, USA' },
+            'London': { lat: 51.5074, lng: -0.1278, name: 'London, England' },
+            'Tokyo': { lat: 35.6762, lng: 139.6503, name: 'Tokyo, Japan' },
+            'Paris': { lat: 48.8566, lng: 2.3522, name: 'Paris, France' },
+            'Sydney': { lat: -33.8688, lng: 151.2093, name: 'Sydney, Australia' }
+        };
 
         function initMap() {
-            map = new google.maps.Map(document.getElementById('map'), {
-                zoom: 13,
-                center: defaultLocation,
-                mapTypeId: 'roadmap',
-                styles: [
-                    { elementType: 'geometry', stylers: [{ color: '#0d1f24' }] },
-                    { elementType: 'labels.text.stroke', stylers: [{ color: '#0d1f24' }] },
-                    { elementType: 'labels.text.fill', stylers: [{ color: '#7fb6bd' }] },
-                    {
-                        featureType: 'administrative.locality',
-                        elementType: 'labels.text.fill',
-                        stylers: [{ color: '#7fb6bd' }]
-                    },
-                    {
-                        featureType: 'water',
-                        elementType: 'geometry',
-                        stylers: [{ color: '#16434a' }]
-                    },
-                    {
-                        featureType: 'transit.line',
-                        elementType: 'geometry',
-                        stylers: [{ color: '#16434a' }]
-                    }
-                ],
-                streetViewControl: true,
-                fullscreenControl: true,
-                zoomControl: true,
-                mapTypeControl: true
+            map = L.map('map', {
+                center: [defaultLocation.lat, defaultLocation.lng],
+                zoom: 13
             });
 
-            geocoder = new google.maps.Geocoder();
+            // OpenStreetMap tile layer (free, no API key needed)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
 
-            // Listen to map center changes
-            map.addListener('center_changed', updateCoordinates);
-            map.addListener('zoom_changed', () => {
+            // Click listener for map
+            map.on('click', (e) => {
+                setMarkerAtLocation(e.latlng.lat, e.latlng.lng, 'Clicked Location');
+            });
+
+            // Zoom listener
+            map.on('zoomend', () => {
                 document.getElementById('zoomValue').textContent = map.getZoom();
             });
 
             setupEventListeners();
-            setMarkerAtLocation(defaultLocation, 'New York, NY, USA');
+            setMarkerAtLocation(defaultLocation.lat, defaultLocation.lng, defaultLocation.name);
         }
 
         function setupEventListeners() {
@@ -413,16 +412,13 @@
                 if (e.key === 'Enter') handleSearch();
             });
 
-            document.getElementById('mapTypeSelect').addEventListener('change', (e) => {
-                map.setMapTypeId(e.target.value);
-            });
-
             document.getElementById('zoomSlider').addEventListener('input', (e) => {
                 map.setZoom(parseInt(e.target.value));
             });
 
             document.getElementById('centerBtn').addEventListener('click', () => {
-                map.setCenter(map.getCenter());
+                const center = map.getCenter();
+                map.setView(center, map.getZoom());
             });
 
             document.getElementById('copyCoordBtn').addEventListener('click', copyCoordinates);
@@ -431,75 +427,79 @@
             // Quick location buttons
             document.querySelectorAll('button[data-location]').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const location = e.target.getAttribute('data-location');
-                    handleSearch(location);
+                    const locName = e.target.getAttribute('data-location');
+                    const loc = locations[locName];
+                    if (loc) {
+                        setMarkerAtLocation(loc.lat, loc.lng, loc.name);
+                        map.setView([loc.lat, loc.lng], 13);
+                    }
                 });
             });
         }
 
-        function handleSearch(location) {
-            const query = location || document.getElementById('searchInput').value;
-            if (!query.trim()) {
+        function handleSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
                 updateStatus('Please enter a location');
                 return;
             }
 
             updateStatus('Searching...');
-            geocoder.geocode({ address: query }, (results, status) => {
-                if (status === 'OK') {
-                    const location = results[0].geometry.location;
-                    const address = results[0].formatted_address;
-                    map.setCenter(location);
-                    setMarkerAtLocation(location, address);
+
+            // Cancel previous request
+            if (searchController) {
+                searchController.abort();
+            }
+            searchController = new AbortController();
+
+            // Use Nominatim (OpenStreetMap) geocoding - free, no API key needed
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`, {
+                signal: searchController.signal
+            })
+            .then(response => response.json())
+            .then(results => {
+                if (results.length > 0) {
+                    const result = results[0];
+                    const lat = parseFloat(result.lat);
+                    const lng = parseFloat(result.lon);
+                    const displayName = result.display_name;
+                    
+                    setMarkerAtLocation(lat, lng, displayName);
+                    map.setView([lat, lng], 13);
                     updateStatus('Location found');
                 } else {
-                    updateStatus('Location not found: ' + status);
+                    updateStatus('Location not found');
+                }
+            })
+            .catch(err => {
+                if (err.name !== 'AbortError') {
+                    updateStatus('Search error: ' + err.message);
                 }
             });
         }
 
-        function setMarkerAtLocation(location, address) {
+        function setMarkerAtLocation(lat, lng, address) {
             if (currentMarker) {
-                currentMarker.setMap(null);
+                map.removeLayer(currentMarker);
             }
 
-            currentMarker = new google.maps.Marker({
-                position: location,
-                map: map,
-                title: address
-            });
-
-            if (currentInfoWindow) {
-                currentInfoWindow.close();
-            }
-
-            currentInfoWindow = new google.maps.InfoWindow({
-                content: `<div style="color: #071014; padding: 8px;">
-                    <div style="font-weight: bold;">${address}</div>
-                    <div style="font-size: 12px; margin-top: 4px;">
-                        ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}
+            currentMarker = L.marker([lat, lng])
+                .addTo(map)
+                .bindPopup(`
+                    <div style="text-align: center;">
+                        <strong>${address}</strong><br>
+                        ${lat.toFixed(6)}, ${lng.toFixed(6)}
                     </div>
-                </div>`
-            });
-            currentInfoWindow.open(map, currentMarker);
+                `)
+                .openPopup();
 
-            updateCoordinates();
+            updateCoordinates(lat, lng, address);
         }
 
-        function updateCoordinates() {
-            const center = map.getCenter();
-            document.getElementById('latValue').textContent = center.lat().toFixed(6);
-            document.getElementById('lngValue').textContent = center.lng().toFixed(6);
-
-            // Reverse geocoding
-            if (currentMarker) {
-                const location = currentMarker.getPosition();
-                geocoder.geocode({ location: location }, (results, status) => {
-                    if (status === 'OK' && results[0]) {
-                        document.getElementById('addressValue').textContent = results[0].formatted_address;
-                    }
-                });
-            }
+        function updateCoordinates(lat, lng, address) {
+            document.getElementById('latValue').textContent = lat.toFixed(6);
+            document.getElementById('lngValue').textContent = lng.toFixed(6);
+            document.getElementById('addressValue').textContent = address || 'Coordinates set';
         }
 
         function copyCoordinates() {
@@ -508,15 +508,16 @@
             const text = `${lat}, ${lng}`;
             navigator.clipboard.writeText(text).then(() => {
                 updateStatus('Coordinates copied!');
+            }).catch(() => {
+                updateStatus('Copy failed');
             });
         }
 
         function resetMap() {
             document.getElementById('searchInput').value = '';
-            map.setCenter(defaultLocation);
-            map.setZoom(13);
-            document.getElementById('mapTypeSelect').value = 'roadmap';
-            setMarkerAtLocation(defaultLocation, 'New York, NY, USA');
+            map.setView([defaultLocation.lat, defaultLocation.lng], 13);
+            document.getElementById('zoomSlider').value = 13;
+            setMarkerAtLocation(defaultLocation.lat, defaultLocation.lng, defaultLocation.name);
             updateStatus('Map reset');
         }
 
@@ -526,44 +527,19 @@
 
         // Initialize map when DOM is ready
         document.addEventListener('DOMContentLoaded', () => {
-            // Handle API key error gracefully
-            if (typeof google === 'undefined') {
-                updateStatus('Maps API not available - using demo mode');
-                // Show demo message
-                document.getElementById('map').innerHTML = `
-                    <div style="
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        height: 100%;
-                        color: #7fb6bd;
-                        flex-direction: column;
-                        text-align: center;
-                        padding: 20px;
-                    ">
-                        <div style="font-size: 14px; font-weight: bold; margin-bottom: 10px;">
-                            Maps Application
-                        </div>
-                        <div style="font-size: 12px;">
-                            To enable full Google Maps functionality, add your API key:<br>
-                            <code style="color: #c8fcff; background: #061115; padding: 8px; display: block; margin-top: 10px;">
-                                https://maps.googleapis.com/maps/api/js?key=YOUR_KEY&libraries=places
-                            </code>
-                        </div>
-                        <div style="margin-top: 20px; font-size: 11px; color: #648b91;">
-                            Features: Search locations, view maps, get coordinates
-                        </div>
-                    </div>
-                `;
-                return;
+            try {
+                initMap();
+                updateStatus('Map loaded');
+            } catch (err) {
+                updateStatus('Error: ' + err.message);
             }
-            initMap();
         });
 
         // Export for AI integration
         window.Maps = {
             search: (query) => {
-                handleSearch(query);
+                document.getElementById('searchInput').value = query;
+                handleSearch();
                 return {
                     ok: true,
                     summary: `Searching for ${query}`
@@ -580,16 +556,14 @@
                 };
             },
             setZoom: (level) => {
-                map.setZoom(Math.max(1, Math.min(20, level)));
+                const newZoom = Math.max(1, Math.min(20, level));
+                map.setZoom(newZoom);
                 return { ok: true, zoom: map.getZoom() };
             },
-            setMapType: (type) => {
-                const validTypes = ['roadmap', 'satellite', 'hybrid', 'terrain'];
-                if (validTypes.includes(type)) {
-                    map.setMapTypeId(type);
-                    return { ok: true, mapType: type };
-                }
-                return { ok: false, error: 'Invalid map type' };
+            setLocation: (lat, lng, name) => {
+                setMarkerAtLocation(lat, lng, name || 'Location');
+                map.setView([lat, lng], 13);
+                return { ok: true, location: { lat, lng } };
             }
         };
     </script>
