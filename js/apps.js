@@ -1,6 +1,7 @@
 (function(){
     const REGISTRY={
         apps:{title:"APPS",src:"app/apps.html",w:380,h:320},
+        appinstaller:{title:"APP INSTALLER",src:"app/AppInstaller.html",w:500,h:500},
         "file manager":{title:"FILE MANAGER",src:"app/filemanager.html",w:520,h:390},
         filemanager:{title:"FILE MANAGER",src:"app/filemanager.html",w:520,h:390},
         clock:{title:"CLOCK",src:"app/clock.html",w:340,h:340},
@@ -20,7 +21,7 @@
         audioplayer:{title:"AUDIO PLAYER",src:"app/audioplayer.html",w:420,h:260},
         gamefinder:{title: "GAME FINDER",src:"https://funhtml5games.com",w:360,h:340},
         doom:{title:"Doom",src:"https://js-dos.com/games/doom.exe.html",w:360,h:340},
-        pacman:{title:"Pacman",src:"https://funhtml5games.com?embed=pacman",w:360,h:340},
+        pacman:{title:"Pacman",src:"https://funhtml5games.com?embed=pacman",w:460,h:480},
         gba:{title:"GBA",src:"app/GBA.html",w:360,h:340},
         browser:{title:"BROWSER",src:"app/browser.html",w:360,h:340},
         imageeditor:{title:"imageeditor",src:"app/imageEditor.html",w:480,h:380},
