@@ -557,15 +557,21 @@ function commandLooksIncomplete(source){
     return /(?:=>|[,{[(+*\/=&|?:])\s*$/.test(text);
 }
 
-function evaluateJavaScript(source){
+async function evaluateJavaScript(source){
     const context=getScope();
 
     const names=Object.keys(context);
     const values=Object.values(context);
 
-    const evaluator=new Function(
+    const AsyncFunction=
+        Object.getPrototypeOf(
+            async function(){}
+        ).constructor;
+
+    const evaluator=new AsyncFunction(
         ...names,
-        '"use strict";return eval(arguments[arguments.length-1]);'
+        "__code",
+        '"use strict";return eval(__code);'
     );
 
     return evaluator(
@@ -578,7 +584,7 @@ async function executeJavaScript(source){
     captureConsole();
 
     try{
-        let result=evaluateJavaScript(
+        let result=await evaluateJavaScript(
             source
         );
 
@@ -933,6 +939,7 @@ function handleCommandKey(event){
         if(getCommand()===""){
             event.preventDefault();
             freezeCommand();
+
             addLine(
                 "logout",
                 "system"
