@@ -22,27 +22,27 @@ button{height:34px;background:#001919;color:#00ffff;border:1px solid #00ffff;pad
 <input id="pkg" placeholder="Package Name">
 
 <div class="row">
-    <input id="name" placeholder="App Name (Optional)">
-    <input id="icon" placeholder="App Icon">
+<input id="name" placeholder="App Name (Optional)">
+<input id="icon" placeholder="App Icon">
 </div>
 
 <div class="row">
-    <input id="url" placeholder="URL">
-    <button id="load">LOAD</button>
+<input id="url" placeholder="URL">
+<button id="load">LOAD</button>
 </div>
 
 <div class="preview">
-    <iframe id="preview"></iframe>
+<iframe id="preview"></iframe>
 </div>
 
 <button id="install" style="margin-top:10px;width:100%">
-    INSTALL
+INSTALL
 </button>
 
 <div id="status"></div>
 
 <script>
-const CIA_PATH="Custom Installed Application/CIA.json";
+const CIA_PATH="chxd:/system/Custom Installed Application/CIA.json";
 
 const pkg=document.getElementById("pkg");
 const name=document.getElementById("name");
@@ -51,19 +51,26 @@ const url=document.getElementById("url");
 const preview=document.getElementById("preview");
 const status=document.getElementById("status");
 
-function readCIA(){
+async function readCIA(){
     try{
-        const raw=localStorage.getItem(CIA_PATH);
-        return raw?JSON.parse(raw):[];
+        const r=await parent.FS.read(CIA_PATH);
+
+        if(!r||!r.ok)
+            return [];
+
+        const data=JSON.parse(r.content);
+
+        return Array.isArray(data)?data:[];
     }catch(e){
         return [];
     }
 }
 
-function writeCIA(data){
-    localStorage.setItem(
+async function writeCIA(data){
+    return await parent.FS.write(
         CIA_PATH,
-        JSON.stringify(data)
+        JSON.stringify(data,null,4),
+        true
     );
 }
 
@@ -79,7 +86,7 @@ document.getElementById("load").onclick=()=>{
     status.textContent="Preview loaded.";
 };
 
-document.getElementById("install").onclick=()=>{
+document.getElementById("install").onclick=async()=>{
     const p=pkg.value.trim();
     const n=name.value.trim();
     const i=icon.value.trim();
@@ -95,7 +102,9 @@ document.getElementById("install").onclick=()=>{
         return;
     }
 
-    const data=readCIA();
+    status.textContent="Installing...";
+
+    const data=await readCIA();
 
     const app={
         pkg:p,
@@ -113,7 +122,18 @@ document.getElementById("install").onclick=()=>{
     else
         data.push(app);
 
-    writeCIA(data);
+    const result=await writeCIA(data);
+
+    if(!result||!result.ok){
+        status.textContent=
+            "Install failed: "+
+            (
+                result&&result.error
+                    ?result.error
+                    :"Could not write CIA.json"
+            );
+        return;
+    }
 
     status.textContent="Successfully Installed";
 
