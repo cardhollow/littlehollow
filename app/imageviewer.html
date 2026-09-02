@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Image Viewer</title>
-
 <style>
 *{
     box-sizing:border-box;
@@ -83,6 +82,8 @@ body{
     width:auto;
     height:auto;
     object-fit:contain;
+    user-select:none;
+    -webkit-user-drag:none;
 }
 
 .empty{
@@ -127,181 +128,98 @@ body{
 </div>
 
 <script>
+"use strict";
 
-/* =========================================================
-   ELEMENTS
-========================================================= */
+const stage=document.getElementById("stage");
+const urlInput=document.getElementById("url");
 
-const stage = document.getElementById("stage");
-const urlInput = document.getElementById("url");
+let currentObjectURL=null;
+let currentFile=null;
+let currentHandle=null;
 
-let currentObjectURL = null;
+const params=new URLSearchParams(location.search);
+const initialPath=params.get("src");
 
-
-/* =========================================================
-   CLEANUP
-========================================================= */
-
-function cleanupObjectURL(){
-
-    if(!currentObjectURL){
-        return;
-    }
-
+function getParentObject(name){
     try{
-        URL.revokeObjectURL(currentObjectURL);
+        if(
+            window.parent &&
+            window.parent!==window &&
+            window.parent[name]
+        ){
+            return window.parent[name];
+        }
     }catch(_){}
 
-    currentObjectURL = null;
+    try{
+        if(window[name]){
+            return window[name];
+        }
+    }catch(_){}
+
+    return null;
 }
-
-
-/* =========================================================
-   UI
-========================================================= */
-
-function loading(){
-
-    cleanupObjectURL();
-
-    stage.innerHTML =
-        '<div class="empty">Loading image...</div>';
-
-}
-
-
-function errorMessage(message){
-
-    cleanupObjectURL();
-
-    stage.innerHTML = "";
-
-    const box = document.createElement("div");
-    box.className = "error";
-    box.textContent = String(message || "Failed to load image.");
-
-    stage.appendChild(box);
-
-}
-
-
-/* =========================================================
-   GET FILESYSTEM
-========================================================= */
 
 function getFS(){
-
-    /*
-     * Image Viewer normally runs as an app iframe.
-     * The main Little Hollow page already exposes:
-     *
-     * parent.FS
-     */
-
-    if(
-        window.parent &&
-        window.parent !== window &&
-        window.parent.FS
-    ){
-        return window.parent.FS;
-    }
-
-    /*
-     * Fallback if Image Viewer is opened directly.
-     */
-
-    if(window.FS){
-        return window.FS;
-    }
-
-    return null;
+    return getParentObject("FS");
 }
-
-
-/* =========================================================
-   GET TOOLS
-========================================================= */
 
 function getTools(){
+    return getParentObject("Tools");
+}
 
-    if(
-        window.parent &&
-        window.parent !== window &&
-        window.parent.Tools
-    ){
-        return window.parent.Tools;
+function cleanupObjectURL(){
+    if(currentObjectURL){
+        try{
+            URL.revokeObjectURL(currentObjectURL);
+        }catch(_){}
+        currentObjectURL=null;
     }
 
-    if(window.Tools){
-        return window.Tools;
-    }
-
-    return null;
+    currentFile=null;
+    currentHandle=null;
 }
 
+function loading(){
+    cleanupObjectURL();
 
-/* =========================================================
-   PATH DETECTION
-========================================================= */
-
-function isVirtualPath(src){
-
-    return (
-        /^chxd:\//i.test(src) ||
-        /^local:\//i.test(src) ||
-        /^session:\//i.test(src) ||
-        /^indexdb:\//i.test(src) ||
-        /^puter:\//i.test(src)
-    );
-
+    stage.innerHTML=
+        '<div class="empty">Loading image...</div>';
 }
 
+function errorMessage(message){
+    cleanupObjectURL();
 
-function isDirectImageSource(src){
+    stage.innerHTML="";
 
-    return (
-        /^data:image\//i.test(src) ||
-        /^blob:/i.test(src) ||
-        /^https?:\/\//i.test(src) ||
-        /^file:/i.test(src)
-    );
+    const box=document.createElement("div");
 
+    box.className="error";
+    box.textContent=
+        String(
+            message ||
+            "Failed to load image."
+        );
+
+    stage.appendChild(box);
 }
-
-
-/* =========================================================
-   FILE EXTENSION
-========================================================= */
 
 function extension(path){
-
-    const clean = String(path || "")
+    const clean=String(path||"")
         .split("?")[0]
         .split("#")[0];
 
-    const dot = clean.lastIndexOf(".");
+    const dot=clean.lastIndexOf(".");
 
-    if(dot < 0){
-        return "";
-    }
+    if(dot<0)return "";
 
     return clean
-        .slice(dot + 1)
+        .slice(dot+1)
         .toLowerCase();
-
 }
 
-
-/* =========================================================
-   MIME TYPE
-========================================================= */
-
-function mimeFromPath(path){
-
-    const e = extension(path);
-
-    switch(e){
-
+function mimeFromExtension(path){
+    switch(extension(path)){
         case "png":
             return "image/png";
 
@@ -333,59 +251,75 @@ function mimeFromPath(path){
         case "tiff":
             return "image/tiff";
 
+        case "heic":
+            return "image/heic";
+
+        case "heif":
+            return "image/heif";
+
         default:
             return "application/octet-stream";
     }
-
 }
 
+function isImageMime(type){
+    return /^image\//i.test(
+        String(type||"")
+    );
+}
 
-/* =========================================================
-   BASE64 DETECTION
-========================================================= */
+function isVirtualPath(value){
+    const s=String(value||"");
+
+    return (
+        /^chxd:\//i.test(s) ||
+        /^local:\//i.test(s) ||
+        /^session:\//i.test(s) ||
+        /^indexdb:\//i.test(s) ||
+        /^puter:\//i.test(s)
+    );
+}
+
+function isURL(value){
+    const s=String(value||"");
+
+    return (
+        /^https?:\/\//i.test(s) ||
+        /^blob:/i.test(s) ||
+        /^data:/i.test(s) ||
+        /^file:/i.test(s)
+    );
+}
 
 function isProbablyBase64(value){
-
-    if(typeof value !== "string"){
+    if(typeof value!=="string"){
         return false;
     }
 
-    const s = value
+    const s=value
         .trim()
         .replace(/\s/g,"");
 
-    if(s.length < 20){
+    if(s.length<32){
         return false;
     }
 
-    return /^[A-Za-z0-9+/=]+$/.test(s);
-
+    return /^[A-Za-z0-9+/]+={0,2}$/.test(s);
 }
 
-
-function detectBase64Mime(value, path){
-
-    const s = String(value || "")
+function detectBase64Mime(value,path){
+    const s=String(value||"")
         .trim()
         .replace(/\s/g,"");
 
-    /*
-     * PNG
-     */
     if(s.startsWith("iVBORw0KGgo")){
         return "image/png";
     }
 
-    /*
-     * JPEG
-     */
     if(s.startsWith("/9j/")){
         return "image/jpeg";
     }
 
-    /*
-     * GIF
-     */
     if(
         s.startsWith("R0lGODlh") ||
         s.startsWith("R0lGODdh")
@@ -393,576 +327,751 @@ function detectBase64Mime(value, path){
         return "image/gif";
     }
 
-    /*
-     * WEBP
-     */
     if(s.startsWith("UklGR")){
         return "image/webp";
     }
 
-    /*
-     * BMP
-     */
     if(s.startsWith("Qk")){
         return "image/bmp";
     }
 
-    /*
-     * Otherwise use filename.
-     */
-    const guessed = mimeFromPath(path);
+    const guessed=mimeFromExtension(path);
 
-    if(guessed !== "application/octet-stream"){
+    if(guessed!=="application/octet-stream"){
         return guessed;
     }
 
     return "application/octet-stream";
 }
 
-
-/* =========================================================
-   BINARY TYPE DETECTION
-========================================================= */
-
-function detectBinaryMime(value, path){
-
-    let bytes = null;
-
+function bytesFromArrayBuffer(value){
     if(value instanceof ArrayBuffer){
-
-        bytes = new Uint8Array(value);
-
+        return new Uint8Array(value);
     }
-    else if(
+
+    if(
         value &&
-        typeof value === "object" &&
+        typeof value==="object" &&
         value.buffer instanceof ArrayBuffer
     ){
-
-        bytes = new Uint8Array(
+        return new Uint8Array(
             value.buffer,
-            value.byteOffset || 0,
+            value.byteOffset||0,
             value.byteLength
-        );
-
-    }
-
-    if(bytes){
-
-        /*
-         * PNG
-         */
-        if(
-            bytes.length >= 8 &&
-            bytes[0] === 137 &&
-            bytes[1] === 80 &&
-            bytes[2] === 78 &&
-            bytes[3] === 71 &&
-            bytes[4] === 13 &&
-            bytes[5] === 10 &&
-            bytes[6] === 26 &&
-            bytes[7] === 10
-        ){
-            return "image/png";
-        }
-
-        /*
-         * JPEG
-         */
-        if(
-            bytes.length >= 3 &&
-            bytes[0] === 255 &&
-            bytes[1] === 216 &&
-            bytes[2] === 255
-        ){
-            return "image/jpeg";
-        }
-
-        /*
-         * GIF
-         */
-        if(
-            bytes.length >= 6 &&
-            bytes[0] === 71 &&
-            bytes[1] === 73 &&
-            bytes[2] === 70
-        ){
-            return "image/gif";
-        }
-
-        /*
-         * WEBP
-         */
-        if(
-            bytes.length >= 12 &&
-            bytes[0] === 82 &&
-            bytes[1] === 73 &&
-            bytes[2] === 70 &&
-            bytes[3] === 70 &&
-            bytes[8] === 87 &&
-            bytes[9] === 69 &&
-            bytes[10] === 66 &&
-            bytes[11] === 80
-        ){
-            return "image/webp";
-        }
-
-        /*
-         * BMP
-         */
-        if(
-            bytes.length >= 2 &&
-            bytes[0] === 66 &&
-            bytes[1] === 77
-        ){
-            return "image/bmp";
-        }
-    }
-
-    return mimeFromPath(path);
-}
-
-
-/* =========================================================
-   DATA URL
-========================================================= */
-
-function normalizeDataURL(data, path){
-
-    const value = String(data || "").trim();
-
-    /*
-     * Already a proper data URL.
-     */
-    if(/^data:/i.test(value)){
-        return value;
-    }
-
-    /*
-     * Plain base64.
-     */
-    if(isProbablyBase64(value)){
-
-        const mime = detectBase64Mime(value, path);
-
-        return (
-            "data:" +
-            mime +
-            ";base64," +
-            value.replace(/\s/g,"")
         );
     }
 
     return null;
 }
 
+function detectBytesMime(bytes,path){
+    if(!bytes||bytes.length<2){
+        return mimeFromExtension(path);
+    }
 
-/* =========================================================
-   BLOB -> OBJECT URL
-========================================================= */
+    if(
+        bytes.length>=8 &&
+        bytes[0]===137 &&
+        bytes[1]===80 &&
+        bytes[2]===78 &&
+        bytes[3]===71 &&
+        bytes[4]===13 &&
+        bytes[5]===10 &&
+        bytes[6]===26 &&
+        bytes[7]===10
+    ){
+        return "image/png";
+    }
 
-function blobToURL(blob){
+    if(
+        bytes.length>=3 &&
+        bytes[0]===255 &&
+        bytes[1]===216 &&
+        bytes[2]===255
+    ){
+        return "image/jpeg";
+    }
 
-    currentObjectURL = URL.createObjectURL(blob);
+    if(
+        bytes.length>=6 &&
+        bytes[0]===71 &&
+        bytes[1]===73 &&
+        bytes[2]===70
+    ){
+        return "image/gif";
+    }
+
+    if(
+        bytes.length>=12 &&
+        bytes[0]===82 &&
+        bytes[1]===73 &&
+        bytes[2]===70 &&
+        bytes[3]===70 &&
+        bytes[8]===87 &&
+        bytes[9]===69 &&
+        bytes[10]===66 &&
+        bytes[11]===80
+    ){
+        return "image/webp";
+    }
+
+    if(
+        bytes.length>=2 &&
+        bytes[0]===66 &&
+        bytes[1]===77
+    ){
+        return "image/bmp";
+    }
+
+    if(
+        bytes.length>=4 &&
+        bytes[0]===60
+    ){
+        try{
+            const text=
+                new TextDecoder()
+                .decode(
+                    bytes.slice(
+                        0,
+                        Math.min(
+                            bytes.length,
+                            512
+                        )
+                    )
+                )
+                .trim();
+
+            if(/^<svg[\s>]/i.test(text)){
+                return "image/svg+xml";
+            }
+
+            if(/^<\?xml/i.test(text)&&/<svg[\s>]/i.test(text)){
+                return "image/svg+xml";
+            }
+        }catch(_){}
+    }
+
+    return mimeFromExtension(path);
+}
+
+function arrayBufferToBlob(value,path){
+    const bytes=bytesFromArrayBuffer(value);
+
+    if(!bytes){
+        throw new Error(
+            "Invalid binary image data."
+        );
+    }
+
+    const mime=
+        detectBytesMime(
+            bytes,
+            path
+        );
+
+    return new Blob(
+        [bytes],
+        {type:mime}
+    );
+}
+
+function blobToObjectURL(blob){
+    if(!blob){
+        throw new Error(
+            "No image Blob was provided."
+        );
+    }
+
+    let finalBlob=blob;
+
+    if(!isImageMime(blob.type)){
+        try{
+            finalBlob=new Blob(
+                [blob],
+                {
+                    type:
+                        mimeFromExtension(
+                            urlInput.value
+                        )
+                }
+            );
+        }catch(_){}
+    }
+
+    currentFile=finalBlob;
+
+    currentObjectURL=
+        URL.createObjectURL(
+            finalBlob
+        );
 
     return currentObjectURL;
 }
 
+function stringToImageSource(value,path){
+    const s=String(value||"").trim();
 
-/* =========================================================
-   ARRAY BUFFER -> OBJECT URL
-========================================================= */
-
-function binaryToURL(value, path){
-
-    let bytes;
-
-    if(value instanceof ArrayBuffer){
-
-        bytes = new Uint8Array(value);
-
+    if(!s){
+        throw new Error(
+            "The filesystem returned empty image data."
+        );
     }
-    else if(
-        value &&
-        typeof value === "object" &&
-        value.buffer instanceof ArrayBuffer
-    ){
 
-        bytes = new Uint8Array(
-            value.buffer,
-            value.byteOffset || 0,
-            value.byteLength
+    if(/^data:/i.test(s)){
+        return s;
+    }
+
+    if(isURL(s)){
+        return s;
+    }
+
+    if(
+        /^<svg[\s>]/i.test(s) ||
+        /^<\?xml/i.test(s)
+    ){
+        const blob=new Blob(
+            [s],
+            {type:"image/svg+xml"}
         );
 
-    }
-    else{
-
-        throw new Error("Unsupported binary data.");
-
+        return blobToObjectURL(blob);
     }
 
-    const mime = detectBinaryMime(bytes, path);
-
-    const blob = new Blob(
-        [bytes],
-        {type:mime}
-    );
-
-    return blobToURL(blob);
-}
-
-
-/* =========================================================
-   CONTENT -> IMAGE SOURCE
-========================================================= */
-
-async function contentToImageSource(content, path){
-
-    /*
-     * Blob
-     */
-    if(content instanceof Blob){
-
-        const mime =
-            content.type && content.type.startsWith("image/")
-                ? content.type
-                : detectBinaryMime(await content.arrayBuffer(), path);
-
-        /*
-         * Preserve original bytes.
-         */
-        const blob =
-            content.type === mime
-                ? content
-                : new Blob([await content.arrayBuffer()], {type:mime});
-
-        return blobToURL(blob);
-    }
-
-
-    /*
-     * ArrayBuffer
-     */
-    if(content instanceof ArrayBuffer){
-
-        return binaryToURL(content, path);
-    }
-
-
-    /*
-     * Typed array
-     */
-    if(
-        content &&
-        typeof content === "object" &&
-        content.buffer instanceof ArrayBuffer
-    ){
-
-        return binaryToURL(content, path);
-    }
-
-
-    /*
-     * String
-     */
-    if(typeof content === "string"){
-
-        const value = content.trim();
-
-        /*
-         * Data URL
-         */
-        if(/^data:/i.test(value)){
-            return value;
-        }
-
-
-        /*
-         * Plain Base64
-         */
-        if(isProbablyBase64(value)){
-
-            return normalizeDataURL(
-                value,
+    if(isProbablyBase64(s)){
+        const mime=
+            detectBase64Mime(
+                s,
                 path
             );
-        }
 
-
-        /*
-         * SVG stored as plain text
-         */
-        if(
-            /^<svg[\s>]/i.test(value) ||
-            /^<\?xml[\s>]/i.test(value)
-        ){
-
-            const blob = new Blob(
-                [value],
-                {type:"image/svg+xml"}
+        const binary=
+            atob(
+                s.replace(/\s/g,"")
             );
 
-            return blobToURL(blob);
-        }
+        const bytes=
+            new Uint8Array(
+                binary.length
+            );
 
-
-        /*
-         * Some filesystem implementations
-         * may return a URL from their reader.
-         */
-        if(
-            /^https?:\/\//i.test(value) ||
-            /^blob:/i.test(value) ||
-            /^file:/i.test(value)
+        for(
+            let i=0;
+            i<binary.length;
+            i++
         ){
-
-            return value;
+            bytes[i]=
+                binary.charCodeAt(i);
         }
 
-
-        throw new Error(
-            "The file exists, but its contents are not recognizable as image data.\n" +
-            "Expected a data:image/... URL, Base64 image data, Blob, ArrayBuffer, or image URL."
+        return blobToObjectURL(
+            new Blob(
+                [bytes],
+                {type:mime}
+            )
         );
     }
-
 
     throw new Error(
-        "Unsupported filesystem data type: " +
-        Object.prototype.toString.call(content)
+        "Unsupported string image source."
     );
 }
 
+async function handleToBlob(handle){
+    if(
+        !handle ||
+        typeof handle.getFile!=="function"
+    ){
+        return null;
+    }
 
-/* =========================================================
-   READ VIRTUAL FILE
-========================================================= */
+    const file=
+        await handle.getFile();
+
+    if(!file){
+        throw new Error(
+            "File System Access returned no File."
+        );
+    }
+
+    currentHandle=handle;
+    currentFile=file;
+
+    return file;
+}
+
+async function resolveObjectToSource(value,path,depth=0){
+    if(depth>6){
+        throw new Error(
+            "Image source resolution exceeded the maximum depth."
+        );
+    }
+
+    if(value==null){
+        throw new Error(
+            "Filesystem returned no image data."
+        );
+    }
+
+    if(value instanceof Blob){
+        return blobToObjectURL(value);
+    }
+
+    if(
+        typeof File!=="undefined" &&
+        value instanceof File
+    ){
+        return blobToObjectURL(value);
+    }
+
+    if(
+        typeof FileSystemFileHandle!=="undefined" &&
+        value instanceof FileSystemFileHandle
+    ){
+        const file=
+            await handleToBlob(value);
+
+        return blobToObjectURL(file);
+    }
+
+    if(
+        typeof value==="object" &&
+        typeof value.getFile==="function"
+    ){
+        const file=
+            await handleToBlob(value);
+
+        return blobToObjectURL(file);
+    }
+
+    if(value instanceof ArrayBuffer){
+        return blobToObjectURL(
+            arrayBufferToBlob(
+                value,
+                path
+            )
+        );
+    }
+
+    const typedBytes=
+        bytesFromArrayBuffer(value);
+
+    if(typedBytes){
+        return blobToObjectURL(
+            new Blob(
+                [typedBytes],
+                {
+                    type:
+                        detectBytesMime(
+                            typedBytes,
+                            path
+                        )
+                }
+            )
+        );
+    }
+
+    if(typeof value==="string"){
+        return stringToImageSource(
+            value,
+            path
+        );
+    }
+
+    if(typeof value==="object"){
+
+        const candidates=[
+            "file",
+            "blob",
+            "data",
+            "content",
+            "arrayBuffer",
+            "buffer",
+            "bytes",
+            "handle",
+            "fileHandle",
+            "source",
+            "url",
+            "src",
+            "href"
+        ];
+
+        for(const key of candidates){
+
+            if(!(key in value)){
+                continue;
+            }
+
+            let candidate;
+
+            try{
+                candidate=value[key];
+
+                if(
+                    typeof candidate==="function"
+                ){
+                    candidate=
+                        await candidate.call(value);
+                }
+
+            }catch(_){
+                continue;
+            }
+
+            if(candidate==null){
+                continue;
+            }
+
+            try{
+                return await resolveObjectToSource(
+                    candidate,
+                    path,
+                    depth+1
+                );
+            }catch(_){}
+        }
+    }
+
+    throw new Error(
+        "Unsupported image source type: "+
+        Object.prototype.toString.call(value)
+    );
+}
+
+async function tryReadUsingFSReader(fs,path){
+    if(
+        !fs ||
+        typeof fs.read!=="function"
+    ){
+        return null;
+    }
+
+    const result=
+        await fs.read(path);
+
+    if(
+        result &&
+        typeof result==="object" &&
+        "ok" in result &&
+        !result.ok
+    ){
+        throw new Error(
+            result.error ||
+            result.summary ||
+            ("Could not read file: "+path)
+        );
+    }
+
+    return resolveObjectToSource(
+        result &&
+        typeof result==="object" &&
+        "content" in result
+            ?result.content
+            :result,
+        path
+    );
+}
+
+async function tryResolveFromDeviceMounts(fs,path){
+    if(
+        !fs ||
+        typeof fs.getDeviceMounts!=="function"
+    ){
+        return null;
+    }
+
+    const prefix="chxd:/device/";
+
+    if(
+        !String(path)
+            .toLowerCase()
+            .startsWith(prefix)
+    ){
+        return null;
+    }
+
+    const relative=
+        String(path).slice(
+            prefix.length
+        );
+
+    const parts=
+        relative
+            .split("/")
+            .filter(Boolean);
+
+    if(parts.length<2){
+        return null;
+    }
+
+    const mountName=parts.shift();
+    const fileParts=parts;
+
+    const mounts=
+        await fs.getDeviceMounts();
+
+    if(!Array.isArray(mounts)){
+        return null;
+    }
+
+    const mount=
+        mounts.find(
+            m=>
+                m &&
+                String(m.name)===String(mountName)
+        );
+
+    if(!mount){
+        return null;
+    }
+
+    const handle=
+        mount.handle ||
+        mount.directoryHandle ||
+        mount.rootHandle;
+
+    if(!handle){
+        return null;
+    }
+
+    if(
+        typeof handle.queryPermission==="function"
+    ){
+        let permission=
+            await handle.queryPermission({
+                mode:"read"
+            });
+
+        if(
+            permission!=="granted" &&
+            typeof handle.requestPermission==="function"
+        ){
+            permission=
+                await handle.requestPermission({
+                    mode:"read"
+                });
+        }
+
+        if(permission!=="granted"){
+            throw new Error(
+                "File System Access permission is required for '"+mountName+"'."
+            );
+        }
+    }
+
+    let currentHandle=handle;
+
+    for(const part of fileParts){
+
+        if(
+            !currentHandle ||
+            typeof currentHandle.getFileHandle!=="function"
+        ){
+            throw new Error(
+                "The File System Access directory cannot be traversed."
+            );
+        }
+
+        currentHandle=
+            await currentHandle.getFileHandle(
+                part
+            );
+    }
+
+    const file=
+        await handleToBlob(
+            currentHandle
+        );
+
+    return blobToObjectURL(
+        file
+    );
+}
 
 async function readVirtualFile(path){
-
-    const fs = getFS();
+    const fs=getFS();
 
     if(!fs){
-
         throw new Error(
-            "Little Hollow filesystem bridge is unavailable.\n" +
-            "The viewer could not access parent.FS."
+            "Little Hollow filesystem bridge is unavailable.\n"+
+            "parent.FS could not be found."
         );
-
     }
 
+    let normalized=path;
 
-    let normalized = path;
+    try{
+        if(typeof fs.normalize==="function"){
+            normalized=
+                fs.normalize(path);
+        }
+    }catch(_){}
 
-    if(typeof fs.normalize === "function"){
-        normalized = fs.normalize(path);
-    }
+    let firstError=null;
 
-
-    console.log(
-        "[ImageViewer] Reading:",
-        normalized
-    );
-
-
-    const result = await fs.read(normalized);
-
-
-    if(!result || !result.ok){
-
-        throw new Error(
-            result && result.error
-                ? result.error
-                : "File could not be read: " + normalized
-        );
-
-    }
-
-
-    return contentToImageSource(
-        result.content,
-        normalized
-    );
-}
-
-
-/* =========================================================
-   LOAD DIRECT URL
-========================================================= */
-
-async function showDirect(src){
-
-    return new Promise((resolve,reject)=>{
-
-        const img = document.createElement("img");
-
-        img.onload = () => {
-
-            cleanupObjectURL();
-
-            stage.innerHTML = "";
-
-            stage.appendChild(img);
-
-            resolve(true);
-
-        };
-
-
-        img.onerror = () => {
-
-            reject(
-                new Error(
-                    "The image URL could not be decoded:\n" +
-                    src
-                )
+    try{
+        const source=
+            await tryReadUsingFSReader(
+                fs,
+                normalized
             );
 
-        };
+        if(source){
+            return source;
+        }
 
+    }catch(err){
+        firstError=err;
+    }
 
-        img.src = src;
+    try{
+        const source=
+            await tryResolveFromDeviceMounts(
+                fs,
+                normalized
+            );
 
-    });
+        if(source){
+            return source;
+        }
 
+    }catch(err){
+        if(
+            !firstError
+        ){
+            firstError=err;
+        }
+    }
+
+    throw firstError ||
+        new Error(
+            "Could not read image: "+
+            normalized
+        );
 }
 
+async function loadSource(source){
+    const value=
+        String(source||"").trim();
 
-/* =========================================================
-   LOAD IMAGE
-========================================================= */
+    if(!value){
+        throw new Error(
+            "No image source specified."
+        );
+    }
+
+    if(isVirtualPath(value)){
+        return readVirtualFile(value);
+    }
+
+    if(isURL(value)){
+        return value;
+    }
+
+    return value;
+}
+
+function createImage(source){
+    return new Promise(
+        (resolve,reject)=>{
+
+            const img=
+                document.createElement("img");
+
+            img.draggable=false;
+
+            img.onload=()=>{
+                stage.innerHTML="";
+                stage.appendChild(img);
+                resolve(img);
+            };
+
+            img.onerror=()=>{
+                reject(
+                    new Error(
+                        "The browser could not decode the image."
+                    )
+                );
+            };
+
+            img.src=source;
+        }
+    );
+}
 
 async function show(src){
-
-    src = String(src || "").trim();
+    src=String(src||"").trim();
 
     if(!src){
-        errorMessage("No image path specified.");
+        errorMessage(
+            "No image path specified."
+        );
         return;
     }
 
-
     loading();
-
 
     try{
 
-        let imageSource;
+        const source=
+            await loadSource(src);
 
+        await createImage(source);
 
-        /*
-         * Little Hollow virtual filesystem.
-         */
-        if(isVirtualPath(src)){
-
-            imageSource =
-                await readVirtualFile(src);
-
-        }
-
-
-        /*
-         * Direct image/data/blob URL.
-         */
-        else if(isDirectImageSource(src)){
-
-            imageSource = src;
-
-        }
-
-
-        /*
-         * Try normal URL as a final fallback.
-         */
-        else{
-
-            imageSource = src;
-
-        }
-
-
-        console.log(
-            "[ImageViewer] Image source:",
-            imageSource
-        );
-
-
-        await showDirect(imageSource);
-
-    }
-    catch(err){
+    }catch(err){
 
         console.error(
-            "[ImageViewer] Load failed:",
+            "[Image Viewer] Failed to load:",
             err
         );
 
         errorMessage(
-            "Failed to load image.\n\n" +
-            (err && err.message
-                ? err.message
-                : String(err))
+            "Failed to load image.\n\n"+
+            (
+                err &&
+                err.message
+                    ?err.message
+                    :String(err)
+            )
         );
-
     }
-
 }
-
-
-/* =========================================================
-   BUTTON
-========================================================= */
 
 document
     .getElementById("loadBtn")
-    .addEventListener("click", () => {
+    .addEventListener(
+        "click",
+        ()=>{
+            const src=
+                urlInput.value.trim();
 
-        const src = urlInput.value.trim();
+            if(src){
+                show(src);
+            }
+        }
+    );
+
+urlInput.addEventListener(
+    "keydown",
+    e=>{
+        if(e.key!=="Enter"){
+            return;
+        }
+
+        const src=
+            urlInput.value.trim();
 
         if(src){
             show(src);
         }
-
-    });
-
-
-/* =========================================================
-   ENTER
-========================================================= */
-
-urlInput.addEventListener("keydown", e => {
-
-    if(e.key !== "Enter"){
-        return;
     }
+);
 
-    const src = urlInput.value.trim();
+if(initialPath){
 
-    if(src){
-        show(src);
-    }
+    urlInput.value=initialPath;
 
-});
-
-
-/* =========================================================
-   INITIAL PATH
-========================================================= */
-
-const params =
-    new URLSearchParams(location.search);
-
-const initial =
-    params.get("src");
-
-if(initial){
-
-    urlInput.value = initial;
-
-    show(initial);
-
+    show(initialPath);
 }
-
 </script>
 
 </body>
