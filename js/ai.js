@@ -289,13 +289,21 @@
         return runAgent(text, options);
     }
 
-    // Original Little Hollow compatibility API.
-    // Existing UI code calls: parent.LittleHollowAI.send(text[, options]).
-    // Keep this method returning the assistant text, while runAgent/chat return
-    // the richer result object used by the newer provider architecture.
+    // Original Little Hollow Messenger compatibility API.
+    // app/messenger.html expects: { visibleMessage: string, log: string[] }
+    // Keep the richer runAgent/chat APIs unchanged underneath.
     async function send(text, options) {
         const result = await runAgent(text, options || {});
-        return messageText(result?.message || result);
+        const visibleMessage = messageText(result?.message || result);
+        const log = Array.isArray(result?.log) ? result.log.map(String) : [];
+
+        return {
+            visibleMessage,
+            log,
+            provider: result?.provider || settings.provider,
+            model: result?.model || null,
+            result
+        };
     }
 
     function getSettings() {
