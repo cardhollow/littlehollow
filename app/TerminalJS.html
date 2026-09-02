@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TerminalJS</title>
+<style>
+*{
+    box-sizing:border-box
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    margin:0;
+    padding:0;
+    background:#000;
+    color:#00ffff;
+    font-family:monospace
+}
+
+body{
+    overflow:hidden
+}
+
+#terminal{
+    width:100%;
+    height:100%;
+    overflow:auto;
+    padding:10px 12px 18px;
+    background:#000;
+    color:#00ffff;
+    font:13px/1.5 monospace;
+    white-space:pre-wrap;
+    word-break:break-word;
+    cursor:text;
+    scrollbar-width:thin;
+    scrollbar-color:#00ffff #000
+}
+
+#terminal::-webkit-scrollbar{
+    width:8px
+}
+
+#terminal::-webkit-scrollbar-track{
+    background:#000
+}
+
+#terminal::-webkit-scrollbar-thumb{
+    background:#00ffff
+}
+
+.line{
+    min-height:1.5em;
+    margin:0;
+    white-space:pre-wrap;
+    word-break:break-word
+}
+
+.system{
+    color:#00ffff;
+    opacity:.45
+}
+
+.output{
+    color:#c8ffff
+}
+
+.error{
+    color:#ff6666
+}
+
+.warn{
+    color:#ffff00
+}
+
+.prompt-line{
+    display:block;
+    min-height:1.5em;
+    white-space:pre-wrap
+}
+
+.prompt-host{
+    color:#00ffff
+}
+
+.prompt-path{
+    color:#66ffff
+}
+
+.prompt-symbol{
+    color:#00ffff;
+    opacity:.45
+}
+
+.command{
+    color:#c8ffff;
+    outline:0;
+    border:0;
+    background:transparent;
+    font:inherit;
+    white-space:pre-wrap;
+    word-break:break-word;
+    caret-color:#00ffff
+}
+
+.command:focus{
+    outline:0
+}
+
+.continuation{
+    color:#66ffff
+}
+
+.blink{
+    animation:blink 1s steps(1,end) infinite
+}
+
+@keyframes blink{
+    50%{
+        opacity:0
+    }
+}
+
+::selection{
+    background:#00ffff;
+    color:#000
+}
+</style>
+</head>
+<body>
+
+<div id="terminal" tabindex="0"></div>
+
+<script>
+"use strict";
+
+const terminal=document.getElementById("terminal");
+
+const commandHistory=[];
+let historyIndex=0;
+let currentCommand=null;
+let running=false;
+
+let nativeConsole=null;
+
+function getParentWindow(){
+    try{
+        if(window.parent&&window.parent!==window){
+            return window.parent;
+        }
+    }catch(_){}
+    return window;
+}
+
+function getScope(){
+    const p=getParentWindow();
+
+    return{
+        window,
+        self:window,
+        globalThis:window,
+        document,
+        parent:p,
+        top:window.top,
+        FS:p&&p.FS,
+        Apps:p&&p.Apps,
+        WM:p&&p.WM,
+        Avatar:p&&p.Avatar,
+        Tools:p&&p.Tools,
+        AI:p&&(p.LittleHollowAI||p.AI),
+        LittleHollowAI:p&&p.LittleHollowAI
+    };
+}
+
+function scrollBottom(){
+    terminal.scrollTop=terminal.scrollHeight;
+}
+
+function addLine(text,className="output"){
+    const line=document.createElement("div");
+
+    line.className="line "+className;
+    line.textContent=String(text??"");
+
+    terminal.appendChild(line);
+    scrollBottom();
+
+    return line;
+}
+
+function addLines(text,className="output"){
+    const value=String(text??"");
+    const parts=value.split("\n");
+
+    for(const part of parts){
+        addLine(part,className);
+    }
+}
+
+function formatValue(value,depth=0,seen=new WeakSet()){
+    if(value===undefined){
+        return"undefined";
+    }
+
+    if(value===null){
+        return"null";
+    }
+
+    if(typeof value==="string"){
+        return value;
+    }
+
+    if(
+        typeof value==="number"||
+        typeof value==="boolean"||
+        typeof value==="bigint"
+    ){
+        return String(value);
+    }
+
+    if(typeof value==="symbol"){
+        return String(value);
+    }
+
+    if(typeof value==="function"){
+        return String(value);
+    }
+
+    if(typeof value==="object"){
+        if(seen.has(value)){
+            return"[Circular]";
+        }
+
+        seen.add(value);
+
+        if(depth>5){
+            return"[Object]";
+        }
+
+        if(Array.isArray(value)){
+            if(!value.length){
+                return"[]";
+            }
+
+            return"[\n"+
+                value.map(item=>{
+                    return"  "+
+                        formatValue(
+                            item,
+                            depth+1,
+                            seen
+                        )
+                        .split("\n")
+                        .join("\n  ");
+                }).join(",\n")+
+                "\n]";
+        }
+
+        try{
+            const keys=Object.keys(value);
+
+            if(!keys.length){
+                return"{}";
+            }
+
+            return"{\n"+
+                keys.map(key=>{
+                    return"  "+
+                        key+
+                        ": "+
+                        formatValue(
+                            value[key],
+                            depth+1,
+                            seen
+                        )
+                        .split("\n")
+                        .join("\n  ");
+                }).join(",\n")+
+                "\n}";
+        }catch(_){
+            return String(value);
+        }
+    }
+
+    return String(value);
+}
+
+function formatConsoleArgs(args){
+    return args.map(value=>{
+        if(typeof value==="string"){
+            return value;
+        }
+
+        return formatValue(value);
+    }).join(" ");
+}
+
+function captureConsole(){
+    nativeConsole={
+        log:console.log,
+        info:console.info,
+        warn:console.warn,
+        error:console.error,
+        debug:console.debug
+    };
+
+    console.log=(...args)=>{
+        addLines(
+            formatConsoleArgs(args),
+            "output"
+        );
+
+        nativeConsole.log(...args);
+    };
+
+    console.info=(...args)=>{
+        addLines(
+            formatConsoleArgs(args),
+            "output"
+        );
+
+        nativeConsole.info(...args);
+    };
+
+    console.warn=(...args)=>{
+        addLines(
+            formatConsoleArgs(args),
+            "warn"
+        );
+
+        nativeConsole.warn(...args);
+    };
+
+    console.error=(...args)=>{
+        addLines(
+            formatConsoleArgs(args),
+            "error"
+        );
+
+        nativeConsole.error(...args);
+    };
+
+    console.debug=(...args)=>{
+        addLines(
+            formatConsoleArgs(args),
+            "system"
+        );
+
+        nativeConsole.debug(...args);
+    };
+}
+
+function restoreConsole(){
+    if(!nativeConsole){
+        return;
+    }
+
+    console.log=nativeConsole.log;
+    console.info=nativeConsole.info;
+    console.warn=nativeConsole.warn;
+    console.error=nativeConsole.error;
+    console.debug=nativeConsole.debug;
+
+    nativeConsole=null;
+}
+
+function createPrompt(){
+    const row=document.createElement("div");
+
+    row.className="prompt-line";
+
+    const host=document.createElement("span");
+    host.className="prompt-host";
+    host.textContent="chxd:";
+
+    const colon=document.createElement("span");
+    colon.style.opacity=".45";
+    colon.textContent=":";
+
+    const path=document.createElement("span");
+    path.className="prompt-path";
+    path.textContent="~";
+
+    const dollar=document.createElement("span");
+    dollar.className="prompt-symbol";
+    dollar.textContent="$ ";
+
+    const command=document.createElement("span");
+
+    command.className="command";
+    command.contentEditable="true";
+    command.spellcheck=false;
+    command.autocapitalize="off";
+    command.autocomplete="off";
+
+    row.append(
+        host,
+        colon,
+        path,
+        dollar,
+        command
+    );
+
+    terminal.appendChild(row);
+
+    currentCommand=command;
+
+    command.addEventListener(
+        "keydown",
+        handleCommandKey
+    );
+
+    command.addEventListener(
+        "input",
+        scrollBottom
+    );
+
+    command.focus();
+    scrollBottom();
+
+    return command;
+}
+
+function getCommand(){
+    return currentCommand
+        ?currentCommand.textContent
+        :"";
+}
+
+function setCommand(value){
+    if(!currentCommand){
+        return;
+    }
+
+    currentCommand.textContent=String(value??"");
+
+    const range=document.createRange();
+    const selection=window.getSelection();
+
+    range.selectNodeContents(
+        currentCommand
+    );
+
+    range.collapse(false);
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    scrollBottom();
+}
+
+function freezeCommand(){
+    if(!currentCommand){
+        return;
+    }
+
+    currentCommand.contentEditable="false";
+
+    currentCommand.removeEventListener(
+        "keydown",
+        handleCommandKey
+    );
+
+    currentCommand=null;
+}
+
+function commandLooksIncomplete(source){
+    const text=String(source||"").trim();
+
+    if(!text){
+        return false;
+    }
+
+    let single=false;
+    let double=false;
+    let template=false;
+    let escaped=false;
+
+    let braces=0;
+    let brackets=0;
+    let parentheses=0;
+
+    for(const char of text){
+        if(escaped){
+            escaped=false;
+            continue;
+        }
+
+        if(char==="\\"){
+            escaped=true;
+            continue;
+        }
+
+        if(template){
+            if(char==="`"){
+                template=false;
+            }
+            continue;
+        }
+
+        if(single){
+            if(char==="'"){
+                single=false;
+            }
+            continue;
+        }
+
+        if(double){
+            if(char==='"'){
+                double=false;
+            }
+            continue;
+        }
+
+        if(char==="'"){
+            single=true;
+            continue;
+        }
+
+        if(char==='"'){
+            double=true;
+            continue;
+        }
+
+        if(char==="`"){
+            template=true;
+            continue;
+        }
+
+        if(char==="{"){
+            braces++;
+        }else if(char==="}"){
+            braces--;
+        }else if(char==="["){
+            brackets++;
+        }else if(char==="]"){
+            brackets--;
+        }else if(char==="("){
+            parentheses++;
+        }else if(char===")"){
+            parentheses--;
+        }
+    }
+
+    if(
+        single||
+        double||
+        template||
+        braces>0||
+        brackets>0||
+        parentheses>0
+    ){
+        return true;
+    }
+
+    return /(?:=>|[,{[(+*\/=&|?:])\s*$/.test(text);
+}
+
+function evaluateJavaScript(source){
+    const context=getScope();
+
+    const names=Object.keys(context);
+    const values=Object.values(context);
+
+    const evaluator=new Function(
+        ...names,
+        '"use strict";return eval(arguments[arguments.length-1]);'
+    );
+
+    return evaluator(
+        ...values,
+        source
+    );
+}
+
+async function executeJavaScript(source){
+    captureConsole();
+
+    try{
+        let result=evaluateJavaScript(
+            source
+        );
+
+        if(
+            result&&
+            typeof result.then==="function"
+        ){
+            result=await result;
+        }
+
+        return{
+            ok:true,
+            value:result
+        };
+
+    }catch(error){
+
+        return{
+            ok:false,
+            error
+        };
+
+    }finally{
+        restoreConsole();
+    }
+}
+
+function printCommand(command){
+    const source=String(command??"");
+    const parts=source.split("\n");
+
+    if(!parts.length){
+        return;
+    }
+
+    const first=document.createElement("div");
+
+    first.className="line";
+
+    const prefix=document.createElement("span");
+
+    prefix.innerHTML=
+        '<span class="prompt-host">chxd:</span>'+
+        '<span style="opacity:.45">:</span>'+
+        '<span class="prompt-path">~</span>'+
+        '<span class="prompt-symbol">$ </span>';
+
+    const text=document.createElement("span");
+
+    text.className="output";
+    text.textContent=parts[0];
+
+    first.append(
+        prefix,
+        text
+    );
+
+    terminal.appendChild(first);
+
+    for(let i=1;i<parts.length;i++){
+        const continuation=
+            document.createElement("div");
+
+        continuation.className="line";
+
+        const symbol=
+            document.createElement("span");
+
+        symbol.className="continuation";
+        symbol.textContent="... ";
+
+        const value=
+            document.createElement("span");
+
+        value.className="output";
+        value.textContent=parts[i];
+
+        continuation.append(
+            symbol,
+            value
+        );
+
+        terminal.appendChild(
+            continuation
+        );
+    }
+
+    scrollBottom();
+}
+
+async function runCommand(){
+    if(running||!currentCommand){
+        return;
+    }
+
+    const source=getCommand();
+
+    if(!source.trim()){
+        return;
+    }
+
+    running=true;
+
+    commandHistory.push(source);
+    historyIndex=commandHistory.length;
+
+    freezeCommand();
+
+    const result=
+        await executeJavaScript(source);
+
+    printCommand(source);
+
+    if(result.ok){
+        if(result.value!==undefined){
+            addLines(
+                formatValue(result.value),
+                "output"
+            );
+        }
+    }else{
+        const error=result.error;
+
+        addLines(
+            error&&error.stack
+                ?error.stack
+                :error&&error.message
+                    ?error.message
+                    :String(error),
+            "error"
+        );
+    }
+
+    running=false;
+
+    createPrompt();
+}
+
+function clearTerminal(){
+    terminal.innerHTML="";
+
+    currentCommand=null;
+
+    addLine(
+        "LITTLE HOLLOW TERMINALJS",
+        "system"
+    );
+
+    addLine(
+        "JavaScript evaluation shell",
+        "system"
+    );
+
+    addLine(
+        "",
+        "system"
+    );
+
+    createPrompt();
+}
+
+function showHelp(){
+    addLine(
+        "JavaScript terminal",
+        "system"
+    );
+
+    addLine(
+        "Enter        execute"
+    );
+
+    addLine(
+        "Shift+Enter  newline"
+    );
+
+    addLine(
+        "Arrow Up     previous command"
+    );
+
+    addLine(
+        "Arrow Down   next command"
+    );
+
+    addLine(
+        "Ctrl+L       clear"
+    );
+
+    addLine(
+        "Ctrl+C       cancel input"
+    );
+
+    addLine(
+        ""
+    );
+
+    addLine(
+        "Examples:",
+        "system"
+    );
+
+    addLine(
+        "1 + 1"
+    );
+
+    addLine(
+        "console.log('hello')"
+    );
+
+    addLine(
+        "await parent.FS.list('chxd:/local/')"
+    );
+
+    addLine(
+        "await parent.FS.read('chxd:/local/test.txt')"
+    );
+
+    addLine(
+        "parent.WM.list()"
+    );
+
+    addLine(
+        "parent.Apps"
+    );
+
+    addLine(
+        "parent.LittleHollowAI"
+    );
+}
+
+function previousHistory(){
+    if(!commandHistory.length||!currentCommand){
+        return;
+    }
+
+    historyIndex=Math.max(
+        0,
+        historyIndex-1
+    );
+
+    setCommand(
+        commandHistory[historyIndex]||""
+    );
+}
+
+function nextHistory(){
+    if(!commandHistory.length||!currentCommand){
+        return;
+    }
+
+    historyIndex=Math.min(
+        commandHistory.length,
+        historyIndex+1
+    );
+
+    setCommand(
+        historyIndex<
+        commandHistory.length
+            ?commandHistory[historyIndex]
+            :""
+    );
+}
+
+function handleCommandKey(event){
+    if(event.key==="Enter"){
+        event.preventDefault();
+
+        if(
+            event.shiftKey||
+            commandLooksIncomplete(
+                getCommand()
+            )
+        ){
+            document.execCommand(
+                "insertText",
+                false,
+                "\n"
+            );
+
+            scrollBottom();
+
+            return;
+        }
+
+        runCommand();
+
+        return;
+    }
+
+    if(
+        event.key==="ArrowUp"&&
+        getCommand()===""
+    ){
+        event.preventDefault();
+
+        previousHistory();
+
+        return;
+    }
+
+    if(
+        event.key==="ArrowDown"&&
+        getCommand()===""
+    ){
+        event.preventDefault();
+
+        nextHistory();
+
+        return;
+    }
+
+    if(
+        event.ctrlKey&&
+        event.key.toLowerCase()==="l"
+    ){
+        event.preventDefault();
+
+        clearTerminal();
+
+        return;
+    }
+
+    if(
+        event.ctrlKey&&
+        event.key.toLowerCase()==="c"
+    ){
+        event.preventDefault();
+
+        if(getCommand()){
+            const source=getCommand();
+
+            freezeCommand();
+
+            printCommand(
+                source
+            );
+
+            addLine(
+                "^C",
+                "warn"
+            );
+
+            createPrompt();
+        }
+
+        return;
+    }
+
+    if(
+        event.ctrlKey&&
+        event.key.toLowerCase()==="d"
+    ){
+        if(getCommand()===""){
+            event.preventDefault();
+            freezeCommand();
+            addLine(
+                "logout",
+                "system"
+            );
+        }
+    }
+}
+
+terminal.addEventListener(
+    "click",
+    event=>{
+        if(
+            !event.target.closest(
+                ".command"
+            )&&
+            currentCommand
+        ){
+            currentCommand.focus();
+        }
+    }
+);
+
+window.addEventListener(
+    "beforeunload",
+    restoreConsole
+);
+
+clearTerminal();
+</script>
+
+</body>
+</html>
