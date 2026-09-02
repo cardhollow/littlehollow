@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>App Installer</title>
+<style>
+*{box-sizing:border-box;font-family:monospace}
+html,body{margin:0;width:100%;height:100%;background:#000;color:#00ffff}
+body{padding:12px;overflow:auto}
+input{width:100%;height:34px;margin-bottom:8px;background:#000;border:1px solid #00ffff;color:#fff;padding:6px}
+.row{display:flex;gap:8px}
+.row input{flex:1}
+button{height:34px;background:#001919;color:#00ffff;border:1px solid #00ffff;padding:0 12px}
+.preview{margin-top:10px;border:1px solid #00ffff;height:260px}
+.preview iframe{width:100%;height:100%;border:0;background:#fff}
+</style>
+</head>
+<body>
+
+<input id="pkg" placeholder="Package Name">
+
+<div class="row">
+    <input id="name" placeholder="App Name (Optional)">
+    <input id="icon" placeholder="App Icon">
+</div>
+
+<div class="row">
+    <input id="url" placeholder="URL">
+    <button id="load">LOAD</button>
+</div>
+
+<div class="preview">
+    <iframe id="preview"></iframe>
+</div>
+
+<button id="install" style="margin-top:10px;width:100%">
+    INSTALL
+</button>
+
+<script>
+const CIA_PATH="Custom Installed Application/CIA.json";
+
+const pkg=document.getElementById("pkg");
+const name=document.getElementById("name");
+const icon=document.getElementById("icon");
+const url=document.getElementById("url");
+const preview=document.getElementById("preview");
+
+function readCIA(){
+    try{
+        const raw=localStorage.getItem(CIA_PATH);
+        return raw?JSON.parse(raw):[];
+    }catch(e){
+        return [];
+    }
+}
+
+function writeCIA(data){
+    localStorage.setItem(
+        CIA_PATH,
+        JSON.stringify(data)
+    );
+}
+
+document.getElementById("load").onclick=()=>{
+    if(!url.value.trim())return;
+    preview.src=url.value.trim();
+};
+
+document.getElementById("install").onclick=()=>{
+    const p=pkg.value.trim();
+    const u=url.value.trim();
+
+    if(!p||!u)return;
+
+    const data=readCIA();
+
+    const app={
+        pkg:p,
+        name:name.value.trim(),
+        src:u,
+        appIcon:icon.value.trim()
+    };
+
+    const index=data.findIndex(
+        x=>x.pkg===p
+    );
+
+    if(index>=0)
+        data[index]=app;
+    else
+        data.push(app);
+
+    writeCIA(data);
+
+    parent.postMessage({
+        type:"LH_INSTALLED_APP",
+        app
+    },"*");
+};
+</script>
+
+</body>
+</html>
