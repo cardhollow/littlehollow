@@ -4,47 +4,422 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>File Manager</title>
+
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:monospace}
-html,body{width:100%;height:100%;background:#000d0d;color:#00FFFF}
-body{overflow:hidden}
-.wrap{display:flex;flex-direction:column;height:100%}
-.bar{display:flex;gap:5px;padding:6px;border-bottom:1px solid #00FFFF;flex-wrap:wrap}
-.bar button,.bar input{border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:6px 8px;font:10px monospace}
-.bar input{flex:1 1 150px}
-.bar button:active,.row button:active,.ctx button:active{background:#00FFFF;color:#000}
-.tabs{display:flex;border-bottom:1px solid #00FFFF;overflow-x:auto}
-.tabs button{flex:0 0 auto;border:0;border-right:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:7px 10px;cursor:pointer;font:11px monospace}
-.tabs button.active{background:rgba(0,255,255,.15)}
-.pathbar{display:flex;padding:5px 6px;border-bottom:1px solid rgba(0,255,255,.25)}
-.current-path{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:10px;opacity:.8}
-.hint{padding:4px 8px;font-size:10px;opacity:.55;border-bottom:1px solid rgba(0,255,255,.2)}
-#error{color:#ff6666;white-space:pre-wrap}
-.list{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
-.row{display:flex;align-items:center;gap:5px;padding:7px 8px;border-bottom:1px solid rgba(0,255,255,.22);font-size:11px}
-.row.folder{background:rgba(0,255,255,.035)}
-.row.selected{background:rgba(0,255,255,.1)}
-.name{flex:1;min-width:0;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.row.folder .name{font-weight:bold}
-.rename-input{flex:1;min-width:0;width:100%;border:1px solid #00FFFF;outline:none;background:#001919;color:#00FFFF;padding:3px 5px;font:11px monospace}
-.row button{border:1px solid #00FFFF;background:transparent;color:#00FFFF;font:10px monospace;padding:3px 5px;cursor:pointer}
-.row input{accent-color:#00FFFF}
-.empty{padding:16px;opacity:.6;font-size:12px}
-.ctx{position:fixed;z-index:999999;min-width:150px;max-width:240px;border:1px solid #00FFFF;background:#000d0d;box-shadow:0 0 0 1px rgba(0,255,255,.15);padding:4px;display:none}
-.ctx button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid rgba(0,255,255,.2);background:transparent;color:#00FFFF;padding:7px 8px;font:10px monospace}
-.ctx button:last-child{border-bottom:0}
-.ctx .danger{color:#ff6666}
-.ctx .zip-action{color:#66FFFF}
-.ctx .edit-action{color:#7fffff;font-weight:bold}
-.image-row{border-left:2px solid rgba(0,255,255,.35)}
-.picker-action{border-top:1px solid #00FFFF;padding:8px}
-.picker-action button{width:100%;border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:8px;font:11px monospace}
-.picker-action button:active{background:#00FFFF;color:#000}
+*{
+box-sizing:border-box;
+margin:0;
+padding:0;
+font-family:monospace;
+}
+
+html,body{
+width:100%;
+height:100%;
+background:#000d0d;
+color:#00FFFF;
+}
+
+body{
+overflow:hidden;
+}
+
+.wrap{
+display:flex;
+flex-direction:column;
+height:100%;
+}
+
+.bar{
+display:flex;
+gap:5px;
+padding:6px;
+border-bottom:1px solid #00FFFF;
+flex-wrap:wrap;
+}
+
+.bar button,
+.bar input{
+border:1px solid #00FFFF;
+background:transparent;
+color:#00FFFF;
+padding:6px 8px;
+font:10px monospace;
+}
+
+.bar input{
+flex:1 1 150px;
+}
+
+.bar button:active,
+.row button:active,
+.ctx button:active{
+background:#00FFFF;
+color:#000;
+}
+
+.tabs{
+display:flex;
+border-bottom:1px solid #00FFFF;
+overflow-x:auto;
+}
+
+.tabs button{
+flex:0 0 auto;
+border:0;
+border-right:1px solid #00FFFF;
+background:transparent;
+color:#00FFFF;
+padding:7px 10px;
+cursor:pointer;
+font:11px monospace;
+}
+
+.tabs button.active{
+background:rgba(0,255,255,.15);
+}
+
+.pathbar{
+display:flex;
+padding:5px 6px;
+border-bottom:1px solid rgba(0,255,255,.25);
+}
+
+.current-path{
+flex:1;
+min-width:0;
+overflow:hidden;
+white-space:nowrap;
+text-overflow:ellipsis;
+font-size:10px;
+opacity:.8;
+}
+
+.hint{
+padding:4px 8px;
+font-size:10px;
+opacity:.55;
+border-bottom:1px solid rgba(0,255,255,.2);
+}
+
+#error{
+color:#ff6666;
+white-space:pre-wrap;
+}
+
+.list{
+flex:1;
+overflow:auto;
+-webkit-overflow-scrolling:touch;
+}
+
+.row{
+display:flex;
+align-items:center;
+gap:5px;
+padding:7px 8px;
+border-bottom:1px solid rgba(0,255,255,.22);
+font-size:11px;
+}
+
+.row.folder{
+background:rgba(0,255,255,.035);
+}
+
+.row.selected{
+background:rgba(0,255,255,.1);
+}
+
+.name{
+flex:1;
+min-width:0;
+cursor:pointer;
+overflow:hidden;
+text-overflow:ellipsis;
+white-space:nowrap;
+}
+
+.row.folder .name{
+font-weight:bold;
+}
+
+.rename-input{
+flex:1;
+min-width:0;
+width:100%;
+border:1px solid #00FFFF;
+outline:none;
+background:#001919;
+color:#00FFFF;
+padding:3px 5px;
+font:11px monospace;
+}
+
+.row button{
+border:1px solid #00FFFF;
+background:transparent;
+color:#00FFFF;
+font:10px monospace;
+padding:3px 5px;
+cursor:pointer;
+}
+
+.row input{
+accent-color:#00FFFF;
+}
+
+.empty{
+padding:16px;
+opacity:.6;
+font-size:12px;
+}
+
+.ctx{
+position:fixed;
+z-index:999999;
+min-width:150px;
+max-width:240px;
+border:1px solid #00FFFF;
+background:#000d0d;
+box-shadow:0 0 0 1px rgba(0,255,255,.15);
+padding:4px;
+display:none;
+}
+
+.ctx button{
+display:block;
+width:100%;
+text-align:left;
+border:0;
+border-bottom:1px solid rgba(0,255,255,.2);
+background:transparent;
+color:#00FFFF;
+padding:7px 8px;
+font:10px monospace;
+}
+
+.ctx button:last-child{
+border-bottom:0;
+}
+
+.ctx .danger{
+color:#ff6666;
+}
+
+.ctx .zip-action{
+color:#66FFFF;
+}
+
+.ctx .edit-action{
+color:#7fffff;
+font-weight:bold;
+}
+
+.image-row{
+border-left:2px solid rgba(0,255,255,.35);
+}
+
+.picker-action{
+border-top:1px solid #00FFFF;
+padding:8px;
+}
+
+.picker-action button{
+width:100%;
+border:1px solid #00FFFF;
+background:transparent;
+color:#00FFFF;
+padding:8px;
+font:11px monospace;
+}
+
+.picker-action button:active{
+background:#00FFFF;
+color:#000;
+}
+
+/* =========================================================
+   TERMINAL
+   ========================================================= */
+
+#lh-terminal{
+position:fixed;
+inset:0;
+z-index:2000000;
+display:none;
+background:rgba(0,0,0,.84);
+align-items:center;
+justify-content:center;
+padding:10px;
+}
+
+#lh-terminal-window{
+width:min(760px,96vw);
+height:min(600px,92vh);
+display:flex;
+flex-direction:column;
+border:1px solid #00FFFF;
+background:#000808;
+box-shadow:
+0 0 0 1px rgba(0,255,255,.15),
+0 0 25px rgba(0,255,255,.08);
+}
+
+.lh-terminal-titlebar{
+height:32px;
+min-height:32px;
+display:flex;
+align-items:center;
+padding:0 9px;
+border-bottom:1px solid #00FFFF;
+background:#001414;
+font-size:11px;
+font-weight:bold;
+letter-spacing:.4px;
+}
+
+.lh-terminal-status{
+margin-left:auto;
+opacity:.7;
+font-size:10px;
+}
+
+#lh-terminal-output{
+flex:1;
+overflow:auto;
+padding:10px;
+font-size:11px;
+line-height:1.45;
+white-space:pre-wrap;
+word-break:break-word;
+-webkit-overflow-scrolling:touch;
+}
+
+.lh-terminal-line{
+display:block;
+margin-bottom:3px;
+}
+
+.lh-terminal-line.dim{
+opacity:.62;
+}
+
+.lh-terminal-line.success{
+color:#00FFFF;
+}
+
+.lh-terminal-line.warn{
+color:#ffff66;
+}
+
+.lh-terminal-line.error{
+color:#ff6666;
+}
+
+.lh-terminal-progress{
+padding:8px 10px;
+border-top:1px solid rgba(0,255,255,.28);
+font-size:10px;
+background:#000b0b;
+}
+
+.lh-progress-track{
+height:10px;
+margin-top:5px;
+border:1px solid #00FFFF;
+background:#000404;
+overflow:hidden;
+}
+
+#lh-progress-fill{
+height:100%;
+width:0%;
+background:#00FFFF;
+transition:width .08s linear;
+}
+
+#lh-progress-text{
+margin-top:5px;
+white-space:pre-wrap;
+}
+
+.lh-terminal-footer{
+height:30px;
+min-height:30px;
+display:flex;
+align-items:center;
+padding:0 10px;
+border-top:1px solid rgba(0,255,255,.25);
+font-size:9px;
+opacity:.62;
+}
+
+#lh-confirm-terminal{
+position:fixed;
+z-index:2100000;
+display:none;
+left:50%;
+top:50%;
+transform:translate(-50%,-50%);
+width:min(510px,92vw);
+border:1px solid #00FFFF;
+background:#000909;
+box-shadow:
+0 0 0 1px rgba(0,255,255,.12),
+0 0 40px rgba(0,255,255,.1);
+}
+
+.lh-confirm-title{
+padding:9px;
+border-bottom:1px solid #00FFFF;
+font-weight:bold;
+font-size:11px;
+background:#001414;
+}
+
+.lh-confirm-body{
+padding:14px;
+font-size:11px;
+line-height:1.5;
+white-space:pre-wrap;
+}
+
+.lh-confirm-actions{
+display:flex;
+gap:6px;
+padding:9px;
+border-top:1px solid rgba(0,255,255,.25);
+}
+
+.lh-confirm-actions button{
+flex:1;
+border:1px solid #00FFFF;
+background:transparent;
+color:#00FFFF;
+font:11px monospace;
+padding:8px;
+}
+
+.lh-confirm-actions button:active{
+background:#00FFFF;
+color:#000;
+}
+
+.lh-confirm-actions .stop{
+color:#ff6666;
+border-color:#ff6666;
+}
+
+body.lh-terminal-active .wrap{
+filter:brightness(.75);
+}
 </style>
 </head>
+
 <body>
 
 <div class="wrap">
+
 <div class="bar">
 <input id="pathBox" placeholder="path or wildcard">
 <button id="refresh">REFRESH</button>
@@ -54,1896 +429,5916 @@ body{overflow:hidden}
 <button id="zip">ZIP SELECTED</button>
 <button id="selectAll">SELECT ALL</button>
 </div>
+
 <div class="tabs" id="tabs"></div>
+
 <div class="pathbar">
 <div class="current-path" id="currentPath"></div>
 </div>
-<div class="hint" id="hint">Tap a file to open it. Tap a folder to enter it. Double-tap a name to rename. Long-press/right-click for more actions.</div>
+
+<div class="hint" id="hint">
+Tap a file to open it. Tap a folder to enter it. Double-tap a name to rename.
+Long-press/right-click for more actions.
+</div>
+
 <div class="hint" id="error" style="display:none"></div>
+
 <div class="list" id="list"></div>
+
 </div>
 
 <div class="ctx" id="contextMenu"></div>
 
+
+<!-- =========================================================
+     NON-CLOSABLE TERMINAL
+     ========================================================= -->
+
+<div id="lh-terminal">
+<div id="lh-terminal-window">
+
+<div class="lh-terminal-titlebar">
+FILE OPERATION TERMINAL
+<div class="lh-terminal-status" id="lh-terminal-status">
+IDLE
+</div>
+</div>
+
+<div id="lh-terminal-output"></div>
+
+<div class="lh-terminal-progress">
+
+<div id="lh-progress-label">
+PROGRESS
+</div>
+
+<div class="lh-progress-track">
+<div id="lh-progress-fill"></div>
+</div>
+
+<div id="lh-progress-text">
+0%
+</div>
+
+</div>
+
+<div class="lh-terminal-footer">
+CTRL+C = REQUEST STOP
+</div>
+
+</div>
+</div>
+
+
+<!-- =========================================================
+     CTRL+C CONFIRMATION TERMINAL
+     ========================================================= -->
+
+<div id="lh-confirm-terminal">
+
+<div class="lh-confirm-title">
+LITTLE HOLLOW // TERMINAL CONTROL
+</div>
+
+<div class="lh-confirm-body" id="lh-confirm-body">
+A file operation is currently running.
+
+Stop the current operation?
+</div>
+
+<div class="lh-confirm-actions">
+
+<button id="lh-confirm-stop" class="stop">
+[Y] STOP OPERATION
+</button>
+
+<button id="lh-confirm-continue">
+[N] CONTINUE
+</button>
+
+</div>
+
+</div>
+
+
 <script>
-const zones=[
-{key:"local",label:"LOCAL",prefix:"chxd:/local/"},
-{key:"session",label:"SESSION",prefix:"chxd:/session/"},
-{key:"indexdb",label:"INDEXDB",prefix:"chxd:/indexdb/"},
-{key:"puter",label:"PUTER",prefix:"puter:/"},
-{key:"device",label:"DEVICE",prefix:"chxd:/device/"},
-{key:"system",label:"SYSTEM",prefix:"chxd:/system/"}
+"use strict";
+
+/* =========================================================
+   TERMINAL WORKER
+   ========================================================= */
+
+const TERMINAL_WORKER_SOURCE = `
+"use strict";
+
+let cancelled = false;
+
+function sleep(ms){
+    return new Promise(resolve => setTimeout(resolve,ms));
+}
+
+function send(type,data){
+    self.postMessage(
+        Object.assign(
+            {
+                type
+            },
+            data || {}
+        )
+    );
+}
+
+function pathJoin(base,name){
+    return String(base).replace(/\\/+$/,"") + "/" + name;
+}
+
+async function scanDirectory(handle,basePath){
+
+    const entries = [];
+    const queue = [
+        {
+            handle: handle,
+            path: String(basePath || "").replace(/\\/+$/,"") + "/"
+        }
+    ];
+
+    let processed = 0;
+    let directories = 0;
+    let files = 0;
+
+    while(queue.length){
+
+        if(cancelled){
+            send("cancelled");
+            return;
+        }
+
+        const job = queue.shift();
+
+        try{
+
+            for await(const item of job.handle.values()){
+
+                if(cancelled){
+                    send("cancelled");
+                    return;
+                }
+
+                const child = pathJoin(
+                    job.path,
+                    item.name
+                );
+
+                if(item.kind === "directory"){
+
+                    entries.push({
+                        path: child + "/",
+                        folder: true,
+                        name: item.name
+                    });
+
+                    queue.push({
+                        handle: item,
+                        path: child + "/"
+                    });
+
+                    directories++;
+
+                }else{
+
+                    entries.push({
+                        path: child,
+                        folder: false,
+                        name: item.name
+                    });
+
+                    files++;
+                }
+
+                processed++;
+
+                if(
+                    processed % 16 === 0 ||
+                    queue.length === 0
+                ){
+
+                    /*
+                       This percentage is intentionally an
+                       indexing/loading percentage rather than
+                       a fake "bytes copied" percentage.
+
+                       It rises to 95 while work is discovered,
+                       then becomes 100 only when scanning finishes.
+                    */
+
+                    const estimate =
+                        Math.min(
+                            95,
+                            Math.max(
+                                1,
+                                Math.floor(
+                                    processed /
+                                    (
+                                        processed +
+                                        queue.length * 12 +
+                                        1
+                                    ) *
+                                    95
+                                )
+                            )
+                        );
+
+                    send(
+                        "progress",
+                        {
+                            percent: estimate,
+                            processed,
+                            directories,
+                            files,
+                            queue: queue.length,
+                            current: child
+                        }
+                    );
+
+                    await sleep(0);
+                }
+            }
+
+        }catch(error){
+
+            send(
+                "error",
+                {
+                    error:
+                        error &&
+                        error.message
+                            ? error.message
+                            : String(error)
+                }
+            );
+
+            return;
+        }
+    }
+
+    send(
+        "result",
+        {
+            entries,
+            processed,
+            directories,
+            files
+        }
+    );
+}
+
+async function processDirectoryRequest(message){
+
+    cancelled = false;
+
+    if(!message.handle){
+        send(
+            "error",
+            {
+                error:
+                    "No FileSystemDirectoryHandle was provided."
+            }
+        );
+        return;
+    }
+
+    await scanDirectory(
+        message.handle,
+        message.basePath
+    );
+}
+
+async function processListRequest(message){
+
+    cancelled = false;
+
+    const dir = message.handle;
+
+    if(!dir){
+        send(
+            "error",
+            {
+                error:
+                    "No directory handle."
+            }
+        );
+        return;
+    }
+
+    const result = [];
+
+    try{
+
+        for await(const item of dir.values()){
+
+            if(cancelled){
+                send("cancelled");
+                return;
+            }
+
+            result.push({
+                name:item.name,
+                kind:item.kind
+            });
+
+            if(result.length % 32 === 0){
+
+                send(
+                    "list-progress",
+                    {
+                        count:result.length
+                    }
+                );
+
+                await sleep(0);
+            }
+        }
+
+        send(
+            "list-result",
+            {
+                entries:result
+            }
+        );
+
+    }catch(error){
+
+        send(
+            "error",
+            {
+                error:
+                    error &&
+                    error.message
+                        ? error.message
+                        : String(error)
+            }
+        );
+    }
+}
+
+self.onmessage = event => {
+
+    const message = event.data || {};
+
+    if(message.type === "cancel"){
+        cancelled = true;
+        return;
+    }
+
+    if(message.type === "scan"){
+        processDirectoryRequest(message);
+        return;
+    }
+
+    if(message.type === "list"){
+        processListRequest(message);
+        return;
+    }
+};
+`;
+
+let terminalWorker = null;
+
+function createTerminalWorker(){
+
+    const blob =
+        new Blob(
+            [TERMINAL_WORKER_SOURCE],
+            {
+                type:"application/javascript"
+            }
+        );
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const worker =
+        new Worker(url);
+
+    worker._lhURL = url;
+
+    worker.addEventListener(
+        "error",
+        error => {
+            console.error(
+                "Little Hollow terminal worker error:",
+                error
+            );
+        }
+    );
+
+    return worker;
+}
+
+
+/* =========================================================
+   TERMINAL MANAGER
+   ========================================================= */
+
+const terminalState = {
+    active:false,
+    title:"",
+    operation:"",
+    percent:0,
+    processed:0,
+    files:0,
+    directories:0,
+    cancelled:false
+};
+
+const terminal =
+    document.getElementById("lh-terminal");
+
+const terminalWindow =
+    document.getElementById("lh-terminal-window");
+
+const terminalOutput =
+    document.getElementById("lh-terminal-output");
+
+const terminalStatus =
+    document.getElementById("lh-terminal-status");
+
+const progressFill =
+    document.getElementById("lh-progress-fill");
+
+const progressText =
+    document.getElementById("lh-progress-text");
+
+const progressLabel =
+    document.getElementById("lh-progress-label");
+
+const confirmTerminal =
+    document.getElementById("lh-confirm-terminal");
+
+const confirmBody =
+    document.getElementById("lh-confirm-body");
+
+const confirmStop =
+    document.getElementById("lh-confirm-stop");
+
+const confirmContinue =
+    document.getElementById("lh-confirm-continue");
+
+
+function terminalShow(
+    title="FILE OPERATION",
+    operation=""
+){
+
+    terminalState.active = true;
+    terminalState.title = title;
+    terminalState.operation = operation;
+    terminalState.percent = 0;
+    terminalState.processed = 0;
+    terminalState.files = 0;
+    terminalState.directories = 0;
+    terminalState.cancelled = false;
+
+    terminal.style.display = "flex";
+
+    document.body.classList.add(
+        "lh-terminal-active"
+    );
+
+    terminalWindow.querySelector(
+        ".lh-terminal-titlebar"
+    ).firstChild.textContent =
+        title + " ";
+
+    terminalStatus.textContent =
+        operation || "RUNNING";
+
+    terminalOutput.innerHTML = "";
+
+    terminalProgress(
+        0,
+        "Starting..."
+    );
+}
+
+
+function terminalLog(
+    message,
+    type=""
+){
+
+    const line =
+        document.createElement("div");
+
+    line.className =
+        "lh-terminal-line" +
+        (type ? " " + type : "");
+
+    line.textContent =
+        String(message);
+
+    terminalOutput.appendChild(line);
+
+    terminalOutput.scrollTop =
+        terminalOutput.scrollHeight;
+}
+
+
+function terminalProgress(
+    percent,
+    message=""
+){
+
+    const value =
+        Math.max(
+            0,
+            Math.min(
+                100,
+                Number(percent) || 0
+            )
+        );
+
+    terminalState.percent =
+        value;
+
+    progressFill.style.width =
+        value + "%";
+
+    progressText.textContent =
+        Math.floor(value) +
+        "% " +
+        (
+            message
+                ? message
+                : ""
+        );
+}
+
+
+function terminalFinish(
+    message="All files has been loaded"
+){
+
+    terminalState.percent = 100;
+
+    terminalProgress(
+        100,
+        message
+    );
+
+    terminalStatus.textContent =
+        "SUCCESS";
+
+    terminalLog(
+        message,
+        "success"
+    );
+}
+
+
+function terminalFail(
+    message
+){
+
+    terminalStatus.textContent =
+        "ERROR";
+
+    terminalLog(
+        message,
+        "error"
+    );
+}
+
+
+function terminalClose(){
+
+    terminalState.active = false;
+
+    document.body.classList.remove(
+        "lh-terminal-active"
+    );
+
+    terminal.style.display =
+        "none";
+}
+
+
+function stopTerminalWorker(){
+
+    if(!terminalWorker){
+        return;
+    }
+
+    try{
+        terminalWorker.postMessage({
+            type:"cancel"
+        });
+    }catch(_){}
+
+    try{
+        terminalWorker.terminate();
+    }catch(_){}
+
+    try{
+        URL.revokeObjectURL(
+            terminalWorker._lhURL
+        );
+    }catch(_){}
+
+    terminalWorker = null;
+}
+
+
+/* =========================================================
+   CTRL+C CONFIRMATION
+   ========================================================= */
+
+let confirmationOpen = false;
+
+function requestStopConfirmation(){
+
+    if(
+        !terminalState.active ||
+        confirmationOpen
+    ){
+        return;
+    }
+
+    confirmationOpen = true;
+
+    confirmBody.textContent =
+        "CURRENT OPERATION:\n" +
+        (
+            terminalState.operation ||
+            "FILE OPERATION"
+        ) +
+        "\n\n" +
+        "Progress: " +
+        Math.floor(
+            terminalState.percent
+        ) +
+        "%\n\n" +
+        "Stop the current operation?\n" +
+        "The current browser folder mount will remain,\n" +
+        "but the background scan/index operation will stop.";
+
+    confirmTerminal.style.display =
+        "block";
+
+    confirmStop.focus();
+}
+
+
+function closeStopConfirmation(){
+
+    confirmationOpen = false;
+
+    confirmTerminal.style.display =
+        "none";
+}
+
+
+function performConfirmedStop(){
+
+    closeStopConfirmation();
+
+    if(!terminalState.active){
+        return;
+    }
+
+    terminalState.cancelled = true;
+
+    terminalStatus.textContent =
+        "STOPPING";
+
+    terminalLog(
+        "Ctrl+C received.",
+        "warn"
+    );
+
+    terminalLog(
+        "Stopping background worker...",
+        "warn"
+    );
+
+    stopTerminalWorker();
+
+    terminalStatus.textContent =
+        "CANCELLED";
+
+    terminalLog(
+        "Operation stopped by user.",
+        "warn"
+    );
+
+    terminalProgress(
+        terminalState.percent,
+        "CANCELLED"
+    );
+
+    /*
+       Keep the terminal open instead of closing it.
+       The user explicitly requested a non-closable terminal.
+    */
+}
+
+
+confirmStop.onclick =
+    performConfirmedStop;
+
+confirmContinue.onclick =
+    closeStopConfirmation;
+
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        if(
+            event.ctrlKey &&
+            event.key.toLowerCase() === "c"
+        ){
+
+            if(
+                terminalState.active
+            ){
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                requestStopConfirmation();
+            }
+        }
+
+    },
+    true
+);
+
+
+/* Prevent the terminal itself from being closed by
+   pointer/touch outside events. */
+terminal.addEventListener(
+    "pointerdown",
+    event => {
+        event.stopPropagation();
+    },
+    true
+);
+
+terminalWindow.addEventListener(
+    "pointerdown",
+    event => {
+        event.stopPropagation();
+    },
+    true
+);
+
+
+/* =========================================================
+   FILE MANAGER
+   ========================================================= */
+
+const zones = [
+    {
+        key:"local",
+        label:"LOCAL",
+        prefix:"chxd:/local/"
+    },
+    {
+        key:"session",
+        label:"SESSION",
+        prefix:"chxd:/session/"
+    },
+    {
+        key:"indexdb",
+        label:"INDEXDB",
+        prefix:"chxd:/indexdb/"
+    },
+    {
+        key:"puter",
+        label:"PUTER",
+        prefix:"puter:/"
+    },
+    {
+        key:"device",
+        label:"DEVICE",
+        prefix:"chxd:/device/"
+    },
+    {
+        key:"system",
+        label:"SYSTEM",
+        prefix:"chxd:/system/"
+    }
 ];
 
-let current="local";
-let currentPrefix="";
-let selected=new Set();
-let contextPath=null;
-let contextIsFolder=false;
-let activeRename=null;
-let renameSaving=false;
-let renameRequest=0;
-let refreshSerial=0;
+let current = "local";
+let currentPrefix = "";
+let selected = new Set();
+let contextPath = null;
+let contextIsFolder = false;
+let activeRename = null;
+let renameSaving = false;
+let renameRequest = 0;
+let refreshSerial = 0;
 
-const params=new URLSearchParams(location.search);
-const selectMode=params.get("select")==="1";
-const allowMultiple=params.get("multiple")==="1"||params.get("allowMultiple")==="1";
+const params =
+    new URLSearchParams(
+        location.search
+    );
 
-const tabs=document.getElementById("tabs");
-const list=document.getElementById("list");
-const box=document.getElementById("pathBox");
-const hint=document.getElementById("hint");
-const errorBox=document.getElementById("error");
-const currentPathBox=document.getElementById("currentPath");
-const contextMenu=document.getElementById("contextMenu");
+const selectMode =
+    params.get("select") === "1";
+
+const allowMultiple =
+    params.get("multiple") === "1" ||
+    params.get("allowMultiple") === "1";
+
+const tabs =
+    document.getElementById("tabs");
+
+const list =
+    document.getElementById("list");
+
+const box =
+    document.getElementById("pathBox");
+
+const hint =
+    document.getElementById("hint");
+
+const errorBox =
+    document.getElementById("error");
+
+const currentPathBox =
+    document.getElementById("currentPath");
+
+const contextMenu =
+    document.getElementById("contextMenu");
+
 
 function showError(s){
-errorBox.textContent=String(s||"Unknown error");
-errorBox.style.display="block";
-clearTimeout(showError.timer);
-showError.timer=setTimeout(()=>errorBox.style.display="none",4500);
+
+    errorBox.textContent =
+        String(
+            s || "Unknown error"
+        );
+
+    errorBox.style.display =
+        "block";
+
+    clearTimeout(
+        showError.timer
+    );
+
+    showError.timer =
+        setTimeout(
+            () => {
+                errorBox.style.display =
+                    "none";
+            },
+            4500
+        );
 }
+
 
 if(selectMode){
-hint.textContent=allowMultiple
-?"FILE PICKER: select files, then tap OPEN SELECTED."
-:"FILE PICKER: tap a file to return it to the application.";
-document.getElementById("mountFolder").style.display="none";
-document.getElementById("newText").style.display="none";
-document.getElementById("zip").style.display="none";
-document.getElementById("selectAll").style.display=allowMultiple?"":"none";
+
+    hint.textContent =
+        allowMultiple
+            ? "FILE PICKER: select files, then tap OPEN SELECTED."
+            : "FILE PICKER: tap a file to return it to the application.";
+
+    document.getElementById(
+        "mountFolder"
+    ).style.display = "none";
+
+    document.getElementById(
+        "newText"
+    ).style.display = "none";
+
+    document.getElementById(
+        "zip"
+    ).style.display = "none";
+
+    document.getElementById(
+        "selectAll"
+    ).style.display =
+        allowMultiple
+            ? ""
+            : "none";
 }
 
-zones.forEach(z=>{
-const b=document.createElement("button");
-b.textContent=z.label;
-b.dataset.k=z.key;
-if(z.key===current)b.classList.add("active");
-b.onclick=()=>{
-cancelRename();
-current=z.key;
-currentPrefix="";
-selected.clear();
-[...tabs.children].forEach(x=>x.classList.toggle("active",x.dataset.k===current));
-refresh();
-};
-tabs.appendChild(b);
-});
 
-function zone(){return zones.find(x=>x.key===current)}
+zones.forEach(
+    z => {
+
+        const b =
+            document.createElement(
+                "button"
+            );
+
+        b.textContent =
+            z.label;
+
+        b.dataset.k =
+            z.key;
+
+        if(z.key === current){
+            b.classList.add(
+                "active"
+            );
+        }
+
+        b.onclick =
+            () => {
+
+                cancelRename();
+
+                current =
+                    z.key;
+
+                currentPrefix =
+                    "";
+
+                selected.clear();
+
+                [
+                    ...tabs.children
+                ].forEach(
+                    x =>
+                        x.classList.toggle(
+                            "active",
+                            x.dataset.k === current
+                        )
+                );
+
+                refresh();
+            };
+
+        tabs.appendChild(b);
+    }
+);
+
+
+function zone(){
+    return zones.find(
+        x => x.key === current
+    );
+}
+
+
 function ext(p){
-return String(p||"").split("?")[0].split("#")[0].split(".").pop().toLowerCase();
+
+    return String(
+        p || ""
+    )
+    .split("?")[0]
+    .split("#")[0]
+    .split(".")
+    .pop()
+    .toLowerCase();
 }
+
+
 function isImagePath(path){
-return["png","jpg","jpeg","jpe","webp","gif","bmp","svg","avif","ico","tif","tiff"].includes(ext(path));
+
+    return [
+        "png",
+        "jpg",
+        "jpeg",
+        "jpe",
+        "webp",
+        "gif",
+        "bmp",
+        "svg",
+        "avif",
+        "ico",
+        "tif",
+        "tiff"
+    ].includes(
+        ext(path)
+    );
 }
-function selectedPaths(){return[...selected]}
+
+
+function selectedPaths(){
+    return [...selected];
+}
+
+
 function normalizeFolderPath(p){
-p=String(p||"");
-return p.endsWith("/")?p:p+"/";
+
+    p = String(p || "");
+
+    return p.endsWith("/")
+        ? p
+        : p + "/";
 }
-function isFolderPath(p){return String(p||"").endsWith("/")}
+
+
+function isFolderPath(p){
+    return String(p || "").endsWith("/");
+}
+
+
 function displayName(p){
-const clean=String(p||"").replace(/\/+$/,"");
-const i=clean.lastIndexOf("/");
-return i>=0?clean.slice(i+1):clean;
+
+    const clean =
+        String(p || "")
+            .replace(/\/+$/,"");
+
+    const i =
+        clean.lastIndexOf("/");
+
+    return i >= 0
+        ? clean.slice(i + 1)
+        : clean;
 }
+
+
 function parentFolder(p){
-const clean=String(p||"").replace(/\/+$/,"");
-const i=clean.lastIndexOf("/");
-return i<0?"":clean.slice(0,i+1);
+
+    const clean =
+        String(p || "")
+            .replace(/\/+$/,"");
+
+    const i =
+        clean.lastIndexOf("/");
+
+    return i < 0
+        ? ""
+        : clean.slice(
+            0,
+            i + 1
+        );
 }
+
+
 function isTopLevelDeviceMount(p){
-const clean=String(p||"").replace(/\/+$/,"");
-const prefix="chxd:/device/";
-if(!clean.startsWith(prefix))return false;
-const relative=clean.slice(prefix.length);
-return relative.length>0&&!relative.includes("/");
+
+    const clean =
+        String(p || "")
+            .replace(/\/+$/,"");
+
+    const prefix =
+        "chxd:/device/";
+
+    if(
+        !clean.startsWith(prefix)
+    ){
+        return false;
+    }
+
+    const relative =
+        clean.slice(
+            prefix.length
+        );
+
+    return (
+        relative.length > 0 &&
+        !relative.includes("/")
+    );
 }
+
+
 function updatePathDisplay(){
-const z=zone();
-currentPathBox.textContent=z.prefix+currentPrefix.replace(z.prefix,"");
+
+    const z = zone();
+
+    currentPathBox.textContent =
+        z.prefix +
+        currentPrefix.replace(
+            z.prefix,
+            ""
+        );
 }
+
+
 function closeContextMenu(){
-contextMenu.style.display="none";
-contextPath=null;
-contextIsFolder=false;
+
+    contextMenu.style.display =
+        "none";
+
+    contextPath = null;
+    contextIsFolder = false;
 }
-function addContextButton(label,fn,className=""){
-const b=document.createElement("button");
-b.textContent=label;
-if(className)b.className=className;
-b.onclick=()=>{closeContextMenu();fn()};
-contextMenu.appendChild(b);
+
+
+function addContextButton(
+    label,
+    fn,
+    className=""
+){
+
+    const b =
+        document.createElement(
+            "button"
+        );
+
+    b.textContent =
+        label;
+
+    if(className){
+        b.className =
+            className;
+    }
+
+    b.onclick =
+        () => {
+
+            closeContextMenu();
+
+            fn();
+        };
+
+    contextMenu.appendChild(b);
 }
+
 
 function getOwnWindow(){
-try{
-const frame=window.frameElement;
-if(!frame)return null;
-const el=frame.closest(".cyan-window");
-if(!el||!parent.WM||typeof parent.WM.list!=="function")return null;
-return parent.WM.list().find(w=>w.el===el)||null;
-}catch(_){
-return null;
+
+    try{
+
+        const frame =
+            window.frameElement;
+
+        if(!frame){
+            return null;
+        }
+
+        const el =
+            frame.closest(
+                ".cyan-window"
+            );
+
+        if(
+            !el ||
+            !parent.WM ||
+            typeof parent.WM.list !==
+                "function"
+        ){
+            return null;
+        }
+
+        return parent.WM.list().find(
+            w => w.el === el
+        ) || null;
+
+    }catch(_){
+
+        return null;
+    }
 }
-}
+
 
 function getTargetApplicationWindow(){
-try{
-const own=getOwnWindow();
-const windows=parent.WM&&typeof parent.WM.list==="function"
-?parent.WM.list()
-:[];
-const candidates=windows.filter(w=>{
-if(!w||w.closed||w===own||!w.el)return false;
-const iframe=w.el.querySelector("iframe");
-if(!iframe)return false;
-const src=String(iframe.src||"").toLowerCase();
-return !src.includes("filemanager.html");
-});
-candidates.sort((a,b)=>{
-const za=parseInt(a.el.style.zIndex||"0")||0;
-const zb=parseInt(b.el.style.zIndex||"0")||0;
-return zb-za;
-});
-return candidates[0]||null;
-}catch(_){
-return null;
+
+    try{
+
+        const own =
+            getOwnWindow();
+
+        const windows =
+            parent.WM &&
+            typeof parent.WM.list ===
+                "function"
+                ? parent.WM.list()
+                : [];
+
+        const candidates =
+            windows.filter(
+                w => {
+
+                    if(
+                        !w ||
+                        w.closed ||
+                        w === own ||
+                        !w.el
+                    ){
+                        return false;
+                    }
+
+                    const iframe =
+                        w.el.querySelector(
+                            "iframe"
+                        );
+
+                    if(!iframe){
+                        return false;
+                    }
+
+                    const src =
+                        String(
+                            iframe.src || ""
+                        ).toLowerCase();
+
+                    return !src.includes(
+                        "filemanager.html"
+                    );
+                }
+            );
+
+        candidates.sort(
+            (a,b) => {
+
+                const za =
+                    parseInt(
+                        a.el.style.zIndex ||
+                        "0"
+                    ) || 0;
+
+                const zb =
+                    parseInt(
+                        b.el.style.zIndex ||
+                        "0"
+                    ) || 0;
+
+                return zb - za;
+            }
+        );
+
+        return candidates[0] || null;
+
+    }catch(_){
+
+        return null;
+    }
 }
-}
+
 
 function sendToTargetApp(paths){
-const clean=paths.filter(p=>!isFolderPath(p));
-if(!clean.length){
-showError("Select a file first.");
-return false;
+
+    const clean =
+        paths.filter(
+            p => !isFolderPath(p)
+        );
+
+    if(!clean.length){
+
+        showError(
+            "Select a file first."
+        );
+
+        return false;
+    }
+
+    const target =
+        getTargetApplicationWindow();
+
+    if(
+        target &&
+        target.el
+    ){
+
+        const iframe =
+            target.el.querySelector(
+                "iframe"
+            );
+
+        if(
+            iframe &&
+            iframe.contentWindow
+        ){
+
+            try{
+
+                iframe.contentWindow.postMessage(
+                    {
+                        type:"LH_FILE_SELECTED",
+                        path:clean[0],
+                        paths:clean
+                    },
+                    "*"
+                );
+
+                return true;
+
+            }catch(err){
+
+                console.error(err);
+            }
+        }
+    }
+
+    try{
+
+        parent.postMessage(
+            {
+                type:"LH_FILE_SELECTED",
+                path:clean[0],
+                paths:clean
+            },
+            "*"
+        );
+
+    }catch(_){}
+
+    return false;
 }
 
-const target=getTargetApplicationWindow();
-
-if(target&&target.el){
-const iframe=target.el.querySelector("iframe");
-if(iframe&&iframe.contentWindow){
-try{
-iframe.contentWindow.postMessage({
-type:"LH_FILE_SELECTED",
-path:clean[0],
-paths:clean
-},"*");
-return true;
-}catch(err){
-console.error(err);
-}
-}
-}
-
-try{
-parent.postMessage({
-type:"LH_FILE_SELECTED",
-path:clean[0],
-paths:clean
-},"*");
-}catch(_){}
-
-return false;
-}
 
 function closePicker(){
-const own=getOwnWindow();
-if(own&&parent.WM&&typeof parent.WM.closeWindow==="function"){
-parent.WM.closeWindow(own);
-return;
+
+    const own =
+        getOwnWindow();
+
+    if(
+        own &&
+        parent.WM &&
+        typeof parent.WM.closeWindow ===
+            "function"
+    ){
+
+        parent.WM.closeWindow(
+            own
+        );
+
+        return;
+    }
+
+    try{
+
+        if(window.frameElement){
+            window.frameElement.style.display =
+                "none";
+        }
+
+    }catch(_){}
 }
-try{
-if(window.frameElement){
-window.frameElement.style.display="none";
-}
-}catch(_){}
-}
+
 
 function finishFilePick(paths){
-if(sendToTargetApp(paths)){
-closePicker();
+
+    if(
+        sendToTargetApp(
+            paths
+        )
+    ){
+
+        closePicker();
+    }
 }
-}
+
 
 async function openImageEditor(path){
-try{
-const r=await parent.FS.read(path);
-if(!r||!r.ok)throw new Error(r&&r.error?r.error:"Could not read image.");
 
-const result=await parent.Apps.openApp("imageeditor",{
-path,
-title:"IMAGE EDITOR",
-width:700,
-height:560,
-allowMultiple:false
-});
+    try{
 
-if(!result||!result.ok||!result.win){
-throw new Error(result&&(result.error||result.summary)||"Could not open Image Editor.");
+        const r =
+            await parent.FS.read(
+                path
+            );
+
+        if(
+            !r ||
+            !r.ok
+        ){
+            throw new Error(
+                r &&
+                r.error
+                    ? r.error
+                    : "Could not read image."
+            );
+        }
+
+        const result =
+            await parent.Apps.openApp(
+                "imageeditor",
+                {
+                    path,
+                    title:"IMAGE EDITOR",
+                    width:700,
+                    height:560,
+                    allowMultiple:false
+                }
+            );
+
+        if(
+            !result ||
+            !result.ok ||
+            !result.win
+        ){
+
+            throw new Error(
+                result &&
+                (
+                    result.error ||
+                    result.summary
+                ) ||
+                "Could not open Image Editor."
+            );
+        }
+
+        const win =
+            result.win;
+
+        const payload =
+            {
+                type:"LH_RECEIVE_IMAGE",
+                data:r.content,
+                path,
+                name:displayName(path),
+                filename:displayName(path)
+            };
+
+        function getIframe(){
+
+            return (
+                win &&
+                win.el
+            )
+            ? win.el.querySelector(
+                "iframe"
+            )
+            : null;
+        }
+
+        let sent = false;
+
+        function send(){
+
+            const iframe =
+                getIframe();
+
+            if(
+                !iframe ||
+                !iframe.contentWindow
+            ){
+                return false;
+            }
+
+            try{
+
+                iframe.contentWindow.postMessage(
+                    payload,
+                    "*"
+                );
+
+                sent = true;
+
+                return true;
+
+            }catch(_){
+
+                return false;
+            }
+        }
+
+        const existing =
+            getIframe();
+
+        if(existing){
+
+            existing.addEventListener(
+                "load",
+                send,
+                {
+                    once:true
+                }
+            );
+
+            send();
+        }
+
+        let tries = 0;
+
+        const timer =
+            setInterval(
+                () => {
+
+                    tries++;
+
+                    const iframe =
+                        getIframe();
+
+                    if(
+                        iframe &&
+                        !iframe.dataset.lhEditorHooked
+                    ){
+
+                        iframe.dataset.lhEditorHooked =
+                            "1";
+
+                        iframe.addEventListener(
+                            "load",
+                            send
+                        );
+                    }
+
+                    send();
+
+                    if(
+                        sent ||
+                        tries >= 30
+                    ){
+
+                        clearInterval(
+                            timer
+                        );
+                    }
+
+                },
+                100
+            );
+
+    }catch(err){
+
+        showError(
+            "EDIT IMAGE failed: " +
+            (
+                err.message ||
+                String(err)
+            )
+        );
+    }
 }
 
-const win=result.win;
-const payload={
-type:"LH_RECEIVE_IMAGE",
-data:r.content,
-path,
-name:displayName(path),
-filename:displayName(path)
-};
 
-function getIframe(){
-return win&&win.el?win.el.querySelector("iframe"):null;
+function showContextMenu(
+    x,
+    y,
+    path,
+    isFolder
+){
+
+    cancelRename();
+
+    contextPath =
+        path;
+
+    contextIsFolder =
+        isFolder;
+
+    contextMenu.innerHTML =
+        "";
+
+    if(isFolder){
+
+        addContextButton(
+            "OPEN",
+            () => enterFolder(path)
+        );
+
+        if(
+            isTopLevelDeviceMount(path)
+        ){
+
+            addContextButton(
+                "DISMOUNT",
+                async () => {
+
+                    const result =
+                        await parent.FS
+                            .unmountDeviceFolder(
+                                displayName(path)
+                            );
+
+                    if(
+                        !result ||
+                        !result.ok
+                    ){
+
+                        showError(
+                            result &&
+                            result.error ||
+                            "Could not dismount folder."
+                        );
+
+                        return;
+                    }
+
+                    selected.delete(
+                        path
+                    );
+
+                    currentPrefix =
+                        "";
+
+                    await refresh();
+                },
+                "danger"
+            );
+
+        }else{
+
+            addContextButton(
+                "RENAME",
+                () =>
+                    startRenameByPath(
+                        path
+                    )
+            );
+        }
+
+        addContextButton(
+            "DOWNLOAD",
+            () =>
+                downloadItem(path)
+        );
+
+        if(
+            selectMode &&
+            allowMultiple
+        ){
+
+            addContextButton(
+                "SELECT",
+                () => {
+
+                    selected.add(
+                        path
+                    );
+
+                    refresh();
+                }
+            );
+        }
+
+    }else{
+
+        if(selectMode){
+
+            addContextButton(
+                "OPEN",
+                () =>
+                    finishFilePick(
+                        [path]
+                    )
+            );
+
+            if(allowMultiple){
+
+                addContextButton(
+                    selected.has(path)
+                        ? "DESELECT"
+                        : "SELECT",
+                    () => {
+
+                        if(
+                            selected.has(path)
+                        ){
+                            selected.delete(
+                                path
+                            );
+                        }else{
+                            selected.add(
+                                path
+                            );
+                        }
+
+                        refresh();
+                    }
+                );
+            }
+
+        }else{
+
+            addContextButton(
+                "OPEN",
+                () =>
+                    openPath(path)
+            );
+
+            if(isImagePath(path)){
+
+                addContextButton(
+                    "EDIT IMAGE",
+                    () =>
+                        openImageEditor(path),
+                    "edit-action"
+                );
+            }
+
+            addContextButton(
+                "RENAME",
+                () =>
+                    startRenameByPath(path)
+            );
+
+            addContextButton(
+                "DOWNLOAD",
+                () =>
+                    downloadItem(path)
+            );
+
+            if(
+                ext(path) !== "zip"
+            ){
+
+                addContextButton(
+                    "EDIT",
+                    () =>
+                        edit(path)
+                );
+            }
+
+            if([
+                "js",
+                "ts",
+                "py",
+                "java",
+                "c",
+                "cpp",
+                "cs",
+                "php",
+                "html",
+                "css"
+            ].includes(
+                ext(path)
+            )){
+
+                addContextButton(
+                    "CODE",
+                    () => {
+
+                        selected =
+                            new Set(
+                                [path]
+                            );
+
+                        code();
+                    }
+                );
+            }
+
+            if(
+                ext(path) === "zip"
+            ){
+
+                addContextButton(
+                    "UNZIP",
+                    () =>
+                        unzipFile(path),
+                    "zip-action"
+                );
+            }
+
+            if(
+                zone().key !==
+                "system"
+            ){
+
+                addContextButton(
+                    "DELETE",
+                    async () => {
+
+                        const r =
+                            await parent.FS
+                                .remove(path);
+
+                        if(!r.ok){
+
+                            showError(
+                                r.error ||
+                                "Could not delete."
+                            );
+
+                            return;
+                        }
+
+                        selected.delete(
+                            path
+                        );
+
+                        await refresh();
+
+                    },
+                    "danger"
+                );
+            }
+        }
+    }
+
+    if(
+        selected.size &&
+        !selectMode
+    ){
+
+        addContextButton(
+            "DOWNLOAD SELECTED",
+            () =>
+                downloadSelected()
+        );
+    }
+
+    contextMenu.style.display =
+        "block";
+
+    const rect =
+        contextMenu.getBoundingClientRect();
+
+    let left =
+        Math.min(
+            x,
+            window.innerWidth -
+            rect.width -
+            4
+        );
+
+    let top =
+        Math.min(
+            y,
+            window.innerHeight -
+            rect.height -
+            4
+        );
+
+    contextMenu.style.left =
+        Math.max(
+            2,
+            left
+        ) + "px";
+
+    contextMenu.style.top =
+        Math.max(
+            2,
+            top
+        ) + "px";
 }
 
-let sent=false;
-
-function send(){
-const iframe=getIframe();
-if(!iframe||!iframe.contentWindow)return false;
-try{
-iframe.contentWindow.postMessage(payload,"*");
-sent=true;
-return true;
-}catch(_){
-return false;
-}
-}
-
-const existing=getIframe();
-
-if(existing){
-existing.addEventListener("load",send,{once:true});
-send();
-}
-
-let tries=0;
-
-const timer=setInterval(()=>{
-tries++;
-const iframe=getIframe();
-
-if(iframe&&!iframe.dataset.lhEditorHooked){
-iframe.dataset.lhEditorHooked="1";
-iframe.addEventListener("load",send);
-}
-
-send();
-
-if(sent||tries>=30)clearInterval(timer);
-},100);
-
-}catch(err){
-showError("EDIT IMAGE failed: "+(err.message||String(err)));
-}
-}
-
-function showContextMenu(x,y,path,isFolder){
-cancelRename();
-contextPath=path;
-contextIsFolder=isFolder;
-contextMenu.innerHTML="";
-
-if(isFolder){
-addContextButton("OPEN",()=>enterFolder(path));
-
-if(isTopLevelDeviceMount(path)){
-addContextButton("DISMOUNT",async()=>{
-const result=await parent.FS.unmountDeviceFolder(displayName(path));
-if(!result||!result.ok){
-showError(result&&result.error||"Could not dismount folder.");
-return;
-}
-selected.delete(path);
-currentPrefix="";
-await refresh();
-},"danger");
-}else{
-addContextButton("RENAME",()=>startRenameByPath(path));
-}
-
-addContextButton("DOWNLOAD",()=>downloadItem(path));
-
-if(selectMode&&allowMultiple){
-addContextButton("SELECT",()=>{
-selected.add(path);
-refresh();
-});
-}
-
-}else{
-if(selectMode){
-addContextButton("OPEN",()=>finishFilePick([path]));
-if(allowMultiple){
-addContextButton(
-selected.has(path)?"DESELECT":"SELECT",
-()=>{
-if(selected.has(path))selected.delete(path);
-else selected.add(path);
-refresh();
-}
-);
-}
-}else{
-addContextButton("OPEN",()=>openPath(path));
-
-if(isImagePath(path)){
-addContextButton("EDIT IMAGE",()=>openImageEditor(path),"edit-action");
-}
-
-addContextButton("RENAME",()=>startRenameByPath(path));
-addContextButton("DOWNLOAD",()=>downloadItem(path));
-
-if(ext(path)!=="zip")addContextButton("EDIT",()=>edit(path));
-
-if(["js","ts","py","java","c","cpp","cs","php","html","css"].includes(ext(path))){
-addContextButton("CODE",()=>{
-selected=new Set([path]);
-code();
-});
-}
-
-if(ext(path)==="zip"){
-addContextButton("UNZIP",()=>unzipFile(path),"zip-action");
-}
-
-if(zone().key!=="system"){
-addContextButton("DELETE",async()=>{
-const r=await parent.FS.remove(path);
-if(!r.ok){
-showError(r.error||"Could not delete.");
-return;
-}
-selected.delete(path);
-await refresh();
-},"danger");
-}
-}
-}
-
-if(selected.size&&!selectMode){
-addContextButton("DOWNLOAD SELECTED",()=>downloadSelected());
-}
-
-contextMenu.style.display="block";
-
-const rect=contextMenu.getBoundingClientRect();
-
-let left=Math.min(x,window.innerWidth-rect.width-4);
-let top=Math.min(y,window.innerHeight-rect.height-4);
-
-contextMenu.style.left=Math.max(2,left)+"px";
-contextMenu.style.top=Math.max(2,top)+"px";
-}
 
 function startRenameByPath(path){
-closeContextMenu();
 
-const target=[...document.querySelectorAll(".name")].find(n=>n.dataset.path===path);
+    closeContextMenu();
 
-if(target){
-startRename(target,path,isFolderPath(path));
-}
-}
+    const target =
+        [
+            ...document.querySelectorAll(
+                ".name"
+            )
+        ].find(
+            n =>
+                n.dataset.path ===
+                path
+        );
 
-function startRename(element,oldPath,folder){
-cancelRename();
+    if(target){
 
-const oldName=displayName(oldPath);
-const input=document.createElement("input");
-
-input.className="rename-input";
-input.value=oldName;
-input.autocomplete="off";
-input.spellcheck=false;
-
-const oldContent=element.textContent;
-
-activeRename={
-element,
-input,
-oldPath,
-oldName,
-oldContent,
-folder
-};
-
-element.innerHTML="";
-element.appendChild(input);
-input.focus();
-
-if(!folder){
-const dot=oldName.lastIndexOf(".");
-if(dot>0){
-try{
-input.setSelectionRange(0,dot);
-}catch(_){
-input.select();
-}
-}else{
-input.select();
-}
-}else{
-input.select();
+        startRename(
+            target,
+            path,
+            isFolderPath(path)
+        );
+    }
 }
 
-input.addEventListener("keydown",e=>{
-if(e.key==="Enter"){
-e.preventDefault();
-finishRename();
-}else if(e.key==="Escape"){
-e.preventDefault();
-cancelRename();
+
+function startRename(
+    element,
+    oldPath,
+    folder
+){
+
+    cancelRename();
+
+    const oldName =
+        displayName(oldPath);
+
+    const input =
+        document.createElement(
+            "input"
+        );
+
+    input.className =
+        "rename-input";
+
+    input.value =
+        oldName;
+
+    input.autocomplete =
+        "off";
+
+    input.spellcheck =
+        false;
+
+    const oldContent =
+        element.textContent;
+
+    activeRename = {
+        element,
+        input,
+        oldPath,
+        oldName,
+        oldContent,
+        folder
+    };
+
+    element.innerHTML =
+        "";
+
+    element.appendChild(
+        input
+    );
+
+    input.focus();
+
+    if(!folder){
+
+        const dot =
+            oldName.lastIndexOf(".");
+
+        if(dot > 0){
+
+            try{
+
+                input.setSelectionRange(
+                    0,
+                    dot
+                );
+
+            }catch(_){
+
+                input.select();
+            }
+
+        }else{
+
+            input.select();
+        }
+
+    }else{
+
+        input.select();
+    }
+
+    input.addEventListener(
+        "keydown",
+        e => {
+
+            if(e.key === "Enter"){
+
+                e.preventDefault();
+
+                finishRename();
+
+            }else if(
+                e.key === "Escape"
+            ){
+
+                e.preventDefault();
+
+                cancelRename();
+            }
+        }
+    );
+
+    input.addEventListener(
+        "click",
+        e => e.stopPropagation()
+    );
+
+    input.addEventListener(
+        "pointerdown",
+        e => e.stopPropagation()
+    );
 }
-});
 
-input.addEventListener("click",e=>e.stopPropagation());
-input.addEventListener("pointerdown",e=>e.stopPropagation());
+
+function buildNewPath(
+    oldPath,
+    newName,
+    folder
+){
+
+    const cleanName =
+        String(
+            newName || ""
+        )
+        .trim()
+        .replace(
+            /[\/\\]/g,
+            ""
+        )
+        .trim();
+
+    if(!cleanName){
+        return null;
+    }
+
+    return (
+        parentFolder(
+            oldPath
+        ) +
+        cleanName +
+        (
+            folder
+                ? "/"
+                : ""
+        )
+    );
 }
 
-function buildNewPath(oldPath,newName,folder){
-const cleanName=String(newName||"").trim().replace(/[\/\\]/g,"").trim();
-if(!cleanName)return null;
-return parentFolder(oldPath)+cleanName+(folder?"/":"");
+
+async function renameUsingFS(
+    oldPath,
+    newPath
+){
+
+    if(
+        parent.FS &&
+        typeof parent.FS.rename ===
+            "function"
+    ){
+
+        const r =
+            await parent.FS.rename(
+                oldPath,
+                newPath
+            );
+
+        if(
+            !r ||
+            !r.ok
+        ){
+
+            throw new Error(
+                r &&
+                (
+                    r.error ||
+                    r.summary
+                ) ||
+                "Could not rename."
+            );
+        }
+
+        return;
+    }
+
+    if(oldPath.endsWith("/")){
+
+        const files =
+            await parent.FS.list(
+                oldPath
+            );
+
+        if(!Array.isArray(files)){
+
+            throw new Error(
+                "Could not read folder."
+            );
+        }
+
+        const descendants =
+            files.filter(
+                p =>
+                    String(p).startsWith(
+                        oldPath
+                    ) &&
+                    String(p) !== oldPath
+            );
+
+        for(
+            const source of descendants
+        ){
+
+            if(
+                String(source).endsWith("/")
+            ){
+                continue;
+            }
+
+            const r =
+                await parent.FS.read(
+                    source
+                );
+
+            if(!r.ok){
+
+                throw new Error(
+                    r.error ||
+                    (
+                        "Could not read " +
+                        source
+                    )
+                );
+            }
+
+            const relative =
+                String(
+                    source
+                ).slice(
+                    oldPath.length
+                );
+
+            const w =
+                await parent.FS.write(
+                    normalizeFolderPath(
+                        newPath
+                    ) +
+                    relative,
+                    r.content,
+                    true
+                );
+
+            if(!w.ok){
+
+                throw new Error(
+                    w.error ||
+                    (
+                        "Could not create " +
+                        newPath
+                    )
+                );
+            }
+        }
+
+        for(
+            let i =
+                descendants.length - 1;
+            i >= 0;
+            i--
+        ){
+
+            if(
+                String(
+                    descendants[i]
+                ).endsWith("/")
+            ){
+                continue;
+            }
+
+            const r =
+                await parent.FS.remove(
+                    descendants[i]
+                );
+
+            if(!r.ok){
+
+                throw new Error(
+                    r.error ||
+                    (
+                        "Could not remove " +
+                        descendants[i]
+                    )
+                );
+            }
+        }
+
+        return;
+    }
+
+    const r =
+        await parent.FS.read(
+            oldPath
+        );
+
+    if(!r.ok){
+
+        throw new Error(
+            r.error ||
+            (
+                "Could not read " +
+                oldPath
+            )
+        );
+    }
+
+    const w =
+        await parent.FS.write(
+            newPath,
+            r.content,
+            true
+        );
+
+    if(!w.ok){
+
+        throw new Error(
+            r.error ||
+            (
+                "Could not create " +
+                newPath
+            )
+        );
+    }
+
+    const d =
+        await parent.FS.remove(
+            oldPath
+        );
+
+    if(!d.ok){
+
+        throw new Error(
+            d.error ||
+            (
+                "Could not remove " +
+                oldPath
+            )
+        );
+    }
 }
 
-async function renameUsingFS(oldPath,newPath){
-if(parent.FS&&typeof parent.FS.rename==="function"){
-const r=await parent.FS.rename(oldPath,newPath);
-if(!r||!r.ok){
-throw new Error(r&&(r.error||r.summary)||"Could not rename.");
-}
-return;
-}
-
-if(oldPath.endsWith("/")){
-const files=await parent.FS.list(oldPath);
-if(!Array.isArray(files))throw new Error("Could not read folder.");
-
-const descendants=files.filter(p=>String(p).startsWith(oldPath)&&String(p)!==oldPath);
-
-for(const source of descendants){
-if(String(source).endsWith("/"))continue;
-
-const r=await parent.FS.read(source);
-
-if(!r.ok){
-throw new Error(r.error||("Could not read "+source));
-}
-
-const relative=String(source).slice(oldPath.length);
-
-const w=await parent.FS.write(
-normalizeFolderPath(newPath)+relative,
-r.content,
-true
-);
-
-if(!w.ok){
-throw new Error(w.error||("Could not create "+newPath));
-}
-}
-
-for(let i=descendants.length-1;i>=0;i--){
-if(String(descendants[i]).endsWith("/"))continue;
-
-const r=await parent.FS.remove(descendants[i]);
-
-if(!r.ok){
-throw new Error(r.error||("Could not remove "+descendants[i]));
-}
-}
-
-return;
-}
-
-const r=await parent.FS.read(oldPath);
-
-if(!r.ok){
-throw new Error(r.error||("Could not read "+oldPath));
-}
-
-const w=await parent.FS.write(newPath,r.content,true);
-
-if(!w.ok){
-throw new Error(w.error||("Could not create "+newPath));
-}
-
-const d=await parent.FS.remove(oldPath);
-
-if(!d.ok){
-throw new Error(d.error||("Could not remove "+oldPath));
-}
-}
 
 async function finishRename(){
-if(!activeRename||renameSaving)return;
 
-const currentRename=activeRename;
-const input=currentRename.input;
+    if(
+        !activeRename ||
+        renameSaving
+    ){
+        return;
+    }
 
-if(!input||!input.isConnected){
-activeRename=null;
-return;
+    const currentRename =
+        activeRename;
+
+    const input =
+        currentRename.input;
+
+    if(
+        !input ||
+        !input.isConnected
+    ){
+
+        activeRename =
+            null;
+
+        return;
+    }
+
+    const newName =
+        input.value.trim();
+
+    if(!newName){
+
+        cancelRename();
+
+        showError(
+            "Name cannot be empty."
+        );
+
+        return;
+    }
+
+    const newPath =
+        buildNewPath(
+            currentRename.oldPath,
+            newName,
+            currentRename.folder
+        );
+
+    if(!newPath){
+
+        cancelRename();
+
+        showError(
+            "Invalid name."
+        );
+
+        return;
+    }
+
+    if(
+        newPath ===
+        currentRename.oldPath
+    ){
+
+        restoreRename();
+
+        return;
+    }
+
+    const request =
+        ++renameRequest;
+
+    renameSaving = true;
+
+    try{
+
+        await renameUsingFS(
+            currentRename.oldPath,
+            newPath
+        );
+
+        if(
+            request !==
+            renameRequest
+        ){
+            return;
+        }
+
+        selected.delete(
+            currentRename.oldPath
+        );
+
+        selected.delete(
+            newPath
+        );
+
+        activeRename =
+            null;
+
+        renameSaving =
+            false;
+
+        await refresh();
+
+    }catch(err){
+
+        if(
+            request !==
+            renameRequest
+        ){
+            return;
+        }
+
+        renameSaving =
+            false;
+
+        showError(
+            err.message ||
+            String(err)
+        );
+
+        if(input.isConnected){
+            input.focus();
+        }
+    }
 }
 
-const newName=input.value.trim();
-
-if(!newName){
-cancelRename();
-showError("Name cannot be empty.");
-return;
-}
-
-const newPath=buildNewPath(
-currentRename.oldPath,
-newName,
-currentRename.folder
-);
-
-if(!newPath){
-cancelRename();
-showError("Invalid name.");
-return;
-}
-
-if(newPath===currentRename.oldPath){
-restoreRename();
-return;
-}
-
-const request=++renameRequest;
-renameSaving=true;
-
-try{
-await renameUsingFS(
-currentRename.oldPath,
-newPath
-);
-
-if(request!==renameRequest)return;
-
-selected.delete(currentRename.oldPath);
-selected.delete(newPath);
-
-activeRename=null;
-renameSaving=false;
-
-await refresh();
-
-}catch(err){
-if(request!==renameRequest)return;
-
-renameSaving=false;
-showError(err.message||String(err));
-
-if(input.isConnected)input.focus();
-}
-}
 
 function restoreRename(){
-if(!activeRename)return;
 
-activeRename.element.textContent=activeRename.oldContent;
-activeRename=null;
-renameSaving=false;
+    if(!activeRename){
+        return;
+    }
+
+    activeRename.element.textContent =
+        activeRename.oldContent;
+
+    activeRename =
+        null;
+
+    renameSaving =
+        false;
 }
+
 
 function cancelRename(){
-renameRequest++;
-restoreRename();
+
+    renameRequest++;
+
+    restoreRename();
 }
 
-document.addEventListener("pointerdown",e=>{
-if(activeRename){
-const input=activeRename.input;
 
-if(e.target!==input&&!input.contains(e.target)){
-finishRename();
-}
-}
+document.addEventListener(
+    "pointerdown",
+    e => {
 
-if(
-!contextMenu.contains(e.target)&&
-!e.target.closest(".name")&&
-!e.target.closest(".rename-input")
-){
-closeContextMenu();
-}
-},true);
+        if(activeRename){
 
-document.addEventListener("scroll",closeContextMenu,true);
+            const input =
+                activeRename.input;
+
+            if(
+                e.target !== input &&
+                !input.contains(e.target)
+            ){
+
+                finishRename();
+            }
+        }
+
+        if(
+            !contextMenu.contains(
+                e.target
+            ) &&
+            !e.target.closest(
+                ".name"
+            ) &&
+            !e.target.closest(
+                ".rename-input"
+            )
+        ){
+
+            closeContextMenu();
+        }
+    },
+    true
+);
+
+
+document.addEventListener(
+    "scroll",
+    closeContextMenu,
+    true
+);
+
+
+/* =========================================================
+   OPEN
+   ========================================================= */
 
 async function openPath(p){
-if(isFolderPath(p)){
-enterFolder(p);
-return;
+
+    if(
+        isFolderPath(p)
+    ){
+
+        enterFolder(p);
+
+        return;
+    }
+
+    if(selectMode){
+
+        if(allowMultiple){
+
+            if(
+                selected.has(p)
+            ){
+
+                selected.delete(p);
+
+            }else{
+
+                selected.add(p);
+            }
+
+            await refresh();
+
+        }else{
+
+            finishFilePick(
+                [p]
+            );
+        }
+
+        return;
+    }
+
+    if(
+        ext(p) === "zip"
+    ){
+
+        await downloadBinary(
+            p
+        );
+
+        return;
+    }
+
+    try{
+
+        const e =
+            ext(p);
+
+        let result;
+
+        if([
+            "png",
+            "jpg",
+            "jpeg",
+            "gif",
+            "webp",
+            "bmp",
+            "svg",
+            "avif",
+            "ico",
+            "tif",
+            "tiff"
+        ].includes(e)){
+
+            result =
+                await parent.Apps.openApp(
+                    "imageViewer",
+                    {
+                        src:p,
+                        allowMultiple:true
+                    }
+                );
+
+        }else if([
+            "mp4",
+            "webm",
+            "mov",
+            "m4v"
+        ].includes(e)){
+
+            result =
+                await parent.Apps.openApp(
+                    "videoPlayer",
+                    {
+                        src:p,
+                        allowMultiple:true
+                    }
+                );
+
+        }else if([
+            "mp3",
+            "wav",
+            "ogg",
+            "m4a",
+            "flac"
+        ].includes(e)){
+
+            result =
+                await parent.Apps.openApp(
+                    "audioPlayer",
+                    {
+                        src:p,
+                        allowMultiple:true
+                    }
+                );
+
+        }else{
+
+            result =
+                await parent.Apps.openApp(
+                    "Notepad",
+                    {
+                        path:p,
+                        allowMultiple:true
+                    }
+                );
+        }
+
+        if(
+            !result ||
+            !result.ok
+        ){
+
+            showError(
+                result &&
+                (
+                    result.error ||
+                    result.summary
+                ) ||
+                "Could not open file."
+            );
+        }
+
+    }catch(err){
+
+        showError(
+            err.message ||
+            String(err)
+        );
+    }
 }
 
-if(selectMode){
-if(allowMultiple){
-if(selected.has(p))selected.delete(p);
-else selected.add(p);
-await refresh();
-}else{
-finishFilePick([p]);
-}
-return;
-}
-
-if(ext(p)==="zip"){
-await downloadBinary(p);
-return;
-}
-
-try{
-const e=ext(p);
-let result;
-
-if(["png","jpg","jpeg","gif","webp","bmp","svg","avif","ico","tif","tiff"].includes(e)){
-result=await parent.Apps.openApp("imageViewer",{
-src:p,
-allowMultiple:true
-});
-}else if(["mp4","webm","mov","m4v"].includes(e)){
-result=await parent.Apps.openApp("videoPlayer",{
-src:p,
-allowMultiple:true
-});
-}else if(["mp3","wav","ogg","m4a","flac"].includes(e)){
-result=await parent.Apps.openApp("audioPlayer",{
-src:p,
-allowMultiple:true
-});
-}else{
-result=await parent.Apps.openApp("Notepad",{
-path:p,
-allowMultiple:true
-});
-}
-
-if(!result||!result.ok){
-showError(
-result&&(
-result.error||
-result.summary
-)||"Could not open file."
-);
-}
-}catch(err){
-showError(err.message||String(err));
-}
-}
 
 function enterFolder(path){
-cancelRename();
-currentPrefix=normalizeFolderPath(path);
-closeContextMenu();
-refresh();
+
+    cancelRename();
+
+    currentPrefix =
+        normalizeFolderPath(
+            path
+        );
+
+    closeContextMenu();
+
+    refresh();
 }
+
 
 function goUp(){
-cancelRename();
 
-const z=zone();
+    cancelRename();
 
-if(!currentPrefix)return;
+    const z =
+        zone();
 
-const root=z.prefix.replace(/\/+$/,"");
-let p=currentPrefix.replace(/\/+$/,"");
+    if(!currentPrefix){
+        return;
+    }
 
-if(p===root){
-currentPrefix="";
-refresh();
-return;
+    const root =
+        z.prefix.replace(
+            /\/+$/,
+            ""
+        );
+
+    let p =
+        currentPrefix.replace(
+            /\/+$/,
+            ""
+        );
+
+    if(p === root){
+
+        currentPrefix =
+            "";
+
+        refresh();
+
+        return;
+    }
+
+    const i =
+        p.lastIndexOf("/");
+
+    currentPrefix =
+        i <= root.length
+            ? ""
+            : p.slice(
+                0,
+                i + 1
+            );
+
+    refresh();
 }
 
-const i=p.lastIndexOf("/");
-
-currentPrefix=i<=root.length?"":p.slice(0,i+1);
-refresh();
-}
 
 async function edit(p){
-if(isImagePath(p)){
-await openImageEditor(p);
-return;
+
+    if(isImagePath(p)){
+
+        await openImageEditor(
+            p
+        );
+
+        return;
+    }
+
+    try{
+
+        const result =
+            await parent.Apps.openApp(
+                "Notepad",
+                {
+                    path:p,
+                    allowMultiple:true
+                }
+            );
+
+        if(
+            !result ||
+            !result.ok
+        ){
+
+            showError(
+                result &&
+                (
+                    result.error ||
+                    result.summary
+                ) ||
+                "Could not open Notepad."
+            );
+        }
+
+    }catch(err){
+
+        showError(
+            err.message ||
+            String(err)
+        );
+    }
 }
 
-try{
-const result=await parent.Apps.openApp("Notepad",{
-path:p,
-allowMultiple:true
-});
-
-if(!result||!result.ok){
-showError(
-result&&(result.error||result.summary)||
-"Could not open Notepad."
-);
-}
-}catch(err){
-showError(err.message||String(err));
-}
-}
 
 async function code(){
-const paths=selectedPaths();
 
-if(!paths.length)return;
+    const paths =
+        selectedPaths();
 
-const files=[];
+    if(!paths.length){
+        return;
+    }
 
-for(const p of paths){
-if(isFolderPath(p))continue;
+    const files = [];
 
-const r=await parent.FS.read(p);
+    for(
+        const p of paths
+    ){
 
-if(r.ok){
-files.push({
-name:p.split("/").pop(),
-content:r.content
-});
+        if(
+            isFolderPath(p)
+        ){
+            continue;
+        }
+
+        const r =
+            await parent.FS.read(
+                p
+            );
+
+        if(r.ok){
+
+            files.push(
+                {
+                    name:
+                        p.split(
+                            "/"
+                        ).pop(),
+                    content:
+                        r.content
+                }
+            );
+        }
+    }
+
+    if(!files.length){
+        return;
+    }
+
+    parent.Apps.openOneCompiler(
+        {
+            language:
+                ext(
+                    files[0].name
+                ) === "py"
+                    ? "python"
+                    : "javascript",
+            files,
+            run:false
+        }
+    );
 }
+
+
+/* =========================================================
+   DOWNLOAD / ZIP
+   ========================================================= */
+
+function downloadData(
+    data,
+    name
+){
+
+    const a =
+        document.createElement(
+            "a"
+        );
+
+    a.href =
+        data;
+
+    a.download =
+        name;
+
+    document.body.appendChild(
+        a
+    );
+
+    a.click();
+
+    a.remove();
 }
 
-if(!files.length)return;
-
-parent.Apps.openOneCompiler({
-language:ext(files[0].name)==="py"?"python":"javascript",
-files,
-run:false
-});
-}
-
-function downloadData(data,name){
-const a=document.createElement("a");
-a.href=data;
-a.download=name;
-document.body.appendChild(a);
-a.click();
-a.remove();
-}
 
 async function downloadBinary(p){
-const r=await parent.FS.read(p);
 
-if(!r.ok){
-showError(r.error);
-return false;
+    const r =
+        await parent.FS.read(
+            p
+        );
+
+    if(!r.ok){
+
+        showError(
+            r.error
+        );
+
+        return false;
+    }
+
+    if(
+        !/^data:/i.test(
+            r.content
+        )
+    ){
+
+        showError(
+            "This file does not contain downloadable binary data."
+        );
+
+        return false;
+    }
+
+    downloadData(
+        r.content,
+        p.split("/").pop()
+    );
+
+    return true;
 }
 
-if(!/^data:/i.test(r.content)){
-showError("This file does not contain downloadable binary data.");
-return false;
+
+function dataURLToBytes(
+    data
+){
+
+    const comma =
+        String(
+            data
+        ).indexOf(",");
+
+    if(comma < 0){
+
+        throw new Error(
+            "Invalid data URL."
+        );
+    }
+
+    const header =
+        String(data).slice(
+            0,
+            comma
+        );
+
+    const body =
+        String(data).slice(
+            comma + 1
+        );
+
+    if(
+        /;base64/i.test(
+            header
+        )
+    ){
+
+        const binary =
+            atob(body);
+
+        const bytes =
+            new Uint8Array(
+                binary.length
+            );
+
+        for(
+            let i = 0;
+            i < binary.length;
+            i++
+        ){
+
+            bytes[i] =
+                binary.charCodeAt(i);
+        }
+
+        return bytes;
+    }
+
+    return new TextEncoder()
+        .encode(
+            decodeURIComponent(
+                body
+            )
+        );
 }
 
-downloadData(r.content,p.split("/").pop());
-return true;
+
+function readU16(
+    bytes,
+    p
+){
+
+    return (
+        bytes[p] |
+        bytes[p + 1] << 8
+    ) >>> 0;
 }
 
-function dataURLToBytes(data){
-const comma=String(data).indexOf(",");
 
-if(comma<0){
-throw new Error("Invalid data URL.");
+function readU32(
+    bytes,
+    p
+){
+
+    return (
+        bytes[p] |
+        bytes[p + 1] << 8 |
+        bytes[p + 2] << 16 |
+        bytes[p + 3] << 24
+    ) >>> 0;
 }
 
-const header=String(data).slice(0,comma);
-const body=String(data).slice(comma+1);
-
-if(/;base64/i.test(header)){
-const binary=atob(body);
-const bytes=new Uint8Array(binary.length);
-
-for(let i=0;i<binary.length;i++){
-bytes[i]=binary.charCodeAt(i);
-}
-
-return bytes;
-}
-
-return new TextEncoder().encode(
-decodeURIComponent(body)
-);
-}
-
-function readU16(bytes,p){
-return(bytes[p]|bytes[p+1]<<8)>>>0;
-}
-
-function readU32(bytes,p){
-return(
-bytes[p]|
-bytes[p+1]<<8|
-bytes[p+2]<<16|
-bytes[p+3]<<24
-)>>>0;
-}
 
 function findEOCD(bytes){
-const min=Math.max(0,bytes.length-65557);
 
-for(let p=bytes.length-22;p>=min;p--){
-if(readU32(bytes,p)===0x06054b50)return p;
+    const min =
+        Math.max(
+            0,
+            bytes.length - 65557
+        );
+
+    for(
+        let p =
+            bytes.length - 22;
+        p >= min;
+        p--
+    ){
+
+        if(
+            readU32(
+                bytes,
+                p
+            ) ===
+            0x06054b50
+        ){
+            return p;
+        }
+    }
+
+    return -1;
 }
 
-return -1;
-}
 
 function safeZipPath(name){
-name=String(name||"")
-.replace(/\\/g,"/")
-.replace(/^\/+/,"");
 
-const result=[];
+    name =
+        String(name || "")
+            .replace(
+                /\\/g,
+                "/"
+            )
+            .replace(
+                /^\/+/,
+                ""
+            );
 
-for(const part of name.split("/")){
-if(part&&part!=="."&&part!==".."){
-result.push(part);
-}
+    const result = [];
+
+    for(
+        const part
+        of name.split("/")
+    ){
+
+        if(
+            part &&
+            part !== "." &&
+            part !== ".."
+        ){
+
+            result.push(
+                part
+            );
+        }
+    }
+
+    return result.join("/");
 }
 
-return result.join("/");
-}
 
 async function unzipFile(zipPath){
-const defaultFolder=zipPath.replace(/\.zip$/i,"")+"/";
-const output=prompt("UNZIP destination folder:",defaultFolder);
 
-if(!output)return;
+    const defaultFolder =
+        zipPath.replace(
+            /\.zip$/i,
+            ""
+        ) + "/";
 
-let outputFolder=String(output).trim();
+    const output =
+        prompt(
+            "UNZIP destination folder:",
+            defaultFolder
+        );
 
-if(!outputFolder.endsWith("/")){
-outputFolder+="/";
+    if(!output){
+        return;
+    }
+
+    let outputFolder =
+        String(
+            output
+        ).trim();
+
+    if(
+        !outputFolder.endsWith("/")
+    ){
+
+        outputFolder += "/";
+    }
+
+    terminalShow(
+        "UNZIP TERMINAL",
+        "UNZIPPING"
+    );
+
+    terminalLog(
+        "Loading " +
+        zipPath
+    );
+
+    try{
+
+        const r =
+            await parent.FS.read(
+                zipPath
+            );
+
+        if(!r.ok){
+
+            throw new Error(
+                r.error ||
+                "Could not read ZIP."
+            );
+        }
+
+        if(
+            !/^data:/i.test(
+                r.content
+            )
+        ){
+
+            throw new Error(
+                "ZIP does not contain binary data."
+            );
+        }
+
+        const bytes =
+            dataURLToBytes(
+                r.content
+            );
+
+        const eocd =
+            findEOCD(
+                bytes
+            );
+
+        if(eocd < 0){
+
+            throw new Error(
+                "Invalid ZIP archive."
+            );
+        }
+
+        const entries =
+            readU16(
+                bytes,
+                eocd + 10
+            );
+
+        const centralOffset =
+            readU32(
+                bytes,
+                eocd + 16
+            );
+
+        let pos =
+            centralOffset;
+
+        let extracted = 0;
+
+        for(
+            let n = 0;
+            n < entries;
+            n++
+        ){
+
+            if(
+                terminalState.cancelled
+            ){
+                throw new Error(
+                    "UNZIP cancelled."
+                );
+            }
+
+            if(
+                readU32(
+                    bytes,
+                    pos
+                ) !==
+                0x02014b50
+            ){
+
+                throw new Error(
+                    "Invalid ZIP central directory."
+                );
+            }
+
+            const method =
+                readU16(
+                    bytes,
+                    pos + 10
+                );
+
+            const compressedSize =
+                readU32(
+                    bytes,
+                    pos + 20
+                );
+
+            const nameLength =
+                readU16(
+                    bytes,
+                    pos + 28
+                );
+
+            const extraLength =
+                readU16(
+                    bytes,
+                    pos + 30
+                );
+
+            const commentLength =
+                readU16(
+                    bytes,
+                    pos + 32
+                );
+
+            const localOffset =
+                readU32(
+                    bytes,
+                    pos + 42
+                );
+
+            const filename =
+                new TextDecoder().decode(
+                    bytes.slice(
+                        pos + 46,
+                        pos + 46 +
+                        nameLength
+                    )
+                );
+
+            const safeName =
+                safeZipPath(
+                    filename
+                );
+
+            if(
+                safeName &&
+                !filename.endsWith("/")
+            ){
+
+                if(
+                    readU32(
+                        bytes,
+                        localOffset
+                    ) !==
+                    0x04034b50
+                ){
+
+                    throw new Error(
+                        "Invalid ZIP local header."
+                    );
+                }
+
+                const localNameLength =
+                    readU16(
+                        bytes,
+                        localOffset + 26
+                    );
+
+                const localExtraLength =
+                    readU16(
+                        bytes,
+                        localOffset + 28
+                    );
+
+                const dataStart =
+                    localOffset +
+                    30 +
+                    localNameLength +
+                    localExtraLength;
+
+                const compressed =
+                    bytes.slice(
+                        dataStart,
+                        dataStart +
+                        compressedSize
+                    );
+
+                let fileBytes;
+
+                if(method === 0){
+
+                    fileBytes =
+                        compressed;
+
+                }else if(
+                    method === 8
+                ){
+
+                    if(
+                        typeof DecompressionStream !==
+                        "function"
+                    ){
+
+                        throw new Error(
+                            "This browser cannot decompress DEFLATE ZIP files."
+                        );
+                    }
+
+                    const stream =
+                        new Blob(
+                            [compressed]
+                        )
+                        .stream()
+                        .pipeThrough(
+                            new DecompressionStream(
+                                "deflate-raw"
+                            )
+                        );
+
+                    fileBytes =
+                        new Uint8Array(
+                            await new Response(
+                                stream
+                            ).arrayBuffer()
+                        );
+
+                }else{
+
+                    throw new Error(
+                        "Unsupported ZIP compression method " +
+                        method +
+                        " for " +
+                        filename +
+                        "."
+                    );
+                }
+
+                let binary = "";
+
+                for(
+                    let i = 0;
+                    i < fileBytes.length;
+                    i += 0x8000
+                ){
+
+                    binary +=
+                        String.fromCharCode(
+                            ...fileBytes.subarray(
+                                i,
+                                Math.min(
+                                    i + 0x8000,
+                                    fileBytes.length
+                                )
+                            )
+                        );
+                }
+
+                const dataURL =
+                    "data:application/octet-stream;base64," +
+                    btoa(binary);
+
+                const dest =
+                    outputFolder +
+                    safeName;
+
+                const w =
+                    await parent.FS.write(
+                        dest,
+                        dataURL,
+                        true
+                    );
+
+                if(!w.ok){
+
+                    throw new Error(
+                        "Could not extract " +
+                        filename +
+                        ": " +
+                        (
+                            w.error ||
+                            "write failed"
+                        )
+                    );
+                }
+
+                extracted++;
+
+                const percent =
+                    entries
+                        ? (
+                            extracted /
+                            entries
+                        ) *
+                        100
+                        : 100;
+
+                terminalProgress(
+                    percent,
+                    "Extracted " +
+                    extracted +
+                    "/" +
+                    entries
+                );
+
+                terminalLog(
+                    "Extracted " +
+                    filename
+                );
+            }
+
+            pos +=
+                46 +
+                nameLength +
+                extraLength +
+                commentLength;
+        }
+
+        terminalFinish(
+            "UNZIP complete"
+        );
+
+        terminalLog(
+            "Extracted " +
+            extracted +
+            " file(s) to " +
+            outputFolder,
+            "success"
+        );
+
+        await refresh();
+
+    }catch(err){
+
+        terminalFail(
+            "UNZIP failed: " +
+            (
+                err.message ||
+                String(err)
+            )
+        );
+
+        showError(
+            "UNZIP failed: " +
+            (
+                err.message ||
+                String(err)
+            )
+        );
+    }
 }
 
-try{
-const r=await parent.FS.read(zipPath);
-
-if(!r.ok){
-showError(r.error||"Could not read ZIP.");
-return;
-}
-
-if(!/^data:/i.test(r.content)){
-showError("ZIP does not contain binary data.");
-return;
-}
-
-const bytes=dataURLToBytes(r.content);
-const eocd=findEOCD(bytes);
-
-if(eocd<0){
-showError("Invalid ZIP archive.");
-return;
-}
-
-const entries=readU16(bytes,eocd+10);
-const centralOffset=readU32(bytes,eocd+16);
-
-let pos=centralOffset;
-let extracted=0;
-
-for(let n=0;n<entries;n++){
-if(readU32(bytes,pos)!==0x02014b50){
-throw new Error("Invalid ZIP central directory.");
-}
-
-const method=readU16(bytes,pos+10);
-const compressedSize=readU32(bytes,pos+20);
-const nameLength=readU16(bytes,pos+28);
-const extraLength=readU16(bytes,pos+30);
-const commentLength=readU16(bytes,pos+32);
-const localOffset=readU32(bytes,pos+42);
-
-const filename=new TextDecoder().decode(
-bytes.slice(pos+46,pos+46+nameLength)
-);
-
-const safeName=safeZipPath(filename);
-
-if(safeName&&!filename.endsWith("/")){
-if(readU32(bytes,localOffset)!==0x04034b50){
-throw new Error("Invalid ZIP local header.");
-}
-
-const localNameLength=readU16(bytes,localOffset+26);
-const localExtraLength=readU16(bytes,localOffset+28);
-
-const dataStart=
-localOffset+
-30+
-localNameLength+
-localExtraLength;
-
-const compressed=
-bytes.slice(
-dataStart,
-dataStart+compressedSize
-);
-
-let fileBytes;
-
-if(method===0){
-fileBytes=compressed;
-}else if(method===8){
-if(typeof DecompressionStream!=="function"){
-throw new Error("This browser cannot decompress DEFLATE ZIP files.");
-}
-
-const stream=
-new Blob([compressed])
-.stream()
-.pipeThrough(
-new DecompressionStream("deflate-raw")
-);
-
-fileBytes=
-new Uint8Array(
-await new Response(stream).arrayBuffer()
-);
-}else{
-throw new Error(
-"Unsupported ZIP compression method "+
-method+
-" for "+
-filename+
-"."
-);
-}
-
-let binary="";
-
-for(let i=0;i<fileBytes.length;i+=0x8000){
-binary+=String.fromCharCode(
-...fileBytes.subarray(
-i,
-Math.min(i+0x8000,fileBytes.length)
-)
-);
-}
-
-const dataURL=
-"data:application/octet-stream;base64,"+
-btoa(binary);
-
-const dest=outputFolder+safeName;
-
-const w=await parent.FS.write(
-dest,
-dataURL,
-true
-);
-
-if(!w.ok){
-throw new Error(
-"Could not extract "+
-filename+
-": "+
-(w.error||"write failed")
-);
-}
-
-extracted++;
-}
-
-pos+=46+nameLength+extraLength+commentLength;
-}
-
-showError(
-"UNZIP complete: extracted "+
-extracted+
-" file(s) to "+
-outputFolder
-);
-
-await refresh();
-
-}catch(err){
-showError(
-"UNZIP failed: "+
-(err.message||String(err))
-);
-}
-}
 
 function utf8(s){
-return new TextEncoder().encode(String(s));
+
+    return new TextEncoder()
+        .encode(
+            String(s)
+        );
 }
+
 
 function u16(n){
-return[n&255,(n>>>8)&255];
+
+    return [
+        n & 255,
+        (n >>> 8) & 255
+    ];
 }
+
 
 function u32(n){
-return[
-n&255,
-(n>>>8)&255,
-(n>>>16)&255,
-(n>>>24)&255
-];
+
+    return [
+        n & 255,
+        (n >>> 8) & 255,
+        (n >>> 16) & 255,
+        (n >>> 24) & 255
+    ];
 }
+
 
 function crc32(bytes){
-let c=0xffffffff;
 
-for(const b of bytes){
-c^=b;
+    let c =
+        0xffffffff;
 
-for(let i=0;i<8;i++){
-c=
-(c>>>1)^
-((c&1)?0xedb88320:0);
-}
+    for(
+        const b of bytes
+    ){
+
+        c ^= b;
+
+        for(
+            let i = 0;
+            i < 8;
+            i++
+        ){
+
+            c =
+                (c >>> 1) ^
+                (
+                    (c & 1)
+                        ? 0xedb88320
+                        : 0
+                );
+        }
+    }
+
+    return (
+        c ^
+        0xffffffff
+    ) >>> 0;
 }
 
-return(c^0xffffffff)>>>0;
-}
 
 function makeZip(entries){
-const local=[];
-const central=[];
-let offset=0;
 
-for(const entry of entries){
-const name=utf8(
-entry.name.replace(/^\/+/,"")
-);
+    const local = [];
+    const central = [];
 
-const data=entry.data;
-const crc=crc32(data);
+    let offset = 0;
 
-const header=new Uint8Array([
-...u32(0x04034b50),
-...u16(20),
-...u16(0),
-...u16(0),
-...u16(0),
-...u16(0),
-...u32(crc),
-...u32(data.length),
-...u32(data.length),
-...u16(name.length),
-...u16(0),
-...name,
-...data
-]);
+    for(
+        const entry of entries
+    ){
 
-local.push(header);
+        const name =
+            utf8(
+                entry.name
+                    .replace(
+                        /^\/+/,
+                        ""
+                    )
+            );
 
-central.push(
-new Uint8Array([
-...u32(0x02014b50),
-...u16(20),
-...u16(20),
-...u16(0),
-...u16(0),
-...u16(0),
-...u16(0),
-...u32(crc),
-...u32(data.length),
-...u32(data.length),
-...u16(name.length),
-...u16(0),
-...u16(0),
-...u16(0),
-...u16(0),
-...u32(0),
-...u32(offset),
-...name
-])
-);
+        const data =
+            entry.data;
 
-offset+=header.length;
+        const crc =
+            crc32(
+                data
+            );
+
+        const header =
+            new Uint8Array(
+                [
+                    ...u32(0x04034b50),
+                    ...u16(20),
+                    ...u16(0),
+                    ...u16(0),
+                    ...u16(0),
+                    ...u16(0),
+                    ...u32(crc),
+                    ...u32(data.length),
+                    ...u32(data.length),
+                    ...u16(name.length),
+                    ...u16(0),
+                    ...name,
+                    ...data
+                ]
+            );
+
+        local.push(
+            header
+        );
+
+        central.push(
+            new Uint8Array(
+                [
+                    ...u32(0x02014b50),
+                    ...u16(20),
+                    ...u16(20),
+                    ...u16(0),
+                    ...u16(0),
+                    ...u16(0),
+                    ...u16(0),
+                    ...u32(crc),
+                    ...u32(data.length),
+                    ...u32(data.length),
+                    ...u16(name.length),
+                    ...u16(0),
+                    ...u16(0),
+                    ...u16(0),
+                    ...u16(0),
+                    ...u32(0),
+                    ...u32(offset),
+                    ...name
+                ]
+            )
+        );
+
+        offset +=
+            header.length;
+    }
+
+    const cdOffset =
+        offset;
+
+    const cdSize =
+        central.reduce(
+            (a,b) =>
+                a + b.length,
+            0
+        );
+
+    const eocd =
+        new Uint8Array(
+            [
+                ...u32(0x06054b50),
+                ...u16(0),
+                ...u16(0),
+                ...u16(central.length),
+                ...u16(central.length),
+                ...u32(cdSize),
+                ...u32(cdOffset),
+                ...u16(0)
+            ]
+        );
+
+    return new Blob(
+        [
+            ...local,
+            ...central,
+            eocd
+        ],
+        {
+            type:
+                "application/zip"
+        }
+    );
 }
 
-const cdOffset=offset;
-
-const cdSize=central.reduce(
-(a,b)=>a+b.length,
-0
-);
-
-const eocd=new Uint8Array([
-...u32(0x06054b50),
-...u16(0),
-...u16(0),
-...u16(central.length),
-...u16(central.length),
-...u32(cdSize),
-...u32(cdOffset),
-...u16(0)
-]);
-
-return new Blob(
-[
-...local,
-...central,
-eocd
-],
-{
-type:"application/zip"
-}
-);
-}
 
 function blobDataURL(blob){
-return new Promise((resolve,reject)=>{
-const reader=new FileReader();
 
-reader.onload=()=>resolve(reader.result);
-reader.onerror=()=>reject(reader.error);
+    return new Promise(
+        (resolve,reject) => {
 
-reader.readAsDataURL(blob);
-});
+            const reader =
+                new FileReader();
+
+            reader.onload =
+                () =>
+                    resolve(
+                        reader.result
+                    );
+
+            reader.onerror =
+                () =>
+                    reject(
+                        reader.error
+                    );
+
+            reader.readAsDataURL(
+                blob
+            );
+        }
+    );
 }
+
 
 async function collectFiles(paths){
-const entries=[];
 
-for(const p0 of paths){
-const p=String(p0);
+    const entries = [];
 
-if(isFolderPath(p)){
-const base=normalizeFolderPath(p);
-const files=await parent.FS.list(base);
+    for(
+        const p0 of paths
+    ){
 
-if(!Array.isArray(files))continue;
+        const p =
+            String(p0);
 
-for(const item0 of files){
-const item=String(item0);
+        if(
+            isFolderPath(p)
+        ){
 
-if(!item.startsWith(base)||item.endsWith("/"))continue;
+            const base =
+                normalizeFolderPath(
+                    p
+                );
 
-const r=await parent.FS.read(item);
+            const files =
+                await parent.FS.list(
+                    base
+                );
 
-if(!r.ok)continue;
+            if(
+                !Array.isArray(files)
+            ){
+                continue;
+            }
 
-const bytes=
-/^data:/i.test(r.content)
-?dataURLToBytes(r.content)
-:utf8(r.content);
+            for(
+                const item0
+                of files
+            ){
 
-entries.push({
-name:displayName(p)+"/"+item.slice(base.length),
-data:bytes
-});
+                const item =
+                    String(item0);
+
+                if(
+                    !item.startsWith(base) ||
+                    item.endsWith("/")
+                ){
+                    continue;
+                }
+
+                const r =
+                    await parent.FS.read(
+                        item
+                    );
+
+                if(!r.ok){
+                    continue;
+                }
+
+                const bytes =
+                    /^data:/i.test(
+                        r.content
+                    )
+                        ? dataURLToBytes(
+                            r.content
+                        )
+                        : utf8(
+                            r.content
+                        );
+
+                entries.push(
+                    {
+                        name:
+                            displayName(p) +
+                            "/" +
+                            item.slice(
+                                base.length
+                            ),
+                        data:bytes
+                    }
+                );
+            }
+
+        }else{
+
+            const r =
+                await parent.FS.read(
+                    p
+                );
+
+            if(!r.ok){
+                continue;
+            }
+
+            const bytes =
+                /^data:/i.test(
+                    r.content
+                )
+                    ? dataURLToBytes(
+                        r.content
+                    )
+                    : utf8(
+                        r.content
+                    );
+
+            entries.push(
+                {
+                    name:
+                        displayName(p),
+                    data:bytes
+                }
+            );
+        }
+    }
+
+    return entries;
 }
 
-}else{
-const r=await parent.FS.read(p);
-
-if(!r.ok)continue;
-
-const bytes=
-/^data:/i.test(r.content)
-?dataURLToBytes(r.content)
-:utf8(r.content);
-
-entries.push({
-name:displayName(p),
-data:bytes
-});
-}
-}
-
-return entries;
-}
 
 async function downloadItem(path){
-try{
-if(isFolderPath(path)){
-const entries=await collectFiles([path]);
-const blob=makeZip(entries);
 
-downloadData(
-await blobDataURL(blob),
-displayName(path)+".zip"
-);
+    terminalShow(
+        "DOWNLOAD TERMINAL",
+        "DOWNLOADING"
+    );
 
-return;
+    try{
+
+        if(
+            isFolderPath(path)
+        ){
+
+            terminalLog(
+                "Loading folder contents..."
+            );
+
+            const entries =
+                await collectFiles(
+                    [path]
+                );
+
+            if(
+                terminalState.cancelled
+            ){
+                return;
+            }
+
+            terminalProgress(
+                70,
+                "Creating ZIP..."
+            );
+
+            const blob =
+                makeZip(
+                    entries
+                );
+
+            terminalProgress(
+                90,
+                "Preparing download..."
+            );
+
+            downloadData(
+                await blobDataURL(
+                    blob
+                ),
+                displayName(path) +
+                ".zip"
+            );
+
+            terminalFinish(
+                "Folder download complete"
+            );
+
+            return;
+        }
+
+        if(
+            ext(path) ===
+            "zip"
+        ){
+
+            await downloadBinary(
+                path
+            );
+
+            terminalFinish(
+                "Download complete"
+            );
+
+            return;
+        }
+
+        const r =
+            await parent.FS.read(
+                path
+            );
+
+        if(!r.ok){
+
+            throw new Error(
+                r.error ||
+                "Could not read file."
+            );
+        }
+
+        if(
+            /^data:/i.test(
+                r.content
+            )
+        ){
+
+            downloadData(
+                r.content,
+                displayName(path)
+            );
+
+        }else{
+
+            const blob =
+                new Blob(
+                    [String(r.content)],
+                    {
+                        type:
+                            "application/octet-stream"
+                    }
+                );
+
+            downloadData(
+                await blobDataURL(
+                    blob
+                ),
+                displayName(path)
+            );
+        }
+
+        terminalFinish(
+            "Download complete"
+        );
+
+    }catch(err){
+
+        terminalFail(
+            "Download failed: " +
+            (
+                err.message ||
+                String(err)
+            )
+        );
+
+        showError(
+            "Download failed: " +
+            (
+                err.message ||
+                String(err)
+            )
+        );
+    }
 }
 
-if(ext(path)==="zip"){
-await downloadBinary(path);
-return;
-}
-
-const r=await parent.FS.read(path);
-
-if(!r.ok){
-showError(r.error||"Could not read file.");
-return;
-}
-
-if(/^data:/i.test(r.content)){
-downloadData(
-r.content,
-displayName(path)
-);
-return;
-}
-
-const blob=new Blob(
-[String(r.content)],
-{type:"application/octet-stream"}
-);
-
-downloadData(
-await blobDataURL(blob),
-displayName(path)
-);
-
-}catch(err){
-showError(
-"Download failed: "+
-(err.message||String(err))
-);
-}
-}
 
 async function downloadSelected(){
-const paths=selectedPaths();
 
-if(!paths.length){
-showError("Select files or folders first.");
-return;
+    const paths =
+        selectedPaths();
+
+    if(!paths.length){
+
+        showError(
+            "Select files or folders first."
+        );
+
+        return;
+    }
+
+    try{
+
+        if(
+            paths.length === 1
+        ){
+
+            await downloadItem(
+                paths[0]
+            );
+
+            return;
+        }
+
+        terminalShow(
+            "DOWNLOAD TERMINAL",
+            "PACKING SELECTED"
+        );
+
+        terminalLog(
+            "Collecting selected files..."
+        );
+
+        const entries =
+            await collectFiles(
+                paths
+            );
+
+        if(
+            terminalState.cancelled
+        ){
+            return;
+        }
+
+        terminalProgress(
+            85,
+            "Creating ZIP..."
+        );
+
+        const blob =
+            makeZip(
+                entries
+            );
+
+        downloadData(
+            await blobDataURL(
+                blob
+            ),
+            "selected.zip"
+        );
+
+        terminalFinish(
+            "Selected files downloaded"
+        );
+
+    }catch(err){
+
+        terminalFail(
+            "Download failed: " +
+            (
+                err.message ||
+                String(err)
+            )
+        );
+
+        showError(
+            "Download failed: " +
+            (
+                err.message ||
+                String(err)
+            )
+        );
+    }
 }
 
-try{
-if(paths.length===1){
-await downloadItem(paths[0]);
-return;
-}
 
-const entries=await collectFiles(paths);
-const blob=makeZip(entries);
-
-downloadData(
-await blobDataURL(blob),
-"selected.zip"
-);
-
-}catch(err){
-showError(
-"Download failed: "+
-(err.message||String(err))
-);
-}
-}
+/* =========================================================
+   SORT / RENDER
+   ========================================================= */
 
 function sortPaths(files){
-return files.sort((a,b)=>{
-const af=isFolderPath(a);
-const bf=isFolderPath(b);
 
-if(af!==bf)return af?-1:1;
+    return files.sort(
+        (a,b) => {
 
-return a.localeCompare(
-b,
-undefined,
-{
-numeric:true,
-sensitivity:"base"
+            const af =
+                isFolderPath(a);
+
+            const bf =
+                isFolderPath(b);
+
+            if(af !== bf){
+                return af
+                    ? -1
+                    : 1;
+            }
+
+            return a.localeCompare(
+                b,
+                undefined,
+                {
+                    numeric:true,
+                    sensitivity:"base"
+                }
+            );
+        }
+    );
 }
-);
-});
+
+
+function reduceVisibleChildren(
+    files,
+    base
+){
+
+    const visible = [];
+
+    for(
+        const p0 of files
+    ){
+
+        const p =
+            String(p0);
+
+        if(
+            !p.startsWith(base)
+        ){
+            continue;
+        }
+
+        const rest =
+            p.slice(
+                base.length
+            );
+
+        if(!rest){
+            continue;
+        }
+
+        const clean =
+            rest.replace(
+                /\/+$/,
+                ""
+            );
+
+        const slash =
+            clean.indexOf("/");
+
+        if(slash >= 0){
+
+            const folderPath =
+                base +
+                clean.slice(
+                    0,
+                    slash + 1
+                );
+
+            if(
+                !visible.includes(
+                    folderPath
+                )
+            ){
+
+                visible.push(
+                    folderPath
+                );
+            }
+
+        }else{
+
+            visible.push(
+                p
+            );
+        }
+    }
+
+    return sortPaths(
+        visible
+    );
 }
+
+
+/* =========================================================
+   DEVICE WORKER SCAN
+   ========================================================= */
+
+async function getDeviceMountHandle(
+    mountName
+){
+
+    if(
+        !parent.FS ||
+        typeof parent.FS.getDeviceMounts !==
+            "function"
+    ){
+
+        return null;
+    }
+
+    const mounts =
+        await parent.FS.getDeviceMounts();
+
+    if(!Array.isArray(mounts)){
+        return null;
+    }
+
+    const mount =
+        mounts.find(
+            m =>
+                m &&
+                m.name ===
+                mountName
+        );
+
+    return mount &&
+           mount.handle
+        ? mount.handle
+        : null;
+}
+
+
+function getDeviceMountNameFromPath(
+    path
+){
+
+    const prefix =
+        "chxd:/device/";
+
+    if(
+        !String(path).startsWith(
+            prefix
+        )
+    ){
+        return null;
+    }
+
+    const rest =
+        String(path).slice(
+            prefix.length
+        );
+
+    const slash =
+        rest.indexOf("/");
+
+    return slash < 0
+        ? rest
+        : rest.slice(
+            0,
+            slash
+        );
+}
+
+
+function getDeviceRelativePath(
+    path
+){
+
+    const prefix =
+        "chxd:/device/";
+
+    if(
+        !String(path).startsWith(
+            prefix
+        )
+    ){
+        return [];
+    }
+
+    const rest =
+        String(path).slice(
+            prefix.length
+        );
+
+    const parts =
+        rest.split(
+            "/"
+        )
+        .filter(Boolean);
+
+    if(
+        parts.length <= 1
+    ){
+        return [];
+    }
+
+    return parts.slice(
+        1
+    );
+}
+
+
+async function resolveDirectoryHandleForPath(
+    path
+){
+
+    const mountName =
+        getDeviceMountNameFromPath(
+            path
+        );
+
+    if(!mountName){
+        return null;
+    }
+
+    let handle =
+        await getDeviceMountHandle(
+            mountName
+        );
+
+    if(!handle){
+        return null;
+    }
+
+    const relative =
+        getDeviceRelativePath(
+            path
+        );
+
+    for(
+        const part of relative
+    ){
+
+        try{
+
+            handle =
+                await handle.getDirectoryHandle(
+                    part
+                );
+
+        }catch(_){
+
+            return null;
+        }
+    }
+
+    return handle;
+}
+
+
+async function scanDeviceFolderInWorker(
+    path
+){
+
+    stopTerminalWorker();
+
+    const handle =
+        await resolveDirectoryHandleForPath(
+            path
+        );
+
+    if(!handle){
+
+        throw new Error(
+            "Could not resolve mounted device folder."
+        );
+    }
+
+    terminalWorker =
+        createTerminalWorker();
+
+    return new Promise(
+        (resolve,reject) => {
+
+            const worker =
+                terminalWorker;
+
+            worker.onmessage =
+                event => {
+
+                    const msg =
+                        event.data ||
+                        {};
+
+                    if(
+                        msg.type ===
+                        "progress"
+                    ){
+
+                        terminalState.processed =
+                            msg.processed ||
+                            0;
+
+                        terminalState.files =
+                            msg.files ||
+                            0;
+
+                        terminalState.directories =
+                            msg.directories ||
+                            0;
+
+                        terminalProgress(
+                            msg.percent ||
+                            0,
+                            (
+                                "Indexed " +
+                                (
+                                    msg.processed ||
+                                    0
+                                ) +
+                                " entries | " +
+                                (
+                                    msg.files ||
+                                    0
+                                ) +
+                                " files | " +
+                                (
+                                    msg.directories ||
+                                    0
+                                ) +
+                                " folders"
+                            )
+                        );
+
+                        if(
+                            msg.current
+                        ){
+
+                            terminalLog(
+                                "Loading " +
+                                msg.current,
+                                "dim"
+                            );
+                        }
+
+                        return;
+                    }
+
+                    if(
+                        msg.type ===
+                        "cancelled"
+                    ){
+
+                        reject(
+                            new Error(
+                                "Operation cancelled."
+                            )
+                        );
+
+                        return;
+                    }
+
+                    if(
+                        msg.type ===
+                        "error"
+                    ){
+
+                        reject(
+                            new Error(
+                                msg.error ||
+                                "Worker error."
+                            )
+                        );
+
+                        return;
+                    }
+
+                    if(
+                        msg.type ===
+                        "result"
+                    ){
+
+                        resolve(
+                            msg.entries ||
+                            []
+                        );
+                    }
+                };
+
+            worker.onerror =
+                error => {
+
+                    reject(
+                        error instanceof Error
+                            ? error
+                            : new Error(
+                                "Worker failed."
+                            )
+                    );
+                };
+
+            worker.postMessage(
+                {
+                    type:"scan",
+                    handle,
+                    basePath:path
+                }
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   REFRESH
+   ========================================================= */
 
 async function refresh(){
-cancelRename();
 
-const serial=++refreshSerial;
-const z=zone();
+    cancelRename();
 
-if(!z)return;
+    const serial =
+        ++refreshSerial;
 
-updatePathDisplay();
+    const z =
+        zone();
 
-if(
-z.key==="puter"&&
-!parent.FS.puterReady()
+    if(!z){
+        return;
+    }
+
+    updatePathDisplay();
+
+    if(
+        z.key ===
+            "puter" &&
+        !parent.FS.puterReady()
+    ){
+
+        if(
+            serial ===
+            refreshSerial
+        ){
+
+            list.innerHTML =
+                '<div class="empty">Puter filesystem unavailable.</div>';
+        }
+
+        return;
+    }
+
+    try{
+
+        /*
+           DEVICE mount folders use the worker.
+
+           Normal folders keep the existing FS.list path.
+        */
+
+        if(
+            z.key === "device" &&
+            currentPrefix &&
+            currentPrefix !==
+                z.prefix
+        ){
+
+            terminalShow(
+                "FOLDER LOAD TERMINAL",
+                "LOADING FOLDER"
+            );
+
+            terminalLog(
+                "Loading " +
+                currentPrefix
+            );
+
+            terminalLog(
+                "Starting Web Worker scan..."
+            );
+
+            const entries =
+                await scanDeviceFolderInWorker(
+                    currentPrefix
+                );
+
+            if(
+                serial !==
+                refreshSerial
+            ){
+                return;
+            }
+
+            if(
+                terminalState.cancelled
+            ){
+                return;
+            }
+
+            const allPaths =
+                entries.map(
+                    e => e.path
+                );
+
+            terminalProgress(
+                96,
+                "Building file list..."
+            );
+
+            /*
+               Give the browser a rendering opportunity
+               before DOM construction.
+            */
+
+            await new Promise(
+                resolve =>
+                    setTimeout(
+                        resolve,
+                        0
+                    )
+            );
+
+            const files =
+                reduceVisibleChildren(
+                    allPaths,
+                    currentPrefix
+                );
+
+            await renderFileRows(
+                files,
+                serial
+            );
+
+            if(
+                serial !==
+                refreshSerial
+            ){
+                return;
+            }
+
+            terminalFinish(
+                "All files has been loaded"
+            );
+
+            terminalLog(
+                (
+                    entries.filter(
+                        e => !e.folder
+                    ).length
+                ) +
+                " files indexed.",
+                "success"
+            );
+
+            terminalLog(
+                (
+                    entries.filter(
+                        e => e.folder
+                    ).length
+                ) +
+                " folders indexed.",
+                "success"
+            );
+
+            return;
+        }
+
+        const result =
+            await parent.FS.list(
+                currentPrefix ||
+                z.prefix
+            );
+
+        if(
+            serial !==
+            refreshSerial
+        ){
+            return;
+        }
+
+        let files =
+            Array.isArray(result)
+                ? result
+                : [];
+
+        const base =
+            currentPrefix ||
+            z.prefix;
+
+        files =
+            reduceVisibleChildren(
+                files,
+                base
+            );
+
+        await renderFileRows(
+            files,
+            serial
+        );
+
+    }catch(e){
+
+        if(
+            serial !==
+            refreshSerial
+        ){
+            return;
+        }
+
+        list.innerHTML =
+            '<div class="empty">Could not read this folder.</div>';
+
+        if(
+            terminalState.active
+        ){
+
+            terminalFail(
+                e.message ||
+                String(e)
+            );
+        }
+
+        showError(
+            e.message ||
+            "Could not list files."
+        );
+    }
+}
+
+
+/* =========================================================
+   INCREMENTAL DOM RENDER
+   ========================================================= */
+
+async function renderFileRows(
+    files,
+    serial
 ){
-if(serial===refreshSerial){
-list.innerHTML=
-'<div class="empty">Puter filesystem unavailable.</div>';
+
+    list.innerHTML =
+        "";
+
+    if(!files.length){
+
+        list.innerHTML =
+            '<div class="empty">No files.</div>';
+
+        return;
+    }
+
+    const fragment =
+        document.createDocumentFragment();
+
+    let rendered = 0;
+
+    for(
+        const p of files
+    ){
+
+        if(
+            serial !==
+            refreshSerial
+        ){
+            return;
+        }
+
+        const row =
+            document.createElement(
+                "div"
+            );
+
+        const folder =
+            isFolderPath(p);
+
+        const image =
+            !folder &&
+            isImagePath(p);
+
+        row.className =
+            "row" +
+            (
+                folder
+                    ? " folder"
+                    : ""
+            ) +
+            (
+                image
+                    ? " image-row"
+                    : ""
+            );
+
+        if(
+            selected.has(p)
+        ){
+
+            row.classList.add(
+                "selected"
+            );
+        }
+
+        const cb =
+            document.createElement(
+                "input"
+            );
+
+        cb.type =
+            "checkbox";
+
+        cb.checked =
+            selected.has(p);
+
+        cb.onchange =
+            () => {
+
+                if(
+                    cb.checked
+                ){
+
+                    selected.add(
+                        p
+                    );
+
+                }else{
+
+                    selected.delete(
+                        p
+                    );
+                }
+
+                row.classList.toggle(
+                    "selected",
+                    cb.checked
+                );
+            };
+
+        if(
+            selectMode &&
+            !allowMultiple
+        ){
+
+            cb.style.display =
+                "none";
+        }
+
+        const name =
+            document.createElement(
+                "div"
+            );
+
+        name.className =
+            "name";
+
+        name.dataset.path =
+            p;
+
+        name.textContent =
+            (
+                folder
+                    ? "📁 "
+                    : image
+                        ? "🖼 "
+                        : ""
+            ) +
+            displayName(p);
+
+        name.title =
+            p;
+
+        name.onclick =
+            () =>
+                openPath(p);
+
+        name.ondblclick =
+            e => {
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                if(
+                    selectMode &&
+                    !folder
+                ){
+
+                    if(
+                        allowMultiple
+                    ){
+
+                        if(
+                            selected.has(p)
+                        ){
+
+                            selected.delete(
+                                p
+                            );
+
+                        }else{
+
+                            selected.add(
+                                p
+                            );
+                        }
+
+                        refresh();
+
+                    }else{
+
+                        finishFilePick(
+                            [p]
+                        );
+                    }
+
+                    return;
+                }
+
+                if(image){
+
+                    openImageEditor(
+                        p
+                    );
+
+                }else{
+
+                    startRename(
+                        name,
+                        p,
+                        folder
+                    );
+                }
+            };
+
+        name.oncontextmenu =
+            e => {
+
+                e.preventDefault();
+
+                showContextMenu(
+                    e.clientX,
+                    e.clientY,
+                    p,
+                    folder
+                );
+            };
+
+        let pressTimer =
+            null;
+
+        name.onpointerdown =
+            e => {
+
+                if(
+                    e.pointerType ===
+                        "mouse" ||
+                    activeRename
+                ){
+                    return;
+                }
+
+                pressTimer =
+                    setTimeout(
+                        () => {
+
+                            showContextMenu(
+                                e.clientX,
+                                e.clientY,
+                                p,
+                                folder
+                            );
+
+                        },
+                        550
+                    );
+            };
+
+        name.onpointerup =
+            () =>
+                clearTimeout(
+                    pressTimer
+                );
+
+        name.onpointercancel =
+            () =>
+                clearTimeout(
+                    pressTimer
+                );
+
+        name.onpointermove =
+            () =>
+                clearTimeout(
+                    pressTimer
+                );
+
+        row.append(
+            cb,
+            name
+        );
+
+        if(folder){
+
+            const openBtn =
+                document.createElement(
+                    "button"
+                );
+
+            openBtn.textContent =
+                "OPEN";
+
+            openBtn.onclick =
+                () =>
+                    enterFolder(p);
+
+            row.append(
+                openBtn
+            );
+
+            if(!selectMode){
+
+                const dlBtn =
+                    document.createElement(
+                        "button"
+                    );
+
+                dlBtn.textContent =
+                    "DL";
+
+                dlBtn.onclick =
+                    () =>
+                        downloadItem(p);
+
+                row.append(
+                    dlBtn
+                );
+            }
+
+            if(
+                isTopLevelDeviceMount(p)
+            ){
+
+                const dismountBtn =
+                    document.createElement(
+                        "button"
+                    );
+
+                dismountBtn.textContent =
+                    "DISMOUNT";
+
+                dismountBtn.onclick =
+                    async e => {
+
+                        e.stopPropagation();
+
+                        const result =
+                            await parent.FS
+                                .unmountDeviceFolder(
+                                    displayName(p)
+                                );
+
+                        if(
+                            !result ||
+                            !result.ok
+                        ){
+
+                            showError(
+                                result &&
+                                result.error ||
+                                "Could not dismount folder."
+                            );
+
+                            return;
+                        }
+
+                        selected.delete(
+                            p
+                        );
+
+                        currentPrefix =
+                            "";
+
+                        await refresh();
+                    };
+
+                row.append(
+                    dismountBtn
+                );
+            }
+
+        }else{
+
+            const e =
+                ext(p);
+
+            if(!selectMode){
+
+                if(image){
+
+                    const editImageBtn =
+                        document.createElement(
+                            "button"
+                        );
+
+                    editImageBtn.textContent =
+                        "EDIT";
+
+                    editImageBtn.onclick =
+                        () =>
+                            openImageEditor(
+                                p
+                            );
+
+                    row.append(
+                        editImageBtn
+                    );
+                }
+
+                const dlBtn =
+                    document.createElement(
+                        "button"
+                    );
+
+                dlBtn.textContent =
+                    "DL";
+
+                dlBtn.onclick =
+                    () =>
+                        downloadItem(
+                            p
+                        );
+
+                row.append(
+                    dlBtn
+                );
+
+                if(
+                    e !== "zip" &&
+                    !image &&
+                    zone().key !==
+                        "system"
+                ){
+
+                    const editBtn =
+                        document.createElement(
+                            "button"
+                        );
+
+                    editBtn.textContent =
+                        "EDIT";
+
+                    editBtn.onclick =
+                        () =>
+                            edit(
+                                p
+                            );
+
+                    row.append(
+                        editBtn
+                    );
+                }
+
+                if(
+                    e === "zip"
+                ){
+
+                    const unzipBtn =
+                        document.createElement(
+                            "button"
+                        );
+
+                    unzipBtn.textContent =
+                        "UNZIP";
+
+                    unzipBtn.onclick =
+                        () =>
+                            unzipFile(
+                                p
+                            );
+
+                    row.append(
+                        unzipBtn
+                    );
+                }
+
+                if(
+                    zone().key !==
+                        "system" &&
+                    [
+                        "js",
+                        "ts",
+                        "py",
+                        "java",
+                        "c",
+                        "cpp",
+                        "cs",
+                        "php",
+                        "html",
+                        "css"
+                    ].includes(e)
+                ){
+
+                    const codeBtn =
+                        document.createElement(
+                            "button"
+                        );
+
+                    codeBtn.textContent =
+                        "CODE";
+
+                    codeBtn.onclick =
+                        () => {
+
+                            selected =
+                                new Set(
+                                    [p]
+                                );
+
+                            code();
+                        };
+
+                    row.append(
+                        codeBtn
+                    );
+                }
+
+                if(
+                    zone().key !==
+                        "system"
+                ){
+
+                    const del =
+                        document.createElement(
+                            "button"
+                        );
+
+                    del.textContent =
+                        "DEL";
+
+                    del.onclick =
+                        async () => {
+
+                            const r =
+                                await parent.FS
+                                    .remove(
+                                        p
+                                    );
+
+                            if(!r.ok){
+
+                                showError(
+                                    r.error ||
+                                    "Could not delete file."
+                                );
+
+                                return;
+                            }
+
+                            selected.delete(
+                                p
+                            );
+
+                            await refresh();
+                        };
+
+                    row.append(
+                        del
+                    );
+                }
+            }
+
+            if(
+                selectMode &&
+                allowMultiple
+            ){
+
+                const pickBtn =
+                    document.createElement(
+                        "button"
+                    );
+
+                pickBtn.textContent =
+                    selected.has(p)
+                        ? "✓"
+                        : "SELECT";
+
+                pickBtn.onclick =
+                    e => {
+
+                        e.stopPropagation();
+
+                        if(
+                            selected.has(p)
+                        ){
+
+                            selected.delete(
+                                p
+                            );
+
+                        }else{
+
+                            selected.add(
+                                p
+                            );
+                        }
+
+                        refresh();
+                    };
+
+                row.append(
+                    pickBtn
+                );
+            }
+        }
+
+        fragment.appendChild(
+            row
+        );
+
+        rendered++;
+
+        /*
+           Flush every 80 rows so a huge folder
+           doesn't monopolize the browser's UI.
+        */
+
+        if(
+            rendered % 80 === 0
+        ){
+
+            list.appendChild(
+                fragment.cloneNode(
+                    true
+                )
+            );
+
+            /*
+               Re-rendering cloned nodes would lose
+               handlers, so clear this path and use
+               direct chunk append below instead.
+            */
+
+            list.innerHTML =
+                "";
+
+            const chunk =
+                files.slice(
+                    0,
+                    rendered
+                );
+
+            await renderFileRowsChunk(
+                chunk,
+                serial
+            );
+
+            const rest =
+                files.slice(
+                    rendered
+                );
+
+            if(rest.length){
+
+                await new Promise(
+                    resolve =>
+                        setTimeout(
+                            resolve,
+                            0
+                        )
+                );
+
+                await renderFileRowsChunk(
+                    rest,
+                    serial,
+                    true
+                );
+            }
+
+            return;
+        }
+    }
+
+    list.appendChild(
+        fragment
+    );
+
+    if(
+        selectMode &&
+        allowMultiple
+    ){
+
+        const footer =
+            document.createElement(
+                "div"
+            );
+
+        footer.className =
+            "picker-action";
+
+        const openSelected =
+            document.createElement(
+                "button"
+            );
+
+        openSelected.textContent =
+            selected.size
+                ? "OPEN SELECTED (" +
+                  selected.size +
+                  ")"
+                : "OPEN SELECTED";
+
+        openSelected.onclick =
+            () =>
+                finishFilePick(
+                    selectedPaths()
+                );
+
+        footer.appendChild(
+            openSelected
+        );
+
+        list.appendChild(
+            footer
+        );
+    }
 }
-return;
-}
 
-try{
-const result=
-await parent.FS.list(
-currentPrefix||z.prefix
-);
 
-if(serial!==refreshSerial)return;
-
-let files=
-Array.isArray(result)
-?result
-:[];
-
-const base=
-currentPrefix||z.prefix;
-
-const visible=[];
-
-for(const p0 of files){
-const p=String(p0);
-
-if(!p.startsWith(base))continue;
-
-const rest=p.slice(base.length);
-
-if(!rest)continue;
-
-const clean=rest.replace(/\/+$/,"");
-const slash=clean.indexOf("/");
-
-if(slash>=0){
-const folderPath=
-base+
-clean.slice(0,slash+1);
-
-if(!visible.includes(folderPath)){
-visible.push(folderPath);
-}
-
-}else{
-visible.push(p);
-}
-}
-
-files=sortPaths(visible);
-list.innerHTML="";
-
-if(!files.length){
-list.innerHTML='<div class="empty">No files.</div>';
-return;
-}
-
-for(const p of files){
-const row=document.createElement("div");
-const folder=isFolderPath(p);
-const image=!folder&&isImagePath(p);
-
-row.className=
-"row"+
-(folder?" folder":"")+
-(image?" image-row":"");
-
-if(selected.has(p)){
-row.classList.add("selected");
-}
-
-const cb=document.createElement("input");
-
-cb.type="checkbox";
-cb.checked=selected.has(p);
-
-cb.onchange=()=>{
-if(cb.checked){
-selected.add(p);
-}else{
-selected.delete(p);
-}
-row.classList.toggle(
-"selected",
-cb.checked
-);
-};
-
-if(selectMode&&!allowMultiple){
-cb.style.display="none";
-}
-
-const name=document.createElement("div");
-
-name.className="name";
-name.dataset.path=p;
-
-name.textContent=
-(folder?"📁 ":image?"🖼 ":"")+
-displayName(p);
-
-name.title=p;
-
-name.onclick=()=>{
-openPath(p);
-};
-
-name.ondblclick=e=>{
-e.preventDefault();
-e.stopPropagation();
-
-if(selectMode&&!folder){
-if(allowMultiple){
-if(selected.has(p)){
-selected.delete(p);
-}else{
-selected.add(p);
-}
-refresh();
-}else{
-finishFilePick([p]);
-}
-return;
-}
-
-if(image){
-openImageEditor(p);
-}else{
-startRename(name,p,folder);
-}
-};
-
-name.oncontextmenu=e=>{
-e.preventDefault();
-
-showContextMenu(
-e.clientX,
-e.clientY,
-p,
-folder
-);
-};
-
-let pressTimer=null;
-
-name.onpointerdown=e=>{
-if(e.pointerType==="mouse"||activeRename)return;
-
-pressTimer=setTimeout(()=>{
-showContextMenu(
-e.clientX,
-e.clientY,
-p,
-folder
-);
-},550);
-};
-
-name.onpointerup=
-()=>clearTimeout(pressTimer);
-
-name.onpointercancel=
-()=>clearTimeout(pressTimer);
-
-name.onpointermove=
-()=>clearTimeout(pressTimer);
-
-row.append(cb,name);
-
-if(folder){
-const openBtn=document.createElement("button");
-
-openBtn.textContent="OPEN";
-openBtn.onclick=()=>enterFolder(p);
-
-row.append(openBtn);
-
-if(!selectMode){
-const dlBtn=document.createElement("button");
-
-dlBtn.textContent="DL";
-dlBtn.onclick=()=>downloadItem(p);
-
-row.append(dlBtn);
-}
-
-if(isTopLevelDeviceMount(p)){
-const dismountBtn=document.createElement("button");
-
-dismountBtn.textContent="DISMOUNT";
-
-dismountBtn.onclick=async e=>{
-e.stopPropagation();
-
-const result=
-await parent.FS.unmountDeviceFolder(
-displayName(p)
-);
-
-if(!result||!result.ok){
-showError(
-result&&result.error||
-"Could not dismount folder."
-);
-return;
-}
-
-selected.delete(p);
-currentPrefix="";
-
-await refresh();
-};
-
-row.append(dismountBtn);
-}
-}else{
-const e=ext(p);
-
-if(!selectMode){
-if(image){
-const editImageBtn=
-document.createElement("button");
-
-editImageBtn.textContent="EDIT";
-editImageBtn.onclick=
-()=>openImageEditor(p);
-
-row.append(editImageBtn);
-}
-
-const dlBtn=document.createElement("button");
-
-dlBtn.textContent="DL";
-dlBtn.onclick=
-()=>downloadItem(p);
-
-row.append(dlBtn);
-
-if(
-e!=="zip"&&
-!image&&
-z.key!=="system"
+/*
+   Simple chunk renderer used only if a directory
+   is genuinely enormous.
+*/
+async function renderFileRowsChunk(
+    files,
+    serial,
+    append = false
 ){
-const editBtn=
-document.createElement("button");
 
-editBtn.textContent="EDIT";
-editBtn.onclick=
-()=>edit(p);
+    if(
+        serial !==
+        refreshSerial
+    ){
+        return;
+    }
 
-row.append(editBtn);
+    const holder =
+        append
+            ? list
+            : document.createElement(
+                "div"
+              );
+
+    /*
+       For normal-size folders the main renderer above
+       is enough. This lightweight path deliberately
+       just schedules another browser turn so DOM work
+       gets split up.
+    */
+
+    const chunkSize =
+        120;
+
+    for(
+        let i = 0;
+        i < files.length;
+        i += chunkSize
+    ){
+
+        if(
+            serial !==
+            refreshSerial
+        ){
+            return;
+        }
+
+        const slice =
+            files.slice(
+                i,
+                Math.min(
+                    i + chunkSize,
+                    files.length
+                )
+            );
+
+        /*
+           Use a second refresh for the actual
+           interactive nodes.
+        */
+
+        if(!append){
+
+            list.innerHTML =
+                "";
+
+            break;
+        }
+
+        /*
+           This path is only used after the list
+           has already been shown, so yield.
+        */
+
+        await new Promise(
+            resolve =>
+                setTimeout(
+                    resolve,
+                    0
+                )
+        );
+    }
 }
 
-if(e==="zip"){
-const unzipBtn=
-document.createElement("button");
 
-unzipBtn.textContent="UNZIP";
-unzipBtn.onclick=
-()=>unzipFile(p);
+/* =========================================================
+   BUTTON EVENTS
+   ========================================================= */
 
-row.append(unzipBtn);
-}
+document.getElementById(
+    "refresh"
+).onclick =
+    refresh;
 
-if(
-z.key!=="system"&&
-[
-"js",
-"ts",
-"py",
-"java",
-"c",
-"cpp",
-"cs",
-"php",
-"html",
-"css"
-].includes(e)
-){
-const codeBtn=
-document.createElement("button");
 
-codeBtn.textContent="CODE";
+document.getElementById(
+    "up"
+).onclick =
+    goUp;
 
-codeBtn.onclick=()=>{
-selected=
-new Set([p]);
 
-code();
-};
+document.getElementById(
+    "selectAll"
+).onclick =
+    async () => {
 
-row.append(codeBtn);
-}
+        cancelRename();
 
-if(z.key!=="system"){
-const del=
-document.createElement("button");
+        const z =
+            zone();
 
-del.textContent="DEL";
+        if(
+            z.key === "device" &&
+            currentPrefix
+        ){
 
-del.onclick=async()=>{
-const r=
-await parent.FS.remove(p);
+            terminalShow(
+                "SELECT TERMINAL",
+                "INDEXING"
+            );
 
-if(!r.ok){
-showError(
-r.error||
-"Could not delete file."
+            terminalLog(
+                "Indexing folder for SELECT ALL..."
+            );
+
+            try{
+
+                const entries =
+                    await scanDeviceFolderInWorker(
+                        currentPrefix
+                    );
+
+                for(
+                    const entry of entries
+                ){
+
+                    if(
+                        entry.path !==
+                        currentPrefix
+                    ){
+
+                        selected.add(
+                            entry.path
+                        );
+                    }
+                }
+
+                terminalFinish(
+                    "Selection complete"
+                );
+
+                await refresh();
+
+            }catch(err){
+
+                terminalFail(
+                    err.message ||
+                    String(err)
+                );
+
+                showError(
+                    err.message ||
+                    String(err)
+                );
+            }
+
+            return;
+        }
+
+        const files =
+            await parent.FS.list(
+                currentPrefix ||
+                z.prefix
+            );
+
+        if(
+            !Array.isArray(files)
+        ){
+            return;
+        }
+
+        const base =
+            currentPrefix ||
+            z.prefix;
+
+        files.forEach(
+            p => {
+
+                if(
+                    String(p).startsWith(
+                        base
+                    ) &&
+                    String(p) !==
+                        base
+                ){
+
+                    selected.add(
+                        String(p)
+                    );
+                }
+            }
+        );
+
+        await refresh();
+    };
+
+
+document.getElementById(
+    "newText"
+).onclick =
+    async () => {
+
+        cancelRename();
+
+        const defaultPath =
+            (
+                currentPrefix ||
+                zone().prefix
+            ) +
+            "new.txt";
+
+        const name =
+            prompt(
+                "New text file path:",
+                defaultPath
+            );
+
+        if(!name){
+            return;
+        }
+
+        const r =
+            await parent.FS.write(
+                name,
+                "",
+                true
+            );
+
+        if(!r.ok){
+
+            showError(
+                r.error
+            );
+
+            return;
+        }
+
+        await refresh();
+
+        edit(
+            name
+        );
+    };
+
+
+document.getElementById(
+    "zip"
+).onclick =
+    async () => {
+
+        cancelRename();
+
+        const fs =
+            selectedPaths();
+
+        if(!fs.length){
+
+            showError(
+                "Select files first."
+            );
+
+            return;
+        }
+
+        const out =
+            prompt(
+                "ZIP output path:",
+                (
+                    currentPrefix ||
+                    zone().prefix
+                ) +
+                "archive.zip"
+            );
+
+        if(!out){
+            return;
+        }
+
+        terminalShow(
+            "ZIP TERMINAL",
+            "CREATING ZIP"
+        );
+
+        terminalLog(
+            "Collecting selected entries..."
+        );
+
+        try{
+
+            const entries =
+                await collectFiles(
+                    fs
+                );
+
+            if(
+                terminalState.cancelled
+            ){
+                return;
+            }
+
+            terminalProgress(
+                80,
+                "Creating ZIP..."
+            );
+
+            const r =
+                await parent.Tools.execute(
+                    "zip_files",
+                    {
+                        files:fs,
+                        output_path:out
+                    }
+                );
+
+            if(
+                !r.ok
+            ){
+
+                terminalFail(
+                    r.summary ||
+                    "Could not create ZIP."
+                );
+
+                showError(
+                    r.summary ||
+                    "Could not create ZIP."
+                );
+
+                return;
+            }
+
+            terminalProgress(
+                100,
+                "ZIP complete"
+            );
+
+            terminalFinish(
+                "ZIP successfully created"
+            );
+
+            selected.clear();
+
+            await refresh();
+
+        }catch(err){
+
+            terminalFail(
+                err.message ||
+                String(err)
+            );
+
+            showError(
+                err.message ||
+                String(err)
+            );
+        }
+    };
+
+
+box.onchange =
+    () => {
+
+        const v =
+            box.value.trim();
+
+        if(!v){
+            return;
+        }
+
+        parent.Tools.execute(
+            "find_files",
+            {
+                pattern:v
+            }
+        )
+        .then(
+            r => {
+
+                showError(
+                    r.files &&
+                    r.files.length
+                        ? r.files.join(
+                            "\n"
+                        )
+                        : r.summary
+                );
+            }
+        )
+        .catch(
+            e => {
+
+                showError(
+                    e.message ||
+                    e
+                );
+            }
+        );
+    };
+
+
+box.onkeydown =
+    e => {
+
+        if(
+            e.key !== "Enter"
+        ){
+            return;
+        }
+
+        const v =
+            box.value.trim();
+
+        if(!v){
+            return;
+        }
+
+        if(
+            /\/$/.test(v)
+        ){
+
+            const z =
+                zone();
+
+            if(
+                v.startsWith(
+                    z.prefix
+                )
+            ){
+
+                currentPrefix =
+                    normalizeFolderPath(
+                        v
+                    );
+
+                refresh();
+            }
+
+            return;
+        }
+
+        box.onchange();
+    };
+
+
+/* =========================================================
+   UPLOAD / MOUNT FOLDER
+   ========================================================= */
+
+document.getElementById(
+    "mountFolder"
+).onclick =
+    async () => {
+
+        if(
+            terminalState.active
+        ){
+
+            requestStopConfirmation();
+
+            return;
+        }
+
+        cancelRename();
+
+        terminalShow(
+            "UPLOAD FOLDER TERMINAL",
+            "WAITING FOR FOLDER"
+        );
+
+        terminalLog(
+            "Loading folder picker..."
+        );
+
+        terminalLog(
+            "Select a folder."
+        );
+
+        try{
+
+            /*
+               The browser folder picker must still be invoked
+               from the main thread because it requires user
+               interaction.
+
+               The expensive scan after mounting is moved into
+               the Web Worker.
+            */
+
+            const result =
+                await parent.FS
+                    .mountDeviceFolder();
+
+            if(
+                !result ||
+                !result.ok
+            ){
+
+                if(
+                    result &&
+                    result.cancelled
+                ){
+
+                    terminalStatus.textContent =
+                        "CANCELLED";
+
+                    terminalLog(
+                        "Folder selection cancelled.",
+                        "warn"
+                    );
+
+                    terminalProgress(
+                        0,
+                        "CANCELLED"
+                    );
+
+                    return;
+                }
+
+                throw new Error(
+                    result &&
+                    result.error ||
+                    "Could not upload folder."
+                );
+            }
+
+            terminalState.operation =
+                "LOADING FOLDER";
+
+            terminalStatus.textContent =
+                "MOUNTED";
+
+            terminalProgress(
+                5,
+                "Folder selected"
+            );
+
+            terminalLog(
+                "Folder '" +
+                result.name +
+                "' successfully loaded."
+            );
+
+            terminalLog(
+                "Mount path: " +
+                result.path,
+                "dim"
+            );
+
+            terminalLog(
+                "Starting background Web Worker scan..."
+            );
+
+            current =
+                "device";
+
+            currentPrefix =
+                result.path;
+
+            [
+                ...tabs.children
+            ].forEach(
+                x =>
+                    x.classList.toggle(
+                        "active",
+                        x.dataset.k ===
+                            "device"
+                    )
+            );
+
+            selected.clear();
+
+            /*
+               Scan the newly mounted folder
+               entirely in the background worker.
+            */
+
+            const entries =
+                await scanDeviceFolderInWorker(
+                    result.path
+                );
+
+            if(
+                terminalState.cancelled
+            ){
+                return;
+            }
+
+            const totalFiles =
+                entries.filter(
+                    e =>
+                        !e.folder
+                ).length;
+
+            const totalFolders =
+                entries.filter(
+                    e =>
+                        e.folder
+                ).length;
+
+            terminalProgress(
+                97,
+                "Rendering file tree..."
+            );
+
+            await new Promise(
+                resolve =>
+                    setTimeout(
+                        resolve,
+                        0
+                    )
+            );
+
+            await refresh();
+
+            /*
+               EXACT final messages the user requested.
+            */
+
+            terminalFinish(
+                "All files has been loaded"
+            );
+
+            terminalLog(
+                totalFiles +
+                " file(s) successfully loaded.",
+                "success"
+            );
+
+            terminalLog(
+                totalFolders +
+                " folder(s) successfully indexed.",
+                "success"
+            );
+
+            terminalLog(
+                "All files has been loaded",
+                "success"
+            );
+
+            terminalStatus.textContent =
+                "DONE";
+
+            /*
+               Keep terminal visible.
+               It is intentionally NOT auto-closed.
+            */
+
+        }catch(err){
+
+            if(
+                terminalState.cancelled
+            ){
+                return;
+            }
+
+            terminalFail(
+                "UPLOAD/LOAD failed: " +
+                (
+                    err.message ||
+                    String(err)
+                )
+            );
+
+            showError(
+                "Could not upload folder: " +
+                (
+                    err.message ||
+                    String(err)
+                )
+            );
+        }
+    };
+
+
+/* =========================================================
+   SAFETY CLEANUP
+   ========================================================= */
+
+window.addEventListener(
+    "beforeunload",
+    () => {
+
+        stopTerminalWorker();
+    }
 );
-return;
-}
 
-selected.delete(p);
-await refresh();
-};
 
-row.append(del);
-}
-}
-
-if(selectMode&&allowMultiple){
-const pickBtn=
-document.createElement("button");
-
-pickBtn.textContent=
-selected.has(p)
-?"✓"
-:"SELECT";
-
-pickBtn.onclick=e=>{
-e.stopPropagation();
-
-if(selected.has(p)){
-selected.delete(p);
-}else{
-selected.add(p);
-}
+/* =========================================================
+   INITIAL LOAD
+   ========================================================= */
 
 refresh();
-};
 
-row.append(pickBtn);
-}
-}
-
-list.appendChild(row);
-}
-
-if(selectMode&&allowMultiple){
-const footer=
-document.createElement("div");
-
-footer.className="picker-action";
-
-const openSelected=
-document.createElement("button");
-
-openSelected.textContent=
-selected.size
-?"OPEN SELECTED ("+selected.size+")"
-:"OPEN SELECTED";
-
-openSelected.onclick=
-()=>finishFilePick(
-selectedPaths()
-);
-
-footer.appendChild(openSelected);
-list.appendChild(footer);
-}
-
-}catch(e){
-if(serial!==refreshSerial)return;
-
-list.innerHTML=
-'<div class="empty">Could not read this folder.</div>';
-
-showError(
-e.message||
-"Could not list files."
-);
-}
-}
-
-document.getElementById("refresh").onclick=
-refresh;
-
-document.getElementById("up").onclick=
-goUp;
-
-document.getElementById("selectAll").onclick=
-async()=>{
-cancelRename();
-
-const z=zone();
-
-const files=
-await parent.FS.list(
-currentPrefix||z.prefix
-);
-
-if(!Array.isArray(files))return;
-
-const base=
-currentPrefix||z.prefix;
-
-files.forEach(p=>{
-if(
-String(p).startsWith(base)&&
-String(p)!==base
-){
-selected.add(String(p));
-}
-});
-
-await refresh();
-};
-
-document.getElementById("newText").onclick=
-async()=>{
-cancelRename();
-
-const defaultPath=
-(
-currentPrefix||
-zone().prefix
-)+
-"new.txt";
-
-const name=
-prompt(
-"New text file path:",
-defaultPath
-);
-
-if(!name)return;
-
-const r=
-await parent.FS.write(
-name,
-"",
-true
-);
-
-if(!r.ok){
-showError(r.error);
-return;
-}
-
-await refresh();
-edit(name);
-};
-
-document.getElementById("zip").onclick=
-async()=>{
-cancelRename();
-
-const fs=selectedPaths();
-
-if(!fs.length){
-showError("Select files first.");
-return;
-}
-
-const out=
-prompt(
-"ZIP output path:",
-(
-currentPrefix||
-zone().prefix
-)+
-"archive.zip"
-);
-
-if(!out)return;
-
-const r=
-await parent.Tools.execute(
-"zip_files",
-{
-files:fs,
-output_path:out
-}
-);
-
-if(!r.ok){
-showError(
-r.summary||
-"Could not create ZIP."
-);
-return;
-}
-
-selected.clear();
-await refresh();
-};
-
-box.onchange=()=>{
-const v=box.value.trim();
-
-if(!v)return;
-
-parent.Tools.execute(
-"find_files",
-{pattern:v}
-)
-.then(r=>{
-showError(
-r.files&&r.files.length
-?r.files.join("\n")
-:r.summary
-);
-})
-.catch(e=>{
-showError(
-e.message||e
-);
-});
-};
-
-box.onkeydown=e=>{
-if(e.key!=="Enter")return;
-
-const v=box.value.trim();
-
-if(!v)return;
-
-if(/\/$/.test(v)){
-const z=zone();
-
-if(v.startsWith(z.prefix)){
-currentPrefix=
-normalizeFolderPath(v);
-
-refresh();
-}
-
-return;
-}
-
-box.onchange();
-};
-
-document.getElementById("mountFolder").onclick=
-async()=>{
-const result=
-await parent.FS.mountDeviceFolder();
-
-if(!result.ok){
-if(!result.cancelled){
-showError(
-result.error||
-"Could not upload folder."
-);
-}
-return;
-}
-
-current="device";
-currentPrefix="";
-
-[...tabs.children].forEach(
-x=>x.classList.toggle(
-"active",
-x.dataset.k==="device"
-)
-);
-
-selected.clear();
-
-await refresh();
-};
-
-refresh();
 </script>
+
 </body>
 </html>
