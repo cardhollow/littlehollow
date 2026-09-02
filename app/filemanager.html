@@ -1,1601 +1,1949 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>File Manager</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:monospace}
-html,body{width:100%;height:100%;background:#000d0d;color:#00FFFF}
-body{overflow:hidden}
-.wrap{display:flex;flex-direction:column;height:100%}
-.bar{display:flex;gap:5px;padding:6px;border-bottom:1px solid #00FFFF;flex-wrap:wrap}
-.bar button,.bar input{border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:6px 8px;font:10px monospace}
-.bar input{flex:1 1 150px}
-.bar button:active,.row button:active,.ctx button:active{background:#00FFFF;color:#000}
-.tabs{display:flex;border-bottom:1px solid #00FFFF;overflow-x:auto}
-.tabs button{flex:0 0 auto;border:0;border-right:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:7px 10px;cursor:pointer;font:11px monospace}
-.tabs button.active{background:rgba(0,255,255,.15)}
-.pathbar{display:flex;padding:5px 6px;border-bottom:1px solid rgba(0,255,255,.25)}
-.current-path{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:10px;opacity:.8}
-.hint{padding:4px 8px;font-size:10px;opacity:.55;border-bottom:1px solid rgba(0,255,255,.2)}
-#error{color:#ff6666;white-space:pre-wrap}
-.list{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
-.row{display:flex;align-items:center;gap:5px;padding:7px 8px;border-bottom:1px solid rgba(0,255,255,.22);font-size:11px}
-.row.folder{background:rgba(0,255,255,.035)}
-.row.selected{background:rgba(0,255,255,.1)}
-.name{flex:1;min-width:0;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.row.folder .name{font-weight:bold}
-.rename-input{flex:1;min-width:0;width:100%;border:1px solid #00FFFF;outline:none;background:#001919;color:#00FFFF;padding:3px 5px;font:11px monospace}
-.row button{border:1px solid #00FFFF;background:transparent;color:#00FFFF;font:10px monospace;padding:3px 5px;cursor:pointer}
-.row input{accent-color:#00FFFF}
-.empty{padding:16px;opacity:.6;font-size:12px}
-.ctx{position:fixed;z-index:999999;min-width:150px;max-width:240px;border:1px solid #00FFFF;background:#000d0d;box-shadow:0 0 0 1px rgba(0,255,255,.15);padding:4px;display:none}
-.ctx button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid rgba(0,255,255,.2);background:transparent;color:#00FFFF;padding:7px 8px;font:10px monospace}
-.ctx button:last-child{border-bottom:0}
-.ctx .danger{color:#ff6666}.ctx .zip-action{color:#66FFFF}.ctx .edit-action{color:#7fffff;font-weight:bold}
-.image-row{border-left:2px solid rgba(0,255,255,.35)}
-.picker-action{border-top:1px solid #00FFFF;padding:8px}
-.picker-action button{width:100%;border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:8px;font:11px monospace}
-.picker-action button:active{background:#00FFFF;color:#000}
-</style>
-</head>
-<body>
-<div class="wrap">
-<div class="bar">
-<input id="pathBox" placeholder="path or wildcard">
-<button id="refresh">REFRESH</button>
-<button id="up">UP</button>
-<button id="newText">NEW TEXT</button>
-<button id="mountFolder">UPLOAD FOLDER</button>
-<button id="zip">ZIP SELECTED</button>
-<button id="selectAll">SELECT ALL</button>
-</div>
-<div class="tabs" id="tabs"></div>
-<div class="pathbar"><div class="current-path" id="currentPath"></div></div>
-<div class="hint" id="hint">Tap a file to open it. Tap a folder to enter it. Double-tap a name to rename. Long-press/right-click for more actions.</div>
-<div class="hint" id="error" style="display:none"></div>
-<div class="list" id="list"></div>
-</div>
-<div class="ctx" id="contextMenu"></div>
-<script>
-"use strict";
-
-/* =========================================================
-   LITTLE HOLLOW TERMINAL WINDOW
-   Matches the terminal architecture used by tools.js:
-   WM.openWindow({ title, html, width, height, noPad }).
-   ========================================================= */
-
-let uploadJob = null;
-let uploadTerminal = null;
-let confirmTerminal = null;
-let terminalCloseGuardTimer = null;
-
-function escHtml(value){
-    return String(value == null ? "" : value)
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;");
-}
-
-function terminalHtml(command){
-    return "<div class='lh-terminal' style='"+
-        "width:100%;"+
-        "height:100%;"+
-        "margin:0;"+
-        "padding:0;"+
-        "background:#000;"+
-        "color:#00FFFF;"+
-        "font-family:monospace;"+
-        "display:flex;"+
-        "flex-direction:column;"+
-        "overflow:hidden;"+
-        "box-sizing:border-box;"+
-        "'>"+
-        "<div style='"+
-            "height:30px;"+
-            "min-height:30px;"+
-            "padding:0 10px;"+
-            "display:flex;"+
-            "align-items:center;"+
-            "border-bottom:1px solid #00FFFF;"+
-            "background:#001414;"+
-            "color:#00FFFF;"+
-            "font-size:11px;"+
-            "letter-spacing:1px;"+
-            "box-sizing:border-box;"+
-        "'>"+
-            "<span style='opacity:.45;margin-right:6px'>●</span>"+
-            "<span style='opacity:.65;margin-right:6px'>●</span>"+
-            "<span style='opacity:.9;margin-right:12px'>●</span>"+
-            "<span>LITTLE HOLLOW TERMINAL</span>"+
-        "</div>"+
-        "<div id='terminal-screen' style='"+
-            "flex:1;"+
-            "min-height:0;"+
-            "overflow:auto;"+
-            "padding:12px;"+
-            "background:#000;"+
-            "color:#00FFFF;"+
-            "font-family:monospace;"+
-            "font-size:12px;"+
-            "line-height:1.55;"+
-            "white-space:pre-wrap;"+
-            "word-break:break-word;"+
-            "box-sizing:border-box;"+
-        "'>"+
-            "<div id='terminal-out'>"+
-                "<div style='opacity:.75'>LITTLE HOLLOW TERMINAL</div>"+
-                "<div style='opacity:.4'>SYSTEM READY</div>"+
-                "<br>"+
-                "<div><span style='color:#00FFFF'>chxd@little-hollow</span>"+
-                    "<span style='opacity:.45'>:</span>"+
-                    "<span style='color:#66FFFF'>~</span>"+
-                    "<span style='opacity:.45'>$</span> " +
-                    escHtml(command) +
-                "</div>"+
-                "<div style='margin-top:8px'><span style='color:#FFFF00'>[ RUNNING ]</span></div>"+
-                "<span class='cursor'>█</span>"+
-            "</div>"+
-        "</div>"+
-    "</div>";
-}
-
-function openLittleHollowTerminal(command, title){
-    if(!parent.WM || typeof parent.WM.openWindow !== "function"){
-        throw new Error("WM.openWindow is unavailable.");
-    }
-    const win = parent.WM.openWindow({
-        title: title || "TERMINAL",
-        html: terminalHtml(command),
-        width:"560px",
-        height:"320px",
-        noPad:false,
-        standaloneKey:null
-    });
-    if(!win) throw new Error("Could not create terminal window.");
-    return win;
-}
-
-function terminalOut(win){
-    if(!win || !win.el) return null;
-    return win.el.querySelector("#terminal-out");
-}
-
-function terminalScreen(win){
-    if(!win || !win.el) return null;
-    return win.el.querySelector("#terminal-screen");
-}
-
-function terminalWrite(win, text, className){
-    const out = terminalOut(win);
-    if(!out) return;
-    const line = document.createElement("div");
-    line.style.marginTop = "7px";
-    if(className === "dim") line.style.opacity = ".55";
-    if(className === "ok") line.style.color = "#00FF88";
-    if(className === "warn") line.style.color = "#FFFF00";
-    if(className === "error") line.style.color = "#FF6666";
-    line.textContent = String(text);
-    out.appendChild(line);
-    const cursor = out.querySelector(".cursor");
-    if(cursor) out.appendChild(cursor);
-    const screen = terminalScreen(win);
-    if(screen) screen.scrollTop = screen.scrollHeight;
-}
-
-function terminalSetProgress(win, percent, message){
-    const out = terminalOut(win);
-    if(!out) return;
-    let box = out.querySelector("#lh-upload-progress");
-    if(!box){
-        box = document.createElement("div");
-        box.id = "lh-upload-progress";
-        box.style.marginTop = "12px";
-        out.appendChild(box);
-    }
-    const p = Math.max(0,Math.min(100,Number(percent)||0));
-    const width = Math.max(0,Math.min(100,p));
-    box.innerHTML =
-        "<div style='margin-bottom:5px;opacity:.9'>"+
-        escHtml(message || (Math.floor(p)+"%"))+"</div>"+
-        "<div style='height:10px;border:1px solid #00FFFF;background:#000;overflow:hidden'>"+
-            "<div style='height:100%;width:"+width+"%;background:#00FFFF'></div>"+
-        "</div>"+
-        "<div style='margin-top:5px'>"+
-            "[PRINTBARSGROWING]"+Math.floor(p)+"%"+
-        "</div>";
-    const cursor = out.querySelector(".cursor");
-    if(cursor) out.appendChild(cursor);
-    const screen = terminalScreen(win);
-    if(screen) screen.scrollTop = screen.scrollHeight;
-}
-
-function lockTerminalWindow(win){
-    if(!win || !win.el) return;
-    const lock = () => {
-        const nodes = win.el.querySelectorAll(
-            "button,[role='button'],[title],[aria-label]"
-        );
-        for(const n of nodes){
-            const raw = (
-                (n.textContent||"") + " " +
-                (n.getAttribute("title")||"") + " " +
-                (n.getAttribute("aria-label")||"") + " " +
-                (n.className||"")
-            ).toLowerCase();
-            if(
-                raw.includes("close") ||
-                raw.includes("×") ||
-                raw.includes("✕") ||
-                raw.includes("delete")
-            ){
-                n.style.pointerEvents = "none";
-                n.style.visibility = "hidden";
-            }
-        }
-        try{
-            win.el.dataset.lhTerminalLocked = "1";
-        }catch(_){ }
-    };
-    lock();
-    clearInterval(terminalCloseGuardTimer);
-    terminalCloseGuardTimer = setInterval(() => {
-        if(!win || win.closed || !win.el){
-            clearInterval(terminalCloseGuardTimer);
-            terminalCloseGuardTimer = null;
-            return;
-        }
-        lock();
-    },250);
-}
-
-function closeLittleHollowTerminal(win){
-    if(!win) return;
-    try{
-        if(parent.WM && typeof parent.WM.closeWindow === "function"){
-            parent.WM.closeWindow(win);
-            return;
-        }
-    }catch(_){ }
-    try{ win.closed = true; }catch(_){ }
-}
-
-function closeConfirmationTerminal(){
-    if(confirmTerminal){
-        closeLittleHollowTerminal(confirmTerminal);
-        confirmTerminal = null;
-    }
-}
-
-function askUploadStop(){
-    if(!uploadJob || uploadJob.finished || uploadJob.stopped) return;
-    if(confirmTerminal) return;
-
-    confirmTerminal = openLittleHollowTerminal(
-        "> Ctrl+C",
-        "TERMINAL"
-    );
-    lockTerminalWindow(confirmTerminal);
-
-    const out = terminalOut(confirmTerminal);
-    if(!out) return;
-    out.innerHTML =
-        "<div style='opacity:.75'>LITTLE HOLLOW TERMINAL</div>"+
-        "<div style='opacity:.4'>INTERRUPT REQUEST</div>"+
-        "<br>"+
-        "<div><span style='color:#00FFFF'>chxd@little-hollow</span>"+
-            "<span style='opacity:.45'>:</span>"+
-            "<span style='color:#66FFFF'>~</span>"+
-            "<span style='opacity:.45'>$</span> Ctrl+C"+
-        "</div>"+
-        "<div style='margin-top:10px;color:#FFFF00'>"+
-            "A folder-loading operation is running."+
-        "</div>"+
-        "<div style='margin-top:8px'>"+
-            "Stop loading this folder?"+
-        "</div>"+
-        "<div style='margin-top:8px;opacity:.65'>"+
-            "The mounted folder will not be removed."+
-        "</div>"+
-        "<div style='display:flex;gap:7px;margin-top:16px'>"+
-            "<button id='lh-stop-yes' style='flex:1;border:1px solid #FF6666;background:transparent;color:#FF6666;padding:8px;font:11px monospace'>[Y] STOP UPLOAD</button>"+
-            "<button id='lh-stop-no' style='flex:1;border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:8px;font:11px monospace'>[N] CONTINUE</button>"+
-        "</div>"+
-        "<span class='cursor' style='display:block;margin-top:12px'>█</span>";
-
-    const yes = confirmTerminal.el.querySelector("#lh-stop-yes");
-    const no = confirmTerminal.el.querySelector("#lh-stop-no");
-    if(yes) yes.onclick = stopUploadConfirmed;
-    if(no) no.onclick = closeConfirmationTerminal;
-
-    if(yes) yes.focus();
-}
-
-function stopUploadConfirmed(){
-    closeConfirmationTerminal();
-    if(!uploadJob || uploadJob.finished || uploadJob.stopped) return;
-
-    uploadJob.stopRequested = true;
-    uploadJob.stopped = true;
-
-    if(uploadTerminal){
-        terminalWrite(uploadTerminal,"Ctrl+C received.","warn");
-        terminalWrite(uploadTerminal,"Stopping background folder loader...","warn");
-        terminalWrite(uploadTerminal,"Folder mount preserved.","dim");
-        terminalSetProgress(uploadTerminal,uploadJob.lastPercent||0,"CANCELLED");
-        terminalWrite(uploadTerminal,"Upload stopped by user.","warn");
-    }
-
-    setTimeout(() => {
-        if(uploadTerminal){
-            closeLittleHollowTerminal(uploadTerminal);
-            uploadTerminal = null;
-        }
-    },500);
-}
-
-function handleTerminalKeydown(e){
-    if(
-        e.ctrlKey &&
-        String(e.key).toLowerCase() === "c" &&
-        uploadJob &&
-        !uploadJob.finished &&
-        !uploadJob.stopped
-    ){
-        e.preventDefault();
-        e.stopPropagation();
-        askUploadStop();
-    }
-}
-document.addEventListener("keydown",handleTerminalKeydown,true);
-
-/* =========================================================
-   DEVICE LOADING ENGINE
-
-   IMPORTANT:
-   Do not send FileSystemDirectoryHandle objects to a Worker.
-   Little Hollow's mounted handles are permission-sensitive, and a
-   Worker context can trigger the browser's
-   "request is not allowed by the user agent or platform" error.
-
-   Instead, enumerate cooperatively on the File Manager window. The
-   File System Access API iterator is asynchronous; we yield to the
-   browser after small batches. This avoids the giant recursive
-   FS.list() call used by the stock device filesystem implementation.
-
-   We also maintain a shallow per-directory cache so reopening DEVICE
-   or a previously scanned folder does not recursively enumerate the
-   entire mounted tree again.
-   ========================================================= */
-
-const deviceIndex = new Map();
-
-function normalizeIndexPath(path){
-    return normalizeFolderPath(String(path || ""));
-}
-
-function clearDeviceIndex(){
-    deviceIndex.clear();
-}
-
-function indexDirectoryChild(parentPath,childPath){
-    const key=normalizeIndexPath(parentPath);
-    let bucket=deviceIndex.get(key);
-    if(!bucket){
-        bucket=[];
-        deviceIndex.set(key,bucket);
-    }
-    if(!bucket.includes(childPath))bucket.push(childPath);
-}
-
-function getIndexedChildren(path){
-    const bucket=deviceIndex.get(normalizeIndexPath(path));
-    return bucket ? [...bucket] : null;
-}
-
-async function getMountHandleByName(name){
-    if(!parent.FS||typeof parent.FS.getDeviceMounts!=="function")return null;
-    const mounts=await parent.FS.getDeviceMounts();
-    if(!Array.isArray(mounts))return null;
-    const found=mounts.find(m=>m&&m.name===name);
-    return found&&found.handle?found.handle:null;
-}
-
-function mountNameFromPath(path){
-    const prefix="chxd:/device/";
-    if(!String(path).startsWith(prefix))return null;
-    const rest=String(path).slice(prefix.length);
-    const i=rest.indexOf("/");
-    return i<0?rest:rest.slice(0,i);
-}
-
-function deviceRelativeParts(path){
-    const prefix="chxd:/device/";
-    if(!String(path).startsWith(prefix))return [];
-    const rest=String(path)
-        .slice(prefix.length)
-        .replace(/^\/+|\/+$/g,"");
-    const parts=rest.split("/").filter(Boolean);
-    if(parts.length<=1)return [];
-    return parts.slice(1);
-}
-
-async function getDeviceDirectoryHandle(path){
-    const mountName=mountNameFromPath(path);
-    if(!mountName)return null;
-
-    let handle=await getMountHandleByName(mountName);
-    if(!handle)return null;
-
-    /*
-       Never call requestPermission() here automatically.
-       A permission prompt requires a user activation in the browser.
-       The initial mount already happened from the Upload button.
-    */
-    if(typeof handle.queryPermission==="function"){
-        let state="granted";
-        try{
-            state=await handle.queryPermission({mode:"read"});
-        }catch(_){ }
-        if(state!=="granted"){
-            return {
-                needsPermission:true,
-                handle
-            };
-        }
-    }
-
-    for(const part of deviceRelativeParts(path)){
-        try{
-            handle=await handle.getDirectoryHandle(part);
-        }catch(error){
-            throw new Error(
-                "Could not open folder '"+
-                part+
-                "': "+
-                (error&&error.message?error.message:String(error))
-            );
-        }
-    }
-
-    return handle;
-}
-
-function yieldToBrowser(){
-    return new Promise(resolve=>{
-        if(typeof requestAnimationFrame==="function"){
-            requestAnimationFrame(()=>resolve());
-        }else{
-            setTimeout(resolve,0);
-        }
-    });
-}
-
-function uploadProgress(processed,queued){
-    /*
-       We cannot know the final total without first doing the full scan.
-       This is a monotonic progress estimate based on actual work
-       discovered and queued. 100% is reserved for completion.
-    */
-    return Math.min(
-        99,
-        Math.max(
-            1,
-            Math.floor(
-                100 *
-                (
-                    1 -
-                    Math.exp(
-                        -processed /
-                        Math.max(
-                            120,
-                            120 + queued * 10
-                        )
-                    )
-                )
-            )
-        )
-    );
-}
-
-async function appendIndexedChildrenToCurrentDirectory(parentPath){
-    if(
-        String(currentPrefix)!==
-        normalizeIndexPath(parentPath)
-    )return;
-
-    const children=
-        getIndexedChildren(parentPath)||[];
-
-    if(!children.length)return;
-
-    const seen=new Set(
-        [...list.querySelectorAll(".name")]
-            .map(n=>n.dataset.path)
-    );
-
-    const fragment=
-        document.createDocumentFragment();
-
-    let count=0;
-
-    for(const child of sortPaths(children)){
-        if(seen.has(child))continue;
-        fragment.appendChild(createRow(child));
-        seen.add(child);
-        count++;
-
-        if(count>=48)break;
-    }
-
-    if(count)list.appendChild(fragment);
-}
-
-/*
-   Initial upload scan.
-   Handles stay in the window context. We use a small BFS queue and
-   yield frequently. The UI receives children as soon as they are found.
-*/
-async function scanMountedFolderIncrementally(
-    rootHandle,
-    rootPath,
-    job,
-    initialChildren=[]
-){
-    const queue=[...initialChildren];
-
-    let processed=0;
-    let files=0;
-    let folders=0;
-
-    while(queue.length){
-        if(job.stopped){
-            throw new Error("Upload stopped by user.");
-        }
-
-        const currentJob=queue.shift();
-        const parentPath=normalizeIndexPath(currentJob.path);
-        const dirHandle=currentJob.handle;
-
-        if(!deviceIndex.has(parentPath)){
-            deviceIndex.set(parentPath,[]);
-        }
-
-        try{
-            for await(const item of dirHandle.values()){
-
-                if(job.stopped){
-                    throw new Error("Upload stopped by user.");
-                }
-
-                const childBase=
-                    parentPath.replace(/\/+$/g,"")+
-                    "/"+
-                    item.name;
-
-                const child=
-                    item.kind==="directory"
-                        ?childBase+"/"
-                        :childBase;
-
-                indexDirectoryChild(
-                    parentPath,
-                    child
-                );
-
-                processed++;
-
-                if(item.kind==="directory"){
-                    folders++;
-                    queue.push({
-                        handle:item,
-                        path:child,
-                        folder:true
-                    });
-                }else{
-                    files++;
-                }
-
-                /*
-                   Show files immediately when the user is looking at
-                   the directory being scanned.
-                */
-                if(
-                    String(currentPrefix)===parentPath
-                ){
-                    const nodes=
-                        list.querySelectorAll(
-                            ".name"
-                        );
-
-                    let exists=false;
-                    for(const node of nodes){
-                        if(node.dataset.path===child){
-                            exists=true;
-                            break;
-                        }
-                    }
-
-                    if(!exists){
-                        if(
-                            list.firstElementChild &&
-                            list.firstElementChild.classList.contains("empty")
-                        ){
-                            list.innerHTML="";
-                        }
-
-                        list.appendChild(
-                            createRow(child)
-                        );
-                    }
-                }
-
-                if(processed%12===0){
-                    job.lastPercent=Math.max(
-                        job.lastPercent||0,
-                        uploadProgress(
-                            processed,
-                            queue.length
-                        )
-                    );
-
-                    if(uploadTerminal){
-                        terminalSetProgress(
-                            uploadTerminal,
-                            job.lastPercent,
-                            "Loading "+child+
-                            " | "+files+
-                            " files | "+folders+
-                            " folders"
-                        );
-
-                        if(processed%48===0){
-                            terminalWrite(
-                                uploadTerminal,
-                                "Loading "+child,
-                                "dim"
-                            );
-                        }
-                    }
-
-                    await yieldToBrowser();
-                }
-            }
-        }catch(error){
-            if(job.stopped){
-                throw new Error("Upload stopped by user.");
-            }
-            throw error;
-        }
-
-        await appendIndexedChildrenToCurrentDirectory(
-            parentPath
-        );
-
-        await yieldToBrowser();
-    }
-
-    return {
-        processed,
-        files,
-        folders
-    };
-}
-
-/*
-   DEVICE root: only show mount points.
-   Never call FS.list("chxd:/device/") here because Little Hollow's
-   current device list implementation recursively walks every mount.
-*/
-async function loadDeviceRoot(){
-    const mounts=
-        await parent.FS.getDeviceMounts();
-
-    const files=Array.isArray(mounts)
-        ?mounts.map(
-            m=>"chxd:/device/"+
-               m.name+"/"
-        )
-        :[];
-
-    await renderFiles(
-        sortPaths(files),
-        refreshSerial
-    );
-}
-
-/*
-   Open one mounted directory without recursively scanning descendants.
-*/
-async function loadCurrentDeviceDirectory(){
-    const path=
-        normalizeIndexPath(
-            currentPrefix ||
-            "chxd:/device/"
-        );
-
-    if(path==="chxd:/device/"){
-        await loadDeviceRoot();
-        return;
-    }
-
-    const cached=
-        getIndexedChildren(path);
-
-    if(cached){
-        await renderFiles(
-            sortPaths(cached),
-            refreshSerial
-        );
-        return;
-    }
-
-    const resolved=
-        await getDeviceDirectoryHandle(path);
-
-    if(
-        resolved &&
-        resolved.needsPermission
-    ){
-        throw new Error(
-            "Permission for this mounted folder is no longer active. "+
-            "Use UPLOAD FOLDER to select and authorize it again."
-        );
-    }
-
-    if(!resolved){
-        throw new Error(
-            "Mounted folder is unavailable."
-        );
-    }
-
-    const children=[];
-    deviceIndex.set(path,children);
-
-    for await(const item of resolved.values()){
-        const child=
-            path.replace(/\/+$/g,"")+
-            "/"+
-            item.name+
-            (item.kind==="directory"?"/":"");
-
-        children.push(child);
-
-        await yieldToBrowser();
-    }
-
-    await renderFiles(
-        sortPaths(children),
-        refreshSerial
-    );
-}
-
-/* =========================================================
-   FILE MANAGER STATE
-   ========================================================= */
-
-const zones=[
-    {key:"local",label:"LOCAL",prefix:"chxd:/local/"},
-    {key:"session",label:"SESSION",prefix:"chxd:/session/"},
-    {key:"indexdb",label:"INDEXDB",prefix:"chxd:/indexdb/"},
-    {key:"puter",label:"PUTER",prefix:"puter:/"},
-    {key:"device",label:"DEVICE",prefix:"chxd:/device/"},
-    {key:"system",label:"SYSTEM",prefix:"chxd:/system/"}
-];
-
-let current="local";
-let currentPrefix="";
-let selected=new Set();
-let contextPath=null;
-let contextIsFolder=false;
-let activeRename=null;
-let renameSaving=false;
-let renameRequest=0;
-let refreshSerial=0;
-
-const params=new URLSearchParams(location.search);
-const selectMode=params.get("select")==="1";
-const allowMultiple=params.get("multiple")==="1"||params.get("allowMultiple")==="1";
-
-const tabs=document.getElementById("tabs");
-const list=document.getElementById("list");
-const box=document.getElementById("pathBox");
-const hint=document.getElementById("hint");
-const errorBox=document.getElementById("error");
-const currentPathBox=document.getElementById("currentPath");
-const contextMenu=document.getElementById("contextMenu");
-
-function showError(s){
-    errorBox.textContent=String(s||"Unknown error");
-    errorBox.style.display="block";
-    clearTimeout(showError.timer);
-    showError.timer=setTimeout(()=>errorBox.style.display="none",4500);
-}
-
-if(selectMode){
-    hint.textContent=allowMultiple
-        ?"FILE PICKER: select files, then tap OPEN SELECTED."
-        :"FILE PICKER: tap a file to return it to the application.";
-    document.getElementById("mountFolder").style.display="none";
-    document.getElementById("newText").style.display="none";
-    document.getElementById("zip").style.display="none";
-    document.getElementById("selectAll").style.display=allowMultiple?"":"none";
-}
-
-zones.forEach(z=>{
-    const b=document.createElement("button");
-    b.textContent=z.label;
-    b.dataset.k=z.key;
-    if(z.key===current)b.classList.add("active");
-    b.onclick=()=>{
-        cancelRename();
-        current=z.key;
-        currentPrefix="";
-        selected.clear();
-        [...tabs.children].forEach(x=>x.classList.toggle("active",x.dataset.k===current));
-        refresh();
-    };
-    tabs.appendChild(b);
-});
-
-function zone(){return zones.find(x=>x.key===current)}
-function ext(p){return String(p||"").split("?")[0].split("#")[0].split(".").pop().toLowerCase()}
-function isImagePath(path){return ["png","jpg","jpeg","jpe","webp","gif","bmp","svg","avif","ico","tif","tiff"].includes(ext(path))}
-function selectedPaths(){return [...selected]}
-function normalizeFolderPath(p){p=String(p||"");return p.endsWith("/")?p:p+"/"}
-function isFolderPath(p){return String(p||"").endsWith("/")}
-function displayName(p){const clean=String(p||"").replace(/\/+$/g,"");const i=clean.lastIndexOf("/");return i>=0?clean.slice(i+1):clean}
-function parentFolder(p){const clean=String(p||"").replace(/\/+$/g,"");const i=clean.lastIndexOf("/");return i<0?"":clean.slice(0,i+1)}
-function isTopLevelDeviceMount(p){const clean=String(p||"").replace(/\/+$/g,"");const prefix="chxd:/device/";if(!clean.startsWith(prefix))return false;const relative=clean.slice(prefix.length);return relative.length>0&&!relative.includes("/")}
-function updatePathDisplay(){const z=zone();currentPathBox.textContent=z.prefix+currentPrefix.replace(z.prefix,"")}
-function closeContextMenu(){contextMenu.style.display="none";contextPath=null;contextIsFolder=false}
-function addContextButton(label,fn,className=""){const b=document.createElement("button");b.textContent=label;if(className)b.className=className;b.onclick=()=>{closeContextMenu();fn()};contextMenu.appendChild(b)}
-
-function getOwnWindow(){
-    try{
-        const frame=window.frameElement;
-        if(!frame)return null;
-        const el=frame.closest(".cyan-window");
-        if(!el||!parent.WM||typeof parent.WM.list!=="function")return null;
-        return parent.WM.list().find(w=>w.el===el)||null;
-    }catch(_){return null}
-}
-function getTargetApplicationWindow(){
-    try{
-        const own=getOwnWindow();
-        const windows=parent.WM&&typeof parent.WM.list==="function"?parent.WM.list():[];
-        const candidates=windows.filter(w=>{if(!w||w.closed||w===own||!w.el)return false;const iframe=w.el.querySelector("iframe");if(!iframe)return false;const src=String(iframe.src||"").toLowerCase();return !src.includes("filemanager.html")});
-        candidates.sort((a,b)=>{const za=parseInt(a.el.style.zIndex||"0")||0;const zb=parseInt(b.el.style.zIndex||"0")||0;return zb-za});
-        return candidates[0]||null;
-    }catch(_){return null}
-}
-function sendToTargetApp(paths){
-    const clean=paths.filter(p=>!isFolderPath(p));
-    if(!clean.length){showError("Select a file first.");return false}
-    const target=getTargetApplicationWindow();
-    if(target&&target.el){const iframe=target.el.querySelector("iframe");if(iframe&&iframe.contentWindow){try{iframe.contentWindow.postMessage({type:"LH_FILE_SELECTED",path:clean[0],paths:clean},"*");return true}catch(err){console.error(err)}}}
-    try{parent.postMessage({type:"LH_FILE_SELECTED",path:clean[0],paths:clean},"*")}catch(_){ }
-    return false;
-}
-function closePicker(){const own=getOwnWindow();if(own&&parent.WM&&typeof parent.WM.closeWindow==="function"){parent.WM.closeWindow(own);return}try{if(window.frameElement)window.frameElement.style.display="none"}catch(_){} }
-function finishFilePick(paths){if(sendToTargetApp(paths))closePicker()}
-
-async function openImageEditor(path){
-    try{
-        const r=await parent.FS.read(path);
-        if(!r||!r.ok)throw new Error(r&&r.error?r.error:"Could not read image.");
-        const result=await parent.Apps.openApp("imageeditor",{path,title:"IMAGE EDITOR",width:700,height:560,allowMultiple:false});
-        if(!result||!result.ok||!result.win)throw new Error(result&&(result.error||result.summary)||"Could not open Image Editor.");
-        const win=result.win;
-        const payload={type:"LH_RECEIVE_IMAGE",data:r.content,path,name:displayName(path),filename:displayName(path)};
-        function getIframe(){return win&&win.el?win.el.querySelector("iframe"):null}
-        let sent=false;
-        function send(){const iframe=getIframe();if(!iframe||!iframe.contentWindow)return false;try{iframe.contentWindow.postMessage(payload,"*");sent=true;return true}catch(_){return false}}
-        const existing=getIframe();if(existing){existing.addEventListener("load",send,{once:true});send()}
-        let tries=0;const timer=setInterval(()=>{tries++;const iframe=getIframe();if(iframe&&!iframe.dataset.lhEditorHooked){iframe.dataset.lhEditorHooked="1";iframe.addEventListener("load",send)}send();if(sent||tries>=30)clearInterval(timer)},100);
-    }catch(err){showError("EDIT IMAGE failed: "+(err.message||String(err)))}
-}
-
-function showContextMenu(x,y,path,isFolder){
-    cancelRename();contextPath=path;contextIsFolder=isFolder;contextMenu.innerHTML="";
-    if(isFolder){
-        addContextButton("OPEN",()=>enterFolder(path));
-        if(isTopLevelDeviceMount(path)){addContextButton("DISMOUNT",async()=>{const result=await parent.FS.unmountDeviceFolder(displayName(path));if(!result||!result.ok){showError(result&&result.error||"Could not dismount folder.");return}selected.delete(path);currentPrefix="";await refresh()},"danger")}
-        else addContextButton("RENAME",()=>startRenameByPath(path));
-        addContextButton("DOWNLOAD",()=>downloadItem(path));
-        if(selectMode&&allowMultiple)addContextButton("SELECT",()=>{selected.add(path);refresh()});
-    }else{
-        if(selectMode){
-            addContextButton("OPEN",()=>finishFilePick([path]));
-            if(allowMultiple)addContextButton(selected.has(path)?"DESELECT":"SELECT",()=>{if(selected.has(path))selected.delete(path);else selected.add(path);refresh()});
-        }else{
-            addContextButton("OPEN",()=>openPath(path));
-            if(isImagePath(path))addContextButton("EDIT IMAGE",()=>openImageEditor(path),"edit-action");
-            addContextButton("RENAME",()=>startRenameByPath(path));
-            addContextButton("DOWNLOAD",()=>downloadItem(path));
-            if(ext(path)!=="zip")addContextButton("EDIT",()=>edit(path));
-            if(["js","ts","py","java","c","cpp","cs","php","html","css"].includes(ext(path)))addContextButton("CODE",()=>{selected=new Set([path]);code()});
-            if(ext(path)==="zip")addContextButton("UNZIP",()=>unzipFile(path),"zip-action");
-            if(zone().key!=="system")addContextButton("DELETE",async()=>{const r=await parent.FS.remove(path);if(!r.ok){showError(r.error||"Could not delete.");return}selected.delete(path);await refresh()},"danger");
-        }
-    }
-    if(selected.size&&!selectMode)addContextButton("DOWNLOAD SELECTED",()=>downloadSelected());
-    contextMenu.style.display="block";
-    const rect=contextMenu.getBoundingClientRect();
-    let left=Math.min(x,window.innerWidth-rect.width-4);let top=Math.min(y,window.innerHeight-rect.height-4);
-    contextMenu.style.left=Math.max(2,left)+"px";contextMenu.style.top=Math.max(2,top)+"px";
-}
-
-function startRenameByPath(path){closeContextMenu();const target=[...document.querySelectorAll(".name")].find(n=>n.dataset.path===path);if(target)startRename(target,path,isFolderPath(path))}
-function startRename(element,oldPath,folder){
-    cancelRename();const oldName=displayName(oldPath);const input=document.createElement("input");input.className="rename-input";input.value=oldName;input.autocomplete="off";input.spellcheck=false;const oldContent=element.textContent;
-    activeRename={element,input,oldPath,oldName,oldContent,folder};element.innerHTML="";element.appendChild(input);input.focus();
-    if(!folder){const dot=oldName.lastIndexOf(".");if(dot>0){try{input.setSelectionRange(0,dot)}catch(_){input.select()}}else input.select()}else input.select();
-    input.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();finishRename()}else if(e.key==="Escape"){e.preventDefault();cancelRename()}});
-    input.addEventListener("click",e=>e.stopPropagation());input.addEventListener("pointerdown",e=>e.stopPropagation());
-}
-function buildNewPath(oldPath,newName,folder){const cleanName=String(newName||"").trim().replace(/[\/\\]/g,"").trim();if(!cleanName)return null;return parentFolder(oldPath)+cleanName+(folder?"/":"")}
-async function renameUsingFS(oldPath,newPath){
-    if(parent.FS&&typeof parent.FS.rename==="function"){const r=await parent.FS.rename(oldPath,newPath);if(!r||!r.ok)throw new Error(r&&(r.error||r.summary)||"Could not rename.");return}
-    if(oldPath.endsWith("/")){const files=await parent.FS.list(oldPath);if(!Array.isArray(files))throw new Error("Could not read folder.");const descendants=files.filter(p=>String(p).startsWith(oldPath)&&String(p)!==oldPath);for(const source of descendants){if(String(source).endsWith("/"))continue;const r=await parent.FS.read(source);if(!r.ok)throw new Error(r.error||("Could not read "+source));const relative=String(source).slice(oldPath.length);const w=await parent.FS.write(normalizeFolderPath(newPath)+relative,r.content,true);if(!w.ok)throw new Error(w.error||("Could not create "+newPath))}for(let i=descendants.length-1;i>=0;i--){if(String(descendants[i]).endsWith("/"))continue;const r=await parent.FS.remove(descendants[i]);if(!r.ok)throw new Error(r.error||("Could not remove "+descendants[i]))}return}
-    const r=await parent.FS.read(oldPath);if(!r.ok)throw new Error(r.error||("Could not read "+oldPath));const w=await parent.FS.write(newPath,r.content,true);if(!w.ok)throw new Error(w.error||("Could not create "+newPath));const d=await parent.FS.remove(oldPath);if(!d.ok)throw new Error(d.error||("Could not remove "+oldPath));
-}
-async function finishRename(){
-    if(!activeRename||renameSaving)return;const currentRename=activeRename;const input=currentRename.input;if(!input||!input.isConnected){activeRename=null;return};const newName=input.value.trim();if(!newName){cancelRename();showError("Name cannot be empty.");return}
-    const newPath=buildNewPath(currentRename.oldPath,newName,currentRename.folder);if(!newPath){cancelRename();showError("Invalid name.");return}
-    if(newPath===currentRename.oldPath){restoreRename();return}
-    const request=++renameRequest;renameSaving=true;try{await renameUsingFS(currentRename.oldPath,newPath);if(request!==renameRequest)return;selected.delete(currentRename.oldPath);selected.delete(newPath);activeRename=null;renameSaving=false;await refresh()}catch(err){if(request!==renameRequest)return;renameSaving=false;showError(err.message||String(err));if(input.isConnected)input.focus()}
-}
-function restoreRename(){if(!activeRename)return;activeRename.element.textContent=activeRename.oldContent;activeRename=null;renameSaving=false}
-function cancelRename(){renameRequest++;restoreRename()}
-document.addEventListener("pointerdown",e=>{if(activeRename){const input=activeRename.input;if(e.target!==input&&!input.contains(e.target))finishRename()}if(!contextMenu.contains(e.target)&&!e.target.closest(".name")&&!e.target.closest(".rename-input"))closeContextMenu()},true);
-document.addEventListener("scroll",closeContextMenu,true);
-
-async function openPath(p){
-    if(isFolderPath(p)){enterFolder(p);return}
-    if(selectMode){if(allowMultiple){if(selected.has(p))selected.delete(p);else selected.add(p);await refresh()}else finishFilePick([p]);return}
-    if(ext(p)==="zip"){await downloadBinary(p);return}
-    try{
-        const e=ext(p);let result;
-        if(["png","jpg","jpeg","gif","webp","bmp","svg","avif","ico","tif","tiff"].includes(e))result=await parent.Apps.openApp("imageViewer",{src:p,allowMultiple:true});
-        else if(["mp4","webm","mov","m4v"].includes(e))result=await parent.Apps.openApp("videoPlayer",{src:p,allowMultiple:true});
-        else if(["mp3","wav","ogg","m4a","flac"].includes(e))result=await parent.Apps.openApp("audioPlayer",{src:p,allowMultiple:true});
-        else result=await parent.Apps.openApp("Notepad",{path:p,allowMultiple:true});
-        if(!result||!result.ok)showError(result&&(result.error||result.summary)||"Could not open file.");
-    }catch(err){showError(err.message||String(err))}
-}
-function enterFolder(path){
-    cancelRename();
-    currentPrefix=normalizeFolderPath(path);
-    closeContextMenu();
-
-    if(current==="device"){
-        const serial=++refreshSerial;
-        list.innerHTML='<div class="empty">Loading folder...</div>';
-        loadCurrentDeviceDirectory().catch(
-            error=>{
-                if(serial===refreshSerial){
-                    list.innerHTML='<div class="empty">Could not read this folder.</div>';
-                    showError(error.message||String(error));
-                }
-            }
-        );
-        return;
-    }
-
-    refresh();
-}
-function goUp(){cancelRename();const z=zone();if(!currentPrefix)return;const root=z.prefix.replace(/\/+$/g,"");let p=currentPrefix.replace(/\/+$/g,"");if(p===root){currentPrefix="";refresh();return}const i=p.lastIndexOf("/");currentPrefix=i<=root.length?"":p.slice(0,i+1);refresh()}
-async function edit(p){if(isImagePath(p)){await openImageEditor(p);return}try{const result=await parent.Apps.openApp("Notepad",{path:p,allowMultiple:true});if(!result||!result.ok)showError(result&&(result.error||result.summary)||"Could not open Notepad.")}catch(err){showError(err.message||String(err))}}
-async function code(){const paths=selectedPaths();if(!paths.length)return;const files=[];for(const p of paths){if(isFolderPath(p))continue;const r=await parent.FS.read(p);if(r.ok)files.push({name:p.split("/").pop(),content:r.content})}if(!files.length)return;parent.Apps.openOneCompiler({language:ext(files[0].name)==="py"?"python":"javascript",files,run:false})}
-
-function downloadData(data,name){const a=document.createElement("a");a.href=data;a.download=name;document.body.appendChild(a);a.click();a.remove()}
-async function downloadBinary(p){const r=await parent.FS.read(p);if(!r.ok){showError(r.error);return false}if(!/^data:/i.test(r.content)){showError("This file does not contain downloadable binary data.");return false}downloadData(r.content,p.split("/").pop());return true}
-function dataURLToBytes(data){const comma=String(data).indexOf(",");if(comma<0)throw new Error("Invalid data URL.");const header=String(data).slice(0,comma);const body=String(data).slice(comma+1);if(/;base64/i.test(header)){const binary=atob(body);const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);return bytes}return new TextEncoder().encode(decodeURIComponent(body))}
-function readU16(bytes,p){return(bytes[p]|bytes[p+1]<<8)>>>0}
-function readU32(bytes,p){return(bytes[p]|bytes[p+1]<<8|bytes[p+2]<<16|bytes[p+3]<<24)>>>0}
-function findEOCD(bytes){const min=Math.max(0,bytes.length-65557);for(let p=bytes.length-22;p>=min;p--)if(readU32(bytes,p)===0x06054b50)return p;return -1}
-function safeZipPath(name){name=String(name||"").replace(/\\/g,"/").replace(/^\/+/g,"");const result=[];for(const part of name.split("/"))if(part&&part!=="."&&part!=="..")result.push(part);return result.join("/")}
-
-async function unzipFile(zipPath){
-    const defaultFolder=zipPath.replace(/\.zip$/i,"")+"/";const output=prompt("UNZIP destination folder:",defaultFolder);if(!output)return;let outputFolder=String(output).trim();if(!outputFolder.endsWith("/"))outputFolder+="/";
-    try{
-        const r=await parent.FS.read(zipPath);if(!r.ok){showError(r.error||"Could not read ZIP.");return}if(!/^data:/i.test(r.content)){showError("ZIP does not contain binary data.");return}
-        const bytes=dataURLToBytes(r.content);const eocd=findEOCD(bytes);if(eocd<0){showError("Invalid ZIP archive.");return}
-        const entries=readU16(bytes,eocd+10);const centralOffset=readU32(bytes,eocd+16);let pos=centralOffset;let extracted=0;
-        for(let n=0;n<entries;n++){
-            if(readU32(bytes,pos)!==0x02014b50)throw new Error("Invalid ZIP central directory.");
-            const method=readU16(bytes,pos+10);const compressedSize=readU32(bytes,pos+20);const nameLength=readU16(bytes,pos+28);const extraLength=readU16(bytes,pos+30);const commentLength=readU16(bytes,pos+32);const localOffset=readU32(bytes,pos+42);
-            const filename=new TextDecoder().decode(bytes.slice(pos+46,pos+46+nameLength));const safeName=safeZipPath(filename);
-            if(safeName&&!filename.endsWith("/")){
-                if(readU32(bytes,localOffset)!==0x04034b50)throw new Error("Invalid ZIP local header.");
-                const localNameLength=readU16(bytes,localOffset+26);const localExtraLength=readU16(bytes,localOffset+28);const dataStart=localOffset+30+localNameLength+localExtraLength;const compressed=bytes.slice(dataStart,dataStart+compressedSize);let fileBytes;
-                if(method===0)fileBytes=compressed;
-                else if(method===8){if(typeof DecompressionStream!=="function")throw new Error("This browser cannot decompress DEFLATE ZIP files.");const stream=new Blob([compressed]).stream().pipeThrough(new DecompressionStream("deflate-raw"));fileBytes=new Uint8Array(await new Response(stream).arrayBuffer())}
-                else throw new Error("Unsupported ZIP compression method "+method+" for "+filename+".");
-                let binary="";for(let i=0;i<fileBytes.length;i+=0x8000)binary+=String.fromCharCode(...fileBytes.subarray(i,Math.min(i+0x8000,fileBytes.length)));
-                const dataURL="data:application/octet-stream;base64,"+btoa(binary);const dest=outputFolder+safeName;const w=await parent.FS.write(dest,dataURL,true);if(!w.ok)throw new Error("Could not extract "+filename+": "+(w.error||"write failed"));extracted++;
-            }
-            pos+=46+nameLength+extraLength+commentLength;
-        }
-        showError("UNZIP complete: extracted "+extracted+" file(s) to "+outputFolder);await refresh();
-    }catch(err){showError("UNZIP failed: "+(err.message||String(err)))}
-}
-function utf8(s){return new TextEncoder().encode(String(s))}
-function u16(n){return[n&255,(n>>>8)&255]}
-function u32(n){return[n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255]}
-function crc32(bytes){let c=0xffffffff;for(const b of bytes){c^=b;for(let i=0;i<8;i++)c=(c>>>1)^((c&1)?0xedb88320:0)}return(c^0xffffffff)>>>0}
-function makeZip(entries){const local=[];const central=[];let offset=0;for(const entry of entries){const name=utf8(entry.name.replace(/^\/+/,""));const data=entry.data;const crc=crc32(data);const header=new Uint8Array([...u32(0x04034b50),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...name,...data]);local.push(header);central.push(new Uint8Array([...u32(0x02014b50),...u16(20),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(offset),...name]));offset+=header.length}const cdOffset=offset;const cdSize=central.reduce((a,b)=>a+b.length,0);const eocd=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(central.length),...u16(central.length),...u32(cdSize),...u32(cdOffset),...u16(0)]);return new Blob([...local,...central,eocd],{type:"application/zip"})}
-function blobDataURL(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(reader.error);reader.readAsDataURL(blob)})}
-async function collectFiles(paths){const entries=[];for(const p0 of paths){const p=String(p0);if(isFolderPath(p)){const base=normalizeFolderPath(p);const files=await parent.FS.list(base);if(!Array.isArray(files))continue;for(const item0 of files){const item=String(item0);if(!item.startsWith(base)||item.endsWith("/"))continue;const r=await parent.FS.read(item);if(!r.ok)continue;const bytes=/^data:/i.test(r.content)?dataURLToBytes(r.content):utf8(r.content);entries.push({name:displayName(p)+"/"+item.slice(base.length),data:bytes})}}else{const r=await parent.FS.read(p);if(!r.ok)continue;const bytes=/^data:/i.test(r.content)?dataURLToBytes(r.content):utf8(r.content);entries.push({name:displayName(p),data:bytes})}}return entries}
-async function downloadItem(path){try{if(isFolderPath(path)){const entries=await collectFiles([path]);const blob=makeZip(entries);downloadData(await blobDataURL(blob),displayName(path)+".zip");return}if(ext(path)==="zip"){await downloadBinary(path);return}const r=await parent.FS.read(path);if(!r.ok){showError(r.error||"Could not read file.");return}if(/^data:/i.test(r.content))downloadData(r.content,displayName(path));else{const blob=new Blob([String(r.content)],{type:"application/octet-stream"});downloadData(await blobDataURL(blob),displayName(path))}}catch(err){showError("Download failed: "+(err.message||String(err)))}}
-async function downloadSelected(){const paths=selectedPaths();if(!paths.length){showError("Select files or folders first.");return}try{if(paths.length===1){await downloadItem(paths[0]);return}const entries=await collectFiles(paths);const blob=makeZip(entries);downloadData(await blobDataURL(blob),"selected.zip")}catch(err){showError("Download failed: "+(err.message||String(err)))}}
-
-/* =========================================================
-   DISPLAY ROOT/CURRENT DIRECTORY ONLY.
-   IMPORTANT: device listing NEVER calls FS.list(device root)
-   recursively. FS.list(current device folder) is shallow.
-   ========================================================= */
-
-function sortPaths(files){
-    return files.sort((a,b)=>{const af=isFolderPath(a);const bf=isFolderPath(b);if(af!==bf)return af?-1:1;return a.localeCompare(b,undefined,{numeric:true,sensitivity:"base"})});
-}
-
-function reduceVisibleChildren(files,base){
-    const visible=[];
-    for(const p0 of files){
-        const p=String(p0);if(!p.startsWith(base))continue;
-        const rest=p.slice(base.length);if(!rest)continue;
-        const clean=rest.replace(/\/+$/g,"");const slash=clean.indexOf("/");
-        if(slash>=0){const folderPath=base+clean.slice(0,slash+1);if(!visible.includes(folderPath))visible.push(folderPath)}
-        else visible.push(p);
-    }
-    return sortPaths(visible);
-}
-
-function createRow(p){
-    const z=zone();
-    const row=document.createElement("div");
-    const folder=isFolderPath(p);const image=!folder&&isImagePath(p);
-    row.className="row"+(folder?" folder":"")+(image?" image-row":"");
-    if(selected.has(p))row.classList.add("selected");
-
-    const cb=document.createElement("input");cb.type="checkbox";cb.checked=selected.has(p);
-    cb.onchange=()=>{if(cb.checked)selected.add(p);else selected.delete(p);row.classList.toggle("selected",cb.checked)};
-    if(selectMode&&!allowMultiple)cb.style.display="none";
-
-    const name=document.createElement("div");name.className="name";name.dataset.path=p;name.textContent=(folder?"📁 ":image?"🖼 ":"")+displayName(p);name.title=p;
-    name.onclick=()=>openPath(p);
-    name.ondblclick=e=>{
-        e.preventDefault();e.stopPropagation();
-        if(selectMode&&!folder){if(allowMultiple){if(selected.has(p))selected.delete(p);else selected.add(p);refresh()}else finishFilePick([p]);return}
-        if(image)openImageEditor(p);else startRename(name,p,folder);
-    };
-    name.oncontextmenu=e=>{e.preventDefault();showContextMenu(e.clientX,e.clientY,p,folder)};
-    let pressTimer=null;
-    name.onpointerdown=e=>{if(e.pointerType==="mouse"||activeRename)return;pressTimer=setTimeout(()=>showContextMenu(e.clientX,e.clientY,p,folder),550)};
-    name.onpointerup=()=>clearTimeout(pressTimer);name.onpointercancel=()=>clearTimeout(pressTimer);name.onpointermove=()=>clearTimeout(pressTimer);
-    row.append(cb,name);
-
-    if(folder){
-        const openBtn=document.createElement("button");openBtn.textContent="OPEN";openBtn.onclick=()=>enterFolder(p);row.append(openBtn);
-        if(!selectMode){const dlBtn=document.createElement("button");dlBtn.textContent="DL";dlBtn.onclick=()=>downloadItem(p);row.append(dlBtn)}
-        if(isTopLevelDeviceMount(p)){const dismountBtn=document.createElement("button");dismountBtn.textContent="DISMOUNT";dismountBtn.onclick=async e=>{e.stopPropagation();const result=await parent.FS.unmountDeviceFolder(displayName(p));if(!result||!result.ok){showError(result&&result.error||"Could not dismount folder.");return}selected.delete(p);currentPrefix="";await refresh()};row.append(dismountBtn)}
-    }else{
-        const e=ext(p);
-        if(!selectMode){
-            if(image){const editImageBtn=document.createElement("button");editImageBtn.textContent="EDIT";editImageBtn.onclick=()=>openImageEditor(p);row.append(editImageBtn)}
-            const dlBtn=document.createElement("button");dlBtn.textContent="DL";dlBtn.onclick=()=>downloadItem(p);row.append(dlBtn);
-            if(e!=="zip"&&!image&&z.key!=="system"){const editBtn=document.createElement("button");editBtn.textContent="EDIT";editBtn.onclick=()=>edit(p);row.append(editBtn)}
-            if(e==="zip"){const unzipBtn=document.createElement("button");unzipBtn.textContent="UNZIP";unzipBtn.onclick=()=>unzipFile(p);row.append(unzipBtn)}
-            if(z.key!=="system"&&["js","ts","py","java","c","cpp","cs","php","html","css"].includes(e)){const codeBtn=document.createElement("button");codeBtn.textContent="CODE";codeBtn.onclick=()=>{selected=new Set([p]);code()};row.append(codeBtn)}
-            if(z.key!=="system"){const del=document.createElement("button");del.textContent="DEL";del.onclick=async()=>{const r=await parent.FS.remove(p);if(!r.ok){showError(r.error||"Could not delete file.");return}selected.delete(p);await refresh()};row.append(del)}
-        }
-        if(selectMode&&allowMultiple){const pickBtn=document.createElement("button");pickBtn.textContent=selected.has(p)?"✓":"SELECT";pickBtn.onclick=e=>{e.stopPropagation();if(selected.has(p))selected.delete(p);else selected.add(p);refresh()};row.append(pickBtn)}
-    }
-    return row;
-}
-
-async function renderFiles(files,serial){
-    list.innerHTML="";
-    if(!files.length){list.innerHTML='<div class="empty">No files.</div>';return}
-    let fragment=document.createDocumentFragment();let count=0;
-    for(const p of files){
-        if(serial!==refreshSerial)return;
-        fragment.appendChild(createRow(p));count++;
-        if(count%60===0){list.appendChild(fragment);fragment=document.createDocumentFragment();await new Promise(requestAnimationFrame)}
-    }
-    list.appendChild(fragment);
-    if(selectMode&&allowMultiple){
-        const footer=document.createElement("div");footer.className="picker-action";
-        const openSelected=document.createElement("button");openSelected.textContent=selected.size?"OPEN SELECTED ("+selected.size+")":"OPEN SELECTED";openSelected.onclick=()=>finishFilePick(selectedPaths());footer.appendChild(openSelected);list.appendChild(footer);
-    }
-}
-
-/* =========================================================
-   REFRESH
-   ========================================================= */
-
-async function refresh(){
-    cancelRename();
-
-    const serial=++refreshSerial;
-    const z=zone();
-
-    if(!z)return;
-
-    updatePathDisplay();
-
-    if(
-        z.key==="puter" &&
-        !parent.FS.puterReady()
-    ){
-        if(serial===refreshSerial){
-            list.innerHTML=
-                '<div class="empty">Puter filesystem unavailable.</div>';
-        }
-        return;
-    }
-
-    try{
-        if(z.key==="device"){
-            await loadCurrentDeviceDirectory();
-            return;
-        }
-
-        const result=
-            await parent.FS.list(
-                currentPrefix || z.prefix
-            );
-
-        if(serial!==refreshSerial)return;
-
-        const base=
-            currentPrefix || z.prefix;
-
-        const files=
-            reduceVisibleChildren(
-                Array.isArray(result)
-                    ?result
-                    :[],
-                base
-            );
-
-        await renderFiles(
-            files,
-            serial
-        );
-
-    }catch(e){
-        if(serial!==refreshSerial)return;
-
-        list.innerHTML=
-            '<div class="empty">Could not read this folder.</div>';
-
-        showError(
-            e.message ||
-            "Could not list files."
-        );
-    }
-}
-
-/* =========================================================
-   BUTTON EVENTS
-   ========================================================= */
-
-document.getElementById("refresh").onclick=refresh;
-document.getElementById("up").onclick=goUp;
-
-document.getElementById("selectAll").onclick=async()=>{
-    cancelRename();const z=zone();
-    try{
-        const files=await parent.FS.list(currentPrefix||z.prefix);if(!Array.isArray(files))return;const base=currentPrefix||z.prefix;
-        files.forEach(p=>{if(String(p).startsWith(base)&&String(p)!==base)selected.add(String(p))});
-        await refresh();
-    }catch(err){showError(err.message||String(err))}
-};
-
-document.getElementById("newText").onclick=async()=>{
-    cancelRename();const defaultPath=(currentPrefix||zone().prefix)+"new.txt";const name=prompt("New text file path:",defaultPath);if(!name)return;const r=await parent.FS.write(name,"",true);if(!r.ok){showError(r.error);return}await refresh();edit(name)
-};
-
-document.getElementById("zip").onclick=async()=>{
-    cancelRename();const fs=selectedPaths();if(!fs.length){showError("Select files first.");return}
-    const out=prompt("ZIP output path:",(currentPrefix||zone().prefix)+"archive.zip");if(!out)return;
-    try{const r=await parent.Tools.execute("zip_files",{files:fs,output_path:out});if(!r.ok){showError(r.summary||"Could not create ZIP.");return}selected.clear();await refresh()}catch(err){showError(err.message||String(err))}
-};
-
-box.onchange=()=>{const v=box.value.trim();if(!v)return;parent.Tools.execute("find_files",{pattern:v}).then(r=>showError(r.files&&r.files.length?r.files.join("\n"):r.summary)).catch(e=>showError(e.message||e))};
-box.onkeydown=e=>{if(e.key!=="Enter")return;const v=box.value.trim();if(!v)return;if(/\/$/.test(v)){const z=zone();if(v.startsWith(z.prefix)){currentPrefix=normalizeFolderPath(v);refresh()}return}box.onchange()};
-
-/* =========================================================
-   UPLOAD FOLDER — ONLY PLACE WHERE THE TERMINAL APPEARS
-   ========================================================= */
-
-document.getElementById("mountFolder").onclick=async()=>{
-
-    if(
-        uploadJob &&
-        !uploadJob.finished &&
-        !uploadJob.stopped
-    ){
-        askUploadStop();
-        return;
-    }
-
-    cancelRename();
-
-    /* NEW upload = NEW index. */
-    clearDeviceIndex();
-    selected.clear();
-    current="device";
-    currentPrefix="";
-
-    list.innerHTML=
-        '<div class="empty">Waiting for folder...</div>';
-
-    /*
-       This is the only place where our File Manager creates the
-       Little Hollow terminal.
-    */
-    uploadTerminal=
-        openLittleHollowTerminal(
-            "> mount_folder",
-            "TERMINAL"
-        );
-
-    lockTerminalWindow(
-        uploadTerminal
-    );
-
-    terminalWrite(
-        uploadTerminal,
-        "Loading folder picker..."
-    );
-
-    const job={
-        worker:null,
-        stopRequested:false,
-        stopped:false,
-        finished:false,
-        lastPercent:0
-    };
-
-    uploadJob=job;
-
-    try{
-        /* Must remain in the window/user-gesture context. */
-        const result=
-            await parent.FS.mountDeviceFolder();
-
-        if(
-            !result ||
-            !result.ok
-        ){
-            job.finished=true;
-
-            terminalWrite(
-                uploadTerminal,
-                result && result.cancelled
-                    ? "Folder selection cancelled."
-                    : (
-                        result && result.error ||
-                        "Could not upload folder."
-                    ),
-                result && result.cancelled
-                    ? "warn"
-                    : "error"
-            );
-
-            setTimeout(()=>{
-                if(uploadTerminal){
-                    closeLittleHollowTerminal(
-                        uploadTerminal
-                    );
-                    uploadTerminal=null;
-                }
-            },500);
-
-            return;
-        }
-
-        /* Discard any previous folder's loading/index state. */
-        clearDeviceIndex();
-
-        current="device";
-        currentPrefix=result.path;
-        selected.clear();
-
-        [...tabs.children].forEach(
-            x=>x.classList.toggle(
-                "active",
-                x.dataset.k==="device"
-            )
-        );
-
-        updatePathDisplay();
-
-        terminalWrite(
-            uploadTerminal,
-            "Folder '"+
-            result.name+
-            "' successfully loaded.",
-            "ok"
-        );
-
-        terminalWrite(
-            uploadTerminal,
-            "Mount path: "+result.path,
-            "dim"
-        );
-
-        terminalWrite(
-            uploadTerminal,
-            "Loading files into browser..."
-        );
-
-        terminalSetProgress(
-            uploadTerminal,
-            0,
-            "Starting"
-        );
-
-        list.innerHTML=
-            '<div class="empty">Loading top-level entries...</div>';
-
-        const mountName=
-            mountNameFromPath(
-                result.path
-            );
-
-        const rootHandle=
-            await getMountHandleByName(
-                mountName
-            );
-
-        if(!rootHandle){
-            throw new Error(
-                "Could not access the mounted folder handle."
-            );
-        }
-
-        const rootPath=
-            normalizeIndexPath(
-                result.path
-            );
-
-        const rootChildren=[];
-        const initialDirectories=[];
-        let topCount=0;
-        let topFiles=0;
-        let topFolders=0;
-
-        deviceIndex.set(
-            rootPath,
-            rootChildren
-        );
-
-        /*
-           FIRST PHASE: only enumerate the selected folder itself.
-           Nothing underneath its child directories is touched yet.
-           This makes large uploads show their top level immediately.
-        */
-        for await(const item of rootHandle.values()){
-
-            if(job.stopped){
-                throw new Error(
-                    "Upload stopped by user."
-                );
-            }
-
-            const childBase=
-                rootPath.replace(/\/+$/g,"")+
-                "/"+
-                item.name;
-
-            const child=
-                item.kind==="directory"
-                    ?childBase+"/"
-                    :childBase;
-
-            rootChildren.push(child);
-            topCount++;
-
-            if(item.kind==="directory"){
-                topFolders++;
-
-                initialDirectories.push({
-                    handle:item,
-                    path:child,
-                    folder:true
-                });
-            }else{
-                topFiles++;
-            }
-
-            if(
-                list.firstElementChild &&
-                list.firstElementChild.classList.contains("empty")
-            ){
-                list.innerHTML="";
-            }
-
-            list.appendChild(
-                createRow(child)
-            );
-
-            terminalSetProgress(
-                uploadTerminal,
-                Math.min(
-                    8,
-                    topCount
-                ),
-                "Top-level entries loaded: "+
-                topCount
-            );
-
-            if(topCount%8===0){
-                await yieldToBrowser();
-            }
-        }
-
-        if(!topCount){
-            list.innerHTML=
-                '<div class="empty">Folder is empty.</div>';
-        }
-
-        terminalWrite(
-            uploadTerminal,
-            "Top-level entries appended: "+
-            topCount,
-            "ok"
-        );
-
-        /*
-           SECOND PHASE: walk child directories one at a time.
-           All discovered entries are immediately added to the shallow
-           per-directory index; nothing is accumulated into one giant
-           all-files array.
-        */
-        const stats=
-            await scanMountedFolderIncrementally(
-                rootHandle,
-                rootPath,
-                job,
-                initialDirectories
-                    .map(x=>({
-                        handle:x.handle,
-                        path:x.path,
-                        folder:true
-                    }))
-            );
-
-        if(job.stopped){
-            return;
-        }
-
-        /* scanMountedFolderIncrementally starts with child directories,
-           so add the top-level counts that were already enumerated. */
-        stats.processed += topCount;
-        stats.files += topFiles;
-        stats.folders += topFolders;
-
-        job.finished=true;
-        job.lastPercent=100;
-
-        terminalSetProgress(
-            uploadTerminal,
-            100,
-            "[PRINTBARSGROWING]100%"
-        );
-
-        terminalWrite(
-            uploadTerminal,
-            "[PRINTBARSGROWING]100%",
-            "ok"
-        );
-
-        terminalWrite(
-            uploadTerminal,
-            stats.files+
-            " files successfully loaded.",
-            "ok"
-        );
-
-        terminalWrite(
-            uploadTerminal,
-            stats.folders+
-            " folders successfully indexed.",
-            "ok"
-        );
-
-        terminalWrite(
-            uploadTerminal,
-            "All files has been loaded",
-            "ok"
-        );
-
-        /*
-           Do not call FS.list() here. The normal device root implementation
-           recursively scans mounted trees. Our own index already contains
-           the shallow children needed by File Manager.
-        */
-        if(current==="device" && currentPrefix===result.path){
-            await loadCurrentDeviceDirectory();
-        }
-
-        /* Terminal exists only for upload/loading and then disappears. */
-        setTimeout(()=>{
-            if(uploadTerminal){
-                closeLittleHollowTerminal(
-                    uploadTerminal
-                );
-                uploadTerminal=null;
-            }
-        },900);
-
-    }catch(error){
-
-        if(job.stopped){
-            return;
-        }
-
-        job.finished=true;
-
-        terminalWrite(
-            uploadTerminal,
-            "Upload failed: "+
-            (
-                error && error.message
-                    ? error.message
-                    : String(error)
-            ),
-            "error"
-        );
-
-        showError(
-            "Could not upload folder: "+
-            (
-                error && error.message
-                    ? error.message
-                    : String(error)
-            )
-        );
-
-        setTimeout(()=>{
-            if(uploadTerminal){
-                closeLittleHollowTerminal(
-                    uploadTerminal
-                );
-                uploadTerminal=null;
-            }
-        },1200);
-
-    }finally{
-        if(uploadJob===job){
-            setTimeout(()=>{
-                if(
-                    uploadJob===job &&
-                    (
-                        job.finished ||
-                        job.stopped
-                    )
-                ){
-                    uploadJob=null;
-                }
-            },1000);
-        }
-    }
-};
-
-
-/* =========================================================
-   START
-   ========================================================= */
-refresh();
-</script>
-</body>
+  <!DOCTYPE html>  
+<html lang="en">  
+<head>  
+<meta charset="UTF-8">  
+<meta name="viewport" content="width=device-width,initial-scale=1">  
+<title>File Manager</title>  
+<style>  
+*{box-sizing:border-box;margin:0;padding:0;font-family:monospace}  
+html,body{width:100%;height:100%;background:#000d0d;color:#00FFFF}  
+body{overflow:hidden}  
+.wrap{display:flex;flex-direction:column;height:100%}  
+.bar{display:flex;gap:5px;padding:6px;border-bottom:1px solid #00FFFF;flex-wrap:wrap}  
+.bar button,.bar input{border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:6px 8px;font:10px monospace}  
+.bar input{flex:1 1 150px}  
+.bar button:active,.row button:active,.ctx button:active{background:#00FFFF;color:#000}  
+.tabs{display:flex;border-bottom:1px solid #00FFFF;overflow-x:auto}  
+.tabs button{flex:0 0 auto;border:0;border-right:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:7px 10px;cursor:pointer;font:11px monospace}  
+.tabs button.active{background:rgba(0,255,255,.15)}  
+.pathbar{display:flex;padding:5px 6px;border-bottom:1px solid rgba(0,255,255,.25)}  
+.current-path{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:10px;opacity:.8}  
+.hint{padding:4px 8px;font-size:10px;opacity:.55;border-bottom:1px solid rgba(0,255,255,.2)}  
+#error{color:#ff6666;white-space:pre-wrap}  
+.list{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}  
+.row{display:flex;align-items:center;gap:5px;padding:7px 8px;border-bottom:1px solid rgba(0,255,255,.22);font-size:11px}  
+.row.folder{background:rgba(0,255,255,.035)}  
+.row.selected{background:rgba(0,255,255,.1)}  
+.name{flex:1;min-width:0;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}  
+.row.folder .name{font-weight:bold}  
+.rename-input{flex:1;min-width:0;width:100%;border:1px solid #00FFFF;outline:none;background:#001919;color:#00FFFF;padding:3px 5px;font:11px monospace}  
+.row button{border:1px solid #00FFFF;background:transparent;color:#00FFFF;font:10px monospace;padding:3px 5px;cursor:pointer}  
+.row input{accent-color:#00FFFF}  
+.empty{padding:16px;opacity:.6;font-size:12px}  
+.ctx{position:fixed;z-index:999999;min-width:150px;max-width:240px;border:1px solid #00FFFF;background:#000d0d;box-shadow:0 0 0 1px rgba(0,255,255,.15);padding:4px;display:none}  
+.ctx button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid rgba(0,255,255,.2);background:transparent;color:#00FFFF;padding:7px 8px;font:10px monospace}  
+.ctx button:last-child{border-bottom:0}  
+.ctx .danger{color:#ff6666}  
+.ctx .zip-action{color:#66FFFF}  
+.ctx .edit-action{color:#7fffff;font-weight:bold}  
+.image-row{border-left:2px solid rgba(0,255,255,.35)}  
+.picker-action{border-top:1px solid #00FFFF;padding:8px}  
+.picker-action button{width:100%;border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:8px;font:11px monospace}  
+.picker-action button:active{background:#00FFFF;color:#000}  
+</style>  
+</head>  
+<body>  
+  
+<div class="wrap">  
+<div class="bar">  
+<input id="pathBox" placeholder="path or wildcard">  
+<button id="refresh">REFRESH</button>  
+<button id="up">UP</button>  
+<button id="newText">NEW TEXT</button>  
+<button id="mountFolder">UPLOAD FOLDER</button>  
+<button id="zip">ZIP SELECTED</button>  
+<button id="selectAll">SELECT ALL</button>  
+</div>  
+<div class="tabs" id="tabs"></div>  
+<div class="pathbar">  
+<div class="current-path" id="currentPath"></div>  
+</div>  
+<div class="hint" id="hint">Tap a file to open it. Tap a folder to enter it. Double-tap a name to rename. Long-press/right-click for more actions.</div>  
+<div class="hint" id="error" style="display:none"></div>  
+<div class="list" id="list"></div>  
+</div>  
+  
+<div class="ctx" id="contextMenu"></div>  
+  
+<script>  
+const zones=[  
+{key:"local",label:"LOCAL",prefix:"chxd:/local/"},  
+{key:"session",label:"SESSION",prefix:"chxd:/session/"},  
+{key:"indexdb",label:"INDEXDB",prefix:"chxd:/indexdb/"},  
+{key:"puter",label:"PUTER",prefix:"puter:/"},  
+{key:"device",label:"DEVICE",prefix:"chxd:/device/"},  
+{key:"system",label:"SYSTEM",prefix:"chxd:/system/"}  
+];  
+  
+let current="local";  
+let currentPrefix="";  
+let selected=new Set();  
+let contextPath=null;  
+let contextIsFolder=false;  
+let activeRename=null;  
+let renameSaving=false;  
+let renameRequest=0;  
+let refreshSerial=0;  
+  
+const params=new URLSearchParams(location.search);  
+const selectMode=params.get("select")==="1";  
+const allowMultiple=params.get("multiple")==="1"||params.get("allowMultiple")==="1";  
+  
+const tabs=document.getElementById("tabs");  
+const list=document.getElementById("list");  
+const box=document.getElementById("pathBox");  
+const hint=document.getElementById("hint");  
+const errorBox=document.getElementById("error");  
+const currentPathBox=document.getElementById("currentPath");  
+const contextMenu=document.getElementById("contextMenu");  
+  
+function showError(s){  
+errorBox.textContent=String(s||"Unknown error");  
+errorBox.style.display="block";  
+clearTimeout(showError.timer);  
+showError.timer=setTimeout(()=>errorBox.style.display="none",4500);  
+}  
+  
+if(selectMode){  
+hint.textContent=allowMultiple  
+?"FILE PICKER: select files, then tap OPEN SELECTED."  
+:"FILE PICKER: tap a file to return it to the application.";  
+document.getElementById("mountFolder").style.display="none";  
+document.getElementById("newText").style.display="none";  
+document.getElementById("zip").style.display="none";  
+document.getElementById("selectAll").style.display=allowMultiple?"":"none";  
+}  
+  
+zones.forEach(z=>{  
+const b=document.createElement("button");  
+b.textContent=z.label;  
+b.dataset.k=z.key;  
+if(z.key===current)b.classList.add("active");  
+b.onclick=()=>{  
+cancelRename();  
+current=z.key;  
+currentPrefix="";  
+selected.clear();  
+[...tabs.children].forEach(x=>x.classList.toggle("active",x.dataset.k===current));  
+refresh();  
+};  
+tabs.appendChild(b);  
+});  
+  
+function zone(){return zones.find(x=>x.key===current)}  
+function ext(p){  
+return String(p||"").split("?")[0].split("#")[0].split(".").pop().toLowerCase();  
+}  
+function isImagePath(path){  
+return["png","jpg","jpeg","jpe","webp","gif","bmp","svg","avif","ico","tif","tiff"].includes(ext(path));  
+}  
+function selectedPaths(){return[...selected]}  
+function normalizeFolderPath(p){  
+p=String(p||"");  
+return p.endsWith("/")?p:p+"/";  
+}  
+function isFolderPath(p){return String(p||"").endsWith("/")}  
+function displayName(p){  
+const clean=String(p||"").replace(/\/+$/,"");  
+const i=clean.lastIndexOf("/");  
+return i>=0?clean.slice(i+1):clean;  
+}  
+function parentFolder(p){  
+const clean=String(p||"").replace(/\/+$/,"");  
+const i=clean.lastIndexOf("/");  
+return i<0?"":clean.slice(0,i+1);  
+}  
+function isTopLevelDeviceMount(p){  
+const clean=String(p||"").replace(/\/+$/,"");  
+const prefix="chxd:/device/";  
+if(!clean.startsWith(prefix))return false;  
+const relative=clean.slice(prefix.length);  
+return relative.length>0&&!relative.includes("/");  
+}  
+function updatePathDisplay(){  
+const z=zone();  
+currentPathBox.textContent=z.prefix+currentPrefix.replace(z.prefix,"");  
+}  
+function closeContextMenu(){  
+contextMenu.style.display="none";  
+contextPath=null;  
+contextIsFolder=false;  
+}  
+function addContextButton(label,fn,className=""){  
+const b=document.createElement("button");  
+b.textContent=label;  
+if(className)b.className=className;  
+b.onclick=()=>{closeContextMenu();fn()};  
+contextMenu.appendChild(b);  
+}  
+  
+function getOwnWindow(){  
+try{  
+const frame=window.frameElement;  
+if(!frame)return null;  
+const el=frame.closest(".cyan-window");  
+if(!el||!parent.WM||typeof parent.WM.list!=="function")return null;  
+return parent.WM.list().find(w=>w.el===el)||null;  
+}catch(_){  
+return null;  
+}  
+}  
+  
+function getTargetApplicationWindow(){  
+try{  
+const own=getOwnWindow();  
+const windows=parent.WM&&typeof parent.WM.list==="function"  
+?parent.WM.list()  
+:[];  
+const candidates=windows.filter(w=>{  
+if(!w||w.closed||w===own||!w.el)return false;  
+const iframe=w.el.querySelector("iframe");  
+if(!iframe)return false;  
+const src=String(iframe.src||"").toLowerCase();  
+return !src.includes("filemanager.html");  
+});  
+candidates.sort((a,b)=>{  
+const za=parseInt(a.el.style.zIndex||"0")||0;  
+const zb=parseInt(b.el.style.zIndex||"0")||0;  
+return zb-za;  
+});  
+return candidates[0]||null;  
+}catch(_){  
+return null;  
+}  
+}  
+  
+function sendToTargetApp(paths){  
+const clean=paths.filter(p=>!isFolderPath(p));  
+if(!clean.length){  
+showError("Select a file first.");  
+return false;  
+}  
+  
+const target=getTargetApplicationWindow();  
+  
+if(target&&target.el){  
+const iframe=target.el.querySelector("iframe");  
+if(iframe&&iframe.contentWindow){  
+try{  
+iframe.contentWindow.postMessage({  
+type:"LH_FILE_SELECTED",  
+path:clean[0],  
+paths:clean  
+},"*");  
+return true;  
+}catch(err){  
+console.error(err);  
+}  
+}  
+}  
+  
+try{  
+parent.postMessage({  
+type:"LH_FILE_SELECTED",  
+path:clean[0],  
+paths:clean  
+},"*");  
+}catch(_){}  
+  
+return false;  
+}  
+  
+function closePicker(){  
+const own=getOwnWindow();  
+if(own&&parent.WM&&typeof parent.WM.closeWindow==="function"){  
+parent.WM.closeWindow(own);  
+return;  
+}  
+try{  
+if(window.frameElement){  
+window.frameElement.style.display="none";  
+}  
+}catch(_){}  
+}  
+  
+function finishFilePick(paths){  
+if(sendToTargetApp(paths)){  
+closePicker();  
+}  
+}  
+  
+async function openImageEditor(path){  
+try{  
+const r=await parent.FS.read(path);  
+if(!r||!r.ok)throw new Error(r&&r.error?r.error:"Could not read image.");  
+  
+const result=await parent.Apps.openApp("imageeditor",{  
+path,  
+title:"IMAGE EDITOR",  
+width:700,  
+height:560,  
+allowMultiple:false  
+});  
+  
+if(!result||!result.ok||!result.win){  
+throw new Error(result&&(result.error||result.summary)||"Could not open Image Editor.");  
+}  
+  
+const win=result.win;  
+const payload={  
+type:"LH_RECEIVE_IMAGE",  
+data:r.content,  
+path,  
+name:displayName(path),  
+filename:displayName(path)  
+};  
+  
+function getIframe(){  
+return win&&win.el?win.el.querySelector("iframe"):null;  
+}  
+  
+let sent=false;  
+  
+function send(){  
+const iframe=getIframe();  
+if(!iframe||!iframe.contentWindow)return false;  
+try{  
+iframe.contentWindow.postMessage(payload,"*");  
+sent=true;  
+return true;  
+}catch(_){  
+return false;  
+}  
+}  
+  
+const existing=getIframe();  
+  
+if(existing){  
+existing.addEventListener("load",send,{once:true});  
+send();  
+}  
+  
+let tries=0;  
+  
+const timer=setInterval(()=>{  
+tries++;  
+const iframe=getIframe();  
+  
+if(iframe&&!iframe.dataset.lhEditorHooked){  
+iframe.dataset.lhEditorHooked="1";  
+iframe.addEventListener("load",send);  
+}  
+  
+send();  
+  
+if(sent||tries>=30)clearInterval(timer);  
+},100);  
+  
+}catch(err){  
+showError("EDIT IMAGE failed: "+(err.message||String(err)));  
+}  
+}  
+  
+function showContextMenu(x,y,path,isFolder){  
+cancelRename();  
+contextPath=path;  
+contextIsFolder=isFolder;  
+contextMenu.innerHTML="";  
+  
+if(isFolder){  
+addContextButton("OPEN",()=>enterFolder(path));  
+  
+if(isTopLevelDeviceMount(path)){  
+addContextButton("DISMOUNT",async()=>{  
+const result=await parent.FS.unmountDeviceFolder(displayName(path));  
+if(!result||!result.ok){  
+showError(result&&result.error||"Could not dismount folder.");  
+return;  
+}  
+selected.delete(path);  
+currentPrefix="";  
+await refresh();  
+},"danger");  
+}else{  
+addContextButton("RENAME",()=>startRenameByPath(path));  
+}  
+  
+addContextButton("DOWNLOAD",()=>downloadItem(path));  
+  
+if(selectMode&&allowMultiple){  
+addContextButton("SELECT",()=>{  
+selected.add(path);  
+refresh();  
+});  
+}  
+  
+}else{  
+if(selectMode){  
+addContextButton("OPEN",()=>finishFilePick([path]));  
+if(allowMultiple){  
+addContextButton(  
+selected.has(path)?"DESELECT":"SELECT",  
+()=>{  
+if(selected.has(path))selected.delete(path);  
+else selected.add(path);  
+refresh();  
+}  
+);  
+}  
+}else{  
+addContextButton("OPEN",()=>openPath(path));  
+  
+if(isImagePath(path)){  
+addContextButton("EDIT IMAGE",()=>openImageEditor(path),"edit-action");  
+}  
+  
+addContextButton("RENAME",()=>startRenameByPath(path));  
+addContextButton("DOWNLOAD",()=>downloadItem(path));  
+  
+if(ext(path)!=="zip")addContextButton("EDIT",()=>edit(path));  
+  
+if(["js","ts","py","java","c","cpp","cs","php","html","css"].includes(ext(path))){  
+addContextButton("CODE",()=>{  
+selected=new Set([path]);  
+code();  
+});  
+}  
+  
+if(ext(path)==="zip"){  
+addContextButton("UNZIP",()=>unzipFile(path),"zip-action");  
+}  
+  
+if(zone().key!=="system"){  
+addContextButton("DELETE",async()=>{  
+const r=await parent.FS.remove(path);  
+if(!r.ok){  
+showError(r.error||"Could not delete.");  
+return;  
+}  
+selected.delete(path);  
+await refresh();  
+},"danger");  
+}  
+}  
+}  
+  
+if(selected.size&&!selectMode){  
+addContextButton("DOWNLOAD SELECTED",()=>downloadSelected());  
+}  
+  
+contextMenu.style.display="block";  
+  
+const rect=contextMenu.getBoundingClientRect();  
+  
+let left=Math.min(x,window.innerWidth-rect.width-4);  
+let top=Math.min(y,window.innerHeight-rect.height-4);  
+  
+contextMenu.style.left=Math.max(2,left)+"px";  
+contextMenu.style.top=Math.max(2,top)+"px";  
+}  
+  
+function startRenameByPath(path){  
+closeContextMenu();  
+  
+const target=[...document.querySelectorAll(".name")].find(n=>n.dataset.path===path);  
+  
+if(target){  
+startRename(target,path,isFolderPath(path));  
+}  
+}  
+  
+function startRename(element,oldPath,folder){  
+cancelRename();  
+  
+const oldName=displayName(oldPath);  
+const input=document.createElement("input");  
+  
+input.className="rename-input";  
+input.value=oldName;  
+input.autocomplete="off";  
+input.spellcheck=false;  
+  
+const oldContent=element.textContent;  
+  
+activeRename={  
+element,  
+input,  
+oldPath,  
+oldName,  
+oldContent,  
+folder  
+};  
+  
+element.innerHTML="";  
+element.appendChild(input);  
+input.focus();  
+  
+if(!folder){  
+const dot=oldName.lastIndexOf(".");  
+if(dot>0){  
+try{  
+input.setSelectionRange(0,dot);  
+}catch(_){  
+input.select();  
+}  
+}else{  
+input.select();  
+}  
+}else{  
+input.select();  
+}  
+  
+input.addEventListener("keydown",e=>{  
+if(e.key==="Enter"){  
+e.preventDefault();  
+finishRename();  
+}else if(e.key==="Escape"){  
+e.preventDefault();  
+cancelRename();  
+}  
+});  
+  
+input.addEventListener("click",e=>e.stopPropagation());  
+input.addEventListener("pointerdown",e=>e.stopPropagation());  
+}  
+  
+function buildNewPath(oldPath,newName,folder){  
+const cleanName=String(newName||"").trim().replace(/[\/\\]/g,"").trim();  
+if(!cleanName)return null;  
+return parentFolder(oldPath)+cleanName+(folder?"/":"");  
+}  
+  
+async function renameUsingFS(oldPath,newPath){  
+if(parent.FS&&typeof parent.FS.rename==="function"){  
+const r=await parent.FS.rename(oldPath,newPath);  
+if(!r||!r.ok){  
+throw new Error(r&&(r.error||r.summary)||"Could not rename.");  
+}  
+return;  
+}  
+  
+if(oldPath.endsWith("/")){  
+const files=await parent.FS.list(oldPath);  
+if(!Array.isArray(files))throw new Error("Could not read folder.");  
+  
+const descendants=files.filter(p=>String(p).startsWith(oldPath)&&String(p)!==oldPath);  
+  
+for(const source of descendants){  
+if(String(source).endsWith("/"))continue;  
+  
+const r=await parent.FS.read(source);  
+  
+if(!r.ok){  
+throw new Error(r.error||("Could not read "+source));  
+}  
+  
+const relative=String(source).slice(oldPath.length);  
+  
+const w=await parent.FS.write(  
+normalizeFolderPath(newPath)+relative,  
+r.content,  
+true  
+);  
+  
+if(!w.ok){  
+throw new Error(w.error||("Could not create "+newPath));  
+}  
+}  
+  
+for(let i=descendants.length-1;i>=0;i--){  
+if(String(descendants[i]).endsWith("/"))continue;  
+  
+const r=await parent.FS.remove(descendants[i]);  
+  
+if(!r.ok){  
+throw new Error(r.error||("Could not remove "+descendants[i]));  
+}  
+}  
+  
+return;  
+}  
+  
+const r=await parent.FS.read(oldPath);  
+  
+if(!r.ok){  
+throw new Error(r.error||("Could not read "+oldPath));  
+}  
+  
+const w=await parent.FS.write(newPath,r.content,true);  
+  
+if(!w.ok){  
+throw new Error(w.error||("Could not create "+newPath));  
+}  
+  
+const d=await parent.FS.remove(oldPath);  
+  
+if(!d.ok){  
+throw new Error(d.error||("Could not remove "+oldPath));  
+}  
+}  
+  
+async function finishRename(){  
+if(!activeRename||renameSaving)return;  
+  
+const currentRename=activeRename;  
+const input=currentRename.input;  
+  
+if(!input||!input.isConnected){  
+activeRename=null;  
+return;  
+}  
+  
+const newName=input.value.trim();  
+  
+if(!newName){  
+cancelRename();  
+showError("Name cannot be empty.");  
+return;  
+}  
+  
+const newPath=buildNewPath(  
+currentRename.oldPath,  
+newName,  
+currentRename.folder  
+);  
+  
+if(!newPath){  
+cancelRename();  
+showError("Invalid name.");  
+return;  
+}  
+  
+if(newPath===currentRename.oldPath){  
+restoreRename();  
+return;  
+}  
+  
+const request=++renameRequest;  
+renameSaving=true;  
+  
+try{  
+await renameUsingFS(  
+currentRename.oldPath,  
+newPath  
+);  
+  
+if(request!==renameRequest)return;  
+  
+selected.delete(currentRename.oldPath);  
+selected.delete(newPath);  
+  
+activeRename=null;  
+renameSaving=false;  
+  
+await refresh();  
+  
+}catch(err){  
+if(request!==renameRequest)return;  
+  
+renameSaving=false;  
+showError(err.message||String(err));  
+  
+if(input.isConnected)input.focus();  
+}  
+}  
+  
+function restoreRename(){  
+if(!activeRename)return;  
+  
+activeRename.element.textContent=activeRename.oldContent;  
+activeRename=null;  
+renameSaving=false;  
+}  
+  
+function cancelRename(){  
+renameRequest++;  
+restoreRename();  
+}  
+  
+document.addEventListener("pointerdown",e=>{  
+if(activeRename){  
+const input=activeRename.input;  
+  
+if(e.target!==input&&!input.contains(e.target)){  
+finishRename();  
+}  
+}  
+  
+if(  
+!contextMenu.contains(e.target)&&  
+!e.target.closest(".name")&&  
+!e.target.closest(".rename-input")  
+){  
+closeContextMenu();  
+}  
+},true);  
+  
+document.addEventListener("scroll",closeContextMenu,true);  
+  
+async function openPath(p){  
+if(isFolderPath(p)){  
+enterFolder(p);  
+return;  
+}  
+  
+if(selectMode){  
+if(allowMultiple){  
+if(selected.has(p))selected.delete(p);  
+else selected.add(p);  
+await refresh();  
+}else{  
+finishFilePick([p]);  
+}  
+return;  
+}  
+  
+if(ext(p)==="zip"){  
+await downloadBinary(p);  
+return;  
+}  
+  
+try{  
+const e=ext(p);  
+let result;  
+  
+if(["png","jpg","jpeg","gif","webp","bmp","svg","avif","ico","tif","tiff"].includes(e)){  
+result=await parent.Apps.openApp("imageViewer",{  
+src:p,  
+allowMultiple:true  
+});  
+}else if(["mp4","webm","mov","m4v"].includes(e)){  
+result=await parent.Apps.openApp("videoPlayer",{  
+src:p,  
+allowMultiple:true  
+});  
+}else if(["mp3","wav","ogg","m4a","flac"].includes(e)){  
+result=await parent.Apps.openApp("audioPlayer",{  
+src:p,  
+allowMultiple:true  
+});  
+}else{  
+result=await parent.Apps.openApp("Notepad",{  
+path:p,  
+allowMultiple:true  
+});  
+}  
+  
+if(!result||!result.ok){  
+showError(  
+result&&(  
+result.error||  
+result.summary  
+)||"Could not open file."  
+);  
+}  
+}catch(err){  
+showError(err.message||String(err));  
+}  
+}  
+  
+function enterFolder(path){  
+cancelRename();  
+currentPrefix=normalizeFolderPath(path);  
+closeContextMenu();  
+refresh();  
+}  
+  
+function goUp(){  
+cancelRename();  
+  
+const z=zone();  
+  
+if(!currentPrefix)return;  
+  
+const root=z.prefix.replace(/\/+$/,"");  
+let p=currentPrefix.replace(/\/+$/,"");  
+  
+if(p===root){  
+currentPrefix="";  
+refresh();  
+return;  
+}  
+  
+const i=p.lastIndexOf("/");  
+  
+currentPrefix=i<=root.length?"":p.slice(0,i+1);  
+refresh();  
+}  
+  
+async function edit(p){  
+if(isImagePath(p)){  
+await openImageEditor(p);  
+return;  
+}  
+  
+try{  
+const result=await parent.Apps.openApp("Notepad",{  
+path:p,  
+allowMultiple:true  
+});  
+  
+if(!result||!result.ok){  
+showError(  
+result&&(result.error||result.summary)||  
+"Could not open Notepad."  
+);  
+}  
+}catch(err){  
+showError(err.message||String(err));  
+}  
+}  
+  
+async function code(){  
+const paths=selectedPaths();  
+  
+if(!paths.length)return;  
+  
+const files=[];  
+  
+for(const p of paths){  
+if(isFolderPath(p))continue;  
+  
+const r=await parent.FS.read(p);  
+  
+if(r.ok){  
+files.push({  
+name:p.split("/").pop(),  
+content:r.content  
+});  
+}  
+}  
+  
+if(!files.length)return;  
+  
+parent.Apps.openOneCompiler({  
+language:ext(files[0].name)==="py"?"python":"javascript",  
+files,  
+run:false  
+});  
+}  
+  
+function downloadData(data,name){  
+const a=document.createElement("a");  
+a.href=data;  
+a.download=name;  
+document.body.appendChild(a);  
+a.click();  
+a.remove();  
+}  
+  
+async function downloadBinary(p){  
+const r=await parent.FS.read(p);  
+  
+if(!r.ok){  
+showError(r.error);  
+return false;  
+}  
+  
+if(!/^data:/i.test(r.content)){  
+showError("This file does not contain downloadable binary data.");  
+return false;  
+}  
+  
+downloadData(r.content,p.split("/").pop());  
+return true;  
+}  
+  
+function dataURLToBytes(data){  
+const comma=String(data).indexOf(",");  
+  
+if(comma<0){  
+throw new Error("Invalid data URL.");  
+}  
+  
+const header=String(data).slice(0,comma);  
+const body=String(data).slice(comma+1);  
+  
+if(/;base64/i.test(header)){  
+const binary=atob(body);  
+const bytes=new Uint8Array(binary.length);  
+  
+for(let i=0;i<binary.length;i++){  
+bytes[i]=binary.charCodeAt(i);  
+}  
+  
+return bytes;  
+}  
+  
+return new TextEncoder().encode(  
+decodeURIComponent(body)  
+);  
+}  
+  
+function readU16(bytes,p){  
+return(bytes[p]|bytes[p+1]<<8)>>>0;  
+}  
+  
+function readU32(bytes,p){  
+return(  
+bytes[p]|  
+bytes[p+1]<<8|  
+bytes[p+2]<<16|  
+bytes[p+3]<<24  
+)>>>0;  
+}  
+  
+function findEOCD(bytes){  
+const min=Math.max(0,bytes.length-65557);  
+  
+for(let p=bytes.length-22;p>=min;p--){  
+if(readU32(bytes,p)===0x06054b50)return p;  
+}  
+  
+return -1;  
+}  
+  
+function safeZipPath(name){  
+name=String(name||"")  
+.replace(/\\/g,"/")  
+.replace(/^\/+/,"");  
+  
+const result=[];  
+  
+for(const part of name.split("/")){  
+if(part&&part!=="."&&part!==".."){  
+result.push(part);  
+}  
+}  
+  
+return result.join("/");  
+}  
+  
+async function unzipFile(zipPath){  
+const defaultFolder=zipPath.replace(/\.zip$/i,"")+"/";  
+const output=prompt("UNZIP destination folder:",defaultFolder);  
+  
+if(!output)return;  
+  
+let outputFolder=String(output).trim();  
+  
+if(!outputFolder.endsWith("/")){  
+outputFolder+="/";  
+}  
+  
+try{  
+const r=await parent.FS.read(zipPath);  
+  
+if(!r.ok){  
+showError(r.error||"Could not read ZIP.");  
+return;  
+}  
+  
+if(!/^data:/i.test(r.content)){  
+showError("ZIP does not contain binary data.");  
+return;  
+}  
+  
+const bytes=dataURLToBytes(r.content);  
+const eocd=findEOCD(bytes);  
+  
+if(eocd<0){  
+showError("Invalid ZIP archive.");  
+return;  
+}  
+  
+const entries=readU16(bytes,eocd+10);  
+const centralOffset=readU32(bytes,eocd+16);  
+  
+let pos=centralOffset;  
+let extracted=0;  
+  
+for(let n=0;n<entries;n++){  
+if(readU32(bytes,pos)!==0x02014b50){  
+throw new Error("Invalid ZIP central directory.");  
+}  
+  
+const method=readU16(bytes,pos+10);  
+const compressedSize=readU32(bytes,pos+20);  
+const nameLength=readU16(bytes,pos+28);  
+const extraLength=readU16(bytes,pos+30);  
+const commentLength=readU16(bytes,pos+32);  
+const localOffset=readU32(bytes,pos+42);  
+  
+const filename=new TextDecoder().decode(  
+bytes.slice(pos+46,pos+46+nameLength)  
+);  
+  
+const safeName=safeZipPath(filename);  
+  
+if(safeName&&!filename.endsWith("/")){  
+if(readU32(bytes,localOffset)!==0x04034b50){  
+throw new Error("Invalid ZIP local header.");  
+}  
+  
+const localNameLength=readU16(bytes,localOffset+26);  
+const localExtraLength=readU16(bytes,localOffset+28);  
+  
+const dataStart=  
+localOffset+  
+30+  
+localNameLength+  
+localExtraLength;  
+  
+const compressed=  
+bytes.slice(  
+dataStart,  
+dataStart+compressedSize  
+);  
+  
+let fileBytes;  
+  
+if(method===0){  
+fileBytes=compressed;  
+}else if(method===8){  
+if(typeof DecompressionStream!=="function"){  
+throw new Error("This browser cannot decompress DEFLATE ZIP files.");  
+}  
+  
+const stream=  
+new Blob([compressed])  
+.stream()  
+.pipeThrough(  
+new DecompressionStream("deflate-raw")  
+);  
+  
+fileBytes=  
+new Uint8Array(  
+await new Response(stream).arrayBuffer()  
+);  
+}else{  
+throw new Error(  
+"Unsupported ZIP compression method "+  
+method+  
+" for "+  
+filename+  
+"."  
+);  
+}  
+  
+let binary="";  
+  
+for(let i=0;i<fileBytes.length;i+=0x8000){  
+binary+=String.fromCharCode(  
+...fileBytes.subarray(  
+i,  
+Math.min(i+0x8000,fileBytes.length)  
+)  
+);  
+}  
+  
+const dataURL=  
+"data:application/octet-stream;base64,"+  
+btoa(binary);  
+  
+const dest=outputFolder+safeName;  
+  
+const w=await parent.FS.write(  
+dest,  
+dataURL,  
+true  
+);  
+  
+if(!w.ok){  
+throw new Error(  
+"Could not extract "+  
+filename+  
+": "+  
+(w.error||"write failed")  
+);  
+}  
+  
+extracted++;  
+}  
+  
+pos+=46+nameLength+extraLength+commentLength;  
+}  
+  
+showError(  
+"UNZIP complete: extracted "+  
+extracted+  
+" file(s) to "+  
+outputFolder  
+);  
+  
+await refresh();  
+  
+}catch(err){  
+showError(  
+"UNZIP failed: "+  
+(err.message||String(err))  
+);  
+}  
+}  
+  
+function utf8(s){  
+return new TextEncoder().encode(String(s));  
+}  
+  
+function u16(n){  
+return[n&255,(n>>>8)&255];  
+}  
+  
+function u32(n){  
+return[  
+n&255,  
+(n>>>8)&255,  
+(n>>>16)&255,  
+(n>>>24)&255  
+];  
+}  
+  
+function crc32(bytes){  
+let c=0xffffffff;  
+  
+for(const b of bytes){  
+c^=b;  
+  
+for(let i=0;i<8;i++){  
+c=  
+(c>>>1)^  
+((c&1)?0xedb88320:0);  
+}  
+}  
+  
+return(c^0xffffffff)>>>0;  
+}  
+  
+function makeZip(entries){  
+const local=[];  
+const central=[];  
+let offset=0;  
+  
+for(const entry of entries){  
+const name=utf8(  
+entry.name.replace(/^\/+/,"")  
+);  
+  
+const data=entry.data;  
+const crc=crc32(data);  
+  
+const header=new Uint8Array([  
+...u32(0x04034b50),  
+...u16(20),  
+...u16(0),  
+...u16(0),  
+...u16(0),  
+...u16(0),  
+...u32(crc),  
+...u32(data.length),  
+...u32(data.length),  
+...u16(name.length),  
+...u16(0),  
+...name,  
+...data  
+]);  
+  
+local.push(header);  
+  
+central.push(  
+new Uint8Array([  
+...u32(0x02014b50),  
+...u16(20),  
+...u16(20),  
+...u16(0),  
+...u16(0),  
+...u16(0),  
+...u16(0),  
+...u32(crc),  
+...u32(data.length),  
+...u32(data.length),  
+...u16(name.length),  
+...u16(0),  
+...u16(0),  
+...u16(0),  
+...u16(0),  
+...u32(0),  
+...u32(offset),  
+...name  
+])  
+);  
+  
+offset+=header.length;  
+}  
+  
+const cdOffset=offset;  
+  
+const cdSize=central.reduce(  
+(a,b)=>a+b.length,  
+0  
+);  
+  
+const eocd=new Uint8Array([  
+...u32(0x06054b50),  
+...u16(0),  
+...u16(0),  
+...u16(central.length),  
+...u16(central.length),  
+...u32(cdSize),  
+...u32(cdOffset),  
+...u16(0)  
+]);  
+  
+return new Blob(  
+[  
+...local,  
+...central,  
+eocd  
+],  
+{  
+type:"application/zip"  
+}  
+);  
+}  
+  
+function blobDataURL(blob){  
+return new Promise((resolve,reject)=>{  
+const reader=new FileReader();  
+  
+reader.onload=()=>resolve(reader.result);  
+reader.onerror=()=>reject(reader.error);  
+  
+reader.readAsDataURL(blob);  
+});  
+}  
+  
+async function collectFiles(paths){  
+const entries=[];  
+  
+for(const p0 of paths){  
+const p=String(p0);  
+  
+if(isFolderPath(p)){  
+const base=normalizeFolderPath(p);  
+const files=await parent.FS.list(base);  
+  
+if(!Array.isArray(files))continue;  
+  
+for(const item0 of files){  
+const item=String(item0);  
+  
+if(!item.startsWith(base)||item.endsWith("/"))continue;  
+  
+const r=await parent.FS.read(item);  
+  
+if(!r.ok)continue;  
+  
+const bytes=  
+/^data:/i.test(r.content)  
+?dataURLToBytes(r.content)  
+:utf8(r.content);  
+  
+entries.push({  
+name:displayName(p)+"/"+item.slice(base.length),  
+data:bytes  
+});  
+}  
+  
+}else{  
+const r=await parent.FS.read(p);  
+  
+if(!r.ok)continue;  
+  
+const bytes=  
+/^data:/i.test(r.content)  
+?dataURLToBytes(r.content)  
+:utf8(r.content);  
+  
+entries.push({  
+name:displayName(p),  
+data:bytes  
+});  
+}  
+}  
+  
+return entries;  
+}  
+  
+async function downloadItem(path){  
+try{  
+if(isFolderPath(path)){  
+const entries=await collectFiles([path]);  
+const blob=makeZip(entries);  
+  
+downloadData(  
+await blobDataURL(blob),  
+displayName(path)+".zip"  
+);  
+  
+return;  
+}  
+  
+if(ext(path)==="zip"){  
+await downloadBinary(path);  
+return;  
+}  
+  
+const r=await parent.FS.read(path);  
+  
+if(!r.ok){  
+showError(r.error||"Could not read file.");  
+return;  
+}  
+  
+if(/^data:/i.test(r.content)){  
+downloadData(  
+r.content,  
+displayName(path)  
+);  
+return;  
+}  
+  
+const blob=new Blob(  
+[String(r.content)],  
+{type:"application/octet-stream"}  
+);  
+  
+downloadData(  
+await blobDataURL(blob),  
+displayName(path)  
+);  
+  
+}catch(err){  
+showError(  
+"Download failed: "+  
+(err.message||String(err))  
+);  
+}  
+}  
+  
+async function downloadSelected(){  
+const paths=selectedPaths();  
+  
+if(!paths.length){  
+showError("Select files or folders first.");  
+return;  
+}  
+  
+try{  
+if(paths.length===1){  
+await downloadItem(paths[0]);  
+return;  
+}  
+  
+const entries=await collectFiles(paths);  
+const blob=makeZip(entries);  
+  
+downloadData(  
+await blobDataURL(blob),  
+"selected.zip"  
+);  
+  
+}catch(err){  
+showError(  
+"Download failed: "+  
+(err.message||String(err))  
+);  
+}  
+}  
+  
+function sortPaths(files){  
+return files.sort((a,b)=>{  
+const af=isFolderPath(a);  
+const bf=isFolderPath(b);  
+  
+if(af!==bf)return af?-1:1;  
+  
+return a.localeCompare(  
+b,  
+undefined,  
+{  
+numeric:true,  
+sensitivity:"base"  
+}  
+);  
+});  
+}  
+  
+async function refresh(){  
+cancelRename();  
+  
+const serial=++refreshSerial;  
+const z=zone();  
+  
+if(!z)return;  
+  
+updatePathDisplay();  
+  
+if(  
+z.key==="puter"&&  
+!parent.FS.puterReady()  
+){  
+if(serial===refreshSerial){  
+list.innerHTML=  
+'<div class="empty">Puter filesystem unavailable.</div>';  
+}  
+return;  
+}  
+  
+try{  
+const result=  
+await parent.FS.list(  
+currentPrefix||z.prefix  
+);  
+  
+if(serial!==refreshSerial)return;  
+  
+let files=  
+Array.isArray(result)  
+?result  
+:[];  
+  
+const base=  
+currentPrefix||z.prefix;  
+  
+const visible=[];  
+  
+for(const p0 of files){  
+const p=String(p0);  
+  
+if(!p.startsWith(base))continue;  
+  
+const rest=p.slice(base.length);  
+  
+if(!rest)continue;  
+  
+const clean=rest.replace(/\/+$/,"");  
+const slash=clean.indexOf("/");  
+  
+if(slash>=0){  
+const folderPath=  
+base+  
+clean.slice(0,slash+1);  
+  
+if(!visible.includes(folderPath)){  
+visible.push(folderPath);  
+}  
+  
+}else{  
+visible.push(p);  
+}  
+}  
+  
+files=sortPaths(visible);  
+list.innerHTML="";  
+  
+if(!files.length){  
+list.innerHTML='<div class="empty">No files.</div>';  
+return;  
+}  
+  
+for(const p of files){  
+const row=document.createElement("div");  
+const folder=isFolderPath(p);  
+const image=!folder&&isImagePath(p);  
+  
+row.className=  
+"row"+  
+(folder?" folder":"")+  
+(image?" image-row":"");  
+  
+if(selected.has(p)){  
+row.classList.add("selected");  
+}  
+  
+const cb=document.createElement("input");  
+  
+cb.type="checkbox";  
+cb.checked=selected.has(p);  
+  
+cb.onchange=()=>{  
+if(cb.checked){  
+selected.add(p);  
+}else{  
+selected.delete(p);  
+}  
+row.classList.toggle(  
+"selected",  
+cb.checked  
+);  
+};  
+  
+if(selectMode&&!allowMultiple){  
+cb.style.display="none";  
+}  
+  
+const name=document.createElement("div");  
+  
+name.className="name";  
+name.dataset.path=p;  
+  
+name.textContent=  
+(folder?"📁 ":image?"🖼 ":"")+  
+displayName(p);  
+  
+name.title=p;  
+  
+name.onclick=()=>{  
+openPath(p);  
+};  
+  
+name.ondblclick=e=>{  
+e.preventDefault();  
+e.stopPropagation();  
+  
+if(selectMode&&!folder){  
+if(allowMultiple){  
+if(selected.has(p)){  
+selected.delete(p);  
+}else{  
+selected.add(p);  
+}  
+refresh();  
+}else{  
+finishFilePick([p]);  
+}  
+return;  
+}  
+  
+if(image){  
+openImageEditor(p);  
+}else{  
+startRename(name,p,folder);  
+}  
+};  
+  
+name.oncontextmenu=e=>{  
+e.preventDefault();  
+  
+showContextMenu(  
+e.clientX,  
+e.clientY,  
+p,  
+folder  
+);  
+};  
+  
+let pressTimer=null;  
+  
+name.onpointerdown=e=>{  
+if(e.pointerType==="mouse"||activeRename)return;  
+  
+pressTimer=setTimeout(()=>{  
+showContextMenu(  
+e.clientX,  
+e.clientY,  
+p,  
+folder  
+);  
+},550);  
+};  
+  
+name.onpointerup=  
+()=>clearTimeout(pressTimer);  
+  
+name.onpointercancel=  
+()=>clearTimeout(pressTimer);  
+  
+name.onpointermove=  
+()=>clearTimeout(pressTimer);  
+  
+row.append(cb,name);  
+  
+if(folder){  
+const openBtn=document.createElement("button");  
+  
+openBtn.textContent="OPEN";  
+openBtn.onclick=()=>enterFolder(p);  
+  
+row.append(openBtn);  
+  
+if(!selectMode){  
+const dlBtn=document.createElement("button");  
+  
+dlBtn.textContent="DL";  
+dlBtn.onclick=()=>downloadItem(p);  
+  
+row.append(dlBtn);  
+}  
+  
+if(isTopLevelDeviceMount(p)){  
+const dismountBtn=document.createElement("button");  
+  
+dismountBtn.textContent="DISMOUNT";  
+  
+dismountBtn.onclick=async e=>{  
+e.stopPropagation();  
+  
+const result=  
+await parent.FS.unmountDeviceFolder(  
+displayName(p)  
+);  
+  
+if(!result||!result.ok){  
+showError(  
+result&&result.error||  
+"Could not dismount folder."  
+);  
+return;  
+}  
+  
+selected.delete(p);  
+currentPrefix="";  
+  
+await refresh();  
+};  
+  
+row.append(dismountBtn);  
+}  
+}else{  
+const e=ext(p);  
+  
+if(!selectMode){  
+if(image){  
+const editImageBtn=  
+document.createElement("button");  
+  
+editImageBtn.textContent="EDIT";  
+editImageBtn.onclick=  
+()=>openImageEditor(p);  
+  
+row.append(editImageBtn);  
+}  
+  
+const dlBtn=document.createElement("button");  
+  
+dlBtn.textContent="DL";  
+dlBtn.onclick=  
+()=>downloadItem(p);  
+  
+row.append(dlBtn);  
+  
+if(  
+e!=="zip"&&  
+!image&&  
+z.key!=="system"  
+){  
+const editBtn=  
+document.createElement("button");  
+  
+editBtn.textContent="EDIT";  
+editBtn.onclick=  
+()=>edit(p);  
+  
+row.append(editBtn);  
+}  
+  
+if(e==="zip"){  
+const unzipBtn=  
+document.createElement("button");  
+  
+unzipBtn.textContent="UNZIP";  
+unzipBtn.onclick=  
+()=>unzipFile(p);  
+  
+row.append(unzipBtn);  
+}  
+  
+if(  
+z.key!=="system"&&  
+[  
+"js",  
+"ts",  
+"py",  
+"java",  
+"c",  
+"cpp",  
+"cs",  
+"php",  
+"html",  
+"css"  
+].includes(e)  
+){  
+const codeBtn=  
+document.createElement("button");  
+  
+codeBtn.textContent="CODE";  
+  
+codeBtn.onclick=()=>{  
+selected=  
+new Set([p]);  
+  
+code();  
+};  
+  
+row.append(codeBtn);  
+}  
+  
+if(z.key!=="system"){  
+const del=  
+document.createElement("button");  
+  
+del.textContent="DEL";  
+  
+del.onclick=async()=>{  
+const r=  
+await parent.FS.remove(p);  
+  
+if(!r.ok){  
+showError(  
+r.error||  
+"Could not delete file."  
+);  
+return;  
+}  
+  
+selected.delete(p);  
+await refresh();  
+};  
+  
+row.append(del);  
+}  
+}  
+  
+if(selectMode&&allowMultiple){  
+const pickBtn=  
+document.createElement("button");  
+  
+pickBtn.textContent=  
+selected.has(p)  
+?"✓"  
+:"SELECT";  
+  
+pickBtn.onclick=e=>{  
+e.stopPropagation();  
+  
+if(selected.has(p)){  
+selected.delete(p);  
+}else{  
+selected.add(p);  
+}  
+  
+refresh();  
+};  
+  
+row.append(pickBtn);  
+}  
+}  
+  
+list.appendChild(row);  
+}  
+  
+if(selectMode&&allowMultiple){  
+const footer=  
+document.createElement("div");  
+  
+footer.className="picker-action";  
+  
+const openSelected=  
+document.createElement("button");  
+  
+openSelected.textContent=  
+selected.size  
+?"OPEN SELECTED ("+selected.size+")"  
+:"OPEN SELECTED";  
+  
+openSelected.onclick=  
+()=>finishFilePick(  
+selectedPaths()  
+);  
+  
+footer.appendChild(openSelected);  
+list.appendChild(footer);  
+}  
+  
+}catch(e){  
+if(serial!==refreshSerial)return;  
+  
+list.innerHTML=  
+'<div class="empty">Could not read this folder.</div>';  
+  
+showError(  
+e.message||  
+"Could not list files."  
+);  
+}  
+}  
+  
+document.getElementById("refresh").onclick=  
+refresh;  
+  
+document.getElementById("up").onclick=  
+goUp;  
+  
+document.getElementById("selectAll").onclick=  
+async()=>{  
+cancelRename();  
+  
+const z=zone();  
+  
+const files=  
+await parent.FS.list(  
+currentPrefix||z.prefix  
+);  
+  
+if(!Array.isArray(files))return;  
+  
+const base=  
+currentPrefix||z.prefix;  
+  
+files.forEach(p=>{  
+if(  
+String(p).startsWith(base)&&  
+String(p)!==base  
+){  
+selected.add(String(p));  
+}  
+});  
+  
+await refresh();  
+};  
+  
+document.getElementById("newText").onclick=  
+async()=>{  
+cancelRename();  
+  
+const defaultPath=  
+(  
+currentPrefix||  
+zone().prefix  
+)+  
+"new.txt";  
+  
+const name=  
+prompt(  
+"New text file path:",  
+defaultPath  
+);  
+  
+if(!name)return;  
+  
+const r=  
+await parent.FS.write(  
+name,  
+"",  
+true  
+);  
+  
+if(!r.ok){  
+showError(r.error);  
+return;  
+}  
+  
+await refresh();  
+edit(name);  
+};  
+  
+document.getElementById("zip").onclick=  
+async()=>{  
+cancelRename();  
+  
+const fs=selectedPaths();  
+  
+if(!fs.length){  
+showError("Select files first.");  
+return;  
+}  
+  
+const out=  
+prompt(  
+"ZIP output path:",  
+(  
+currentPrefix||  
+zone().prefix  
+)+  
+"archive.zip"  
+);  
+  
+if(!out)return;  
+  
+const r=  
+await parent.Tools.execute(  
+"zip_files",  
+{  
+files:fs,  
+output_path:out  
+}  
+);  
+  
+if(!r.ok){  
+showError(  
+r.summary||  
+"Could not create ZIP."  
+);  
+return;  
+}  
+  
+selected.clear();  
+await refresh();  
+};  
+  
+box.onchange=()=>{  
+const v=box.value.trim();  
+  
+if(!v)return;  
+  
+parent.Tools.execute(  
+"find_files",  
+{pattern:v}  
+)  
+.then(r=>{  
+showError(  
+r.files&&r.files.length  
+?r.files.join("\n")  
+:r.summary  
+);  
+})  
+.catch(e=>{  
+showError(  
+e.message||e  
+);  
+});  
+};  
+  
+box.onkeydown=e=>{  
+if(e.key!=="Enter")return;  
+  
+const v=box.value.trim();  
+  
+if(!v)return;  
+  
+if(/\/$/.test(v)){  
+const z=zone();  
+  
+if(v.startsWith(z.prefix)){  
+currentPrefix=  
+normalizeFolderPath(v);  
+  
+refresh();  
+}  
+  
+return;  
+}  
+  
+box.onchange();  
+};  
+  
+document.getElementById("mountFolder").onclick=  
+async()=>{  
+const result=  
+await parent.FS.mountDeviceFolder();  
+  
+if(!result.ok){  
+if(!result.cancelled){  
+showError(  
+result.error||  
+"Could not upload folder."  
+);  
+}  
+return;  
+}  
+  
+current="device";  
+currentPrefix="";  
+  
+[...tabs.children].forEach(  
+x=>x.classList.toggle(  
+"active",  
+x.dataset.k==="device"  
+)  
+);  
+  
+selected.clear();  
+  
+await refresh();  
+};  
+  
+refresh();  
+</script>  
+</body>  
 </html>
