@@ -46,6 +46,7 @@ html,body{
 .msg-row.user{
     align-self:flex-end;
     background:rgba(0,255,255,0.14);
+    white-space:pre-wrap;
 }
 
 .msg-row.ai{
@@ -59,6 +60,7 @@ html,body{
     font-size:10px;
     border-style:dashed;
     max-width:96%;
+    white-space:pre-wrap;
 }
 
 .msg-row.debug{
@@ -66,40 +68,40 @@ html,body{
     background:rgba(255,255,0,.035);
 }
 
-.msg-row.ai .message-markdown{
+.message-markdown{
     white-space:normal;
 }
 
-.msg-row.ai .message-markdown p{
+.message-markdown p{
     margin:0 0 8px;
 }
 
-.msg-row.ai .message-markdown p:last-child{
+.message-markdown p:last-child{
     margin-bottom:0;
 }
 
-.msg-row.ai .message-markdown h1,
-.msg-row.ai .message-markdown h2,
-.msg-row.ai .message-markdown h3,
-.msg-row.ai .message-markdown h4,
-.msg-row.ai .message-markdown h5,
-.msg-row.ai .message-markdown h6{
+.message-markdown h1,
+.message-markdown h2,
+.message-markdown h3,
+.message-markdown h4,
+.message-markdown h5,
+.message-markdown h6{
     margin:10px 0 6px;
 }
 
-.msg-row.ai .message-markdown ul,
-.msg-row.ai .message-markdown ol{
+.message-markdown ul,
+.message-markdown ol{
     margin:6px 0 8px 20px;
 }
 
-.msg-row.ai .message-markdown blockquote{
+.message-markdown blockquote{
     margin:8px 0;
     padding-left:10px;
     border-left:2px solid #00FFFF;
     opacity:.85;
 }
 
-.msg-row.ai .message-markdown pre{
+.message-markdown pre{
     overflow:auto;
     padding:8px;
     margin:8px 0;
@@ -107,44 +109,44 @@ html,body{
     background:#001515;
 }
 
-.msg-row.ai .message-markdown code{
+.message-markdown code{
     font-family:monospace;
 }
 
-.msg-row.ai .message-markdown :not(pre) > code{
+.message-markdown :not(pre)>code{
     padding:1px 4px;
     background:rgba(0,255,255,.08);
 }
 
-.msg-row.ai .message-markdown table{
+.message-markdown table{
     border-collapse:collapse;
     width:100%;
     margin:8px 0;
 }
 
-.msg-row.ai .message-markdown th,
-.msg-row.ai .message-markdown td{
+.message-markdown th,
+.message-markdown td{
     border:1px solid rgba(0,255,255,.45);
     padding:5px 7px;
     vertical-align:top;
 }
 
-.msg-row.ai .message-markdown img{
+.message-markdown img{
     max-width:100%;
     height:auto;
 }
 
-.msg-row.ai .message-markdown a{
+.message-markdown a{
     color:#00FFFF;
 }
 
-.msg-row.ai .message-markdown hr{
+.message-markdown hr{
     border:none;
     border-top:1px solid rgba(0,255,255,.5);
     margin:10px 0;
 }
 
-.msg-row.ai .message-markdown input[type="checkbox"]{
+.message-markdown input[type="checkbox"]{
     accent-color:#00FFFF;
 }
 
@@ -230,7 +232,7 @@ html,body{
 </div>
 
 <script type="module">
-import * as MarkdownModule from "../js/markdown.js";
+import "../js/markdown.js";
 
 const log=document.getElementById("log");
 const input=document.getElementById("input");
@@ -245,14 +247,17 @@ let debugMode=false;
 const debugOnHash="3dd2d6ca32529ed36595723bd9e75e8e2336940f900b5c0e676785588352c69a";
 const debugOffHash="f36d9a83b5e38fd59c495206f1eb15f52681455b1766647a9f5d2877d43e0611";
 
-function getParent(){
-    try{
-        if(window.parent&&window.parent!==window)return window.parent;
-    }catch(_){}
-    return window;
-}
+const markedParser=
+    typeof globalThis.marked==="function"
+        ?globalThis.marked
+        :typeof globalThis.marked?.parse==="function"
+            ?globalThis.marked.parse.bind(globalThis.marked)
+            :null;
 
-const parentWindow=getParent();
+const parentWindow=
+    window.parent&&window.parent!==window
+        ?window.parent
+        :window;
 
 function setStatus(text,isDebug=false){
     status.textContent=text||"";
@@ -262,20 +267,37 @@ function setStatus(text,isDebug=false){
 function addRow(text,cls){
     const row=document.createElement("div");
     row.className="msg-row "+cls;
-    row.textContent=text;
+    row.textContent=String(text??"");
     log.appendChild(row);
     log.scrollTop=log.scrollHeight;
     return row;
 }
 
-function addMarkdownRow(markdown,cls="ai"){
+function renderMarkdown(element,text){
+    const source=String(text??"");
+
+    if(!markedParser){
+        element.textContent=source;
+        return;
+    }
+
+    try{
+        const html=markedParser(source);
+        element.innerHTML=String(html??"");
+    }catch(err){
+        element.textContent=source;
+        console.error("Markdown parse error:",err);
+    }
+}
+
+function addMarkdownRow(text,cls="ai"){
     const row=document.createElement("div");
     row.className="msg-row "+cls;
 
     const content=document.createElement("div");
     content.className="message-markdown";
 
-    renderInto(content,markdown);
+    renderMarkdown(content,text);
 
     row.appendChild(content);
     log.appendChild(row);
@@ -284,53 +306,14 @@ function addMarkdownRow(markdown,cls="ai"){
     return row;
 }
 
-function renderInto(element,markdown){
-    const source=String(markdown??"");
-
-    try{
-        let renderer=null;
-
-        if(typeof MarkdownModule.renderMarkdown==="function"){
-            renderer=MarkdownModule.renderMarkdown;
-        }else if(typeof MarkdownModule.parseMarkdown==="function"){
-            renderer=MarkdownModule.parseMarkdown;
-        }else if(typeof MarkdownModule.markdownToHtml==="function"){
-            renderer=MarkdownModule.markdownToHtml;
-        }
-
-        if(!renderer){
-            element.textContent=source;
-            return;
-        }
-
-        const html=renderer(source);
-
-        if(html&&typeof html.then==="function"){
-            element.textContent=source;
-            html.then(result=>{
-                if(typeof result==="string"){
-                    element.innerHTML=result;
-                }
-            }).catch(()=>{
-                element.textContent=source;
-            });
-            return;
-        }
-
-        element.innerHTML=typeof html==="string"?html:source;
-    }catch(err){
-        element.textContent=source;
-        console.error("Markdown render error:",err);
-    }
-}
-
-function updatePendingMarkdown(markdown){
+function updatePending(text){
     if(!activePending)return;
 
-    renderInto(
-        activePending.querySelector(".message-markdown"),
-        markdown
-    );
+    const content=activePending.querySelector(".message-markdown");
+
+    if(content){
+        renderMarkdown(content,text);
+    }
 
     log.scrollTop=log.scrollHeight;
 }
@@ -344,12 +327,27 @@ function normalizeVisibleMessage(result){
     if(typeof result.text==="string")return result.text;
     if(typeof result.content==="string")return result.content;
 
+    if(Array.isArray(result.parts)){
+        return result.parts
+            .map(part=>{
+                if(typeof part==="string")return part;
+                if(typeof part?.text==="string")return part.text;
+                return "";
+            })
+            .join("");
+    }
+
     return "";
 }
 
 function normalizeLog(result){
-    if(!result||!Array.isArray(result.log))return [];
-    return result.log.map(x=>String(x));
+    if(!result)return [];
+
+    if(Array.isArray(result.log)){
+        return result.log.map(x=>String(x));
+    }
+
+    return [];
 }
 
 function handleAIStream(event){
@@ -357,16 +355,10 @@ function handleAIStream(event){
 
     const detail=event?.detail||{};
 
-    if(detail.provider&&typeof detail.provider!=="string"){
-        return;
-    }
-
-    if(typeof detail.token!=="string"||!detail.token){
-        return;
-    }
+    if(typeof detail.token!=="string")return;
 
     streamText+=detail.token;
-    updatePendingMarkdown(streamText);
+    updatePending(streamText);
 }
 
 try{
@@ -379,14 +371,15 @@ try{
 async function sha256(value){
     const data=new TextEncoder().encode(value);
     const digest=await crypto.subtle.digest("SHA-256",data);
+
     return Array.from(new Uint8Array(digest))
-        .map(x=>x.toString(16).padStart(2,"0"))
+        .map(value=>value.toString(16).padStart(2,"0"))
         .join("");
 }
 
-async function matchesCommand(value,hash){
+async function matchesHash(value,hash){
     try{
-        return (await sha256(value.trim().toLowerCase()))===hash;
+        return await sha256(value.trim().toLowerCase())===hash;
     }catch(_){
         return false;
     }
@@ -399,26 +392,23 @@ async function sendResponseToLittleHollowAPI(text,meta={}){
         throw new Error("LittleHollowAI response API is unavailable");
     }
 
-    const candidates=[
+    const methods=[
         "handleResponse",
         "postResponse",
         "processResponse",
-        "ingestResponse"
+        "ingestResponse",
+        "receive"
     ];
 
-    for(const name of candidates){
-        if(typeof ai[name]!=="function")continue;
+    for(const method of methods){
+        if(typeof ai[method]!=="function")continue;
 
-        return await ai[name](text,{
+        return await ai[method](text,{
             source:meta.source||"messenger",
             debug:!!meta.debug,
             provider:meta.provider||null,
             model:meta.model||null
         });
-    }
-
-    if(typeof ai.receive==="function"){
-        return await ai.receive(text,meta);
     }
 
     throw new Error("LittleHollowAI has no response-processing API");
@@ -436,19 +426,19 @@ async function processDebugMessage(text){
             }
         );
 
+        const visible=normalizeVisibleMessage(result);
+
+        if(visible&&visible!==text){
+            renderMarkdown(
+                row.querySelector(".message-markdown"),
+                visible
+            );
+        }
+
         const logs=normalizeLog(result);
 
         if(logs.length){
             addRow(logs.join(" | "),"sys");
-        }
-
-        const visible=normalizeVisibleMessage(result);
-
-        if(visible&&visible!==text){
-            renderInto(
-                row.querySelector(".message-markdown"),
-                visible
-            );
         }
     }catch(err){
         addRow(
@@ -473,19 +463,10 @@ async function sendToAI(text){
 async function send(){
     const text=input.value.trim();
 
-    if(!text)return;
+    if(!text||busy)return;
 
-    if(await matchesCommand(text,debugOnHash)){
+    if(await matchesHash(text,debugOnHash)){
         input.value="";
-
-        if(busy){
-            addRow(
-                "Cannot change debug mode while a request is running.",
-                "sys"
-            );
-            return;
-        }
-
         debugMode=true;
 
         addRow(text,"user");
@@ -503,16 +484,10 @@ async function send(){
         return;
     }
 
-    if(await matchesCommand(text,debugOffHash)){
+    if(await matchesHash(text,debugOffHash)){
         input.value="";
 
-        if(busy){
-            addRow(
-                "Cannot change debug mode while a request is running.",
-                "sys"
-            );
-            return;
-        }
+        if(busy)return;
 
         addRow(text,"user");
 
@@ -524,7 +499,6 @@ async function send(){
         );
 
         setStatus("ONLINE",false);
-
         input.focus();
         return;
     }
@@ -534,13 +508,13 @@ async function send(){
 
         addRow(text,"user");
 
+        busy=true;
+        sendBtn.disabled=true;
+
         setStatus(
             "DEBUG MODE — processing simulated AI response",
             true
         );
-
-        busy=true;
-        sendBtn.disabled=true;
 
         try{
             await processDebugMessage(text);
@@ -559,8 +533,6 @@ async function send(){
         return;
     }
 
-    if(busy)return;
-
     input.value="";
     addRow(text,"user");
 
@@ -571,11 +543,11 @@ async function send(){
     const pending=document.createElement("div");
     pending.className="msg-row ai";
 
-    const pendingContent=document.createElement("div");
-    pendingContent.className="message-markdown";
-    pendingContent.textContent="...";
+    const content=document.createElement("div");
+    content.className="message-markdown";
+    content.textContent="...";
 
-    pending.appendChild(pendingContent);
+    pending.appendChild(content);
     log.appendChild(pending);
 
     activePending=pending;
@@ -587,11 +559,11 @@ async function send(){
         const visible=normalizeVisibleMessage(result);
 
         if(visible){
-            updatePendingMarkdown(visible);
+            updatePending(visible);
         }else if(streamText){
-            updatePendingMarkdown(streamText);
+            updatePending(streamText);
         }else{
-            updatePendingMarkdown(
+            updatePending(
                 "[Little Hollow returned an empty response]"
             );
         }
@@ -602,7 +574,7 @@ async function send(){
             addRow(logs.join(" | "),"sys");
         }
     }catch(err){
-        updatePendingMarkdown(
+        updatePending(
             "Error talking to Little Hollow: "+(err?.message||err)
         );
     }finally{
@@ -634,6 +606,13 @@ addRow(
     "Little Hollow is online. Say hello!",
     "sys"
 );
+
+if(!markedParser){
+    addRow(
+        "Markdown parser unavailable: marked could not be loaded from ../js/markdown.js",
+        "sys"
+    );
+}
 
 setStatus("ONLINE",false);
 input.focus();
