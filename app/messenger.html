@@ -239,6 +239,8 @@ const input=document.getElementById("input");
 const sendBtn=document.getElementById("sendBtn");
 const status=document.getElementById("status");
 
+const mark=globalThis.marked;
+
 let busy=false;
 let streamText="";
 let activePending=null;
@@ -246,13 +248,6 @@ let debugMode=false;
 
 const debugOnHash="3dd2d6ca32529ed36595723bd9e75e8e2336940f900b5c0e676785588352c69a";
 const debugOffHash="f36d9a83b5e38fd59c495206f1eb15f52681455b1766647a9f5d2877d43e0611";
-
-const markedParser=
-    typeof globalThis.marked==="function"
-        ?globalThis.marked
-        :typeof globalThis.marked?.parse==="function"
-            ?globalThis.marked.parse.bind(globalThis.marked)
-            :null;
 
 const parentWindow=
     window.parent&&window.parent!==window
@@ -276,14 +271,16 @@ function addRow(text,cls){
 function renderMarkdown(element,text){
     const source=String(text??"");
 
-    if(!markedParser){
+    if(!mark||typeof mark.parse!=="function"){
         element.textContent=source;
         return;
     }
 
     try{
-        const html=markedParser(source);
-        element.innerHTML=String(html??"");
+        element.innerHTML=mark.parse(source,{
+            gfm:true,
+            breaks:true
+        });
     }catch(err){
         element.textContent=source;
         console.error("Markdown parse error:",err);
@@ -328,13 +325,11 @@ function normalizeVisibleMessage(result){
     if(typeof result.content==="string")return result.content;
 
     if(Array.isArray(result.parts)){
-        return result.parts
-            .map(part=>{
-                if(typeof part==="string")return part;
-                if(typeof part?.text==="string")return part.text;
-                return "";
-            })
-            .join("");
+        return result.parts.map(part=>{
+            if(typeof part==="string")return part;
+            if(typeof part?.text==="string")return part.text;
+            return "";
+        }).join("");
     }
 
     return "";
@@ -379,7 +374,9 @@ async function sha256(value){
 
 async function matchesHash(value,hash){
     try{
-        return await sha256(value.trim().toLowerCase())===hash;
+        return await sha256(
+            value.trim().toLowerCase()
+        )===hash;
     }catch(_){
         return false;
     }
@@ -389,7 +386,9 @@ async function sendResponseToLittleHollowAPI(text,meta={}){
     const ai=parentWindow?.LittleHollowAI;
 
     if(!ai){
-        throw new Error("LittleHollowAI response API is unavailable");
+        throw new Error(
+            "LittleHollowAI response API is unavailable"
+        );
     }
 
     const methods=[
@@ -411,7 +410,9 @@ async function sendResponseToLittleHollowAPI(text,meta={}){
         });
     }
 
-    throw new Error("LittleHollowAI has no response-processing API");
+    throw new Error(
+        "LittleHollowAI has no response-processing API"
+    );
 }
 
 async function processDebugMessage(text){
@@ -438,11 +439,15 @@ async function processDebugMessage(text){
         const logs=normalizeLog(result);
 
         if(logs.length){
-            addRow(logs.join(" | "),"sys");
+            addRow(
+                logs.join(" | "),
+                "sys"
+            );
         }
     }catch(err){
         addRow(
-            "Debug response API error: "+(err?.message||err),
+            "Debug response API error: "+
+            (err?.message||err),
             "sys"
         );
     }
@@ -470,6 +475,7 @@ async function send(){
         debugMode=true;
 
         addRow(text,"user");
+
         addRow(
             "DEBUG MODE ON — AI sending blocked.",
             "sys"
@@ -487,8 +493,6 @@ async function send(){
     if(await matchesHash(text,debugOffHash)){
         input.value="";
 
-        if(busy)return;
-
         addRow(text,"user");
 
         debugMode=false;
@@ -498,7 +502,11 @@ async function send(){
             "sys"
         );
 
-        setStatus("ONLINE",false);
+        setStatus(
+            "ONLINE",
+            false
+        );
+
         input.focus();
         return;
     }
@@ -552,7 +560,10 @@ async function send(){
 
     activePending=pending;
 
-    setStatus("AI THINKING...",false);
+    setStatus(
+        "AI THINKING...",
+        false
+    );
 
     try{
         const result=await sendToAI(text);
@@ -571,11 +582,15 @@ async function send(){
         const logs=normalizeLog(result);
 
         if(logs.length){
-            addRow(logs.join(" | "),"sys");
+            addRow(
+                logs.join(" | "),
+                "sys"
+            );
         }
     }catch(err){
         updatePending(
-            "Error talking to Little Hollow: "+(err?.message||err)
+            "Error talking to Little Hollow: "+
+            (err?.message||err)
         );
     }finally{
         activePending=null;
@@ -593,28 +608,38 @@ async function send(){
     }
 }
 
-sendBtn.addEventListener("click",send);
+sendBtn.addEventListener(
+    "click",
+    send
+);
 
-input.addEventListener("keydown",event=>{
-    if(event.key==="Enter"){
-        event.preventDefault();
-        send();
+input.addEventListener(
+    "keydown",
+    event=>{
+        if(event.key==="Enter"){
+            event.preventDefault();
+            send();
+        }
     }
-});
+);
 
 addRow(
     "Little Hollow is online. Say hello!",
     "sys"
 );
 
-if(!markedParser){
+if(!mark||typeof mark.parse!=="function"){
     addRow(
-        "Markdown parser unavailable: marked could not be loaded from ../js/markdown.js",
+        "Markdown parser unavailable.",
         "sys"
     );
 }
 
-setStatus("ONLINE",false);
+setStatus(
+    "ONLINE",
+    false
+);
+
 input.focus();
 </script>
 
