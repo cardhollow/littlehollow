@@ -584,8 +584,9 @@
     }
     if (value instanceof Error)
     {
-      return value.stack || value
-        .message || String(value);
+      return value.stack ||
+        value.message ||
+        String(value);
     }
     if (typeof value === "string")
     {
@@ -612,8 +613,47 @@
       return String(value);
     }
   }
+
+  function resultMessage(result)
+  {
+    if (
+      result &&
+      typeof result === "object"
+    )
+    {
+      if (
+        typeof result.summary ===
+        "string" &&
+        result.summary.trim()
+      )
+      {
+        return result.summary.trim();
+      }
+      if (
+        typeof result.message ===
+        "string" &&
+        result.message.trim()
+      )
+      {
+        return result.message.trim();
+      }
+      if (
+        typeof result.error ===
+        "string" &&
+        result.error.trim()
+      )
+      {
+        return result.error.trim();
+      }
+    }
+    return formatValue(result);
+  }
   const esc = s =>
-    formatValue(s)
+    String(
+      s == null ?
+      "" :
+      formatValue(s)
+    )
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -622,79 +662,110 @@
   function commandLine(name, args)
   {
     const shown =
-      Object.entries(args ||
-      {})
+      Object.entries(
+        args ||
+        {}
+      )
       .map(
         ([k, v]) =>
-        k + "=" + formatValue(v)
+        k + "=" +
+        (
+          typeof v === "string" ?
+          v :
+          formatValue(v)
+        )
       )
       .join(" ");
     return "> " +
       name +
-      (shown ? " " + shown : "");
+      (
+        shown ?
+        " " + shown :
+        ""
+      );
   }
 
   function terminal(command)
   {
+    const html =
+      "<div class='lh-terminal' style='" +
+      "width:100%;" +
+      "height:100%;" +
+      "margin:0;" +
+      "padding:0;" +
+      "background:#000;" +
+      "color:#00FFFF;" +
+      "font-family:monospace;" +
+      "display:flex;" +
+      "flex-direction:column;" +
+      "overflow:hidden;" +
+      "box-sizing:border-box;" +
+      "'>" +
+      "<div style='" +
+      "height:30px;" +
+      "min-height:30px;" +
+      "padding:0 10px;" +
+      "display:flex;" +
+      "align-items:center;" +
+      "gap:0;" +
+      "border-bottom:1px solid #00FFFF;" +
+      "background:#001414;" +
+      "color:#00FFFF;" +
+      "font-size:11px;" +
+      "letter-spacing:1px;" +
+      "box-sizing:border-box;" +
+      "'>" +
+      "<span style='opacity:.45;margin-right:6px'>●</span>" +
+      "<span style='opacity:.65;margin-right:6px'>●</span>" +
+      "<span style='opacity:.9;margin-right:12px'>●</span>" +
+      "<span>LITTLE HOLLOW TERMINAL</span>" +
+      "</div>" +
+      "<div id='terminal-screen' style='" +
+      "flex:1;" +
+      "min-height:0;" +
+      "overflow:auto;" +
+      "padding:12px;" +
+      "background:" +
+      "radial-gradient(circle at top left,rgba(0,255,255,.06),transparent 40%)," +
+      "#000;" +
+      "color:#00FFFF;" +
+      "font-family:monospace;" +
+      "font-size:12px;" +
+      "line-height:1.55;" +
+      "white-space:pre-wrap;" +
+      "word-break:break-word;" +
+      "box-sizing:border-box;" +
+      "'>" +
+      "<div id='terminal-out'>" +
+      "<div style='opacity:.75'>" +
+      "LITTLE HOLLOW TERMINAL" +
+      "</div>" +
+      "<div style='opacity:.4'>" +
+      "SYSTEM READY" +
+      "</div>" +
+      "<br>" +
+      "<div>" +
+      "<span style='color:#00FFFF'>" +
+      "chxd@little-hollow" +
+      "</span>" +
+      "<span style='opacity:.45'>:</span>" +
+      "<span style='color:#66FFFF'>~</span>" +
+      "<span style='opacity:.45'>$</span> " +
+      esc(command) +
+      "</div>" +
+      "<div style='margin-top:8px'>" +
+      "<span style='color:#FFFF00'>" +
+      "[ RUNNING ]" +
+      "</span>" +
+      "</div>" +
+      "<span class='cursor'>█</span>" +
+      "</div>" +
+      "</div>" +
+      "</div>";
     return WM.openWindow(
     {
       title: "TERMINAL",
-      html: "<div class='terminal' style='" +
-        "width:100%;" +
-        "height:100%;" +
-        "margin:0;" +
-        "padding:0;" +
-        "background:#000;" +
-        "color:#00FFFF;" +
-        "font-family:monospace;" +
-        "display:flex;" +
-        "flex-direction:column;" +
-        "overflow:hidden;" +
-        "'>" +
-        "<div class='terminal-head' style='" +
-        "height:30px;" +
-        "min-height:30px;" +
-        "padding:0 10px;" +
-        "display:flex;" +
-        "align-items:center;" +
-        "border-bottom:1px solid #00FFFF;" +
-        "background:#001313;" +
-        "color:#00FFFF;" +
-        "font-size:11px;" +
-        "font-family:monospace;" +
-        "letter-spacing:1px;" +
-        "'>" +
-        "<span style='opacity:.55;margin-right:7px'>●</span>" +
-        "<span style='opacity:.75;margin-right:7px'>●</span>" +
-        "<span style='opacity:.95;margin-right:12px'>●</span>" +
-        "<span>LITTLE HOLLOW TERMINAL</span>" +
-        "</div>" +
-        "<div id='terminal-screen' style='" +
-        "flex:1;" +
-        "overflow:auto;" +
-        "padding:12px;" +
-        "font-family:monospace;" +
-        "font-size:12px;" +
-        "line-height:1.55;" +
-        "white-space:pre-wrap;" +
-        "word-break:break-word;" +
-        "background:" +
-        "radial-gradient(circle at top left,rgba(0,255,255,.06),transparent 35%)," +
-        "#000;" +
-        "'>" +
-        "<div id='terminal-out'>" +
-        "<span style='opacity:.7'>LITTLE HOLLOW TERMINAL</span>" +
-        "\n" +
-        "<span style='opacity:.45'>SYSTEM READY</span>" +
-        "\n\n" +
-        "<span class='prompt'>" +
-        esc(command) +
-        "</span>" +
-        "\n" +
-        "<span class='cursor'>█</span>" +
-        "</div>" +
-        "</div>" +
-        "</div>",
+      html,
       width: "560px",
       height: "320px",
       noPad: false,
@@ -708,9 +779,14 @@
     result
   )
   {
+    if (
+      !win ||
+      !win.el
+    )
+    {
+      return;
+    }
     const out =
-      win &&
-      win.el &&
       win.el.querySelector(
         "#terminal-out"
       );
@@ -718,50 +794,54 @@
     {
       return;
     }
-    const value =
-      formatValue(result);
-    const ok =
+    const ok = !!(
       result &&
       typeof result === "object" &&
-      result.ok === true;
+      result.ok === true
+    );
+    const message =
+      resultMessage(
+        result
+      );
     const state =
       ok ?
       "[ OK ]" :
       "[ ERROR ]";
-    const stateStyle =
+    const stateColor =
       ok ?
-      "color:#00FF88" :
-      "color:#FF6666";
+      "#00FF88" :
+      "#FF6666";
     out.innerHTML =
-      "<div style='opacity:.7'>" +
+      "<div style='opacity:.75'>" +
       "LITTLE HOLLOW TERMINAL" +
       "</div>" +
       "<div style='opacity:.4'>" +
-      "CONNECTED // TOOL EXECUTION" +
+      "TOOL EXECUTION" +
       "</div>" +
       "<br>" +
       "<div>" +
-      "<span style='color:#00FFFF'>chxd@little-hollow</span>" +
+      "<span style='color:#00FFFF'>" +
+      "chxd@little-hollow" +
+      "</span>" +
       "<span style='opacity:.45'>:</span>" +
       "<span style='color:#66FFFF'>~</span>" +
       "<span style='opacity:.45'>$</span> " +
       esc(command) +
       "</div>" +
-      "<div style='margin-top:6px;" +
-      stateStyle + "'>" +
+      "<div style='margin-top:8px;color:" +
+      stateColor +
+      "'>" +
       state +
       "</div>" +
-      "<div style='margin-top:6px;opacity:.9'>" +
-      esc(value) +
+      "<div style='margin-top:8px;opacity:.92'>" +
+      esc(message) +
       "</div>" +
       "<br>" +
-      "<div style='opacity:.45'>" +
+      "<div style='opacity:.4'>" +
       "PROCESS COMPLETE" +
       "</div>" +
       "<span class='cursor'>█</span>";
     const screen =
-      win &&
-      win.el &&
       win.el.querySelector(
         "#terminal-screen"
       );
@@ -771,29 +851,41 @@
         screen.scrollHeight;
     }
   }
-  console.log("terminal/tools");
+  console.log(
+    "terminal/tools"
+  );
 
   function closeTerminalSoon(
     win,
     delay = 2000
   )
   {
-    setTimeout(() =>
-    {
-      if (win && !win.closed)
+    setTimeout(
+      () =>
       {
-        WM.closeWindow(win);
-      }
-    }, delay);
+        if (
+          win &&
+          !win.closed
+        )
+        {
+          WM.closeWindow(
+            win
+          );
+        }
+      },
+      delay
+    );
   }
   async function webSearch(
     query,
     maxResults
   )
   {
-    query = String(
-      query || ""
-    ).trim();
+    query =
+      String(
+        query || ""
+      )
+      .trim();
     if (!query)
     {
       return {
@@ -806,7 +898,9 @@
         1,
         Math.min(
           10,
-          Number(maxResults) || 5
+          Number(
+            maxResults
+          ) || 5
         )
       );
     Avatar.setEye(
@@ -817,7 +911,9 @@
     {
       const url =
         "https://api.duckduckgo.com/?q=" +
-        encodeURIComponent(query) +
+        encodeURIComponent(
+          query
+        ) +
         "&format=json&no_html=1&skip_disambig=0";
       const r =
         await fetch(
@@ -832,10 +928,12 @@
       if (!r.ok)
       {
         throw new Error(
-          "HTTP " + r.status
+          "HTTP " +
+          r.status
         );
       }
-      const d = await r.json();
+      const d =
+        await r.json();
       const results = [];
       if (d.AbstractText)
       {
@@ -853,29 +951,38 @@
       {
         for (
           const x of
-            Array.isArray(a) ? a :
+            Array.isArray(a) ?
+            a :
             []
         )
         {
-          if (results.length >=
-            limit)
+          if (
+            results.length >=
+            limit
+          )
           {
             break;
           }
           if (x.Topics)
           {
-            walk(x.Topics);
+            walk(
+              x.Topics
+            );
           }
           else if (x.Text)
           {
             results.push(
             {
-              title: String(x
-                  .Text)
-                .split(" - ")[
-                  0]
-                .slice(0,
-                120),
+              title: String(
+                  x.Text
+                )
+                .split(
+                  " - "
+                )[0]
+                .slice(
+                  0,
+                  120
+                ),
               snippet: x.Text,
               url: x
                 .FirstURL ||
@@ -884,8 +991,12 @@
           }
         }
       };
-      walk(d.RelatedTopics);
-      walk(d.Results);
+      walk(
+        d.RelatedTopics
+      );
+      walk(
+        d.Results
+      );
       return {
         ok: true,
         summary: "Search completed for \"" +
@@ -917,7 +1028,9 @@
   function utf8(s)
   {
     return new TextEncoder()
-      .encode(String(s));
+      .encode(
+        String(s)
+      );
   }
 
   function u16(n)
@@ -940,11 +1053,16 @@
 
   function crc32(bytes)
   {
-    let c = 0xffffffff;
-    for (const b of bytes)
+    let c =
+      0xffffffff;
+    for (
+      const b of bytes
+    )
     {
       c ^= b;
-      for (let i = 0; i < 8; i++)
+      for (
+        let i = 0; i < 8; i++
+      )
       {
         c =
           (c >>> 1) ^
@@ -965,20 +1083,30 @@
     const parts = [];
     const central = [];
     let offset = 0;
-    for (const entry of entries)
+    for (
+      const entry of
+        entries
+    )
     {
       const name =
         utf8(
           entry.name
-          .replace(/^\/+/, "")
+          .replace(
+            /^\/+/,
+            ""
+          )
         );
       const data =
         entry.data;
       const crc =
-        crc32(data);
+        crc32(
+          data
+        );
       const header =
         new Uint8Array([
-          ...u32(0x04034b50),
+          ...u32(
+            0x04034b50
+          ),
           ...u16(20),
           ...u16(0),
           ...u16(0),
@@ -987,15 +1115,21 @@
           ...u32(crc),
           ...u32(data.length),
           ...u32(data.length),
-          ...u16(name.length),
+          ...u16(
+            name.length
+          ),
           ...u16(0),
           ...name,
           ...data
         ]);
-      parts.push(header);
+      parts.push(
+        header
+      );
       central.push(
         new Uint8Array([
-          ...u32(0x02014b50),
+          ...u32(
+            0x02014b50
+          ),
           ...u16(20),
           ...u16(20),
           ...u16(0),
@@ -1022,16 +1156,23 @@
       offset;
     const cdSize =
       central.reduce(
-        (n, x) => n + x.length,
+        (n, x) =>
+        n + x.length,
         0
       );
     const eocd =
       new Uint8Array([
-        ...u32(0x06054b50),
+        ...u32(
+          0x06054b50
+        ),
         ...u16(0),
         ...u16(0),
-        ...u16(central.length),
-        ...u16(central.length),
+        ...u16(
+          central.length
+        ),
+        ...u16(
+          central.length
+        ),
         ...u32(cdSize),
         ...u32(cdStart),
         ...u16(0)
@@ -1058,13 +1199,19 @@
           new FileReader();
         r.onload = () =>
         {
-          res(r.result);
+          res(
+            r.result
+          );
         };
         r.onerror = () =>
         {
-          rej(r.error);
+          rej(
+            r.error
+          );
         };
-        r.readAsDataURL(blob);
+        r.readAsDataURL(
+          blob
+        );
       }
     );
   }
@@ -1082,9 +1229,13 @@
     )
     {
       const p =
-        FS.normalize(path);
+        FS.normalize(
+          path
+        );
       const r =
-        await FS.read(p);
+        await FS.read(
+          p
+        );
       if (!r.ok)
       {
         return {
@@ -1095,7 +1246,9 @@
       let data;
       if (
         /^data:[^;]+;base64,/i
-        .test(r.content)
+        .test(
+          r.content
+        )
       )
       {
         const b =
@@ -1135,11 +1288,17 @@
       });
     }
     const blob =
-      makeZip(entries);
+      makeZip(
+        entries
+      );
     const dataUrl =
-      await blobDataURL(blob);
+      await blobDataURL(
+        blob
+      );
     const dest =
-      FS.normalize(output);
+      FS.normalize(
+        output
+      );
     const w =
       await FS.write(
         dest,
@@ -1170,49 +1329,52 @@
     timeoutMs
   )
   {
-    return new Promise(resolve =>
-    {
-      const id =
-        "sb-" +
-        Date.now() +
-        "-" +
-        Math.random()
-        .toString(36)
-        .slice(2);
-      const logs = [];
-      const frame =
-        document.createElement(
-          "iframe"
+    return new Promise(
+      resolve =>
+      {
+        const id =
+          "sb-" +
+          Date.now() +
+          "-" +
+          Math.random()
+          .toString(36)
+          .slice(2);
+        const logs = [];
+        const frame =
+          document.createElement(
+            "iframe"
+          );
+        frame.setAttribute(
+          "sandbox",
+          "allow-scripts"
         );
-      frame.setAttribute(
-        "sandbox",
-        "allow-scripts"
-      );
-      frame.style.cssText =
-        "position:fixed;" +
-        "left:-10000px;" +
-        "top:-10000px;" +
-        "width:1px;" +
-        "height:1px;" +
-        "border:0";
-      const csp =
-        "default-src 'none'; " +
-        "script-src 'unsafe-inline'; " +
-        "connect-src 'none'; " +
-        "img-src data:; " +
-        "style-src 'unsafe-inline'; " +
-        "frame-src 'none'; " +
-        "child-src 'none'; " +
-        "form-action 'none'; " +
-        "base-uri 'none'";
-      const safeCode =
-        String(code || "")
-        .replace(
-          /<\/script/gi,
-          "<\\/script"
-        );
-      frame.srcdoc =
-        `<!doctype html>
+        frame.style.cssText =
+          "position:fixed;" +
+          "left:-10000px;" +
+          "top:-10000px;" +
+          "width:1px;" +
+          "height:1px;" +
+          "border:0";
+        const csp =
+          "default-src 'none'; " +
+          "script-src 'unsafe-inline'; " +
+          "connect-src 'none'; " +
+          "img-src data:; " +
+          "style-src 'unsafe-inline'; " +
+          "frame-src 'none'; " +
+          "child-src 'none'; " +
+          "form-action 'none'; " +
+          "base-uri 'none'";
+        const safeCode =
+          String(
+            code || ""
+          )
+          .replace(
+            /<\/script/gi,
+            "<\\/script"
+          );
+        frame.srcdoc =
+          `<!doctype html>
 <meta http-equiv="Content-Security-Policy" content="${csp}">
 <script>
 
@@ -1228,7 +1390,8 @@ return new Promise(
 (resolve,reject)=>{
 
 const rid=
-RID+":"+
+RID+
+":"+
 (++seq);
 
 pending.set(
@@ -1241,7 +1404,8 @@ reject
 
 parent.postMessage(
 {
-type:"LH_SANDBOX_REQ",
+type:
+"LH_SANDBOX_REQ",
 rid,
 api,
 args
@@ -1258,20 +1422,31 @@ window.addEventListener(
 "message",
 e=>{
 
-const d=e.data||{};
+const d=
+e.data||
+{};
 
 if(
-d.type==="LH_SANDBOX_RES" &&
-pending.has(d.rid)
+d.type===
+"LH_SANDBOX_RES"&&
+pending.has(
+d.rid
+)
 ){
 
 const p=
-pending.get(d.rid);
+pending.get(
+d.rid
+);
 
-pending.delete(d.rid);
+pending.delete(
+d.rid
+);
 
 d.ok
-?p.resolve(d.value)
+?p.resolve(
+d.value
+)
 :p.reject(
 new Error(
 d.error||
@@ -1287,25 +1462,29 @@ d.error||
 const lh={
 
 readFile:
-p=>call(
+p=>
+call(
 "readFile",
 [p]
 ),
 
 writeFile:
-(p,c)=>call(
+(p,c)=>
+call(
 "writeFile",
 [p,c]
 ),
 
 listFiles:
-p=>call(
+p=>
+call(
 "listFiles",
 [p||""]
 ),
 
 removeFile:
-p=>call(
+p=>
+call(
 "removeFile",
 [p]
 ),
@@ -1314,9 +1493,13 @@ log:
 (...a)=>
 parent.postMessage(
 {
-type:"LH_SANDBOX_LOG",
+type:
+"LH_SANDBOX_LOG",
 id:RID,
-args:a.map(String)
+args:
+a.map(
+String
+)
 },
 "*"
 )
@@ -1338,13 +1521,20 @@ ${safeCode}
 
 parent.postMessage(
 {
-type:"LH_SANDBOX_DONE",
+type:
+"LH_SANDBOX_DONE",
+
 id:RID,
+
 ok:true,
+
 result:
 result==null
 ?""
-:String(result)
+:String(
+result
+)
+
 },
 "*"
 );
@@ -1353,12 +1543,19 @@ result==null
 
 parent.postMessage(
 {
-type:"LH_SANDBOX_DONE",
+type:
+"LH_SANDBOX_DONE",
+
 id:RID,
+
 ok:false,
+
 error:
 e&&e.stack||
-String(e)
+String(
+e
+)
+
 },
 "*"
 );
@@ -1368,226 +1565,243 @@ String(e)
 })();
 
 </script>`;
-      document.body.appendChild(
-        frame);
-      let done = false;
-      const finish = r =>
-      {
-        if (done)
-        {
-          return;
-        }
-        done = true;
-        window
-          .removeEventListener(
-            "message",
-            onMessage
-          );
-        frame.remove();
-        resolve(r);
-      };
-      const onMessage =
-        async e =>
-        {
-          const d = e.data ||
-          {};
-          if (
-            d.id !== id &&
-            d.rid !==
-            undefined &&
-            !String(d.rid)
-            .startsWith(id +
-              ":")
-          )
+        document.body.appendChild(
+          frame
+        );
+        let done = false;
+        const finish =
+          r =>
           {
-            return;
-          }
-          if (
-            d.type ===
-            "LH_SANDBOX_LOG"
-          )
-          {
-            logs.push(
-              d.args.join(" ")
-            );
-          }
-          if (
-            d.type ===
-            "LH_SANDBOX_REQ" &&
-            String(d.rid)
-            .startsWith(id +
-              ":")
-          )
-          {
-            try
+            if (done)
             {
-              let value;
-              const a =
-                d.args || [];
-              if (
-                d.api ===
-                "readFile"
-              )
-              {
-                const r =
-                  await FS.read(
-                    a[0]
-                  );
-                if (!r.ok)
-                {
-                  throw new Error(
-                    r.error
-                  );
-                }
-                value =
-                  r.content;
-              }
-              else if (
-                d.api ===
-                "writeFile"
-              )
-              {
-                const r =
-                  await FS
-                  .write(
-                    a[0],
-                    a[1],
-                    true
-                  );
-                if (!r.ok)
-                {
-                  throw new Error(
-                    r.error
-                  );
-                }
-                value = true;
-              }
-              else if (
-                d.api ===
-                "listFiles"
-              )
-              {
-                value =
-                  await FS.list(
-                    a[0]
-                  );
-              }
-              else if (
-                d.api ===
-                "removeFile"
-              )
-              {
-                const r =
-                  await FS
-                  .remove(
-                    a[0]
-                  );
-                if (!r.ok)
-                {
-                  throw new Error(
-                    r.error
-                  );
-                }
-                value = true;
-              }
-              else
-              {
-                throw new Error(
-                  "Unknown sandbox API: " +
-                  d.api
-                );
-              }
-              e.source
-                .postMessage(
-                  {
-                    type: "LH_SANDBOX_RES",
-                    rid: d.rid,
-                    ok: true,
-                    value
-                  },
-                  "*"
-                );
+              return;
             }
-            catch (err)
-            {
-              e.source
-                .postMessage(
-                  {
-                    type: "LH_SANDBOX_RES",
-                    rid: d.rid,
-                    ok: false,
-                    error: String(
-                      err
-                      .message ||
-                      err
-                    )
-                  },
-                  "*"
-                );
-            }
-          }
-          if (
-            d.type ===
-            "LH_SANDBOX_DONE"
-          )
+            done = true;
+            window
+              .removeEventListener(
+                "message",
+                onMessage
+              );
+            frame.remove();
+            resolve(r);
+          };
+        const onMessage =
+          async e =>
           {
-            finish(
+            const d =
+              e.data ||
+              {};
+            if (
+              d.id !== id &&
+              d.rid !==
+              undefined &&
+              !String(
+                d.rid
+              )
+              .startsWith(
+                id + ":"
+              )
+            )
             {
-              ok: !!d.ok,
-              summary: d
-                .ok ?
-                (
-                  "Sandbox JavaScript finished." +
+              return;
+            }
+            if (
+              d.type ===
+              "LH_SANDBOX_LOG"
+            )
+            {
+              logs.push(
+                d.args.join(
+                  " "
+                )
+              );
+            }
+            if (
+              d.type ===
+              "LH_SANDBOX_REQ" &&
+              String(
+                d.rid
+              )
+              .startsWith(
+                id + ":"
+              )
+            )
+            {
+              try
+              {
+                let value;
+                const a =
+                  d.args || [];
+                if (
+                  d.api ===
+                  "readFile"
+                )
+                {
+                  const r =
+                    await FS.read(
+                      a[0]
+                    );
+                  if (!r.ok)
+                  {
+                    throw new Error(
+                      r.error
+                    );
+                  }
+                  value =
+                    r.content;
+                }
+                else if (
+                  d.api ===
+                  "writeFile"
+                )
+                {
+                  const r =
+                    await FS
+                    .write(
+                      a[0],
+                      a[1],
+                      true
+                    );
+                  if (!r.ok)
+                  {
+                    throw new Error(
+                      r.error
+                    );
+                  }
+                  value = true;
+                }
+                else if (
+                  d.api ===
+                  "listFiles"
+                )
+                {
+                  value =
+                    await FS.list(
+                      a[0]
+                    );
+                }
+                else if (
+                  d.api ===
+                  "removeFile"
+                )
+                {
+                  const r =
+                    await FS
+                    .remove(
+                      a[0]
+                    );
+                  if (!r.ok)
+                  {
+                    throw new Error(
+                      r.error
+                    );
+                  }
+                  value = true;
+                }
+                else
+                {
+                  throw new Error(
+                    "Unknown sandbox API: " +
+                    d.api
+                  );
+                }
+                e.source
+                  .postMessage(
+                    {
+                      type: "LH_SANDBOX_RES",
+                      rid: d.rid,
+                      ok: true,
+                      value
+                    },
+                    "*"
+                  );
+              }
+              catch (err)
+              {
+                e.source
+                  .postMessage(
+                    {
+                      type: "LH_SANDBOX_RES",
+                      rid: d.rid,
+                      ok: false,
+                      error: String(
+                        err
+                        .message ||
+                        err
+                      )
+                    },
+                    "*"
+                  );
+              }
+            }
+            if (
+              d.type ===
+              "LH_SANDBOX_DONE"
+            )
+            {
+              finish(
+              {
+                ok:
+                  !!d.ok,
+                summary: d
+                  .ok ?
                   (
-                    d
-                    .result ?
-                    " Result: " +
-                    d
-                    .result :
-                    ""
-                  )
-                ) :
-                (
-                  "Sandbox JavaScript failed: " +
-                  d.error
-                ),
-              logs
-            });
-          }
-        };
-      window.addEventListener(
-        "message",
-        onMessage
-      );
-      setTimeout(
-        () => finish(
-        {
-          ok: false,
-          summary: "Sandbox JavaScript timed out after " +
-            timeoutMs +
-            " ms.",
-          logs
-        }),
-        timeoutMs
-      );
-    });
+                    "Sandbox JavaScript finished." +
+                    (
+                      d
+                      .result ?
+                      " Result: " +
+                      d
+                      .result :
+                      ""
+                    )
+                  ) :
+                  (
+                    "Sandbox JavaScript failed: " +
+                    d.error
+                  ),
+                logs
+              });
+            }
+          };
+        window.addEventListener(
+          "message",
+          onMessage
+        );
+        setTimeout(
+          () => finish(
+          {
+            ok: false,
+            summary: "Sandbox JavaScript timed out after " +
+              timeoutMs +
+              " ms.",
+            logs
+          }),
+          timeoutMs
+        );
+      });
   }
   async function executeRaw(
     name,
     args
   )
   {
-    args = args ||
-    {};
-    if (name === "open_application")
+    args =
+      args ||
+      {};
+    if (
+      name ===
+      "open_application"
+    )
     {
       const hasContent =
         args.path != null ||
         args.text != null ||
         args.equation != null ||
         (
-          Array.isArray(args
-            .strokes) &&
+          Array.isArray(
+            args.strokes
+          ) &&
           args.strokes.length > 0
         ) ||
         !!args.select;
@@ -1600,7 +1814,8 @@ String(e)
             text: args.text,
             equation: args.equation,
             painting: Array.isArray(
-                args.strokes) ?
+                args.strokes
+              ) ?
               args.strokes :
               undefined,
             selectMode:
@@ -1622,7 +1837,10 @@ String(e)
             "."
         };
     }
-    if (name === "open_notepad")
+    if (
+      name ===
+      "open_notepad"
+    )
     {
       const result =
         Apps.openApp(
@@ -1642,7 +1860,8 @@ String(e)
           summary: "Opened Notepad" +
             (
               args.path ?
-              " with " + args.path :
+              " with " +
+              args.path :
               ""
             ) +
             "."
@@ -1652,14 +1871,18 @@ String(e)
           summary: "Could not open Notepad."
         };
     }
-    if (name === "open_paint")
+    if (
+      name ===
+      "open_paint"
+    )
     {
       const result =
         Apps.openApp(
           "Paint",
           {
             painting: Array.isArray(
-                args.strokes) ?
+                args.strokes
+              ) ?
               args.strokes :
               [],
             title: args.title,
@@ -1676,14 +1899,18 @@ String(e)
           summary: "Could not open Paint."
         };
     }
-    if (name === "open_calculator")
+    if (
+      name ===
+      "open_calculator"
+    )
     {
       const result =
         Apps.openApp(
           "Calculator",
           {
             equation: String(
-              args.equation || ""
+              args.equation ||
+              ""
             ),
             allowMultiple: true
           }
@@ -1700,8 +1927,10 @@ String(e)
           summary: "Could not open Calculator."
         };
     }
-    if (name ===
-      "open_file_manager")
+    if (
+      name ===
+      "open_file_manager"
+    )
     {
       const result =
         Apps.openApp(
@@ -1724,7 +1953,10 @@ String(e)
           summary: "Could not open File Manager."
         };
     }
-    if (name === "open_file")
+    if (
+      name ===
+      "open_file"
+    )
     {
       const p =
         FS.normalize(
@@ -1736,13 +1968,19 @@ String(e)
           .split(".")
           .pop() ||
           ""
-        ).toLowerCase();
+        )
+        .toLowerCase();
       if (
-        ext === "png" ||
-        ext === "jpg" ||
-        ext === "jpeg" ||
-        ext === "gif" ||
-        ext === "webp"
+        ext ===
+        "png" ||
+        ext ===
+        "jpg" ||
+        ext ===
+        "jpeg" ||
+        ext ===
+        "gif" ||
+        ext ===
+        "webp"
       )
       {
         const result =
@@ -1766,9 +2004,12 @@ String(e)
           };
       }
       if (
-        ext === "mp4" ||
-        ext === "webm" ||
-        ext === "mov"
+        ext ===
+        "mp4" ||
+        ext ===
+        "webm" ||
+        ext ===
+        "mov"
       )
       {
         const result =
@@ -1792,9 +2033,12 @@ String(e)
           };
       }
       if (
-        ext === "mp3" ||
-        ext === "wav" ||
-        ext === "ogg"
+        ext ===
+        "mp3" ||
+        ext ===
+        "wav" ||
+        ext ===
+        "ogg"
       )
       {
         const result =
@@ -1839,23 +2083,29 @@ String(e)
             "."
         };
     }
-    if (name === "open_window")
+    if (
+      name ===
+      "open_window"
+    )
     {
       const type =
         String(
           args.content_type ||
           "text"
-        ).toLowerCase();
+        )
+        .toLowerCase();
       const c =
         String(
           args.content ||
           ""
         );
       const html =
-        type === "html" ?
+        type ===
+        "html" ?
         c :
         (
-          type === "code" ?
+          type ===
+          "code" ?
           (
             "<pre style='white-space:pre-wrap;margin:0;font-family:monospace;font-size:12px;'>" +
             esc(c) +
@@ -1880,12 +2130,20 @@ String(e)
         summary: "Opened output window."
       };
     }
-    if (name === "open_iframe")
+    if (
+      name ===
+      "open_iframe"
+    )
     {
       const u =
-        String(args.url || "");
+        String(
+          args.url ||
+          ""
+        );
       if (
-        !/^https?:\/\//i.test(u)
+        !/^https?:\/\//i.test(
+          u
+        )
       )
       {
         return {
@@ -1898,11 +2156,13 @@ String(e)
         title: args.title ||
           "WEB",
         iframeSrc: u,
-        width: (Number(args
-            .width) || 720) +
+        width: (Number(
+            args.width
+          ) || 720) +
           "px",
-        height: (Number(args
-            .height) || 520) +
+        height: (Number(
+            args.height
+          ) || 520) +
           "px",
         noPad: true
       });
@@ -1911,14 +2171,20 @@ String(e)
         summary: "Opened web content."
       };
     }
-    if (name === "web_search")
+    if (
+      name ===
+      "web_search"
+    )
     {
       return await webSearch(
         args.query,
         args.max_results
       );
     }
-    if (name === "write_file")
+    if (
+      name ===
+      "write_file"
+    )
     {
       const p =
         FS.normalize(
@@ -1927,7 +2193,8 @@ String(e)
       const r =
         await FS.write(
           p,
-          args.content || "",
+          args.content ||
+          "",
           args.create !== false
         );
       return r.ok ?
@@ -1942,14 +2209,21 @@ String(e)
           summary: r.error
         };
     }
-    if (name === "write_files")
+    if (
+      name ===
+      "write_files"
+    )
     {
       const fs =
-        Array.isArray(args.files) ?
+        Array.isArray(
+          args.files
+        ) ?
         args.files :
         [];
       const done = [];
-      for (const f of fs)
+      for (
+        const f of fs
+      )
       {
         const p =
           FS.normalize(
@@ -1958,7 +2232,8 @@ String(e)
         const r =
           await FS.write(
             p,
-            f.content || "",
+            f.content ||
+            "",
             f.create !== false
           );
         if (!r.ok)
@@ -1969,25 +2244,34 @@ String(e)
             written: done
           };
         }
-        done.push(p);
+        done.push(
+          p
+        );
       }
       return {
         ok: true,
         summary: "Wrote " +
           done.length +
           " file(s): " +
-          done.join(", ") +
+          done.join(
+            ", "
+          ) +
           "."
       };
     }
-    if (name === "read_file")
+    if (
+      name ===
+      "read_file"
+    )
     {
       const p =
         FS.normalize(
           args.path
         );
       const r =
-        await FS.read(p);
+        await FS.read(
+          p
+        );
       if (!r.ok)
       {
         return {
@@ -1998,7 +2282,7 @@ String(e)
       WM.openWindow(
       {
         title: p.split("/")
-        .pop(),
+          .pop(),
         html: "<pre style='white-space:pre-wrap;margin:0;font-family:monospace;font-size:12px;'>" +
           esc(r.content) +
           "</pre>",
@@ -2012,14 +2296,19 @@ String(e)
           "."
       };
     }
-    if (name === "remove_file")
+    if (
+      name ===
+      "remove_file"
+    )
     {
       const p =
         FS.normalize(
           args.path
         );
       const r =
-        await FS.remove(p);
+        await FS.remove(
+          p
+        );
       return r.ok ?
         {
           ok: true,
@@ -2032,11 +2321,15 @@ String(e)
           summary: r.error
         };
     }
-    if (name === "find_files")
+    if (
+      name ===
+      "find_files"
+    )
     {
       const r =
         await FS.find(
-          args.pattern || "*"
+          args.pattern ||
+          "*"
         );
       return {
         ok: true,
@@ -2048,11 +2341,15 @@ String(e)
         files: r
       };
     }
-    if (name === "list_files")
+    if (
+      name ===
+      "list_files"
+    )
     {
       const r =
         await FS.list(
-          args.prefix || ""
+          args.prefix ||
+          ""
         );
       return {
         ok: true,
@@ -2063,23 +2360,31 @@ String(e)
         files: r
       };
     }
-    if (name === "zip_files")
+    if (
+      name ===
+      "zip_files"
+    )
     {
       return await zipFiles(
         args.files,
         args.output_path
       );
     }
-    if (name === "open_onecompiler")
+    if (
+      name ===
+      "open_onecompiler"
+    )
     {
       const result =
         Apps.openOneCompiler(
         {
           language: args.language,
-          code: args.code || "",
+          code: args.code ||
+            "",
           name: args.name,
           files: args.files,
-          run: !!args.run
+          run:
+            !!args.run
         });
       return result && result.ok ?
         {
@@ -2091,14 +2396,19 @@ String(e)
           summary: "Could not open OneCompiler."
         };
     }
-    if (name === "run_code")
+    if (
+      name ===
+      "run_code"
+    )
     {
       const p =
         FS.normalize(
           args.path
         );
       const r =
-        await FS.read(p);
+        await FS.read(
+          p
+        );
       if (!r.ok)
       {
         return {
@@ -2127,7 +2437,8 @@ String(e)
             html: "html",
             css: "css"
           } [ext] ||
-          "javascript");
+          "javascript"
+        );
       const result =
         Apps.openOneCompiler(
         {
@@ -2152,24 +2463,30 @@ String(e)
           summary: "Could not open OneCompiler."
         };
     }
-    if (name ===
-      "execute_javascript")
+    if (
+      name ===
+      "execute_javascript"
+    )
     {
       return await sandboxRun(
-        args.code || "",
+        args.code ||
+        "",
         Math.max(
           250,
           Math.min(
             10000,
             Number(
               args.timeout_ms
-            ) || 5000
+            ) ||
+            5000
           )
         )
       );
     }
-    if (name ===
-      "close_all_windows")
+    if (
+      name ===
+      "close_all_windows"
+    )
     {
       WM.closeAll();
       return {
@@ -2189,7 +2506,8 @@ String(e)
   )
   {
     Avatar.setEye(
-      name === "web_search" ?
+      name ===
+      "web_search" ?
       "search" :
       "matrix",
       -1
@@ -2199,12 +2517,19 @@ String(e)
         name,
         args
       );
-    const win =
-      terminal(
-        command
-      );
+    let win = null;
     try
     {
+      win =
+        terminal(
+          command
+        );
+      if (!win)
+      {
+        throw new Error(
+          "Could not create terminal window."
+        );
+      }
       const result =
         await executeRaw(
           name,
@@ -2215,7 +2540,10 @@ String(e)
         command,
         result
       );
-      if (result && result.ok)
+      if (
+        result &&
+        result.ok
+      )
       {
         closeTerminalSoon(
           win,
@@ -2241,20 +2569,25 @@ String(e)
             String(e)
           )
       };
-      terminalUpdate(
-        win,
-        command,
-        r
-      );
-      closeTerminalSoon(
-        win,
-        1600
-      );
+      if (win)
+      {
+        terminalUpdate(
+          win,
+          command,
+          r
+        );
+        closeTerminalSoon(
+          win,
+          1600
+        );
+      }
       return r;
     }
     finally
     {
-      if (name !== "web_search")
+      if (
+        name !== "web_search"
+      )
       {
         Avatar.setEye(
           "normal"
