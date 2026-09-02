@@ -16,6 +16,7 @@ html,body{width:100%;height:100%;background:#000d0d;color:#00FFFF;}
 .msg-inputbar input{flex:1 1 auto;border:none;background:transparent;padding:10px;color:#00FFFF;font-family:monospace;font-size:13px;outline:none;}
 .msg-inputbar button{flex:0 0 auto;border:none;border-left:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:0 16px;cursor:pointer;font-family:monospace;}
 .msg-inputbar button:active{background:#00FFFF;color:#000;}
+.msg-inputbar button:disabled{opacity:.45;cursor:wait;}
 .msg-log::-webkit-scrollbar{width:8px;}
 .msg-log::-webkit-scrollbar-thumb{background:#00FFFF;}
 </style>
@@ -45,6 +46,21 @@ function addRow(text,cls){
 }
 
 let busy=false;
+let streamText="";
+let activePending=null;
+
+function handleAIStream(event){
+    if(!busy || !activePending) return;
+    const detail=event?.detail||{};
+    if(detail.provider && detail.provider !== "gemini") return;
+    if(typeof detail.token !== "string" || !detail.token) return;
+    streamText += detail.token;
+    activePending.textContent=streamText;
+    log.scrollTop=log.scrollHeight;
+}
+
+// ai.js dispatches this event from the parent Little Hollow window.
+try{ parent.addEventListener("littlehollow:ai-stream",handleAIStream); }catch(_){ }
 
 async function send(){
     const text=input.value.trim();
@@ -54,18 +70,28 @@ async function send(){
     addRow(text,"user");
 
     busy=true;
+    streamText="";
     sendBtn.disabled=true;
-    const pending=addRow("...",  "ai");
+    const pending=addRow("...", "ai");
+    activePending=pending;
 
     try{
         const result=await parent.LittleHollowAI.send(text);
-        if(result.visibleMessage){ pending.textContent=result.visibleMessage; }else{ pending.remove(); }
-        if(result.log&&result.log.length){
+        const visible=typeof result?.visibleMessage === "string" ? result.visibleMessage : "";
+        if(visible){
+            pending.textContent=visible;
+        }else if(streamText){
+            pending.textContent=streamText;
+        }else{
+            pending.textContent="[Little Hollow returned an empty response]";
+        }
+        if(result?.log&&result.log.length){
             addRow(result.log.join(" | "),"sys");
         }
     }catch(err){
         pending.textContent="Error talking to Little Hollow: "+(err&&err.message?err.message:err);
     }finally{
+        activePending=null;
         busy=false;
         sendBtn.disabled=false;
         input.focus();
