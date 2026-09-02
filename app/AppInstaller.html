@@ -14,6 +14,7 @@ input{width:100%;height:34px;margin-bottom:8px;background:#000;border:1px solid 
 button{height:34px;background:#001919;color:#00ffff;border:1px solid #00ffff;padding:0 12px}
 .preview{margin-top:10px;border:1px solid #00ffff;height:260px}
 .preview iframe{width:100%;height:100%;border:0;background:#fff}
+#status{margin-top:10px;font-size:11px}
 </style>
 </head>
 <body>
@@ -38,6 +39,8 @@ button{height:34px;background:#001919;color:#00ffff;border:1px solid #00ffff;pad
     INSTALL
 </button>
 
+<div id="status"></div>
+
 <script>
 const CIA_PATH="Custom Installed Application/CIA.json";
 
@@ -46,6 +49,7 @@ const name=document.getElementById("name");
 const icon=document.getElementById("icon");
 const url=document.getElementById("url");
 const preview=document.getElementById("preview");
+const status=document.getElementById("status");
 
 function readCIA(){
     try{
@@ -64,23 +68,40 @@ function writeCIA(data){
 }
 
 document.getElementById("load").onclick=()=>{
-    if(!url.value.trim())return;
-    preview.src=url.value.trim();
+    const u=url.value.trim();
+
+    if(!u){
+        status.textContent="Enter a URL.";
+        return;
+    }
+
+    preview.src=u;
+    status.textContent="Preview loaded.";
 };
 
 document.getElementById("install").onclick=()=>{
     const p=pkg.value.trim();
+    const n=name.value.trim();
+    const i=icon.value.trim();
     const u=url.value.trim();
 
-    if(!p||!u)return;
+    if(!p){
+        status.textContent="Package Name is required.";
+        return;
+    }
+
+    if(!u){
+        status.textContent="URL is required.";
+        return;
+    }
 
     const data=readCIA();
 
     const app={
         pkg:p,
-        name:name.value.trim(),
+        name:n,
         src:u,
-        appIcon:icon.value.trim()
+        appIcon:i
     };
 
     const index=data.findIndex(
@@ -94,9 +115,11 @@ document.getElementById("install").onclick=()=>{
 
     writeCIA(data);
 
+    status.textContent="Successfully Installed";
+
     parent.postMessage({
         type:"LH_INSTALLED_APP",
-        app
+        app:app
     },"*");
 };
 </script>
