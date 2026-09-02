@@ -26,6 +26,8 @@
         browser:{title:"BROWSER",src:"app/browser.html",w:360,h:340},
         imageeditor:{title:"imageeditor",src:"app/imageEditor.html",w:480,h:380},
         messenger:{title:"MESSENGER",src:"app/messenger.html",w:430,h:360},
+        map:{title:"MAPS",src:"app/map.html",w:820,h:600},
+        maps:{title:"MAPS",src:"app/map.html",w:820,h:600},
         settings:{
             title:"SETTINGS",
             src:"app/settings.html",
