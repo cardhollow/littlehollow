@@ -37,7 +37,31 @@
     function openApp(name,opts){
         opts=opts||{};
         const key=normalizeName(name);
+        let installed=[];
+        try{
+            installed=JSON.parse(
+                localStorage.getItem(
+                    "Custom Installed Application/CIA.json"
+                )||"[]"
+            );
+        }catch(e){}
+    
+        const app=installed.find(x=>x.pkg===key);
+        
+        if(app){
+            const win=WM.openWindow({
+                title:app.name||app.pkg,
+                iframeSrc:app.src,
+                width:"500px",
+                height:"500px",
+                noPad:true,
+                standaloneKey:"installed:"+app.pkg
+            });
+    
+            return {ok:true,win};
+        }    
         const def=REGISTRY[key];
+
         if(!def) return {ok:false,error:"Unknown application: "+name};
         let src=def.src;
         const params=[];
