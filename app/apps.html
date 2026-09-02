@@ -17,6 +17,7 @@ html,body{width:100%;height:100%;color:#00FFFF;}
 <script>
 const apps=[
     {name:"File Manager",icon:"🗂"},
+    {name:"App Installer",icon:"📦"},
     {name:"Clock",icon:"🕒"},
     {name:"Calculator",icon:"🧮"},
     {name:"Notepad",icon:"📝"},
@@ -48,13 +49,42 @@ const grid=document.getElementById("grid");
 
 apps.forEach(a=>{
     const tile=document.createElement("div");
+
     tile.className="tile";
-    tile.innerHTML="<div class=\"icon\">"+a.icon+"</div><div>"+(a.label||a.name)+"</div>";
-    tile.addEventListener("click",()=>{
+    tile.innerHTML=
+        `<div class="icon">${a.icon}</div>
+         <div>${a.label||a.name}</div>`;
+
+    tile.onclick=()=>{
         parent.Apps.openApp(a.name);
-    });
+    };
+
     grid.appendChild(tile);
 });
+
+try{
+    const installed=JSON.parse(
+        localStorage.getItem(
+            "Custom Installed Application/CIA.json"
+        )||"[]"
+    );
+
+    installed.forEach(app=>{
+        const tile=document.createElement("div");
+
+        tile.className="tile";
+
+        tile.innerHTML=
+            `<div class="icon">${app.appIcon||"📦"}</div>
+             <div>${app.name||app.pkg}</div>`;
+
+        tile.onclick=()=>{
+            parent.Apps.openApp(app.pkg);
+        };
+
+        grid.appendChild(tile);
+    });
+}catch(e){}
 </script>
 </body>
 </html>
