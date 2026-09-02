@@ -110,20 +110,20 @@ body{
 
 <div class="wrap">
 
-    <div class="bar">
-        <input
-            id="url"
-            type="text"
-            placeholder="Image URL or chxd:/ path..."
-            autocomplete="off"
-            spellcheck="false"
-        >
-        <button id="loadBtn">LOAD</button>
-    </div>
+<div class="bar">
+<input
+    id="url"
+    type="text"
+    placeholder="Image URL or chxd:/ path..."
+    autocomplete="off"
+    spellcheck="false"
+>
+<button id="loadBtn">LOAD</button>
+</div>
 
-    <div class="stage" id="stage">
-        <div class="empty">No image loaded.</div>
-    </div>
+<div class="stage" id="stage">
+<div class="empty">No image loaded.</div>
+</div>
 
 </div>
 
@@ -137,10 +137,13 @@ let currentObjectURL=null;
 let currentFile=null;
 let currentHandle=null;
 
-const params=new URLSearchParams(location.search);
+const params=new URLSearchParams(
+    location.search
+);
+
 const initialPath=params.get("src");
 
-function getParentObject(name){
+function parentObject(name){
     try{
         if(
             window.parent &&
@@ -161,21 +164,19 @@ function getParentObject(name){
 }
 
 function getFS(){
-    return getParentObject("FS");
-}
-
-function getTools(){
-    return getParentObject("Tools");
+    return parentObject("FS");
 }
 
 function cleanupObjectURL(){
     if(currentObjectURL){
         try{
-            URL.revokeObjectURL(currentObjectURL);
+            URL.revokeObjectURL(
+                currentObjectURL
+            );
         }catch(_){}
-        currentObjectURL=null;
     }
 
+    currentObjectURL=null;
     currentFile=null;
     currentHandle=null;
 }
@@ -192,7 +193,8 @@ function errorMessage(message){
 
     stage.innerHTML="";
 
-    const box=document.createElement("div");
+    const box=
+        document.createElement("div");
 
     box.className="error";
     box.textContent=
@@ -204,14 +206,41 @@ function errorMessage(message){
     stage.appendChild(box);
 }
 
+function isVirtualPath(value){
+    const s=String(value||"");
+
+    return (
+        /^chxd:\//i.test(s) ||
+        /^local:\//i.test(s) ||
+        /^session:\//i.test(s) ||
+        /^indexdb:\//i.test(s) ||
+        /^puter:\//i.test(s)
+    );
+}
+
+function isURL(value){
+    const s=String(value||"");
+
+    return (
+        /^https?:\/\//i.test(s) ||
+        /^blob:/i.test(s) ||
+        /^data:/i.test(s) ||
+        /^file:/i.test(s)
+    );
+}
+
 function extension(path){
-    const clean=String(path||"")
+    const clean=
+        String(path||"")
         .split("?")[0]
         .split("#")[0];
 
-    const dot=clean.lastIndexOf(".");
+    const dot=
+        clean.lastIndexOf(".");
 
-    if(dot<0)return "";
+    if(dot<0){
+        return "";
+    }
 
     return clean
         .slice(dot+1)
@@ -268,83 +297,7 @@ function isImageMime(type){
     );
 }
 
-function isVirtualPath(value){
-    const s=String(value||"");
-
-    return (
-        /^chxd:\//i.test(s) ||
-        /^local:\//i.test(s) ||
-        /^session:\//i.test(s) ||
-        /^indexdb:\//i.test(s) ||
-        /^puter:\//i.test(s)
-    );
-}
-
-function isURL(value){
-    const s=String(value||"");
-
-    return (
-        /^https?:\/\//i.test(s) ||
-        /^blob:/i.test(s) ||
-        /^data:/i.test(s) ||
-        /^file:/i.test(s)
-    );
-}
-
-function isProbablyBase64(value){
-    if(typeof value!=="string"){
-        return false;
-    }
-
-    const s=value
-        .trim()
-        .replace(/\s/g,"");
-
-    if(s.length<32){
-        return false;
-    }
-
-    return /^[A-Za-z0-9+/]+={0,2}$/.test(s);
-}
-
-function detectBase64Mime(value,path){
-    const s=String(value||"")
-        .trim()
-        .replace(/\s/g,"");
-
-    if(s.startsWith("iVBORw0KGgo")){
-        return "image/png";
-    }
-
-    if(s.startsWith("/9j/")){
-        return "image/jpeg";
-    }
-
-    if(
-        s.startsWith("R0lGODlh") ||
-        s.startsWith("R0lGODdh")
-    ){
-        return "image/gif";
-    }
-
-    if(s.startsWith("UklGR")){
-        return "image/webp";
-    }
-
-    if(s.startsWith("Qk")){
-        return "image/bmp";
-    }
-
-    const guessed=mimeFromExtension(path);
-
-    if(guessed!=="application/octet-stream"){
-        return guessed;
-    }
-
-    return "application/octet-stream";
-}
-
-function bytesFromArrayBuffer(value){
+function bytesFrom(value){
     if(value instanceof ArrayBuffer){
         return new Uint8Array(value);
     }
@@ -364,7 +317,7 @@ function bytesFromArrayBuffer(value){
     return null;
 }
 
-function detectBytesMime(bytes,path){
+function detectMime(bytes,path){
     if(!bytes||bytes.length<2){
         return mimeFromExtension(path);
     }
@@ -423,39 +376,30 @@ function detectBytesMime(bytes,path){
         return "image/bmp";
     }
 
-    if(
-        bytes.length>=4 &&
-        bytes[0]===60
-    ){
-        try{
-            const text=
-                new TextDecoder()
-                .decode(
-                    bytes.slice(
-                        0,
-                        Math.min(
-                            bytes.length,
-                            512
-                        )
-                    )
-                )
-                .trim();
-
-            if(/^<svg[\s>]/i.test(text)){
-                return "image/svg+xml";
-            }
-
-            if(/^<\?xml/i.test(text)&&/<svg[\s>]/i.test(text)){
-                return "image/svg+xml";
-            }
-        }catch(_){}
-    }
-
     return mimeFromExtension(path);
 }
 
-function arrayBufferToBlob(value,path){
-    const bytes=bytesFromArrayBuffer(value);
+function blobURL(blob){
+    if(
+        !blob ||
+        !(blob instanceof Blob)
+    ){
+        throw new Error(
+            "Invalid Blob."
+        );
+    }
+
+    currentFile=blob;
+
+    currentObjectURL=
+        URL.createObjectURL(blob);
+
+    return currentObjectURL;
+}
+
+function bytesURL(value,path){
+    const bytes=
+        bytesFrom(value);
 
     if(!bytes){
         throw new Error(
@@ -463,57 +407,102 @@ function arrayBufferToBlob(value,path){
         );
     }
 
-    const mime=
-        detectBytesMime(
-            bytes,
-            path
+    const blob=
+        new Blob(
+            [bytes],
+            {
+                type:
+                    detectMime(
+                        bytes,
+                        path
+                    )
+            }
         );
 
-    return new Blob(
-        [bytes],
-        {type:mime}
+    return blobURL(blob);
+}
+
+function isBase64(value){
+    if(typeof value!=="string"){
+        return false;
+    }
+
+    const s=
+        value
+        .trim()
+        .replace(/\s/g,"");
+
+    if(s.length<32){
+        return false;
+    }
+
+    return /^[A-Za-z0-9+/]+={0,2}$/.test(s);
+}
+
+function base64URL(value,path){
+    const clean=
+        String(value||"")
+        .trim()
+        .replace(/\s/g,"");
+
+    let mime=
+        mimeFromExtension(path);
+
+    if(
+        clean.startsWith("iVBORw0KGgo")
+    ){
+        mime="image/png";
+    }else if(
+        clean.startsWith("/9j/")
+    ){
+        mime="image/jpeg";
+    }else if(
+        clean.startsWith("R0lGODlh") ||
+        clean.startsWith("R0lGODdh")
+    ){
+        mime="image/gif";
+    }else if(
+        clean.startsWith("UklGR")
+    ){
+        mime="image/webp";
+    }else if(
+        clean.startsWith("Qk")
+    ){
+        mime="image/bmp";
+    }
+
+    const binary=
+        atob(clean);
+
+    const bytes=
+        new Uint8Array(
+            binary.length
+        );
+
+    for(
+        let i=0;
+        i<binary.length;
+        i++
+    ){
+        bytes[i]=
+            binary.charCodeAt(i);
+    }
+
+    return blobURL(
+        new Blob(
+            [bytes],
+            {type:mime}
+        )
     );
 }
 
-function blobToObjectURL(blob){
-    if(!blob){
-        throw new Error(
-            "No image Blob was provided."
-        );
-    }
-
-    let finalBlob=blob;
-
-    if(!isImageMime(blob.type)){
-        try{
-            finalBlob=new Blob(
-                [blob],
-                {
-                    type:
-                        mimeFromExtension(
-                            urlInput.value
-                        )
-                }
-            );
-        }catch(_){}
-    }
-
-    currentFile=finalBlob;
-
-    currentObjectURL=
-        URL.createObjectURL(
-            finalBlob
-        );
-
-    return currentObjectURL;
-}
-
-function stringToImageSource(value,path){
-    const s=String(value||"").trim();
+function stringImageSource(value,path){
+    const s=
+        String(value||"").trim();
 
     if(!s){
         throw new Error(
-            "The filesystem returned empty image data."
+            "Empty image source."
         );
     }
 
@@ -521,7 +510,11 @@ function stringToImageSource(value,path){
         return s;
     }
 
-    if(isURL(s)){
+    if(
+        /^https?:\/\//i.test(s) ||
+        /^blob:/i.test(s) ||
+        /^file:/i.test(s)
+    ){
         return s;
     }
 
@@ -529,80 +522,34 @@ function stringToImageSource(value,path){
         /^<svg[\s>]/i.test(s) ||
         /^<\?xml/i.test(s)
     ){
-        const blob=new Blob(
-            [s],
-            {type:"image/svg+xml"}
-        );
-
-        return blobToObjectURL(blob);
-    }
-
-    if(isProbablyBase64(s)){
-        const mime=
-            detectBase64Mime(
-                s,
-                path
-            );
-
-        const binary=
-            atob(
-                s.replace(/\s/g,"")
-            );
-
-        const bytes=
-            new Uint8Array(
-                binary.length
-            );
-
-        for(
-            let i=0;
-            i<binary.length;
-            i++
-        ){
-            bytes[i]=
-                binary.charCodeAt(i);
-        }
-
-        return blobToObjectURL(
+        return blobURL(
             new Blob(
-                [bytes],
-                {type:mime}
+                [s],
+                {type:"image/svg+xml"}
             )
         );
     }
 
-    throw new Error(
-        "Unsupported string image source."
-    );
-}
-
-async function handleToBlob(handle){
-    if(
-        !handle ||
-        typeof handle.getFile!=="function"
-    ){
-        return null;
-    }
-
-    const file=
-        await handle.getFile();
-
-    if(!file){
-        throw new Error(
-            "File System Access returned no File."
+    if(isBase64(s)){
+        return base64URL(
+            s,
+            path
         );
     }
 
-    currentHandle=handle;
-    currentFile=file;
-
-    return file;
+    throw new Error(
+        "Unsupported string image source: "+
+        s.slice(0,300)
+    );
 }
 
-async function resolveObjectToSource(value,path,depth=0){
-    if(depth>6){
+async function resolveValue(value,path,depth){
+    depth=
+        Number(depth)||0;
+
+    if(depth>10){
         throw new Error(
-            "Image source resolution exceeded the maximum depth."
+            "Image source resolution exceeded the limit."
         );
     }
 
@@ -612,118 +559,142 @@ async function resolveObjectToSource(value,path,depth=0){
         );
     }
 
-    if(value instanceof Blob){
-        return blobToObjectURL(value);
-    }
-
     if(
         typeof File!=="undefined" &&
         value instanceof File
     ){
-        return blobToObjectURL(value);
+        currentFile=value;
+        return blobURL(value);
     }
 
-    if(
-        typeof FileSystemFileHandle!=="undefined" &&
-        value instanceof FileSystemFileHandle
-    ){
-        const file=
-            await handleToBlob(value);
-
-        return blobToObjectURL(file);
-    }
-
-    if(
-        typeof value==="object" &&
-        typeof value.getFile==="function"
-    ){
-        const file=
-            await handleToBlob(value);
-
-        return blobToObjectURL(file);
+    if(value instanceof Blob){
+        return blobURL(value);
     }
 
     if(value instanceof ArrayBuffer){
-        return blobToObjectURL(
-            arrayBufferToBlob(
-                value,
-                path
-            )
+        return bytesURL(
+            value,
+            path
         );
     }
 
-    const typedBytes=
-        bytesFromArrayBuffer(value);
+    if(
+        value &&
+        typeof value==="object" &&
+        value.buffer instanceof ArrayBuffer
+    ){
+        return bytesURL(
+            value,
+            path
+        );
+    }
 
-    if(typedBytes){
-        return blobToObjectURL(
-            new Blob(
-                [typedBytes],
-                {
-                    type:
-                        detectBytesMime(
-                            typedBytes,
-                            path
-                        )
-                }
-            )
+    if(
+        value &&
+        typeof value==="object" &&
+        typeof value.getFile==="function"
+    ){
+        currentHandle=value;
+
+        const file=
+            await value.getFile();
+
+        if(!file){
+            throw new Error(
+                "FSA handle returned no File."
+            );
+        }
+
+        return resolveValue(
+            file,
+            path,
+            depth+1
         );
     }
 
     if(typeof value==="string"){
-        return stringToImageSource(
-            value,
+
+        const s=
+            value.trim();
+
+        /*
+         * IMPORTANT:
+         *
+         * Some Little Hollow FS implementations
+         * return another virtual filesystem path
+         * from FS.read().
+         *
+         * Example:
+         *
+         * chxd:/device/MyDocuments/Favorites Space/1753677807835.jpg
+         *
+         * That is NOT image text.
+         * It is another path that must be resolved.
+         */
+        if(
+            isVirtualPath(s)&&
+            s!==String(path||"")
+        ){
+            return readVirtualFile(
+                s,
+                depth+1
+            );
+        }
+
+        return stringImageSource(
+            s,
             path
         );
     }
 
     if(typeof value==="object"){
 
-        const candidates=[
+        const directKeys=[
             "file",
             "blob",
-            "data",
             "content",
-            "arrayBuffer",
+            "data",
             "buffer",
             "bytes",
+            "arrayBuffer",
             "handle",
             "fileHandle",
-            "source",
             "url",
             "src",
             "href"
         ];
 
-        for(const key of candidates){
+        for(
+            const key of directKeys
+        ){
 
             if(!(key in value)){
                 continue;
             }
 
-            let candidate;
+            let child;
 
             try{
-                candidate=value[key];
+                child=value[key];
 
                 if(
-                    typeof candidate==="function"
+                    typeof child==="function"
                 ){
-                    candidate=
-                        await candidate.call(value);
+                    child=
+                        await child.call(value);
                 }
 
             }catch(_){
                 continue;
             }
 
-            if(candidate==null){
+            if(child==null){
                 continue;
             }
 
             try{
-                return await resolveObjectToSource(
-                    candidate,
+                return await resolveValue(
+                    child,
                     path,
                     depth+1
                 );
@@ -737,41 +708,7 @@ async function resolveObjectToSource(value,path,depth=0){
     );
 }
 
-async function tryReadUsingFSReader(fs,path){
-    if(
-        !fs ||
-        typeof fs.read!=="function"
-    ){
-        return null;
-    }
-
-    const result=
-        await fs.read(path);
-
-    if(
-        result &&
-        typeof result==="object" &&
-        "ok" in result &&
-        !result.ok
-    ){
-        throw new Error(
-            result.error ||
-            result.summary ||
-            ("Could not read file: "+path)
-        );
-    }
-
-    return resolveObjectToSource(
-        result &&
-        typeof result==="object" &&
-        "content" in result
-            ?result.content
-            :result,
-        path
-    );
-}
-
-async function tryResolveFromDeviceMounts(fs,path){
+async function findDeviceHandle(path,fs){
     if(
         !fs ||
         typeof fs.getDeviceMounts!=="function"
@@ -779,32 +716,38 @@ async function tryResolveFromDeviceMounts(fs,path){
         return null;
     }
 
-    const prefix="chxd:/device/";
+    const prefix=
+        "chxd:/device/";
+
+    const source=
+        String(path||"");
 
     if(
-        !String(path)
-            .toLowerCase()
-            .startsWith(prefix)
+        !source
+        .toLowerCase()
+        .startsWith(
+            prefix.toLowerCase()
+        )
     ){
         return null;
     }
 
     const relative=
-        String(path).slice(
+        source.slice(
             prefix.length
         );
 
     const parts=
         relative
-            .split("/")
-            .filter(Boolean);
+        .split("/")
+        .filter(Boolean);
 
     if(parts.length<2){
         return null;
     }
 
-    const mountName=parts.shift();
-    const fileParts=parts;
+    const mountName=
+        parts.shift();
 
     const mounts=
         await fs.getDeviceMounts();
@@ -817,14 +760,15 @@ async function tryResolveFromDeviceMounts(fs,path){
         mounts.find(
             m=>
                 m &&
-                String(m.name)===String(mountName)
+                String(m.name)===
+                String(mountName)
         );
 
     if(!mount){
         return null;
     }
 
-    const handle=
+    let handle=
         mount.handle ||
         mount.directoryHandle ||
         mount.rootHandle;
@@ -853,124 +797,234 @@ async function tryResolveFromDeviceMounts(fs,path){
 
         if(permission!=="granted"){
             throw new Error(
-                "File System Access permission is required for '"+mountName+"'."
+                "File System Access permission was denied for '"+mountName+"'."
             );
         }
     }
 
-    let currentHandle=handle;
-
-    for(const part of fileParts){
+    for(const part of parts){
 
         if(
-            !currentHandle ||
-            typeof currentHandle.getFileHandle!=="function"
+            !handle ||
+            typeof handle.getDirectoryHandle!=="function" ||
+            typeof handle.getFileHandle!=="function"
         ){
             throw new Error(
-                "The File System Access directory cannot be traversed."
+                "Invalid File System Access directory handle."
             );
         }
 
-        currentHandle=
-            await currentHandle.getFileHandle(
+        const isLast=
+            part===parts[parts.length-1];
+
+        if(isLast){
+            try{
+                return await handle.getFileHandle(
+                    part
+                );
+            }catch(_){
+                try{
+                    return await handle.getDirectoryHandle(
+                        part
+                    );
+                }catch(__){
+                    throw new Error(
+                        "Could not locate '"+part+"' in the File System Access folder."
+                    );
+                }
+            }
+        }
+
+        handle=
+            await handle.getDirectoryHandle(
                 part
             );
     }
 
-    const file=
-        await handleToBlob(
-            currentHandle
-        );
-
-    return blobToObjectURL(
-        file
-    );
+    return null;
 }
 
-async function readVirtualFile(path){
+async function readVirtualFile(path,depth){
+    depth=
+        Number(depth)||0;
+
+    if(depth>10){
+        throw new Error(
+            "Filesystem path resolution exceeded the limit."
+        );
+    }
+
     const fs=getFS();
 
     if(!fs){
         throw new Error(
-            "Little Hollow filesystem bridge is unavailable.\n"+
-            "parent.FS could not be found."
+            "Little Hollow filesystem bridge is unavailable."
         );
     }
 
-    let normalized=path;
+    let normalized=
+        String(path);
 
     try{
-        if(typeof fs.normalize==="function"){
+        if(
+            typeof fs.normalize==="function"
+        ){
             normalized=
-                fs.normalize(path);
+                fs.normalize(
+                    normalized
+                );
         }
     }catch(_){}
 
-    let firstError=null;
-
+    /*
+     * FIRST:
+     * Directly use FSA for DEVICE paths.
+     *
+     * This allows images to work even if the
+     * filesystem abstraction doesn't convert the
+     * FSA File into a data URI.
+     */
     try{
-        const source=
-            await tryReadUsingFSReader(
-                fs,
-                normalized
+
+        const handle=
+            await findDeviceHandle(
+                normalized,
+                fs
             );
 
-        if(source){
-            return source;
+        if(handle){
+
+            if(
+                typeof handle.getFile==="function"
+            ){
+
+                currentHandle=handle;
+
+                const file=
+                    await handle.getFile();
+
+                if(file){
+                    return blobURL(file);
+                }
+            }
         }
 
     }catch(err){
-        firstError=err;
-    }
 
-    try{
-        const source=
-            await tryResolveFromDeviceMounts(
-                fs,
-                normalized
-            );
-
-        if(source){
-            return source;
-        }
-
-    }catch(err){
-        if(
-            !firstError
-        ){
-            firstError=err;
-        }
-    }
-
-    throw firstError ||
-        new Error(
-            "Could not read image: "+
-            normalized
+        /*
+         * Don't immediately stop.
+         * The normal FS bridge may still know how
+         * to resolve the file.
+         */
+        console.warn(
+            "[Image Viewer] Direct FSA resolution failed:",
+            err
         );
+    }
+
+    /*
+     * SECOND:
+     * Use Little Hollow's FS.read().
+     */
+    if(
+        typeof fs.read==="function"
+    ){
+
+        const result=
+            await fs.read(
+                normalized
+            );
+
+        if(
+            result &&
+            typeof result==="object" &&
+            "ok" in result &&
+            !result.ok
+        ){
+            throw new Error(
+                result.error ||
+                result.summary ||
+                "Could not read image."
+            );
+        }
+
+        const returnedValue=
+            result &&
+            typeof result==="object" &&
+            "content" in result
+                ?result.content
+                :result;
+
+        /*
+         * This also handles the case where
+         * FS.read(path) returns another path.
+         */
+        return resolveValue(
+            returnedValue,
+            normalized,
+            depth+1
+        );
+    }
+
+    /*
+     * THIRD:
+     * Try direct FSA one more time if an FS
+     * implementation doesn't provide read().
+     */
+    try{
+
+        const handle=
+            await findDeviceHandle(
+                normalized,
+                fs
+            );
+
+        if(
+            handle &&
+            typeof handle.getFile==="function"
+        ){
+            const file=
+                await handle.getFile();
+
+            return blobURL(file);
+        }
+
+    }catch(_){}
+
+    throw new Error(
+        "Could not resolve filesystem image:\n"+
+        normalized
+    );
 }
 
-async function loadSource(source){
-    const value=
-        String(source||"").trim();
+async function resolveSource(src){
+    const s=
+        String(src||"").trim();
 
-    if(!value){
+    if(!s){
         throw new Error(
             "No image source specified."
         );
     }
 
-    if(isVirtualPath(value)){
-        return readVirtualFile(value);
+    if(isVirtualPath(s)){
+        return readVirtualFile(
+            s,
+            0
+        );
     }
 
-    if(isURL(value)){
-        return value;
+    if(isURL(s)){
+        return s;
     }
 
-    return value;
+    throw new Error(
+        "Unsupported image path:\n"+
+        s
+    );
 }
 
-function createImage(source){
+function displayImage(source){
     return new Promise(
         (resolve,reject)=>{
 
@@ -988,7 +1042,7 @@ function createImage(source){
             img.onerror=()=>{
                 reject(
                     new Error(
-                        "The browser could not decode the image."
+                        "Browser could not decode this image."
                     )
                 );
             };
@@ -999,7 +1053,8 @@ function createImage(source){
 }
 
 async function show(src){
-    src=String(src||"").trim();
+    src=
+        String(src||"").trim();
 
     if(!src){
         errorMessage(
@@ -1013,14 +1068,23 @@ async function show(src){
     try{
 
         const source=
-            await loadSource(src);
+            await resolveSource(src);
 
-        await createImage(source);
+        console.log(
+            "[Image Viewer] Resolved:",
+            src,
+            "=>",
+            source
+        );
+
+        await displayImage(
+            source
+        );
 
     }catch(err){
 
         console.error(
-            "[Image Viewer] Failed to load:",
+            "[Image Viewer] Load failed:",
             err
         );
 
@@ -1068,7 +1132,8 @@ urlInput.addEventListener(
 
 if(initialPath){
 
-    urlInput.value=initialPath;
+    urlInput.value=
+        initialPath;
 
     show(initialPath);
 }
