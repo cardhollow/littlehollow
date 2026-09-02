@@ -317,69 +317,34 @@ function askUploadStop(){
 function stopUploadConfirmed(){
     closeConfirmationTerminal();
 
-    if(!uploadJob || uploadJob.finished || uploadJob.stopped)return;
+    if(!uploadTerminal)return;
 
-    uploadJob.stopRequested=true;
-    uploadJob.stopped=true;
+    terminalWrite(
+        uploadTerminal,
+        "Ctrl+C received.",
+        "warn"
+    );
 
-    /*
-       FS.list() itself cannot be cancelled once Little Hollow has entered
-       it. Ctrl+C therefore prevents further UI rendering and aborts the
-       remaining File Manager side of the operation. The mounted filesystem
-       remains exactly as the original implementation leaves it.
-    */
+    terminalWrite(
+        uploadTerminal,
+        "Stop requested.",
+        "warn"
+    );
 
-    refreshSerial++;
-
-    if(uploadTerminal){
-        terminalWrite(uploadTerminal,"Ctrl+C received.","warn");
-        terminalWrite(uploadTerminal,"Stopping File Manager rendering...","warn");
-        terminalWrite(uploadTerminal,"Folder mount preserved.","dim");
-        terminalSetProgress(uploadTerminal,uploadJob.lastPercent||0,"CANCELLED");
-        terminalWrite(uploadTerminal,"Upload stopped by user.","warn");
-    }
-
-    setTimeout(()=>{
-        if(uploadTerminal){
-            closeLittleHollowTerminal(uploadTerminal);
-            uploadTerminal=null;
-        }
-    },500);
+    terminalWrite(
+        uploadTerminal,
+        "The active browser filesystem operation is not forcibly aborted.",
+        "dim"
+    );
 }
 
-function handleTerminalKeydown(e){
-    if(
-        e.ctrlKey &&
-        String(e.key).toLowerCase() === "c" &&
-        uploadJob &&
-        !uploadJob.finished &&
-        !uploadJob.stopped
-    ){
-        e.preventDefault();
-        e.stopPropagation();
-        askUploadStop();
-    }
-}
-document.addEventListener("keydown",handleTerminalKeydown,true);
+
 
 /* =========================================================
-   DEVICE ACCESS
+   DEVICE FILESYSTEM
 
-   IMPORTANT: intentionally keep Little Hollow's original FS access path.
-   The mounted filesystem is accessed through parent.FS.list(), exactly like
-   the original File Manager. We only make DOM rendering incremental.
-   No FileSystemDirectoryHandle is moved into a Worker and no custom
-   permission flow is used here.
+   Uses the existing Little Hollow FS implementation unchanged.
    ========================================================= */
-
-function yieldToBrowser(){
-    return new Promise(resolve=>{
-        if(typeof requestAnimationFrame === "function") requestAnimationFrame(()=>resolve());
-        else setTimeout(resolve,0);
-    });
-}
-
-const UI_RENDER_BATCH = 24;
 
 /* =========================================================
    FILE MANAGER STATE
@@ -438,12 +403,37 @@ zones.forEach(z=>{
     b.textContent=z.label;
     b.dataset.k=z.key;
     if(z.key===current)b.classList.add("active");
-    b.onclick=()=>{
+    b.onclick=async()=>{
         cancelRename();
         current=z.key;
         currentPrefix="";
         selected.clear();
         [...tabs.children].forEach(x=>x.classList.toggle("active",x.dataset.k===current));
+
+        /* When reopening DEVICE, explicitly check/request the saved
+           mount permission from the user's DEVICE-tab click before
+           the normal original FS.list() call begins. */
+        if(z.key==="device" && parent.FS && typeof parent.FS.getDeviceMounts==="function"){
+            try{
+                const mounts=await parent.FS.getDeviceMounts();
+                for(const mount of Array.isArray(mounts)?mounts:[]){
+                    const handle=mount&&mount.handle;
+                    if(!handle || typeof handle.queryPermission!=="function")continue;
+                    let permission=await handle.queryPermission({mode:"readwrite"});
+                    if(permission!=="granted" && typeof handle.requestPermission==="function"){
+                        permission=await handle.requestPermission({mode:"readwrite"});
+                    }
+                    if(permission!=="granted"){
+                        showError("Permission was not granted for device folder: "+(mount.name||"folder"));
+                        return;
+                    }
+                }
+            }catch(error){
+                showError(error&&error.message?error.message:String(error));
+                return;
+            }
+        }
+
         refresh();
     };
     tabs.appendChild(b);
@@ -575,27 +565,38 @@ async function openPath(p){
         if(!result||!result.ok)showError(result&&(result.error||result.summary)||"Could not open file.");
     }catch(err){showError(err.message||String(err))}
 }
-function enterFolder(path){
+async function enterFolder(path){
     cancelRename();
     currentPrefix=normalizeFolderPath(path);
     closeContextMenu();
 
-    if(current==="device"){
-        const serial=++refreshSerial;
-        list.innerHTML='<div class="empty">Loading folder...</div>';
-        loadCurrentDeviceDirectory().catch(
-            error=>{
-                if(serial===refreshSerial){
-                    list.innerHTML='<div class="empty">Could not read this folder.</div>';
-                    showError(error.message||String(error));
+    if(current==="device" && parent.FS && typeof parent.FS.getDeviceMounts==="function"){
+        try{
+            const prefix="chxd:/device/";
+            const relative=String(path||"").slice(prefix.length).replace(/\/+$/g,"");
+            const mountName=relative.split("/")[0]||"";
+            const mounts=await parent.FS.getDeviceMounts();
+            const mount=Array.isArray(mounts)?mounts.find(m=>m&&m.name===mountName):null;
+
+            if(mount&&mount.handle&&typeof mount.handle.queryPermission==="function"){
+                let permission=await mount.handle.queryPermission({mode:"readwrite"});
+                if(permission!=="granted"&&typeof mount.handle.requestPermission==="function"){
+                    permission=await mount.handle.requestPermission({mode:"readwrite"});
+                }
+                if(permission!=="granted"){
+                    showError("Permission was not granted for device folder: "+mountName);
+                    return;
                 }
             }
-        );
-        return;
+        }catch(error){
+            showError(error&&error.message?error.message:String(error));
+            return;
+        }
     }
 
     refresh();
 }
+
 function goUp(){cancelRename();const z=zone();if(!currentPrefix)return;const root=z.prefix.replace(/\/+$/g,"");let p=currentPrefix.replace(/\/+$/g,"");if(p===root){currentPrefix="";refresh();return}const i=p.lastIndexOf("/");currentPrefix=i<=root.length?"":p.slice(0,i+1);refresh()}
 async function edit(p){if(isImagePath(p)){await openImageEditor(p);return}try{const result=await parent.Apps.openApp("Notepad",{path:p,allowMultiple:true});if(!result||!result.ok)showError(result&&(result.error||result.summary)||"Could not open Notepad.")}catch(err){showError(err.message||String(err))}}
 async function code(){const paths=selectedPaths();if(!paths.length)return;const files=[];for(const p of paths){if(isFolderPath(p))continue;const r=await parent.FS.read(p);if(r.ok)files.push({name:p.split("/").pop(),content:r.content})}if(!files.length)return;parent.Apps.openOneCompiler({language:ext(files[0].name)==="py"?"python":"javascript",files,run:false})}
@@ -643,226 +644,449 @@ async function downloadItem(path){try{if(isFolderPath(path)){const entries=await
 async function downloadSelected(){const paths=selectedPaths();if(!paths.length){showError("Select files or folders first.");return}try{if(paths.length===1){await downloadItem(paths[0]);return}const entries=await collectFiles(paths);const blob=makeZip(entries);downloadData(await blobDataURL(blob),"selected.zip")}catch(err){showError("Download failed: "+(err.message||String(err)))}}
 
 /* =========================================================
-   DISPLAY ROOT/CURRENT DIRECTORY ONLY.
-   IMPORTANT: device listing NEVER calls FS.list(device root)
-   recursively. FS.list(current device folder) is shallow.
+   SORT / REFRESH
    ========================================================= */
 
 function sortPaths(files){
-    return files.sort((a,b)=>{const af=isFolderPath(a);const bf=isFolderPath(b);if(af!==bf)return af?-1:1;return a.localeCompare(b,undefined,{numeric:true,sensitivity:"base"})});
+return files.sort((a,b)=>{
+const af=isFolderPath(a);
+const bf=isFolderPath(b);
+
+if(af!==bf)return af?-1:1;
+
+return a.localeCompare(
+ b,
+ undefined,
+ {
+ numeric:true,
+ sensitivity:"base"
+ }
+);
+});
 }
 
-function reduceVisibleChildren(files,base){
-    const visible=[];
-    for(const p0 of files){
-        const p=String(p0);if(!p.startsWith(base))continue;
-        const rest=p.slice(base.length);if(!rest)continue;
-        const clean=rest.replace(/\/+$/g,"");const slash=clean.indexOf("/");
-        if(slash>=0){const folderPath=base+clean.slice(0,slash+1);if(!visible.includes(folderPath))visible.push(folderPath)}
-        else visible.push(p);
-    }
-    return sortPaths(visible);
-}
 
-function createRow(p){
-    const z=zone();
-    const row=document.createElement("div");
-    const folder=isFolderPath(p);const image=!folder&&isImagePath(p);
-    row.className="row"+(folder?" folder":"")+(image?" image-row":"");
-    if(selected.has(p))row.classList.add("selected");
-
-    const cb=document.createElement("input");cb.type="checkbox";cb.checked=selected.has(p);
-    cb.onchange=()=>{if(cb.checked)selected.add(p);else selected.delete(p);row.classList.toggle("selected",cb.checked)};
-    if(selectMode&&!allowMultiple)cb.style.display="none";
-
-    const name=document.createElement("div");name.className="name";name.dataset.path=p;name.textContent=(folder?"📁 ":image?"🖼 ":"")+displayName(p);name.title=p;
-    name.onclick=()=>openPath(p);
-    name.ondblclick=e=>{
-        e.preventDefault();e.stopPropagation();
-        if(selectMode&&!folder){if(allowMultiple){if(selected.has(p))selected.delete(p);else selected.add(p);refresh()}else finishFilePick([p]);return}
-        if(image)openImageEditor(p);else startRename(name,p,folder);
-    };
-    name.oncontextmenu=e=>{e.preventDefault();showContextMenu(e.clientX,e.clientY,p,folder)};
-    let pressTimer=null;
-    name.onpointerdown=e=>{if(e.pointerType==="mouse"||activeRename)return;pressTimer=setTimeout(()=>showContextMenu(e.clientX,e.clientY,p,folder),550)};
-    name.onpointerup=()=>clearTimeout(pressTimer);name.onpointercancel=()=>clearTimeout(pressTimer);name.onpointermove=()=>clearTimeout(pressTimer);
-    row.append(cb,name);
-
-    if(folder){
-        const openBtn=document.createElement("button");openBtn.textContent="OPEN";openBtn.onclick=()=>enterFolder(p);row.append(openBtn);
-        if(!selectMode){const dlBtn=document.createElement("button");dlBtn.textContent="DL";dlBtn.onclick=()=>downloadItem(p);row.append(dlBtn)}
-        if(isTopLevelDeviceMount(p)){const dismountBtn=document.createElement("button");dismountBtn.textContent="DISMOUNT";dismountBtn.onclick=async e=>{e.stopPropagation();const result=await parent.FS.unmountDeviceFolder(displayName(p));if(!result||!result.ok){showError(result&&result.error||"Could not dismount folder.");return}selected.delete(p);currentPrefix="";await refresh()};row.append(dismountBtn)}
-    }else{
-        const e=ext(p);
-        if(!selectMode){
-            if(image){const editImageBtn=document.createElement("button");editImageBtn.textContent="EDIT";editImageBtn.onclick=()=>openImageEditor(p);row.append(editImageBtn)}
-            const dlBtn=document.createElement("button");dlBtn.textContent="DL";dlBtn.onclick=()=>downloadItem(p);row.append(dlBtn);
-            if(e!=="zip"&&!image&&z.key!=="system"){const editBtn=document.createElement("button");editBtn.textContent="EDIT";editBtn.onclick=()=>edit(p);row.append(editBtn)}
-            if(e==="zip"){const unzipBtn=document.createElement("button");unzipBtn.textContent="UNZIP";unzipBtn.onclick=()=>unzipFile(p);row.append(unzipBtn)}
-            if(z.key!=="system"&&["js","ts","py","java","c","cpp","cs","php","html","css"].includes(e)){const codeBtn=document.createElement("button");codeBtn.textContent="CODE";codeBtn.onclick=()=>{selected=new Set([p]);code()};row.append(codeBtn)}
-            if(z.key!=="system"){const del=document.createElement("button");del.textContent="DEL";del.onclick=async()=>{const r=await parent.FS.remove(p);if(!r.ok){showError(r.error||"Could not delete file.");return}selected.delete(p);await refresh()};row.append(del)}
-        }
-        if(selectMode&&allowMultiple){const pickBtn=document.createElement("button");pickBtn.textContent=selected.has(p)?"✓":"SELECT";pickBtn.onclick=e=>{e.stopPropagation();if(selected.has(p))selected.delete(p);else selected.add(p);refresh()};row.append(pickBtn)}
-    }
-    return row;
-}
-
-async function renderFiles(files,serial){
-    list.innerHTML="";
-    if(!files.length){list.innerHTML='<div class="empty">No files.</div>';return}
-    let fragment=document.createDocumentFragment();let count=0;
-    for(const p of files){
-        if(serial!==refreshSerial)return;
-        fragment.appendChild(createRow(p));count++;
-        if(count%60===0){list.appendChild(fragment);fragment=document.createDocumentFragment();await new Promise(requestAnimationFrame)}
-    }
-    list.appendChild(fragment);
-    if(selectMode&&allowMultiple){
-        const footer=document.createElement("div");footer.className="picker-action";
-        const openSelected=document.createElement("button");openSelected.textContent=selected.size?"OPEN SELECTED ("+selected.size+")":"OPEN SELECTED";openSelected.onclick=()=>finishFilePick(selectedPaths());footer.appendChild(openSelected);list.appendChild(footer);
-    }
-}
-
-/* =========================================================
-   REFRESH
-   ========================================================= */
-
-async function renderFilesIncrementally(files,serial){
-    list.innerHTML="";
-
-    if(!files.length){
-        list.innerHTML='<div class="empty">No files.</div>';
-        return;
-    }
-
-    let count=0;
-
-    for(const p of files){
-        if(serial!==refreshSerial)return;
-
-        const empty=list.firstElementChild;
-        if(empty && empty.classList.contains("empty")){
-            list.innerHTML="";
-        }
-
-        list.appendChild(createRow(p));
-        count++;
-
-        /*
-           Files are inserted one after another. The browser gets a chance
-           to paint every small group, so thousands of rows do not make one
-           enormous synchronous DOM operation.
-        */
-        if(count % UI_RENDER_BATCH === 0){
-            await yieldToBrowser();
-        }
-    }
-
-    if(selectMode&&allowMultiple){
-        const footer=document.createElement("div");
-        footer.className="picker-action";
-
-        const openSelected=document.createElement("button");
-        openSelected.textContent=selected.size
-            ?"OPEN SELECTED ("+selected.size+")"
-            :"OPEN SELECTED";
-        openSelected.onclick=()=>finishFilePick(selectedPaths());
-
-        footer.appendChild(openSelected);
-        list.appendChild(footer);
-    }
-}
 
 async function refresh(){
-    cancelRename();
+ cancelRename();
 
-    const serial=++refreshSerial;
-    const z=zone();
+ const serial=++refreshSerial;
+ const z=zone();
 
-    if(!z)return;
+ if(!z)return;
 
-    updatePathDisplay();
+ updatePathDisplay();
 
-    if(
-        z.key==="puter"&&
-        !parent.FS.puterReady()
-    ){
-        if(serial===refreshSerial){
-            list.innerHTML=
-                '<div class="empty">Puter filesystem unavailable.</div>';
-        }
-        return;
-    }
+ if(
+ z.key==="puter"&&
+ !parent.FS.puterReady()
+ ){
+ if(serial===refreshSerial){
+ list.innerHTML=
+ '<div class="empty">Puter filesystem unavailable.</div>';
+ }
+ return;
+ }
 
-    try{
-        /*
-           THIS IS THE ORIGINAL FILESYSTEM ACCESS PATH.
-           Nothing about the mounted device handle is changed.
-           Little Hollow decides how the complete device tree is loaded.
-        */
-        const result=
-            await parent.FS.list(
-                currentPrefix||z.prefix
-            );
+ try{
+ const result=
+ await parent.FS.list(
+ currentPrefix||z.prefix
+ );
 
-        if(serial!==refreshSerial)return;
+ if(serial!==refreshSerial)return;
 
-        let files=
-            Array.isArray(result)
-                ?result
-                :[];
+ let files=
+ Array.isArray(result)
+ ?result
+ :[];
 
-        const base=
-            currentPrefix||z.prefix;
+ const base=
+ currentPrefix||z.prefix;
 
-        const visible=[];
+ const visible=[];
 
-        for(const p0 of files){
-            const p=String(p0);
+ for(const p0 of files){
+ const p=String(p0);
 
-            if(!p.startsWith(base))continue;
+ if(!p.startsWith(base))continue;
 
-            const rest=p.slice(base.length);
+ const rest=p.slice(base.length);
 
-            if(!rest)continue;
+ if(!rest)continue;
 
-            const clean=rest.replace(/\\+$/g,"");
-            const slash=clean.indexOf("/");
+ const clean=rest.replace(/\/+$/g,"");
+ const slash=clean.indexOf("/");
 
-            if(slash>=0){
-                const folderPath=
-                    base+clean.slice(0,slash+1);
+ if(slash>=0){
+ const folderPath=
+ base+
+ clean.slice(0,slash+1);
 
-                if(!visible.includes(folderPath)){
-                    visible.push(folderPath);
-                }
-            }else{
-                visible.push(p);
-            }
-        }
+ if(!visible.includes(folderPath)){
+ visible.push(folderPath);
+ }
 
-        files=sortPaths(visible);
+ }else{
+ visible.push(p);
+ }
+ }
 
-        /*
-           The filesystem has already loaded the complete list.
-           Only the visual presentation is incremental.
-        */
-        await renderFilesIncrementally(
-            files,
-            serial
-        );
+ files=sortPaths(visible);
+ list.innerHTML="";
 
-    }catch(e){
-        if(serial!==refreshSerial)return;
+ if(!files.length){
+ list.innerHTML='<div class="empty">No files.</div>';
+ return;
+ }
 
-        list.innerHTML=
-            '<div class="empty">Could not read this folder.</div>';
+ /*
+    Keep the ORIGINAL FS.list() loading behavior.
+    Only DOM insertion is paced so a huge result does not
+    dump thousands of nodes into the page in one synchronous
+    operation. No one-by-one filesystem loading is used.
+ */
+ let fragment=document.createDocumentFragment();
+ let rendered=0;
 
-        showError(
-            e.message||
-            "Could not list files."
-        );
-    }
+ for(const p of files){
+ const row=document.createElement("div");
+ const folder=isFolderPath(p);
+ const image=!folder&&isImagePath(p);
+
+ row.className=
+ "row"+
+ (folder?" folder":"")+
+ (image?" image-row":"");
+
+ if(selected.has(p)){
+ row.classList.add("selected");
+ }
+
+ const cb=document.createElement("input");
+
+ cb.type="checkbox";
+ cb.checked=selected.has(p);
+
+ cb.onchange=()=>{
+ if(cb.checked){
+ selected.add(p);
+ }else{
+ selected.delete(p);
+ }
+ row.classList.toggle(
+ "selected",
+ cb.checked
+ );
+ };
+
+ if(selectMode&&!allowMultiple){
+ cb.style.display="none";
+ }
+
+ const name=document.createElement("div");
+
+ name.className="name";
+ name.dataset.path=p;
+
+ name.textContent=
+ (folder?"📁 ":image?"🖼 ":"")+ 
+ displayName(p);
+
+ name.title=p;
+
+ name.onclick=()=>{
+ openPath(p);
+ };
+
+ name.ondblclick=e=>{
+ e.preventDefault();
+ e.stopPropagation();
+
+ if(selectMode&&!folder){
+ if(allowMultiple){
+ if(selected.has(p)){
+ selected.delete(p);
+ }else{
+ selected.add(p);
+ }
+ refresh();
+ }else{
+ finishFilePick([p]);
+ }
+ return;
+ }
+
+ if(image){
+ openImageEditor(p);
+ }else{
+ startRename(name,p,folder);
+ }
+ };
+
+ name.oncontextmenu=e=>{
+ e.preventDefault();
+
+ showContextMenu(
+ e.clientX,
+ e.clientY,
+ p,
+ folder
+ );
+ };
+
+ let pressTimer=null;
+
+ name.onpointerdown=e=>{
+ if(e.pointerType==="mouse"||activeRename)return;
+
+ pressTimer=setTimeout(()=>{
+ showContextMenu(
+ e.clientX,
+ e.clientY,
+ p,
+ folder
+ );
+ },550);
+ };
+
+ name.onpointerup=
+ ()=>clearTimeout(pressTimer);
+
+ name.onpointercancel=
+ ()=>clearTimeout(pressTimer);
+
+ name.onpointermove=
+ ()=>clearTimeout(pressTimer);
+
+ row.append(cb,name);
+
+ if(folder){
+ const openBtn=document.createElement("button");
+
+ openBtn.textContent="OPEN";
+ openBtn.onclick=()=>enterFolder(p);
+
+ row.append(openBtn);
+
+ if(!selectMode){
+ const dlBtn=document.createElement("button");
+
+ dlBtn.textContent="DL";
+ dlBtn.onclick=()=>downloadItem(p);
+
+ row.append(dlBtn);
+ }
+
+ if(isTopLevelDeviceMount(p)){
+ const dismountBtn=document.createElement("button");
+
+ dismountBtn.textContent="DISMOUNT";
+
+ dismountBtn.onclick=async e=>{
+ e.stopPropagation();
+
+ const result=
+ await parent.FS.unmountDeviceFolder(
+ displayName(p)
+ );
+
+ if(!result||!result.ok){
+ showError(
+ result&&result.error||
+ "Could not dismount folder."
+ );
+ return;
+ }
+
+ selected.delete(p);
+ currentPrefix="";
+
+ await refresh();
+ };
+
+ row.append(dismountBtn);
+ }
+
+ }else{
+ const e=ext(p);
+
+ if(!selectMode){
+ if(image){
+ const editImageBtn=
+ document.createElement("button");
+
+ editImageBtn.textContent="EDIT";
+ editImageBtn.onclick=
+ ()=>openImageEditor(p);
+
+ row.append(editImageBtn);
+ }
+
+ const dlBtn=document.createElement("button");
+
+ dlBtn.textContent="DL";
+ dlBtn.onclick=
+ ()=>downloadItem(p);
+
+ row.append(dlBtn);
+
+ if(
+ e!=="zip"&&
+ !image&&
+ z.key!=="system"
+ ){
+ const editBtn=
+ document.createElement("button");
+
+ editBtn.textContent="EDIT";
+ editBtn.onclick=
+ ()=>edit(p);
+
+ row.append(editBtn);
+ }
+
+ if(e==="zip"){
+ const unzipBtn=
+ document.createElement("button");
+
+ unzipBtn.textContent="UNZIP";
+ unzipBtn.onclick=
+ ()=>unzipFile(p);
+
+ row.append(unzipBtn);
+ }
+
+ if(
+ z.key!=="system"&&
+ [
+ "js",
+ "ts",
+ "py",
+ "java",
+ "c",
+ "cpp",
+ "cs",
+ "php",
+ "html",
+ "css"
+ ].includes(e)
+ ){
+ const codeBtn=
+ document.createElement("button");
+
+ codeBtn.textContent="CODE";
+
+ codeBtn.onclick=()=>{
+ selected=
+ new Set([p]);
+ code();
+ };
+
+ row.append(codeBtn);
+ }
+
+ if(z.key!=="system"){
+ const del=
+ document.createElement("button");
+
+ del.textContent="DEL";
+
+ del.onclick=async()=>{
+ const r=
+ await parent.FS.remove(p);
+
+ if(!r.ok){
+ showError(
+ r.error||
+ "Could not delete file."
+ );
+ return;
+ }
+
+ selected.delete(p);
+ await refresh();
+ };
+
+ row.append(del);
+ }
+ }
+
+ if(selectMode&&allowMultiple){
+ const pickBtn=
+ document.createElement("button");
+
+ pickBtn.textContent=
+ selected.has(p)
+ ?"✓"
+ :"SELECT";
+
+ pickBtn.onclick=e=>{
+ e.stopPropagation();
+
+ if(selected.has(p)){
+ selected.delete(p);
+ }else{
+ selected.add(p);
+ }
+
+ refresh();
+ };
+
+ row.append(pickBtn);
+ }
+ }
+
+ fragment.appendChild(row);
+ rendered++;
+
+ if(rendered%80===0){
+ list.appendChild(fragment);
+ fragment=document.createDocumentFragment();
+ await new Promise(requestAnimationFrame);
+ }
+ }
+
+ if(serial!==refreshSerial)return;
+
+ if(fragment.childNodes.length){
+ list.appendChild(fragment);
+ }
+
+ if(selectMode&&allowMultiple){
+ const footer=
+ document.createElement("div");
+
+ footer.className="picker-action";
+
+ const openSelected=
+ document.createElement("button");
+
+ openSelected.textContent=
+ selected.size
+ ?"OPEN SELECTED ("+selected.size+")"
+ :"OPEN SELECTED";
+
+ openSelected.onclick=
+ ()=>finishFilePick(
+ selectedPaths()
+ );
+
+ footer.appendChild(openSelected);
+ list.appendChild(footer);
+ }
+
+ }catch(e){
+ if(serial!==refreshSerial)return;
+
+ list.innerHTML=
+ '<div class="empty">Could not read this folder.</div>';
+
+ showError(
+ e.message||
+ "Could not list files."
+ );
+ }
 }
 
 /* =========================================================
@@ -895,354 +1119,196 @@ box.onchange=()=>{const v=box.value.trim();if(!v)return;parent.Tools.execute("fi
 box.onkeydown=e=>{if(e.key!=="Enter")return;const v=box.value.trim();if(!v)return;if(/\/$/.test(v)){const z=zone();if(v.startsWith(z.prefix)){currentPrefix=normalizeFolderPath(v);refresh()}return}box.onchange()};
 
 /* =========================================================
-   UPLOAD FOLDER — ONLY PLACE WHERE THE TERMINAL APPEARS
+   UPLOAD FOLDER
    ========================================================= */
+
+let uploadUiTimer=null;
+
+function stopUploadUiTimer(){
+if(uploadUiTimer){
+clearInterval(uploadUiTimer);
+uploadUiTimer=null;
+}
+}
+
+document.addEventListener("keydown",e=>{
+if(
+e.ctrlKey&&
+e.key.toLowerCase()==="c"&&
+uploadTerminal
+){
+e.preventDefault();
+e.stopPropagation();
+askUploadStop();
+}
+},true);
 
 document.getElementById("mountFolder").onclick=async()=>{
 
-    if(
-        uploadJob &&
-        !uploadJob.finished &&
-        !uploadJob.stopped
-    ){
-        askUploadStop();
-        return;
-    }
+ if(uploadTerminal){
+   showError("A folder upload is already running.");
+   return;
+ }
 
-    cancelRename();
+ cancelRename();
 
-    selected.clear();
+ try{
+ uploadTerminal=
+ openLittleHollowTerminal(
+ "mount_folder",
+ "TERMINAL"
+ );
 
-    uploadTerminal=
-        openLittleHollowTerminal(
-            "> mount_folder",
-            "TERMINAL"
-        );
+ lockTerminalWindow(uploadTerminal);
 
-    lockTerminalWindow(uploadTerminal);
+ terminalWrite(
+ uploadTerminal,
+ "Loading folder picker..."
+ );
 
-    const job={
-        stopped:false,
-        finished:false,
-        stopRequested:false,
-        lastPercent:0
-    };
+ let dots=0;
 
-    uploadJob=job;
+ uploadUiTimer=setInterval(()=>{
+ if(!uploadTerminal)return;
+ dots=(dots+1)%4;
+ terminalWrite(
+ uploadTerminal,
+ "Loading"+".".repeat(dots),
+ "dim"
+ );
+ },180);
 
-    terminalWrite(
-        uploadTerminal,
-        "Loading folder picker..."
-    );
+ }catch(err){
+ showError(
+ err.message||
+ "Could not open terminal."
+ );
+ return;
+ }
 
-    try{
-        /*
-           Keep the original Little Hollow upload API untouched.
-           The folder picker + mount permission flow stays entirely inside
-           FS.mountDeviceFolder(), exactly as the old File Manager used it.
-        */
-        const result=
-            await parent.FS.mountDeviceFolder();
+ try{
+ /* EXACT original Little Hollow mount operation. */
+ const result=
+ await parent.FS.mountDeviceFolder();
 
-        if(
-            !result ||
-            !result.ok
-        ){
-            job.finished=true;
+ stopUploadUiTimer();
 
-            terminalWrite(
-                uploadTerminal,
-                result && result.cancelled
-                    ? "Folder selection cancelled."
-                    : (result && result.error || "Could not upload folder."),
-                result && result.cancelled
-                    ? "warn"
-                    : "error"
-            );
+ if(!result||!result.ok){
 
-            setTimeout(()=>{
-                if(uploadTerminal){
-                    closeLittleHollowTerminal(uploadTerminal);
-                    uploadTerminal=null;
-                }
-            },400);
+ terminalWrite(
+ uploadTerminal,
+ result&&result.cancelled
+ ?"Folder selection cancelled."
+ :(result&&result.error||"Could not upload folder."),
+ result&&result.cancelled
+ ?"warn"
+ :"error"
+ );
 
-            return;
-        }
+ setTimeout(()=>{
+ if(uploadTerminal){
+ closeLittleHollowTerminal(uploadTerminal);
+ uploadTerminal=null;
+ }
+ },350);
 
-        current="device";
-        currentPrefix="";
+ return;
+ }
 
-        [...tabs.children].forEach(
-            x=>x.classList.toggle(
-                "active",
-                x.dataset.k==="device"
-            )
-        );
+ terminalWrite(
+ uploadTerminal,
+ "Folder '"+result.name+"' successfully loaded.",
+ "ok"
+ );
 
-        selected.clear();
+ terminalWrite(
+ uploadTerminal,
+ "Loading files into browser..."
+ );
 
-        terminalWrite(
-            uploadTerminal,
-            "Folder '"+
-            result.name+
-            "' successfully loaded.",
-            "ok"
-        );
+ current="device";
+ currentPrefix="";
+ selected.clear();
 
-        terminalWrite(
-            uploadTerminal,
-            "Mount path: "+result.path,
-            "dim"
-        );
+ [...tabs.children].forEach(
+ x=>x.classList.toggle(
+ "active",
+ x.dataset.k==="device"
+ )
+ );
 
-        terminalWrite(
-            uploadTerminal,
-            "Loading files into filesystem..."
-        );
+ updatePathDisplay();
 
-        terminalSetProgress(
-            uploadTerminal,
-            1,
-            "Filesystem loading started"
-        );
+ let percent=0;
 
-        /*
-           Use the OLD full FS path. This is deliberate: no direct
-           FileSystemDirectoryHandle access, no manual permission request,
-           and no worker owns the mounted handle.
-        */
-        refreshSerial++;
-        const serial=refreshSerial;
+ const progressTimer=setInterval(()=>{
+ if(!uploadTerminal)return;
+ percent=Math.min(96,percent+1);
+ terminalSetProgress(
+ uploadTerminal,
+ percent,
+ "Loading files into browser..."
+ );
+ },120);
 
-        updatePathDisplay();
+ try{
+ /* EXACT ORIGINAL FILESYSTEM LOADING. */
+ await refresh();
+ }finally{
+ clearInterval(progressTimer);
+ }
 
-        const fsResult=
-            await parent.FS.list(
-                result.path
-            );
+ terminalSetProgress(
+ uploadTerminal,
+ 100,
+ "Files loaded"
+ );
 
-        if(
-            job.stopped ||
-            serial!==refreshSerial
-        ){
-            return;
-        }
+ terminalWrite(
+ uploadTerminal,
+ "All files has been loaded",
+ "ok"
+ );
 
-        const allFiles=
-            Array.isArray(fsResult)
-                ?fsResult
-                :[];
+ setTimeout(()=>{
+ if(uploadTerminal){
+ closeLittleHollowTerminal(uploadTerminal);
+ uploadTerminal=null;
+ }
+ },900);
 
-        const visible=[];
-        const base=result.path;
+ }catch(err){
+ stopUploadUiTimer();
 
-        for(const p0 of allFiles){
-            const p=String(p0);
-            if(!p.startsWith(base))continue;
+ if(uploadTerminal){
+ terminalWrite(
+ uploadTerminal,
+ "Upload failed: "+
+ (err.message||String(err)),
+ "error"
+ );
+ }
 
-            const rest=p.slice(base.length);
-            if(!rest)continue;
+ showError(
+ "Could not upload folder: "+
+ (err.message||String(err))
+ );
 
-            const clean=rest.replace(/\\+$/g,"");
-            const slash=clean.indexOf("/");
-
-            if(slash>=0){
-                const folderPath=
-                    base+clean.slice(0,slash+1);
-                if(!visible.includes(folderPath)){
-                    visible.push(folderPath);
-                }
-            }else{
-                visible.push(p);
-            }
-        }
-
-        const files=sortPaths(visible);
-
-        terminalWrite(
-            uploadTerminal,
-            "Filesystem loaded: "+
-            files.length+
-            " visible entries.",
-            "ok"
-        );
-
-        list.innerHTML="";
-
-        if(!files.length){
-            list.innerHTML=
-                '<div class="empty">No files.</div>';
-        }else{
-            let rendered=0;
-
-            for(const p of files){
-                if(
-                    job.stopped ||
-                    serial!==refreshSerial
-                ){
-                    return;
-                }
-
-                list.appendChild(
-                    createRow(p)
-                );
-
-                rendered++;
-
-                const percent=
-                    Math.min(99,
-                        Math.floor(
-                            rendered /
-                            files.length *
-                            100
-                        )
-                    );
-
-                job.lastPercent=percent;
-
-                terminalSetProgress(
-                    uploadTerminal,
-                    percent,
-                    "Rendering "+
-                    rendered+
-                    "/"+
-                    files.length+
-                    " entries"
-                );
-
-                if(
-                    rendered % UI_RENDER_BATCH === 0
-                ){
-                    await yieldToBrowser();
-                }
-            }
-
-            if(selectMode&&allowMultiple){
-                const footer=
-                    document.createElement("div");
-                footer.className=
-                    "picker-action";
-
-                const openSelected=
-                    document.createElement("button");
-
-                openSelected.textContent=
-                    selected.size
-                        ?"OPEN SELECTED ("+selected.size+")"
-                        :"OPEN SELECTED";
-
-                openSelected.onclick=
-                    ()=>finishFilePick(
-                        selectedPaths()
-                    );
-
-                footer.appendChild(
-                    openSelected
-                );
-
-                list.appendChild(
-                    footer
-                );
-            }
-        }
-
-        if(
-            job.stopped
-        ){
-            return;
-        }
-
-        job.finished=true;
-        job.lastPercent=100;
-
-        terminalSetProgress(
-            uploadTerminal,
-            100,
-            "[PRINTBARSGROWING]100%"
-        );
-
-        terminalWrite(
-            uploadTerminal,
-            "[PRINTBARSGROWING]100%",
-            "ok"
-        );
-
-        terminalWrite(
-            uploadTerminal,
-            "Files successfully loaded: "+
-            files.filter(p=>!isFolderPath(p)).length,
-            "ok"
-        );
-
-        terminalWrite(
-            uploadTerminal,
-            "Folders successfully loaded: "+
-            files.filter(p=>isFolderPath(p)).length,
-            "ok"
-        );
-
-        terminalWrite(
-            uploadTerminal,
-            "All files has been loaded",
-            "ok"
-        );
-
-        setTimeout(()=>{
-            if(uploadTerminal){
-                closeLittleHollowTerminal(
-                    uploadTerminal
-                );
-                uploadTerminal=null;
-            }
-        },900);
-
-    }catch(error){
-
-        if(job.stopped){
-            return;
-        }
-
-        job.finished=true;
-
-        terminalWrite(
-            uploadTerminal,
-            "Upload failed: "+
-            (error&&error.message
-                ?error.message
-                :String(error)),
-            "error"
-        );
-
-        showError(
-            "Could not upload folder: "+
-            (error&&error.message
-                ?error.message
-                :String(error))
-        );
-
-        setTimeout(()=>{
-            if(uploadTerminal){
-                closeLittleHollowTerminal(
-                    uploadTerminal
-                );
-                uploadTerminal=null;
-            }
-        },1200);
-
-    }finally{
-        if(uploadJob===job){
-            setTimeout(()=>{
-                if(uploadJob===job)uploadJob=null;
-            },1200);
-        }
-    }
+ setTimeout(()=>{
+ if(uploadTerminal){
+ closeLittleHollowTerminal(uploadTerminal);
+ uploadTerminal=null;
+ }
+ },1200);
+ }
 };
 
 /* =========================================================
    START
    ========================================================= */
+
 refresh();
+
 </script>
 </body>
 </html>
