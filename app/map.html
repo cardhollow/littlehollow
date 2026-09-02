@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maps</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #071014;
+            color: #c4fbff;
+            font-family: monospace;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #16434a;
+            background: #09171b;
+            flex-shrink: 0;
+        }
+
+        .title {
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            color: #d5ffff;
+        }
+
+        .subtitle {
+            font-size: 9px;
+            color: #648e95;
+            margin-top: 3px;
+        }
+
+        .content {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            gap: 1px;
+            background: #16434a;
+        }
+
+        .sidebar {
+            width: 220px;
+            background: #09191d;
+            border-right: 1px solid #16434a;
+            padding: 12px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .map-container {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #map {
+            flex: 1;
+            background: #0d1f24;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #1a4f57;
+            background: #061115;
+            color: #c8fcff;
+            font-family: monospace;
+            font-size: 10px;
+            outline: none;
+        }
+
+        .search-box:focus {
+            border-color: #2ba3af;
+        }
+
+        .button {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #20757e;
+            background: #0a3339;
+            color: #c5fcff;
+            font-family: monospace;
+            font-size: 9px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .button:hover {
+            background: #10454d;
+        }
+
+        .button:active {
+            background: #0d3a43;
+        }
+
+        .section-title {
+            font-size: 10px;
+            font-weight: bold;
+            color: #7fb6bd;
+            margin: 12px 0 8px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #16434a;
+            padding-bottom: 6px;
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 9px;
+            color: #7fb6bd;
+            margin-bottom: 4px;
+        }
+
+        select {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #1a4f57;
+            background: #061115;
+            color: #c8fcff;
+            font-family: monospace;
+            font-size: 9px;
+            cursor: pointer;
+        }
+
+        select:focus {
+            border-color: #2ba3af;
+            outline: none;
+        }
+
+        .slider-group {
+            margin-bottom: 8px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            margin-bottom: 4px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #0d2a2f;
+            border: 1px solid #1a4f57;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #2ba3af;
+            cursor: pointer;
+            border-radius: 2px;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            background: #2ba3af;
+            cursor: pointer;
+            border-radius: 2px;
+            border: none;
+        }
+
+        .info-box {
+            padding: 10px;
+            border: 1px solid #16434a;
+            background: #061114;
+            border-radius: 2px;
+            margin-bottom: 8px;
+        }
+
+        .info-label {
+            font-size: 8px;
+            color: #648b91;
+        }
+
+        .info-value {
+            font-size: 10px;
+            color: #c8fcff;
+            margin-top: 2px;
+            word-break: break-word;
+        }
+
+        .button.danger {
+            border-color: #713d45;
+            background: #28151a;
+            color: #ffb9c2;
+        }
+
+        .button.danger:hover {
+            background: #331a1f;
+        }
+
+        .location-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #16434a;
+            background: #071419;
+        }
+
+        .location-item {
+            padding: 8px;
+            border-bottom: 1px solid #16434a;
+            cursor: pointer;
+            font-size: 9px;
+            transition: background 0.2s;
+        }
+
+        .location-item:hover {
+            background: #0c282e;
+        }
+
+        .location-name {
+            color: #c9fbff;
+            font-weight: bold;
+        }
+
+        .location-desc {
+            color: #648b91;
+            font-size: 8px;
+            margin-top: 2px;
+        }
+
+        .status {
+            padding: 8px;
+            border: 1px solid #123f46;
+            background: #061114;
+            font-size: 8px;
+            color: #648a91;
+            margin-top: 12px;
+        }
+
+        .scrollbar-compat {
+            scrollbar-width: thin;
+            scrollbar-color: #2ba3af #0d2a2f;
+        }
+
+        .scrollbar-compat::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scrollbar-compat::-webkit-scrollbar-track {
+            background: #0d2a2f;
+        }
+
+        .scrollbar-compat::-webkit-scrollbar-thumb {
+            background: #2ba3af;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">MAPS</div>
+            <div class="subtitle">Interactive location viewer and search</div>
+        </div>
+
+        <div class="content">
+            <aside class="sidebar scrollbar-compat">
+                <!-- Search Section -->
+                <div class="section-title">Search Location</div>
+                <input type="text" id="searchInput" class="search-box" placeholder="Address, city, place...">
+                <button class="button" id="searchBtn">Search</button>
+
+                <!-- Map Type Section -->
+                <div class="section-title">Map Type</div>
+                <div class="control-group">
+                    <select id="mapTypeSelect">
+                        <option value="roadmap">ROADMAP</option>
+                        <option value="satellite">SATELLITE</option>
+                        <option value="hybrid">HYBRID</option>
+                        <option value="terrain">TERRAIN</option>
+                    </select>
+                </div>
+
+                <!-- Zoom Section -->
+                <div class="section-title">Zoom Level</div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>ZOOM</span>
+                        <span id="zoomValue">13</span>
+                    </div>
+                    <input type="range" id="zoomSlider" min="1" max="20" value="13">
+                </div>
+
+                <!-- Quick Locations -->
+                <div class="section-title">Quick Locations</div>
+                <button class="button" data-location="New York">New York</button>
+                <button class="button" data-location="London">London</button>
+                <button class="button" data-location="Tokyo">Tokyo</button>
+                <button class="button" data-location="Paris">Paris</button>
+                <button class="button" data-location="Sydney">Sydney</button>
+
+                <!-- Current Location -->
+                <div class="section-title">Current Location</div>
+                <div class="info-box">
+                    <div class="info-label">Latitude</div>
+                    <div class="info-value" id="latValue">--</div>
+                </div>
+                <div class="info-box">
+                    <div class="info-label">Longitude</div>
+                    <div class="info-value" id="lngValue">--</div>
+                </div>
+
+                <!-- Geocoding Info -->
+                <div class="section-title">Address</div>
+                <div class="info-box">
+                    <div class="info-value" id="addressValue">Search for a location</div>
+                </div>
+
+                <!-- Export Section -->
+                <div class="section-title">Actions</div>
+                <button class="button" id="centerBtn">Center Map</button>
+                <button class="button" id="copyCoordBtn">Copy Coordinates</button>
+                <button class="button danger" id="resetBtn">Reset</button>
+
+                <!-- Status -->
+                <div class="status" id="statusMsg">Ready</div>
+            </aside>
+
+            <main class="map-container">
+                <div id="map"></div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDemoKey&libraries=places"></script>
+    <script>
+        let map;
+        let geocoder;
+        let currentMarker = null;
+        let currentInfoWindow = null;
+        let searchBox;
+
+        const defaultLocation = { lat: 40.7128, lng: -74.0060 }; // New York
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 13,
+                center: defaultLocation,
+                mapTypeId: 'roadmap',
+                styles: [
+                    { elementType: 'geometry', stylers: [{ color: '#0d1f24' }] },
+                    { elementType: 'labels.text.stroke', stylers: [{ color: '#0d1f24' }] },
+                    { elementType: 'labels.text.fill', stylers: [{ color: '#7fb6bd' }] },
+                    {
+                        featureType: 'administrative.locality',
+                        elementType: 'labels.text.fill',
+                        stylers: [{ color: '#7fb6bd' }]
+                    },
+                    {
+                        featureType: 'water',
+                        elementType: 'geometry',
+                        stylers: [{ color: '#16434a' }]
+                    },
+                    {
+                        featureType: 'transit.line',
+                        elementType: 'geometry',
+                        stylers: [{ color: '#16434a' }]
+                    }
+                ],
+                streetViewControl: true,
+                fullscreenControl: true,
+                zoomControl: true,
+                mapTypeControl: true
+            });
+
+            geocoder = new google.maps.Geocoder();
+
+            // Listen to map center changes
+            map.addListener('center_changed', updateCoordinates);
+            map.addListener('zoom_changed', () => {
+                document.getElementById('zoomValue').textContent = map.getZoom();
+            });
+
+            setupEventListeners();
+            setMarkerAtLocation(defaultLocation, 'New York, NY, USA');
+        }
+
+        function setupEventListeners() {
+            document.getElementById('searchBtn').addEventListener('click', handleSearch);
+            document.getElementById('searchInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleSearch();
+            });
+
+            document.getElementById('mapTypeSelect').addEventListener('change', (e) => {
+                map.setMapTypeId(e.target.value);
+            });
+
+            document.getElementById('zoomSlider').addEventListener('input', (e) => {
+                map.setZoom(parseInt(e.target.value));
+            });
+
+            document.getElementById('centerBtn').addEventListener('click', () => {
+                map.setCenter(map.getCenter());
+            });
+
+            document.getElementById('copyCoordBtn').addEventListener('click', copyCoordinates);
+            document.getElementById('resetBtn').addEventListener('click', resetMap);
+
+            // Quick location buttons
+            document.querySelectorAll('button[data-location]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const location = e.target.getAttribute('data-location');
+                    handleSearch(location);
+                });
+            });
+        }
+
+        function handleSearch(location) {
+            const query = location || document.getElementById('searchInput').value;
+            if (!query.trim()) {
+                updateStatus('Please enter a location');
+                return;
+            }
+
+            updateStatus('Searching...');
+            geocoder.geocode({ address: query }, (results, status) => {
+                if (status === 'OK') {
+                    const location = results[0].geometry.location;
+                    const address = results[0].formatted_address;
+                    map.setCenter(location);
+                    setMarkerAtLocation(location, address);
+                    updateStatus('Location found');
+                } else {
+                    updateStatus('Location not found: ' + status);
+                }
+            });
+        }
+
+        function setMarkerAtLocation(location, address) {
+            if (currentMarker) {
+                currentMarker.setMap(null);
+            }
+
+            currentMarker = new google.maps.Marker({
+                position: location,
+                map: map,
+                title: address
+            });
+
+            if (currentInfoWindow) {
+                currentInfoWindow.close();
+            }
+
+            currentInfoWindow = new google.maps.InfoWindow({
+                content: `<div style="color: #071014; padding: 8px;">
+                    <div style="font-weight: bold;">${address}</div>
+                    <div style="font-size: 12px; margin-top: 4px;">
+                        ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}
+                    </div>
+                </div>`
+            });
+            currentInfoWindow.open(map, currentMarker);
+
+            updateCoordinates();
+        }
+
+        function updateCoordinates() {
+            const center = map.getCenter();
+            document.getElementById('latValue').textContent = center.lat().toFixed(6);
+            document.getElementById('lngValue').textContent = center.lng().toFixed(6);
+
+            // Reverse geocoding
+            if (currentMarker) {
+                const location = currentMarker.getPosition();
+                geocoder.geocode({ location: location }, (results, status) => {
+                    if (status === 'OK' && results[0]) {
+                        document.getElementById('addressValue').textContent = results[0].formatted_address;
+                    }
+                });
+            }
+        }
+
+        function copyCoordinates() {
+            const lat = document.getElementById('latValue').textContent;
+            const lng = document.getElementById('lngValue').textContent;
+            const text = `${lat}, ${lng}`;
+            navigator.clipboard.writeText(text).then(() => {
+                updateStatus('Coordinates copied!');
+            });
+        }
+
+        function resetMap() {
+            document.getElementById('searchInput').value = '';
+            map.setCenter(defaultLocation);
+            map.setZoom(13);
+            document.getElementById('mapTypeSelect').value = 'roadmap';
+            setMarkerAtLocation(defaultLocation, 'New York, NY, USA');
+            updateStatus('Map reset');
+        }
+
+        function updateStatus(msg) {
+            document.getElementById('statusMsg').textContent = msg;
+        }
+
+        // Initialize map when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            // Handle API key error gracefully
+            if (typeof google === 'undefined') {
+                updateStatus('Maps API not available - using demo mode');
+                // Show demo message
+                document.getElementById('map').innerHTML = `
+                    <div style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        height: 100%;
+                        color: #7fb6bd;
+                        flex-direction: column;
+                        text-align: center;
+                        padding: 20px;
+                    ">
+                        <div style="font-size: 14px; font-weight: bold; margin-bottom: 10px;">
+                            Maps Application
+                        </div>
+                        <div style="font-size: 12px;">
+                            To enable full Google Maps functionality, add your API key:<br>
+                            <code style="color: #c8fcff; background: #061115; padding: 8px; display: block; margin-top: 10px;">
+                                https://maps.googleapis.com/maps/api/js?key=YOUR_KEY&libraries=places
+                            </code>
+                        </div>
+                        <div style="margin-top: 20px; font-size: 11px; color: #648b91;">
+                            Features: Search locations, view maps, get coordinates
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            initMap();
+        });
+
+        // Export for AI integration
+        window.Maps = {
+            search: (query) => {
+                handleSearch(query);
+                return {
+                    ok: true,
+                    summary: `Searching for ${query}`
+                };
+            },
+            getCoordinates: () => {
+                const lat = document.getElementById('latValue').textContent;
+                const lng = document.getElementById('lngValue').textContent;
+                return {
+                    ok: true,
+                    lat: parseFloat(lat),
+                    lng: parseFloat(lng),
+                    address: document.getElementById('addressValue').textContent
+                };
+            },
+            setZoom: (level) => {
+                map.setZoom(Math.max(1, Math.min(20, level)));
+                return { ok: true, zoom: map.getZoom() };
+            },
+            setMapType: (type) => {
+                const validTypes = ['roadmap', 'satellite', 'hybrid', 'terrain'];
+                if (validTypes.includes(type)) {
+                    map.setMapTypeId(type);
+                    return { ok: true, mapType: type };
+                }
+                return { ok: false, error: 'Invalid map type' };
+            }
+        };
+    </script>
+</body>
+</html>
