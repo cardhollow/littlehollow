@@ -289,6 +289,15 @@
         return runAgent(text, options);
     }
 
+    // Original Little Hollow compatibility API.
+    // Existing UI code calls: parent.LittleHollowAI.send(text[, options]).
+    // Keep this method returning the assistant text, while runAgent/chat return
+    // the richer result object used by the newer provider architecture.
+    async function send(text, options) {
+        const result = await runAgent(text, options || {});
+        return messageText(result?.message || result);
+    }
+
     function getSettings() {
         settings = loadSettings();
         return clone(settings);
@@ -350,6 +359,7 @@
         runAgent,
         run,
         chat,
+        send,
         getProvider,
         getSettings,
         setSettings,
