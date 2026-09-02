@@ -13,7 +13,9 @@ html,body{width:100%;height:100%;color:#00FFFF;}
 </style>
 </head>
 <body>
+
 <div class="grid" id="grid"></div>
+
 <script>
 const apps=[
     {name:"File Manager",icon:"🗂"},
@@ -23,7 +25,7 @@ const apps=[
     {name:"Notepad",icon:"📝"},
     {name:"Paint",icon:"🎨"},
     {name:"ImageEditor",icon:"🖼️"},
-    
+
     {name:"tictactoe",label:"Tic Tac Toe",icon:"⭕"},
     {name:"snake",label:"Snake",icon:"🐍"},
 
@@ -33,33 +35,40 @@ const apps=[
     {name:"SOS",icon:"🆘"},
     {name:"tetris",label:"Tetris",icon:"🧱"},
     {name:"wordle",label:"Wordle",icon:"🔤"},
-    
+
     {name:"doom",label:"Doom",icon:"☢️"},
     {name:"Pacman",label:"Pac-man",icon:"⍩⃝"},
-
     {name:"GBA",label:"GBA",icon:"⍩⃝"},
-    
+
     {name:"GameFinder",icon:"🎮"},
     {name:"Browser",label:"Browser",icon:"🌐"},
     {name:"Messenger",icon:"💬"},
-    {name:"Settings",icon:"set"},
+    {name:"Settings",icon:"set"}
 ];
 
 const grid=document.getElementById("grid");
 
-apps.forEach(a=>{
+function addTile(key,label,icon){
     const tile=document.createElement("div");
 
     tile.className="tile";
     tile.innerHTML=
-        `<div class="icon">${a.icon}</div>
-         <div>${a.label||a.name}</div>`;
+        `<div class="icon">${icon}</div>
+         <div>${label}</div>`;
 
     tile.onclick=()=>{
-        parent.Apps.openApp(a.name);
+        parent.Apps.openApp(key);
     };
 
     grid.appendChild(tile);
+}
+
+apps.forEach(a=>{
+    addTile(
+        a.name,
+        a.label||a.name,
+        a.icon
+    );
 });
 
 try{
@@ -70,21 +79,14 @@ try{
     );
 
     installed.forEach(app=>{
-        const tile=document.createElement("div");
-
-        tile.className="tile";
-
-        tile.innerHTML=
-            `<div class="icon">${app.appIcon||"📦"}</div>
-             <div>${app.name||app.pkg}</div>`;
-
-        tile.onclick=()=>{
-            parent.Apps.openApp(app.pkg);
-        };
-
-        grid.appendChild(tile);
+        addTile(
+            app.pkg,
+            app.name||app.pkg,
+            app.appIcon||"📦"
+        );
     });
 }catch(e){}
 </script>
+
 </body>
 </html>
