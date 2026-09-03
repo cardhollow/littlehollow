@@ -65,7 +65,8 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     recording: false,
     facing: "environment",
     mime: "",
-    hasAudio: false
+    hasAudio: false,
+    objectUrls: []
   };
 
   function status(text){ $("msg").textContent = text; }
@@ -152,6 +153,12 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     $("previewWrap").classList.toggle("front", state.facing === "user");
   }
 
+  function canvasToBlob(canvas,type,quality){
+    return new Promise((resolve,reject)=>{
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error("Could not encode image")), type, quality);
+    });
+  }
+
   async function takePhoto(){
     if(state.recording){ status("Stop video recording before taking a photo."); return; }
     if(!state.cameraStream && !(await openCamera())) return;
@@ -184,9 +191,10 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     setTimeout(() => $("flash").style.opacity = "0", 90);
 
     try{
-      const data = canvas.toDataURL("image/jpeg",0.92);
+      // Store the photo as a binary Blob (no Data URL / String() round-trip).
+      const blob = await canvasToBlob(canvas,"image/jpeg",0.92);
       const path = PREFIX + "photo-" + stamp() + ".jpg";
-      await saveString(path,data,{kind:"photo",mimeType:"image/jpeg"});
+      await saveMedia(path,blob,{kind:"photo",mimeType:"image/jpeg",size:blob.size},true);
       status("Photo saved — " + path);
       await loadLibrary();
     }catch(error){
@@ -194,22 +202,16 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     }
   }
 
-  function blobToDataURL(blob){
-    return new Promise((resolve,reject)=>{
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () => reject(reader.error || new Error("Could not encode video"));
-      reader.readAsDataURL(blob);
-    });
-  }
-
-  async function saveString(path,data,meta){
+  async function saveMedia(path,content,meta,binary){
     if(typeof parent === "undefined" || !parent.FS || typeof parent.FS.write !== "function"){
       throw new Error("Little Hollow filesystem is unavailable.");
     }
-    const result = await parent.FS.write(path,String(data),true);
+    // When binary is true, pass the Blob straight through (FS.write's allowBinary
+    // param) instead of stringifying it — avoids any Data URL / String() step
+    // that could corrupt or bloat large recordings.
+    const result = await parent.FS.write(path,content,true,!!binary);
     if(!result || result.ok !== true) throw new Error(result && result.error ? result.error : "Filesystem write failed");
-    const metaResult = await parent.FS.write(path + ".json",JSON.stringify({app:"Camera",createdAt:new Date().toISOString(),storage:"data-url",...meta}),true);
+    const metaResult = await parent.FS.write(path + ".json",JSON.stringify({app:"Camera",createdAt:new Date().toISOString(),storage:binary ? "binary" : "data-url",...meta}),true,false);
     if(!metaResult || metaResult.ok !== true) throw new Error(metaResult && metaResult.error ? metaResult.error : "Metadata write failed");
   }
 
@@ -292,16 +294,20 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     if(!blob.size){ status("Video recording is empty. Try again."); return; }
 
     try{
-      const data = await blobToDataURL(blob);
-      // IMPORTANT: the string is written exactly as FileReader returned it.
-      // No MIME parsing, regex, or atob() check can reject a valid recording.
       const baseType = String(type).split(";",1)[0].toLowerCase();
       const ext = baseType === "video/mp4" ? "mp4" : "webm";
       const path = PREFIX + "video-" + stamp() + "." + ext;
-      await saveString(path,data,{kind:"video",mimeType:type,size:blob.size});
-      // Read back the exact string from Little Hollow to ensure the database write succeeded.
+      // Store the recorded Blob directly as binary — this is the fix: no
+      // Data URL / FileReader / String() round-trip that could mangle the
+      // container and make it undecodable on playback.
+      await saveMedia(path,blob,{kind:"video",mimeType:type,size:blob.size},true);
+      // Read back to confirm the write succeeded and produced usable data.
       const verify = await parent.FS.read(path);
-      if(!verify || verify.ok !== true || typeof verify.content !== "string" || !verify.content.startsWith("data:")){
+      const readBack = verify && verify.ok === true ? verify.content : null;
+      const readBackOk = readBack instanceof Blob
+        ? readBack.size > 0
+        : (typeof readBack === "string" && readBack.length > 0);
+      if(!readBackOk){
         throw new Error("saved video could not be read back");
       }
       status("Video saved — " + path + " (" + Math.round(blob.size/1024) + " KB)");
@@ -321,6 +327,9 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
   async function loadLibrary(){
     const box = $("list");
+    // Revoke object URLs from the previous render before rebuilding.
+    for(const url of state.objectUrls){ try{ URL.revokeObjectURL(url); }catch(_){} }
+    state.objectUrls = [];
     box.innerHTML = "";
     try{
       const files = await parent.FS.list(PREFIX);
@@ -332,7 +341,20 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
       for(const path of paths){
         const read = await parent.FS.read(path);
-        if(!read || read.ok !== true || typeof read.content !== "string") continue;
+        if(!read || read.ok !== true || !read.content) continue;
+
+        // Support both binary Blob content (current saves) and legacy Data
+        // URL strings (older items saved before this fix), transparently.
+        let src;
+        if(read.content instanceof Blob){
+          src = URL.createObjectURL(read.content);
+          state.objectUrls.push(src);
+        }else if(typeof read.content === "string" && read.content.startsWith("data:")){
+          src = read.content;
+        }else{
+          continue;
+        }
+
         const card = document.createElement("div");
         card.className = "card";
         const isPhoto = /\.(jpg|jpeg|png)$/i.test(path);
@@ -358,7 +380,7 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
           };
         }
         media.className = "thumb";
-        media.src = read.content;
+        media.src = src;
 
         const name = document.createElement("div");
         name.className = "name";
@@ -369,7 +391,7 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
         const save = document.createElement("button");
         save.className = "btn";
         save.textContent = "SAVE";
-        save.onclick = () => downloadData(read.content,path.split("/").pop());
+        save.onclick = () => downloadData(src,path.split("/").pop());
         const del = document.createElement("button");
         del.className = "btn";
         del.textContent = "DEL";
@@ -388,9 +410,10 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     }
   }
 
-  function downloadData(data,name){
+  function downloadData(src,name){
+    // Works for both object URLs (Blob-backed) and legacy Data URL strings.
     const a = document.createElement("a");
-    a.href = data;
+    a.href = src;
     a.download = name;
     document.body.appendChild(a);
     a.click();
@@ -419,6 +442,7 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
       if(state.recorder && state.recorder.state !== "inactive") state.recorder.stop();
     }catch(_){}
     stopTracks(state.cameraStream);
+    for(const url of state.objectUrls){ try{ URL.revokeObjectURL(url); }catch(_){} }
   });
 
   (async()=>{
