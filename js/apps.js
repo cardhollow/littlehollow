@@ -85,6 +85,13 @@
             h:620
         },
 
+        piano:{
+            title:"Piano",
+            src:"app/piano.html",
+            w:980,
+            h:620
+        },
+
         tictactoe:{
             title:"TIC TAC TOE",
             src:"app/tictactoe.html",
