@@ -384,13 +384,16 @@ select{
     const activeVoices=new Map();
     const sustained=new Set();
     const pressedPhysical=new Set();
+    const playbackVoices=new Set();
 
     let recording=false;
     let recordingType="audio";
     let recordingStart=0;
 
     let recordingEvents=[];
-    let pkpRecordingEvents=[];
+    let pkpRecordedNotes=[];
+    let pkpActiveNotes=new Map();
+    let pkpRecordingSettings=[];
     let pkpInitialSettings=null;
     let pkpRecording="";
 
@@ -711,8 +714,7 @@ select{
         if(!fs){
             return {
                 ok:false,
-                error:
-                    "CHXD filesystem is unavailable."
+                error:"CHXD filesystem is unavailable."
             };
         }
 
@@ -748,11 +750,8 @@ select{
             );
         }
 
-        if(
-            !window.MediaRecorder
-        ){
+        if(!window.MediaRecorder)
             return false;
-        }
 
         const supportedTypes=[
             "audio/webm;codecs=opus",
@@ -763,14 +762,10 @@ select{
 
         let selectedType="";
 
-        for(
-            const type of supportedTypes
-        ){
+        for(const type of supportedTypes){
             try{
                 if(
-                    MediaRecorder.isTypeSupported(
-                        type
-                    )
+                    MediaRecorder.isTypeSupported(type)
                 ){
                     selectedType=type;
                     break;
@@ -813,9 +808,7 @@ select{
                 }
             };
 
-        mediaRecorder.start(
-            100
-        );
+        mediaRecorder.start(100);
 
         return true;
     }
@@ -823,69 +816,60 @@ select{
     function stopAudioRecorder(){
         return new Promise(
             resolve=>{
-                if(
-                    !mediaRecorder
-                ){
+                if(!mediaRecorder){
                     resolve(
                         audioRecordingData
                     );
                     return;
                 }
 
-                const recorder=
-                    mediaRecorder;
+                const recorder=mediaRecorder;
 
-                const finish=
-                    ()=>{
-                        try{
-                            const blob=
-                                new Blob(
-                                    audioChunks,
-                                    {
-                                        type:
-                                            audioRecordingMime||
-                                            recorder.mimeType||
-                                            "audio/webm"
-                                    }
+                const finish=()=>{
+                    try{
+                        const blob=
+                            new Blob(
+                                audioChunks,
+                                {
+                                    type:
+                                        audioRecordingMime||
+                                        recorder.mimeType||
+                                        "audio/webm"
+                                }
+                            );
+
+                        const reader=
+                            new FileReader();
+
+                        reader.onload=()=>{
+                            audioRecordingData=
+                                String(
+                                    reader.result||""
                                 );
 
-                            const reader=
-                                new FileReader();
+                            audioRecordingMime=
+                                blob.type||
+                                audioRecordingMime;
 
-                            reader.onload=
-                                ()=>{
-                                    audioRecordingData=
-                                        String(
-                                            reader.result||""
-                                        );
-
-                                    audioRecordingMime=
-                                        blob.type||
-                                        audioRecordingMime;
-
-                                    resolve(
-                                        audioRecordingData
-                                    );
-                                };
-
-                            reader.onerror=
-                                ()=>{
-                                    resolve(null);
-                                };
-
-                            reader.readAsDataURL(
-                                blob
+                            resolve(
+                                audioRecordingData
                             );
-                        }catch(_){
+                        };
+
+                        reader.onerror=()=>{
                             resolve(null);
-                        }
+                        };
 
-                        audioChunks=[];
-                        mediaRecorder=null;
-                    };
+                        reader.readAsDataURL(blob);
+                    }catch(_){
+                        resolve(null);
+                    }
 
-                recorder.onstop=
-                    finish;
+                    audioChunks=[];
+                    mediaRecorder=null;
+                };
+
+                recorder.onstop=finish;
 
                 try{
                     if(
@@ -906,8 +890,7 @@ select{
         if(!pkpRecording){
             return {
                 ok:false,
-                error:
-                    "No PKP recording."
+                error:"No PKP recording."
             };
         }
 
@@ -953,8 +936,7 @@ select{
         if(!audioRecordingData){
             return {
                 ok:false,
-                error:
-                    "No audio recording."
+                error:"No audio recording."
             };
         }
 
@@ -964,9 +946,7 @@ select{
                 :".webm";
 
         const filename=
-            makeTimestamp(
-                extension
-            );
+            makeTimestamp(extension);
 
         const path=
             AUDIO_RECORDINGS_PATH+
@@ -1033,7 +1013,7 @@ select{
             );
 
             return true;
-        }catch(e){
+        }catch(_){
             info.textContent=
                 "Could not initialize audio.";
             return false;
@@ -1081,9 +1061,94 @@ select{
         };
     }
 
+    function normalizeSettings(
+        settings,
+        base=null
+    ){
+        const state={
+            ...(base||getCurrentSettings())
+        };
+
+        if(
+            settings &&
+            typeof settings==="object"
+        ){
+            if(
+                Number.isFinite(
+                    Number(settings.octave)
+                )
+            ){
+                state.octave=
+                    Math.max(
+                        1,
+                        Math.min(
+                            7,
+                            Math.round(
+                                Number(
+                                    settings.octave
+                                )
+                            )
+                        )
+                    );
+            }
+
+            if(
+                Object.prototype.hasOwnProperty.call(
+                    instrumentDefinitions,
+                    String(settings.instrument||"")
+                )
+            ){
+                state.instrument=
+                    String(settings.instrument);
+            }
+
+            if(
+                [
+                    "sine",
+                    "triangle",
+                    "square",
+                    "sawtooth"
+                ].includes(
+                    String(settings.waveform||"")
+                )
+            ){
+                state.waveform=
+                    String(settings.waveform);
+            }
+
+            if(
+                Number.isFinite(
+                    Number(settings.volume)
+                )
+            ){
+                state.volume=
+                    Math.max(
+                        0,
+                        Math.min(
+                            1,
+                            Number(settings.volume)
+                        )
+                    );
+            }
+
+            if(
+                Object.prototype.hasOwnProperty.call(
+                    settings,
+                    "sustain"
+                )
+            ){
+                state.sustain=
+                    !!settings.sustain;
+            }
+        }
+
+        return state;
+    }
+
     function applySettings(
         settings,
-        recordChange
+        recordChange=false,
+        playbackMode=false
     ){
         if(
             !settings ||
@@ -1114,9 +1179,17 @@ select{
                     );
 
                 if(next!==octave){
-                    stopAllNotes();
+                    if(!playbackMode)
+                        stopAllNotes();
+
                     octave=next;
-                    buildPiano();
+
+                    if(
+                        !playbackMode
+                    ){
+                        buildPiano();
+                    }
+
                     changed=true;
                 }
             }
@@ -1216,8 +1289,12 @@ select{
                     sustain
                 );
 
-                if(!sustain)
+                if(
+                    !sustain &&
+                    !playbackMode
+                ){
                     releaseSustain();
+                }
 
                 changed=true;
             }
@@ -1233,7 +1310,10 @@ select{
         }
     }
 
-    function createVoice(midi){
+    function createVoice(
+        midi,
+        settingsOverride=null
+    ){
         if(!initAudio())
             return null;
 
@@ -1245,8 +1325,22 @@ select{
             );
         }
 
+        const selectedInstrument=
+            settingsOverride &&
+            settingsOverride.instrument
+                ?settingsOverride.instrument
+                :instrument;
+
+        const selectedWaveform=
+            settingsOverride &&
+            settingsOverride.waveform
+                ?settingsOverride.waveform
+                :waveform;
+
         const definition=
-            instrumentDefinitions[instrument]||
+            instrumentDefinitions[
+                selectedInstrument
+            ]||
             instrumentDefinitions.piano;
 
         const voiceGain=
@@ -1307,12 +1401,12 @@ select{
 
             if(
                 (
-                    instrument==="synth"||
-                    instrument==="lead"
+                    selectedInstrument==="synth"||
+                    selectedInstrument==="lead"
                 ) &&
                 oscillators.length===0
             ){
-                type=waveform;
+                type=selectedWaveform;
             }
 
             oscillator.type=type;
@@ -1353,10 +1447,10 @@ select{
         let lfoGain=null;
 
         if(
-            instrument==="strings"||
-            instrument==="choir"||
-            instrument==="pad"||
-            instrument==="lead"
+            selectedInstrument==="strings"||
+            selectedInstrument==="choir"||
+            selectedInstrument==="pad"||
+            selectedInstrument==="lead"
         ){
             lfo=
                 audioContext.createOscillator();
@@ -1367,14 +1461,14 @@ select{
             lfo.type="sine";
 
             lfo.frequency.value=
-                instrument==="lead"
+                selectedInstrument==="lead"
                     ?5.2
-                    :instrument==="pad"
+                    :selectedInstrument==="pad"
                         ?.7
                         :5;
 
             lfoGain.gain.value=
-                instrument==="pad"
+                selectedInstrument==="pad"
                     ?7
                     :4;
 
@@ -1442,6 +1536,83 @@ select{
         }catch(_){}
     }
 
+    function playbackMidiIsActive(midi){
+        for(
+            const item of playbackVoices
+        ){
+            if(item.midi===midi)
+                return true;
+        }
+
+        return false;
+    }
+
+    function updatePressedState(midi){
+        setPressed(
+            midi,
+            activeVoices.has(midi)||
+            playbackMidiIsActive(midi)
+        );
+    }
+
+    function startPlaybackNote(
+        note,
+        settings
+    ){
+        const voice=
+            createVoice(
+                note.midi,
+                settings
+            );
+
+        if(!voice)
+            return null;
+
+        const item={
+            midi:note.midi,
+            voice
+        };
+
+        playbackVoices.add(
+            item
+        );
+
+        setPressed(
+            note.midi,
+            true
+        );
+
+        const duration=
+            Math.max(
+                1,
+                Number(note.duration)||250
+            );
+
+        const timer=
+            setTimeout(
+                ()=>{
+                    stopVoice(
+                        voice
+                    );
+
+                    playbackVoices.delete(
+                        item
+                    );
+
+                    updatePressedState(
+                        note.midi
+                    );
+                },
+                duration
+            );
+
+        playbackTimers.push(
+            timer
+        );
+
+        return item;
+    }
+
     function getRecordingTime(){
         return (
             performance.now()-
@@ -1469,24 +1640,104 @@ select{
         });
     }
 
-    function recordPKPNote(
-        type,
+    function midiToComputerKey(midi){
+        const local=
+            midi-
+            (
+                BASE_MIDI+
+                (octave-4)*12
+            );
+
+        for(
+            const [key,semitone]
+            of whiteMapping
+        ){
+            if(semitone===local)
+                return key;
+        }
+
+        for(
+            const [key,semitone]
+            of blackMapping
+        ){
+            if(semitone===local)
+                return key;
+        }
+
+        return null;
+    }
+
+    function recordPKPNoteStart(
         key,
         midi
     ){
         if(
             !recording||
-            recordingType!=="pkp"||
-            !key
+            recordingType!=="pkp"
         ){
             return;
         }
 
-        pkpRecordingEvents.push({
-            type,
-            key,
+        const resolvedKey=
+            key||
+            midiToComputerKey(midi);
+
+        pkpActiveNotes.set(
             midi,
-            time:getRecordingTime()
+            {
+                key:resolvedKey,
+                midi,
+                start:
+                    getRecordingTime(),
+                sustainAtStart:
+                    sustain
+            }
+        );
+    }
+
+    function recordPKPNoteEnd(
+        midi,
+        time
+    ){
+        if(
+            !recording||
+            recordingType!=="pkp"
+        ){
+            return;
+        }
+
+        const note=
+            pkpActiveNotes.get(midi);
+
+        if(!note)
+            return;
+
+        pkpActiveNotes.delete(
+            midi
+        );
+
+        if(!note.key)
+            return;
+
+        const end=
+            Math.max(
+                note.start,
+                Number.isFinite(time)
+                    ?time
+                    :getRecordingTime()
+            );
+
+        pkpRecordedNotes.push({
+            key:note.key,
+            midi:note.midi,
+            start:note.start,
+            end,
+            duration:
+                Math.max(
+                    1,
+                    end-note.start
+                ),
+            octave:octave
         });
     }
 
@@ -1498,12 +1749,36 @@ select{
             return;
         }
 
-        pkpRecordingEvents.push({
-            type:"settings",
-            settings:
-                getCurrentSettings(),
-            time:
-                getRecordingTime()
+        const time=
+            getRecordingTime();
+
+        const settings=
+            getCurrentSettings();
+
+        if(
+            pkpRecordingSettings.length
+        ){
+            const previous=
+                pkpRecordingSettings[
+                    pkpRecordingSettings.length-1
+                ];
+
+            if(
+                JSON.stringify(
+                    previous.settings
+                )===JSON.stringify(
+                    settings
+                )
+            ){
+                return;
+            }
+        }
+
+        pkpRecordingSettings.push({
+            time,
+            settings:{
+                ...settings
+            }
         });
     }
 
@@ -1519,8 +1794,11 @@ select{
             performance.now();
 
         recordingEvents=[];
-        pkpRecordingEvents=[];
+        pkpRecordedNotes=[];
+        pkpActiveNotes=new Map();
+        pkpRecordingSettings=[];
         pkpRecording="";
+
         pkpInitialSettings=
             getCurrentSettings();
 
@@ -1535,27 +1813,19 @@ select{
                 !startAudioRecorder()
             ){
                 recording=false;
+
                 recordState.classList.remove(
                     "recording"
                 );
+
                 recordButton.textContent=
                     "● RECORD";
+
                 info.textContent=
                     "Audio recording is unavailable.";
+
                 return;
             }
-        }
-
-        if(
-            recordingType==="pkp"
-        ){
-            pkpRecordingEvents.push({
-                type:"settings",
-                settings:{
-                    ...pkpInitialSettings
-                },
-                time:0
-            });
         }
 
         recordButton.textContent=
@@ -1575,20 +1845,300 @@ select{
                 :"Recording Audio...";
     }
 
-    function buildPKPRecording(){
-        const events=
-            pkpRecordingEvents
+    function isCloseTime(
+        a,
+        b,
+        tolerance=15
+    ){
+        return Math.abs(a-b)<=tolerance;
+    }
+
+    function buildPKPLayers(){
+        const notes=
+            pkpRecordedNotes
             .filter(
-                event=>
-                    event &&
-                    (
-                        event.type==="on"||
-                        event.type==="settings"
-                    )
+                note=>
+                    note &&
+                    note.key &&
+                    Number.isFinite(note.start) &&
+                    Number.isFinite(note.end)
+            )
+            .map(
+                note=>({
+                    ...note,
+                    start:
+                        Math.max(
+                            0,
+                            note.start
+                        ),
+                    end:
+                        Math.max(
+                            note.start,
+                            note.end
+                        ),
+                    duration:
+                        Math.max(
+                            1,
+                            note.duration||
+                            note.end-note.start
+                        )
+                })
             )
             .sort(
-                (a,b)=>a.time-b.time
+                (a,b)=>{
+                    if(a.start!==b.start)
+                        return a.start-b.start;
+
+                    return b.end-a.end;
+                }
             );
+
+        const startGroups=[];
+
+        for(
+            const note of notes
+        ){
+            let group=
+                startGroups[
+                    startGroups.length-1
+                ];
+
+            if(
+                !group ||
+                !isCloseTime(
+                    group.start,
+                    note.start
+                )
+            ){
+                group={
+                    start:note.start,
+                    notes:[]
+                };
+
+                startGroups.push(
+                    group
+                );
+            }
+
+            group.notes.push(
+                note
+            );
+        }
+
+        const layers=[];
+
+        for(
+            const group of startGroups
+        ){
+            let selected=null;
+
+            for(
+                const layer of layers
+            ){
+                if(
+                    layer.lastEnd<=
+                    group.start+15
+                ){
+                    selected=layer;
+                    break;
+                }
+            }
+
+            if(!selected){
+                selected={
+                    events:[],
+                    lastEnd:0
+                };
+
+                layers.push(
+                    selected
+                );
+            }
+
+            selected.events.push(
+                {
+                    type:"group",
+                    time:group.start,
+                    notes:
+                        group.notes.map(
+                            note=>({
+                                key:note.key,
+                                midi:note.midi,
+                                duration:
+                                    Math.max(
+                                        1,
+                                        Math.round(
+                                            note.duration
+                                        )
+                                    )
+                            })
+                        )
+                }
+            );
+
+            selected.lastEnd=
+                Math.max(
+                    selected.lastEnd,
+                    ...group.notes.map(
+                        note=>note.end
+                    )
+                );
+        }
+
+        for(
+            const layer of layers
+        ){
+            layer.events.sort(
+                (a,b)=>
+                    a.time-b.time
+            );
+        }
+
+        return layers;
+    }
+
+    function serializePKPNote(
+        note
+    ){
+        const key=
+            String(note.key||"")
+            .toLowerCase();
+
+        const duration=
+            Math.max(
+                1,
+                Math.round(
+                    Number(note.duration)||250
+                )
+            );
+
+        return (
+            key+
+            ":"+
+            duration
+        );
+    }
+
+    function serializePKPLayer(
+        layer
+    ){
+        const events=
+            layer.events
+            .map(
+                event=>({
+                    ...event
+                })
+            );
+
+        const settingsEvents=
+            pkpRecordingSettings.map(
+                event=>({
+                    type:"settings",
+                    time:
+                        Math.max(
+                            0,
+                            Number(event.time)||0
+                        ),
+                    settings:
+                        {
+                            ...event.settings
+                        }
+                })
+            );
+
+        const combined=[
+            ...events,
+            ...settingsEvents
+        ];
+
+        combined.sort(
+            (a,b)=>{
+                if(a.time!==b.time)
+                    return a.time-b.time;
+
+                if(
+                    a.type==="settings" &&
+                    b.type!=="settings"
+                ){
+                    return -1;
+                }
+
+                if(
+                    a.type!=="settings" &&
+                    b.type==="settings"
+                ){
+                    return 1;
+                }
+
+                return 0;
+            }
+        );
+
+        let result="";
+        let currentTime=0;
+
+        for(
+            const event of combined
+        ){
+            const eventTime=
+                Math.max(
+                    currentTime,
+                    Number(event.time)||0
+                );
+
+            const delta=
+                Math.round(
+                    eventTime-currentTime
+                );
+
+            if(delta>0){
+                result+=
+                    "("+delta+")";
+            }
+
+            if(
+                event.type==="settings"
+            ){
+                result+=
+                    JSON.stringify(
+                        event.settings
+                    );
+            }else if(
+                event.type==="group"
+            ){
+                const notes=
+                    event.notes
+                    .filter(
+                        note=>note.key
+                    );
+
+                if(notes.length){
+                    result+=
+                        "["+
+                        notes.map(
+                            serializePKPNote
+                        ).join(",")+
+                        "]";
+                }
+            }
+
+            currentTime=
+                eventTime;
+        }
+
+        return result;
+    }
+
+    function buildPKPRecording(){
+        const layers=
+            buildPKPLayers();
+
+        if(!layers.length){
+            return JSON.stringify(
+                pkpInitialSettings||
+                getCurrentSettings()
+            );
+        }
 
         let result=
             JSON.stringify(
@@ -1596,131 +2146,21 @@ select{
                 getCurrentSettings()
             );
 
-        if(!events.length)
-            return result;
+        for(
+            const layer of layers
+        ){
+            const content=
+                serializePKPLayer(
+                    layer
+                );
 
-        let lastTime=0;
-        let firstSettingsSkipped=false;
-        let i=0;
-
-        while(i<events.length){
-            const event=
-                events[i];
-
-            if(
-                event.type==="settings" &&
-                !firstSettingsSkipped &&
-                Math.abs(event.time)<=5
-            ){
-                firstSettingsSkipped=true;
-                i++;
+            if(!content)
                 continue;
-            }
 
-            if(
-                event.type==="on"
-            ){
-                const eventTime=
-                    Math.max(
-                        0,
-                        event.time
-                    );
-
-                const keys=[];
-                let j=i;
-
-                while(
-                    j<events.length &&
-                    events[j].type==="on" &&
-                    Math.abs(
-                        events[j].time-
-                        eventTime
-                    )<=12
-                ){
-                    if(
-                        events[j].key &&
-                        !keys.includes(
-                            events[j].key
-                        )
-                    ){
-                        keys.push(
-                            events[j].key
-                        );
-                    }
-
-                    j++;
-                }
-
-                if(keys.length){
-                    const nextTime=
-                        j<events.length
-                            ?Math.max(
-                                eventTime,
-                                events[j].time
-                            )
-                            :eventTime+250;
-
-                    const delay=
-                        Math.max(
-                            50,
-                            Math.round(
-                                nextTime-
-                                eventTime
-                            )
-                        );
-
-                    result+=
-                        "["+
-                        keys.join("")+
-                        "]("+
-                        delay+
-                        ")";
-
-                    lastTime=
-                        nextTime;
-
-                    i=j;
-                    continue;
-                }
-            }
-
-            if(
-                event.type==="settings"
-            ){
-                const delay=
-                    Math.max(
-                        0,
-                        Math.round(
-                            event.time-
-                            lastTime
-                        )
-                    );
-
-                if(delay>0){
-                    if(
-                        result.endsWith("}")||
-                        result.endsWith("]")
-                    ){
-                        result+="("+delay+")";
-                    }
-                }
-
-                result+=
-                    JSON.stringify(
-                        event.settings
-                    );
-
-                lastTime=
-                    Math.max(
-                        lastTime,
-                        event.time
-                    );
-
-                i++;
-                continue;
-            }
-
-            i++;
+            result+=
+                "<"+
+                content+
+                ">";
         }
 
         return result;
@@ -1787,6 +2227,17 @@ select{
             return;
         }
 
+        for(
+            const [midi] of pkpActiveNotes
+        ){
+            recordPKPNoteEnd(
+                midi,
+                now
+            );
+        }
+
+        pkpActiveNotes.clear();
+
         pkpRecording=
             buildPKPRecording();
 
@@ -1809,10 +2260,17 @@ select{
             return;
         }
 
+        const layerCount=
+            (
+                pkpRecording.match(/</g)||[]
+            ).length;
+
         recordState.textContent=
             "PKP recorded · "+
-            pkpRecording.length+
-            " chars";
+            pkpRecordedNotes.length+
+            " notes · "+
+            layerCount+
+            " layers";
 
         await savePKPRecordingToCHXD();
     }
@@ -1828,7 +2286,9 @@ select{
         stopPlayback();
 
         recordingEvents=[];
-        pkpRecordingEvents=[];
+        pkpRecordedNotes=[];
+        pkpActiveNotes.clear();
+        pkpRecordingSettings=[];
         pkpRecording="";
         pkpInitialSettings=null;
 
@@ -1912,8 +2372,7 @@ select{
                     key
                 );
             }else{
-                recordPKPNote(
-                    "on",
+                recordPKPNoteStart(
                     key,
                     midi
                 );
@@ -1934,18 +2393,34 @@ select{
 
         if(sustain){
             sustained.add(midi);
+
+            if(
+                recording &&
+                recordingType==="pkp"
+            ){
+                const note=
+                    pkpActiveNotes.get(
+                        midi
+                    );
+
+                if(note){
+                    note.released=true;
+                }
+            }
+
             return;
         }
 
-        stopVoice(voice);
+        stopVoice(
+            voice
+        );
 
         activeVoices.delete(
             midi
         );
 
-        setPressed(
-            midi,
-            false
+        updatePressedState(
+            midi
         );
 
         if(shouldRecord){
@@ -1958,10 +2433,9 @@ select{
                     key
                 );
             }else{
-                recordPKPNote(
-                    "off",
-                    key,
-                    midi
+                recordPKPNoteEnd(
+                    midi,
+                    getRecordingTime()
                 );
             }
         }
@@ -1976,21 +2450,19 @@ select{
                     midi
                 );
 
-            if(!voice)
-                continue;
+            if(voice){
+                stopVoice(
+                    voice
+                );
 
-            stopVoice(
-                voice
-            );
+                activeVoices.delete(
+                    midi
+                );
 
-            activeVoices.delete(
-                midi
-            );
-
-            setPressed(
-                midi,
-                false
-            );
+                updatePressedState(
+                    midi
+                );
+            }
 
             if(
                 recording &&
@@ -2001,6 +2473,16 @@ select{
                     midi,
                     time:getRecordingTime()
                 });
+            }
+
+            if(
+                recording &&
+                recordingType==="pkp"
+            ){
+                recordPKPNoteEnd(
+                    midi,
+                    getRecordingTime()
+                );
             }
         }
 
@@ -2045,9 +2527,19 @@ select{
             .querySelectorAll(".pressed")
             .forEach(
                 element=>{
-                    element.classList.remove(
-                        "pressed"
-                    );
+                    const midi=
+                        Number(
+                            element.dataset.midi
+                        );
+
+                    if(
+                        !Number.isFinite(midi)||
+                        !playbackMidiIsActive(midi)
+                    ){
+                        element.classList.remove(
+                            "pressed"
+                        );
+                    }
                 }
             );
     }
@@ -2420,6 +2912,35 @@ select{
 
         playbackTimers=[];
 
+        for(
+            const item of playbackVoices
+        ){
+            stopVoice(
+                item.voice
+            );
+        }
+
+        playbackVoices.clear();
+
+        for(
+            const element of
+            document.querySelectorAll(".pressed")
+        ){
+            const midi=
+                Number(
+                    element.dataset.midi
+                );
+
+            if(
+                !Number.isFinite(midi)||
+                !activeVoices.has(midi)
+            ){
+                element.classList.remove(
+                    "pressed"
+                );
+            }
+        }
+
         stopAllNotes();
     }
 
@@ -2462,7 +2983,6 @@ select{
                         "Audio playback failed.";
                 }
             );
-
         }catch(_){
             recordState.textContent=
                 "Audio playback failed.";
@@ -2488,83 +3008,299 @@ select{
         return null;
     }
 
-    function playPKP(notes){
-        if(
-            typeof notes!=="string"
+    function findMatching(
+        text,
+        start,
+        open,
+        close
+    ){
+        let depth=0;
+        let inString=false;
+        let escaped=false;
+
+        for(
+            let i=start;
+            i<text.length;
+            i++
         ){
-            return;
+            const char=text[i];
+
+            if(inString){
+                if(escaped){
+                    escaped=false;
+                }else if(char==="\\"){
+                    escaped=true;
+                }else if(char==='"'){
+                    inString=false;
+                }
+
+                continue;
+            }
+
+            if(char==='"'){
+                inString=true;
+                continue;
+            }
+
+            if(char===open){
+                depth++;
+            }else if(char===close){
+                depth--;
+
+                if(depth===0)
+                    return i;
+            }
         }
 
-        notes=notes.trim();
+        return -1;
+    }
 
-        if(!notes)
-            return;
+    function parseDurationText(
+        value
+    ){
+        const n=
+            Number(
+                String(value||"").trim()
+            );
 
-        stopPlayback();
+        if(!Number.isFinite(n))
+            return null;
 
-        const tokens=[];
+        return Math.max(
+            1,
+            n
+        );
+    }
+
+    function parseNoteGroup(
+        content,
+        delay,
+        state
+    ){
+        const defaultDuration=
+            delay>0
+                ?Math.max(
+                    1,
+                    delay
+                )
+                :250;
+
+        const legacyGroupSustain=
+            /^([a-z]+)\s*\|\s*(1|true|sustain)$/i
+            .exec(
+                content.trim()
+            );
+
+        let rawNotes=[];
+
+        if(legacyGroupSustain){
+            const keys=
+                legacyGroupSustain[1]
+                .toLowerCase()
+                .split("");
+
+            rawNotes=
+                keys.map(
+                    key=>({
+                        text:key,
+                        duration:
+                            defaultDuration,
+                        sustain:true
+                    })
+                );
+        }else{
+            rawNotes=
+                content
+                .split(",")
+                .map(
+                    piece=>piece.trim()
+                )
+                .filter(Boolean)
+                .map(
+                    piece=>{
+                        let text=piece;
+                        let noteSustain=false;
+
+                        const pipeIndex=
+                            text.indexOf("|");
+
+                        if(pipeIndex!==-1){
+                            const suffix=
+                                text
+                                .slice(
+                                    pipeIndex+1
+                                )
+                                .trim()
+                                .toLowerCase();
+
+                            noteSustain=
+                                suffix==="1"||
+                                suffix==="true"||
+                                suffix==="sustain";
+
+                            text=
+                                text.slice(
+                                    0,
+                                    pipeIndex
+                                ).trim();
+                        }
+
+                        const pieces=
+                            text.split(":");
+
+                        const keyPart=
+                            String(
+                                pieces[0]||""
+                            )
+                            .toLowerCase()
+                            .replace(
+                                /[^a-z]/g,
+                                ""
+                            );
+
+                        let noteDuration=
+                            defaultDuration;
+
+                        if(
+                            pieces.length>1
+                        ){
+                            const parsed=
+                                parseDurationText(
+                                    pieces[1]
+                                );
+
+                            if(parsed!==null){
+                                noteDuration=
+                                    parsed;
+                            }
+                        }
+
+                        if(
+                            pieces.length>2
+                        ){
+                            const suffix=
+                                pieces
+                                .slice(2)
+                                .join(":")
+                                .trim()
+                                .toLowerCase();
+
+                            noteSustain=
+                                noteSustain||
+                                suffix==="1"||
+                                suffix==="true"||
+                                suffix==="sustain";
+                        }
+
+                        if(!keyPart)
+                            return null;
+
+                        return {
+                            text:keyPart,
+                            duration:noteDuration,
+                            sustain:noteSustain
+                        };
+                    }
+                )
+                .filter(Boolean);
+        }
+
+        const notes=[];
+
+        for(
+            const item of rawNotes
+        ){
+            const text=
+                item.text;
+
+            if(
+                !text ||
+                typeof text!=="string"
+            ){
+                continue;
+            }
+
+            for(
+                const key of text
+            ){
+                if(
+                    !computerNotes.has(key)
+                ){
+                    continue;
+                }
+
+                const midi=
+                    BASE_MIDI+
+                    (
+                        Number(state.octave)-4
+                    )*12+
+                    computerNotes.get(key);
+
+                if(
+                    midi<0||
+                    midi>127
+                ){
+                    continue;
+                }
+
+                notes.push({
+                    key,
+                    midi,
+                    duration:
+                        Math.max(
+                            1,
+                            Number(item.duration)||
+                            defaultDuration
+                        ),
+                    sustain:
+                        !!item.sustain||
+                        !!state.sustain
+                });
+            }
+        }
+
+        return {
+            type:"group",
+            notes
+        };
+    }
+
+    function parsePKPSequence(
+        text,
+        initialSettings
+    ){
+        const events=[];
         let i=0;
+        let time=0;
+        let state=
+            normalizeSettings(
+                initialSettings
+            );
 
-        while(i<notes.length){
-            if(/\s/.test(notes[i])){
+        while(
+            i<text.length
+        ){
+            const char=text[i];
+
+            if(/\s/.test(char)){
                 i++;
                 continue;
             }
 
-            if(notes[i]==="{"){
-                let depth=0;
-                let end=-1;
-                let inString=false;
-                let escaped=false;
-
-                for(
-                    let j=i;
-                    j<notes.length;
-                    j++
-                ){
-                    const char=
-                        notes[j];
-
-                    if(inString){
-                        if(escaped){
-                            escaped=false;
-                        }else if(
-                            char==="\\"
-                        ){
-                            escaped=true;
-                        }else if(
-                            char==='"'
-                        ){
-                            inString=false;
-                        }
-
-                        continue;
-                    }
-
-                    if(char==='"'){
-                        inString=true;
-                        continue;
-                    }
-
-                    if(char==="{"){
-                        depth++;
-                    }else if(
-                        char==="}"
-                    ){
-                        depth--;
-
-                        if(depth===0){
-                            end=j;
-                            break;
-                        }
-                    }
-                }
+            if(char==="{"){
+                const end=
+                    findMatching(
+                        text,
+                        i,
+                        "{",
+                        "}"
+                    );
 
                 if(end===-1)
                     break;
 
                 const block=
-                    notes.slice(
+                    text.slice(
                         i,
                         end+1
                     );
@@ -2575,9 +3311,18 @@ select{
                     );
 
                 if(settings){
-                    tokens.push({
+                    state=
+                        normalizeSettings(
+                            settings,
+                            state
+                        );
+
+                    events.push({
                         type:"settings",
-                        settings
+                        time,
+                        settings:{
+                            ...state
+                        }
                     });
                 }
 
@@ -2585,69 +3330,47 @@ select{
                 continue;
             }
 
-            if(notes[i]==="["){
+            if(char==="["){
                 const end=
-                    notes.indexOf(
-                        "]",
-                        i+1
+                    findMatching(
+                        text,
+                        i,
+                        "[",
+                        "]"
                     );
 
                 if(end===-1)
                     break;
 
                 const content=
-                    notes.slice(
+                    text.slice(
                         i+1,
                         end
-                    );
-
-                const parts=
-                    content.split("|");
-
-                const keys=
-                    (parts[0]||"")
-                    .toLowerCase()
-                    .replace(
-                        /[^a-z]/g,
-                        ""
-                    );
-
-                const groupSustain=
-                    parts.length>1 &&
-                    (
-                        parts[1]
-                            .trim()==="1"||
-                        parts[1]
-                            .trim()
-                            .toLowerCase()==="true"||
-                        parts[1]
-                            .trim()
-                            .toLowerCase()==="sustain"
                     );
 
                 let delay=0;
                 let next=end+1;
 
-                if(notes[next]==="("){
+                if(text[next]==="("){
                     const close=
-                        notes.indexOf(
-                            ")",
-                            next+1
+                        findMatching(
+                            text,
+                            next,
+                            "(",
+                            ")"
                         );
 
                     if(close!==-1){
                         const value=
                             Number(
-                                notes.slice(
+                                text.slice(
                                     next+1,
                                     close
                                 )
                             );
 
                         if(
-                            Number.isFinite(
-                                value
-                            )
+                            Number.isFinite(value)
                         ){
                             delay=
                                 Math.max(
@@ -2656,149 +3379,490 @@ select{
                                 );
                         }
 
-                        next=close+1;
+                        next=
+                            close+1;
                     }
                 }
 
-                tokens.push({
-                    type:"group",
-                    keys,
-                    sustain:
-                        groupSustain,
-                    delay
-                });
+                const group=
+                    parseNoteGroup(
+                        content,
+                        delay,
+                        state
+                    );
 
+                group.time=time;
+
+                group.settings={
+                    ...state
+                };
+
+                events.push(
+                    group
+                );
+
+                time+=delay;
                 i=next;
+                continue;
+            }
+
+            if(char==="("){
+                const end=
+                    findMatching(
+                        text,
+                        i,
+                        "(",
+                        ")"
+                    );
+
+                if(end===-1)
+                    break;
+
+                const value=
+                    Number(
+                        text.slice(
+                            i+1,
+                            end
+                        )
+                    );
+
+                if(
+                    Number.isFinite(value)
+                ){
+                    time+=
+                        Math.max(
+                            0,
+                            value
+                        );
+                }
+
+                i=end+1;
+                continue;
+            }
+
+            if(char==="<"){
+                const end=
+                    text.indexOf(
+                        ">",
+                        i+1
+                    );
+
+                if(end===-1)
+                    break;
+
+                i=end+1;
                 continue;
             }
 
             i++;
         }
 
-        let time=0;
+        return {
+            events,
+            settings:{
+                ...state
+            }
+        };
+    }
 
-        for(
-            const token of tokens
+    function parsePKPDocument(
+        text
+    ){
+        let i=0;
+        let root="";
+        const layers=[];
+
+        while(
+            i<text.length
         ){
-            if(
-                token.type==="settings"
-            ){
-                const scheduledTime=
-                    time;
+            const char=text[i];
 
-                playbackTimers.push(
-                    setTimeout(
-                        ()=>{
-                            applySettings(
-                                token.settings,
-                                false
-                            );
-                        },
-                        scheduledTime
+            if(char==="<"){
+                const end=
+                    text.indexOf(
+                        ">",
+                        i+1
+                    );
+
+                if(end===-1)
+                    break;
+
+                layers.push(
+                    text.slice(
+                        i+1,
+                        end
                     )
                 );
+
+                i=end+1;
+                continue;
+            }
+
+            if(char==="{"){
+                const end=
+                    findMatching(
+                        text,
+                        i,
+                        "{",
+                        "}"
+                    );
+
+                if(end===-1)
+                    break;
+
+                root+=
+                    text.slice(
+                        i,
+                        end+1
+                    );
+
+                i=end+1;
+                continue;
+            }
+
+            if(char==="["){
+                const end=
+                    findMatching(
+                        text,
+                        i,
+                        "[",
+                        "]"
+                    );
+
+                if(end===-1)
+                    break;
+
+                root+=
+                    text.slice(
+                        i,
+                        end+1
+                    );
+
+                i=end+1;
+
+                if(text[i]==="("){
+                    const close=
+                        findMatching(
+                            text,
+                            i,
+                            "(",
+                            ")"
+                        );
+
+                    if(close!==-1){
+                        root+=
+                            text.slice(
+                                i,
+                                close+1
+                            );
+
+                        i=close+1;
+                    }
+                }
 
                 continue;
             }
 
-            const scheduledTime=
-                time;
+            if(char==="("){
+                const end=
+                    findMatching(
+                        text,
+                        i,
+                        "(",
+                        ")"
+                    );
 
-            playbackTimers.push(
-                setTimeout(
-                    ()=>{
-                        const played=[];
+                if(end===-1)
+                    break;
 
-                        for(
-                            const key of token.keys
-                        ){
-                            if(
-                                !computerNotes.has(
-                                    key
-                                )
-                            ){
-                                continue;
-                            }
+                root+=
+                    text.slice(
+                        i,
+                        end+1
+                    );
 
-                            const midi=
-                                currentMidi(
-                                    computerNotes.get(
-                                        key
-                                    )
-                                );
+                i=end+1;
+                continue;
+            }
 
-                            startNote(
-                                midi,
-                                false,
-                                key
-                            );
+            root+=char;
+            i++;
+        }
 
-                            played.push(
-                                midi
-                            );
-                        }
+        let baseSettings={
+            instrument:"piano",
+            waveform:"triangle",
+            volume:.75,
+            sustain:false,
+            octave:4
+        };
 
-                        if(
-                            !token.sustain
-                        ){
-                            playbackTimers.push(
-                                setTimeout(
-                                    ()=>{
-                                        for(
-                                            const midi
-                                            of played
-                                        ){
-                                            const voice=
-                                                activeVoices.get(
-                                                    midi
-                                                );
+        let scan=0;
+        let foundNonSetting=false;
 
-                                            if(!voice)
-                                                continue;
+        while(
+            scan<root.length
+        ){
+            while(
+                scan<root.length &&
+                /\s/.test(root[scan])
+            ){
+                scan++;
+            }
 
-                                            stopVoice(
-                                                voice
-                                            );
+            if(
+                root[scan]!=="{"
+            ){
+                foundNonSetting=true;
+                break;
+            }
 
-                                            activeVoices.delete(
-                                                midi
-                                            );
+            const end=
+                findMatching(
+                    root,
+                    scan,
+                    "{",
+                    "}"
+                );
 
-                                            setPressed(
-                                                midi,
-                                                false
-                                            );
-                                        }
-                                    },
-                                    Math.max(
-                                        50,
-                                        token.delay
-                                    )
-                                )
-                            );
-                        }
-                    },
-                    scheduledTime
-                )
+            if(end===-1)
+                break;
+
+            const settings=
+                parsePKPSettings(
+                    root.slice(
+                        scan,
+                        end+1
+                    )
+                );
+
+            if(settings){
+                baseSettings=
+                    normalizeSettings(
+                        settings,
+                        baseSettings
+                    );
+            }
+
+            scan=end+1;
+        }
+
+        const parsedLayers=[];
+
+        for(
+            const layerText of layers
+        ){
+            const parsed=
+                parsePKPSequence(
+                    layerText,
+                    baseSettings
+                );
+
+            if(
+                parsed.events.length
+            ){
+                parsedLayers.push(
+                    parsed.events
+                );
+            }
+        }
+
+        const implicit=
+            parsePKPSequence(
+                root,
+                {
+                    ...{
+                        instrument:"piano",
+                        waveform:"triangle",
+                        volume:.75,
+                        sustain:false,
+                        octave:4
+                    }
+                }
             );
 
-            time+=token.delay;
+        if(
+            implicit.events.length
+        ){
+            parsedLayers.unshift(
+                implicit.events
+            );
+        }
+
+        if(!parsedLayers.length){
+            parsedLayers.push([]);
+        }
+
+        return {
+            layers:parsedLayers,
+            baseSettings
+        };
+    }
+
+    function playPKP(
+        text
+    ){
+        if(
+            typeof text!=="string"
+        ){
+            return;
+        }
+
+        text=text.trim();
+
+        if(!text)
+            return;
+
+        stopPlayback();
+
+        const parsed=
+            parsePKPDocument(
+                text
+            );
+
+        let longestTime=0;
+
+        for(
+            const events of parsed.layers
+        ){
+            for(
+                const event of events
+            ){
+                if(
+                    Number.isFinite(
+                        event.time
+                    )
+                ){
+                    let end=
+                        event.time;
+
+                    if(
+                        event.type==="group"
+                    ){
+                        for(
+                            const note of
+                            event.notes
+                        ){
+                            end=
+                                Math.max(
+                                    end,
+                                    event.time+
+                                    note.duration
+                                );
+                        }
+                    }
+
+                    longestTime=
+                        Math.max(
+                            longestTime,
+                            end
+                        );
+                }
+            }
+        }
+
+        for(
+            const events of parsed.layers
+        ){
+            for(
+                const event of events
+            ){
+                const scheduledTime=
+                    Math.max(
+                        0,
+                        Number(event.time)||0
+                    );
+
+                if(
+                    event.type==="settings"
+                ){
+                    playbackTimers.push(
+                        setTimeout(
+                            ()=>{
+                                applySettings(
+                                    event.settings,
+                                    false,
+                                    true
+                                );
+                            },
+                            scheduledTime
+                        )
+                    );
+
+                    continue;
+                }
+
+                if(
+                    event.type==="group"
+                ){
+                    playbackTimers.push(
+                        setTimeout(
+                            ()=>{
+                                for(
+                                    const note of
+                                    event.notes
+                                ){
+                                    startPlaybackNote(
+                                        note,
+                                        event.settings||
+                                        parsed.baseSettings
+                                    );
+                                }
+                            },
+                            scheduledTime
+                        )
+                    );
+                }
+            }
         }
 
         playbackTimers.push(
             setTimeout(
                 ()=>{
-                    stopAllNotes();
+                    for(
+                        const item of playbackVoices
+                    ){
+                        stopVoice(
+                            item.voice
+                        );
+                    }
+
+                    playbackVoices.clear();
+
+                    for(
+                        const element of
+                        document.querySelectorAll(
+                            ".pressed"
+                        )
+                    ){
+                        const midi=
+                            Number(
+                                element.dataset.midi
+                            );
+
+                        if(
+                            !activeVoices.has(midi)
+                        ){
+                            element.classList.remove(
+                                "pressed"
+                            );
+                        }
+                    }
 
                     recordState.textContent=
                         "PKP playback complete.";
                 },
                 Math.max(
                     100,
-                    time+500
+                    longestTime+500
                 )
             )
         );
+
+        recordState.textContent=
+            "Playing PKP · "+
+            parsed.layers.length+
+            " layers";
     }
 
     function playRecording(){
@@ -2820,11 +3884,10 @@ select{
                 pkpRecording
             );
 
-            recordState.textContent=
-                "Playing PKP...";
-        }else{
-            playAudioRecording();
+            return;
         }
+
+        playAudioRecording();
     }
 
     async function save(){
@@ -2871,9 +3934,7 @@ select{
                 )
                 .filter(
                     p=>
-                        /\.pkp$/i.test(
-                            p
-                        )
+                        /\.pkp$/i.test(p)
                 )
                 .sort();
 
@@ -2925,7 +3986,6 @@ select{
                 path,
                 value
             };
-
         }catch(error){
             info.textContent=
                 "Could not load PKP.";
@@ -3035,7 +4095,9 @@ select{
             recordingType="pkp";
             recordTypeControl.value="pkp";
 
-            pkpRecordingEvents=[];
+            pkpRecordedNotes=[];
+            pkpActiveNotes.clear();
+            pkpRecordingSettings=[];
             pkpInitialSettings=null;
             recordingEvents=[];
 
@@ -3049,8 +4111,7 @@ select{
             info.textContent=
                 "Imported "+
                 filename;
-
-        }catch(error){
+        }catch(_){
             info.textContent=
                 "Could not import PKP.";
         }
@@ -3154,42 +4215,42 @@ select{
                 event.data;
 
             if(
-                !data||
-                typeof data!=="object"
+                data &&
+                typeof data==="object"
             ){
-                return;
-            }
+                if(
+                    data.type==="LH_FILE_SELECTED" &&
+                    fileManagerPickerOpen
+                ){
+                    fileManagerPickerOpen=false;
 
-            if(
-                data.type==="LH_FILE_SELECTED" &&
-                fileManagerPickerOpen
-            ){
-                fileManagerPickerOpen=false;
+                    const path=
+                        data.path||
+                        (
+                            Array.isArray(
+                                data.paths
+                            )
+                                ?data.paths[0]
+                                :""
+                        );
 
-                const path=
-                    data.path||
-                    (
-                        Array.isArray(data.paths)
-                            ?data.paths[0]
-                            :""
+                    importPKPFromCHXD(
+                        path
                     );
 
-                importPKPFromCHXD(
-                    path
-                );
+                    return;
+                }
 
-                return;
-            }
+                if(
+                    data.type==="pkp" &&
+                    typeof data.value==="string"
+                ){
+                    playPKP(
+                        data.value
+                    );
 
-            if(
-                data.type==="pkp" &&
-                typeof data.value==="string"
-            ){
-                playPKP(
-                    data.value
-                );
-
-                return;
+                    return;
+                }
             }
 
             if(
@@ -3387,6 +4448,34 @@ select{
 
         getAudio:function(){
             return audioRecordingData;
+        },
+
+        getPKPData:function(){
+            return {
+                initialSettings:
+                    pkpInitialSettings
+                        ?{
+                            ...pkpInitialSettings
+                        }
+                        :null,
+                settings:
+                    pkpRecordingSettings.map(
+                        event=>({
+                            time:event.time,
+                            settings:{
+                                ...event.settings
+                            }
+                        })
+                    ),
+                notes:
+                    pkpRecordedNotes.map(
+                        note=>({
+                            ...note
+                        })
+                    ),
+                pkp:
+                    pkpRecording
+            };
         },
 
         playPKP:function(value){
