@@ -1,51 +1,280 @@
 (function(){
     "use strict";
+
+    /*
+     * ============================================================
+     * BUILT-IN APPLICATION REGISTRY
+     * ============================================================
+     */
+
     const REGISTRY={
-        apps:{title:"APPS",src:"app/apps.html",w:380,h:320},
-        appinstaller:{title:"APP INSTALLER",src:"app/AppInstaller.html",w:500,h:500},
-        "file manager":{title:"FILE MANAGER",src:"app/filemanager.html",w:520,h:390},
-        filemanager:{title:"FILE MANAGER",src:"app/filemanager.html",w:520,h:390},
-        clock:{title:"CLOCK",src:"app/clock.html",w:340,h:340},
-        calculator:{title:"CALCULATOR",src:"app/calculator.html",w:300,h:370},
-        notepad:{title:"NOTEPAD",src:"app/notepad.html",w:540,h:430},
-        paint:{title:"PAINT",src:"app/paint.html",w:560,h:480},
-        terminaljs:{title:"Terminal JS",src:"app/TerminalJS.html",w:560,h:480},
-        recorder:{title:"RECORDER",src:"app/recorder.html",w:620,h:560},
-        camera:{title:"CAMERA",src:"app/camera.html",w:680,h:620},
-        tictactoe:{title:"TIC TAC TOE",src:"app/tictactoe.html",w:360,h:340},
-        snake:{title:"SNAKE",src:"app/snake.html",w:320,h:380},
-        2048:{title:"2048",src:"app/2048.html",w:430,h:520},
-        minesweeper:{title:"MINESWEEPER",src:"app/minesweeper.html",w:430,h:560},
-        sudoku:{title:"SUDOKU",src:"app/sudoku.html",w:430,h:600},
-        sos:{title:"SOS",src:"app/sos.html",w:430,h:600},
-        tetris:{title:"TETRIS",src:"app/tetris.html",w:400,h:620},
-        wordle:{title:"WORDLE",src:"app/wordle.html",w:430,h:650},
-        documentviewer:{title:"DOCUMENT VIEWER",src:"app/DocumentViewer.html",w:480,h:380},
-        imageviewer:{title:"IMAGE VIEWER",src:"app/imageviewer.html",w:480,h:380},
-        videoplayer:{title:"VIDEO PLAYER",src:"app/videoplayer.html",w:480,h:360},
-        audioplayer:{title:"AUDIO PLAYER",src:"app/AudioPlayer.html",w:420,h:260},
-        gamefinder:{title:"GAME FINDER",src:"https://funhtml5games.com",w:360,h:340},
-        doom:{title:"Doom",src:"https://js-dos.com/games/doom.exe.html",w:360,h:340},
-        pacman:{title:"Pacman",src:"https://funhtml5games.com?embed=pacman",w:460,h:480},
-        gba:{title:"GBA",src:"app/GBA.html",w:360,h:340},
-        browser:{title:"BROWSER",src:"app/browser.html",w:360,h:340},
-        imageeditor:{title:"imageeditor",src:"app/imageEditor.html",w:480,h:380},
-        messenger:{title:"MESSENGER",src:"app/messenger.html",w:430,h:360},
-        map:{title:"MAPS",src:"app/map.html",w:820,h:600},
-        maps:{title:"MAPS",src:"app/map.html",w:820,h:600},
-        settings:{title:"SETTINGS",src:"app/settings.html",w:420,h:460}
+        apps:{
+            title:"APPS",
+            src:"app/apps.html",
+            w:380,
+            h:320
+        },
+
+        appinstaller:{
+            title:"APP INSTALLER",
+            src:"app/AppInstaller.html",
+            w:500,
+            h:500
+        },
+
+        "file manager":{
+            title:"FILE MANAGER",
+            src:"app/filemanager.html",
+            w:520,
+            h:390
+        },
+
+        filemanager:{
+            title:"FILE MANAGER",
+            src:"app/filemanager.html",
+            w:520,
+            h:390
+        },
+
+        clock:{
+            title:"CLOCK",
+            src:"app/clock.html",
+            w:340,
+            h:340
+        },
+
+        calculator:{
+            title:"CALCULATOR",
+            src:"app/calculator.html",
+            w:300,
+            h:370
+        },
+
+        notepad:{
+            title:"NOTEPAD",
+            src:"app/notepad.html",
+            w:540,
+            h:430
+        },
+
+        paint:{
+            title:"PAINT",
+            src:"app/paint.html",
+            w:560,
+            h:480
+        },
+
+        terminaljs:{
+            title:"Terminal JS",
+            src:"app/TerminalJS.html",
+            w:560,
+            h:480
+        },
+
+        recorder:{
+            title:"RECORDER",
+            src:"app/recorder.html",
+            w:620,
+            h:560
+        },
+
+        camera:{
+            title:"CAMERA",
+            src:"app/camera.html",
+            w:680,
+            h:620
+        },
+
+        tictactoe:{
+            title:"TIC TAC TOE",
+            src:"app/tictactoe.html",
+            w:360,
+            h:340
+        },
+
+        snake:{
+            title:"SNAKE",
+            src:"app/snake.html",
+            w:320,
+            h:380
+        },
+
+        2048:{
+            title:"2048",
+            src:"app/2048.html",
+            w:430,
+            h:520
+        },
+
+        minesweeper:{
+            title:"MINESWEEPER",
+            src:"app/minesweeper.html",
+            w:430,
+            h:560
+        },
+
+        sudoku:{
+            title:"SUDOKU",
+            src:"app/sudoku.html",
+            w:430,
+            h:600
+        },
+
+        sos:{
+            title:"SOS",
+            src:"app/sos.html",
+            w:430,
+            h:600
+        },
+
+        tetris:{
+            title:"TETRIS",
+            src:"app/tetris.html",
+            w:400,
+            h:620
+        },
+
+        wordle:{
+            title:"WORDLE",
+            src:"app/wordle.html",
+            w:430,
+            h:650
+        },
+
+        documentviewer:{
+            title:"DOCUMENT VIEWER",
+            src:"app/DocumentViewer.html",
+            w:480,
+            h:380
+        },
+
+        imageviewer:{
+            title:"IMAGE VIEWER",
+            src:"app/imageviewer.html",
+            w:480,
+            h:380
+        },
+
+        videoplayer:{
+            title:"VIDEO PLAYER",
+            src:"app/videoplayer.html",
+            w:480,
+            h:360
+        },
+
+        audioplayer:{
+            title:"AUDIO PLAYER",
+            src:"app/AudioPlayer.html",
+            w:420,
+            h:260
+        },
+
+        gamefinder:{
+            title:"GAME FINDER",
+            src:"https://funhtml5games.com",
+            w:360,
+            h:340
+        },
+
+        doom:{
+            title:"Doom",
+            src:"https://js-dos.com/games/doom.exe.html",
+            w:360,
+            h:340
+        },
+
+        pacman:{
+            title:"Pacman",
+            src:"https://funhtml5games.com?embed=pacman",
+            w:460,
+            h:480
+        },
+
+        gba:{
+            title:"GBA",
+            src:"app/GBA.html",
+            w:360,
+            h:340
+        },
+
+        browser:{
+            title:"BROWSER",
+            src:"app/browser.html",
+            w:360,
+            h:340
+        },
+
+        imageeditor:{
+            title:"imageeditor",
+            src:"app/imageEditor.html",
+            w:480,
+            h:380
+        },
+
+        messenger:{
+            title:"MESSENGER",
+            src:"app/messenger.html",
+            w:430,
+            h:360
+        },
+
+        map:{
+            title:"MAPS",
+            src:"app/map.html",
+            w:820,
+            h:600
+        },
+
+        maps:{
+            title:"MAPS",
+            src:"app/map.html",
+            w:820,
+            h:600
+        },
+
+        settings:{
+            title:"SETTINGS",
+            src:"app/settings.html",
+            w:420,
+            h:460
+        }
     };
 
-    /* All App Installer data lives in this directory. */
+
+    /*
+     * ============================================================
+     * APP INSTALLER STORAGE
+     * ============================================================
+     */
+
     const CUSTOM_APP_DIR=
         "chxd:/local/Custom Installed Application";
 
     const CIA_PATH=
-        CUSTOM_APP_DIR+"/CIA.json";
+        CUSTOM_APP_DIR+
+        "/CIA.json";
 
-    /* Every srcDoc application's actual HTML source is kept here. */
     const SRC_DOC_DIR=
-        CUSTOM_APP_DIR+"/SrcDocs";
+        CUSTOM_APP_DIR+
+        "/SrcDocs";
+
+
+    /*
+     * In-memory cache.
+     *
+     * getRegisteredAppsSync() can use this immediately without
+     * pretending that localStorage is the filesystem.
+     */
+    let installedAppsCache=[];
+
+    let installedAppsCacheLoaded=false;
+
+
+    /*
+     * ============================================================
+     * HELPERS
+     * ============================================================
+     */
 
     function normalizeName(name){
         return String(name||"")
@@ -61,37 +290,123 @@
     function safeFileName(value){
         const s=String(value||"")
             .trim()
-            .replace(/[^a-zA-Z0-9._-]+/g,"_");
+            .replace(
+                /[^a-zA-Z0-9._-]+/g,
+                "_"
+            );
 
         return s||"app";
+    }
+
+    function appSourceType(app){
+        if(
+            app &&
+            app.srcDoc!=null &&
+            String(app.srcDoc).trim()
+        ){
+            return "srcDoc";
+        }
+
+        return "src";
+    }
+
+    function isValidInstalledApp(app){
+        if(
+            !app ||
+            typeof app!=="object"
+        ){
+            return false;
+        }
+
+        const pkg=
+            normalizePackage(app.pkg);
+
+        if(!pkg)
+            return false;
+
+        const sourceType=
+            appSourceType(app);
+
+        if(sourceType==="srcDoc"){
+            return !!String(
+                app.srcDoc||""
+            ).trim();
+        }
+
+        return !!String(
+            app.src||""
+        ).trim();
     }
 
     function uniqueByIdentity(list){
         const seen=new Set();
         const out=[];
 
-        for(const item of Array.isArray(list)?list:[]){
-            if(!item||typeof item!=="object")
+        for(
+            const item of
+            Array.isArray(list)
+                ?list
+                :[]
+        ){
+            if(
+                !item ||
+                typeof item!=="object"
+            ){
                 continue;
+            }
 
-            const identity=
+            let identity;
+
+            if(
                 item.package||
                 item.pkg
-                    ? (
-                        "installed:"+
-                        String(item.package||item.pkg).trim().toLowerCase()
+            ){
+                identity=
+                    "installed:"+
+                    String(
+                        item.package||
+                        item.pkg
                     )
-                    : (
-                        "builtin:"+
-                        String(item.sourceType||"src").toLowerCase()+
-                        ":"+
-                        String(item.src||item.srcDoc||"").trim().toLowerCase()+
-                        ":"+
-                        String(item.title||item.name||"").trim().toLowerCase()
-                    );
+                    .trim()
+                    .toLowerCase();
+            }else{
+                const sourceType=
+                    String(
+                        item.sourceType||
+                        "src"
+                    ).toLowerCase();
 
-            if(!identity||seen.has(identity))
+                const source=
+                    String(
+                        sourceType==="srcDoc"
+                            ?item.srcDoc
+                            :item.src
+                    ).trim();
+
+                const title=
+                    String(
+                        item.title||
+                        item.name||
+                        ""
+                    )
+                    .trim()
+                    .toLowerCase();
+
+                identity=
+                    "builtin:"+
+                    sourceType+
+                    ":"+
+                    source.toLowerCase()+
+                    ":"+
+                    title;
+            }
+
+            if(
+                !identity||
+                seen.has(identity)
+            ){
                 continue;
+            }
 
             seen.add(identity);
             out.push(item);
@@ -100,255 +415,369 @@
         return out;
     }
 
+
+    /*
+     * ============================================================
+     * FILESYSTEM
+     * ============================================================
+     */
+
     async function getInstalledApps(){
         try{
             if(
-                !window.FS||
+                !window.FS ||
                 typeof FS.read!=="function"
             ){
                 return [];
             }
 
-            const result=await FS.read(CIA_PATH);
+            const result=
+                await FS.read(CIA_PATH);
 
             if(
-                !result||
-                !result.ok||
+                !result ||
+                !result.ok ||
                 !result.content
             ){
+                installedAppsCache=[];
+                installedAppsCacheLoaded=true;
                 return [];
             }
 
-            const data=JSON.parse(result.content);
+            const data=
+                JSON.parse(result.content);
 
-            return Array.isArray(data)?data:[];
+            installedAppsCache=
+                Array.isArray(data)
+                    ?data
+                    :[];
+
+            installedAppsCacheLoaded=true;
+
+            return installedAppsCache;
         }catch(e){
             console.warn(
                 "[Apps] Could not read CIA.json:",
                 e
             );
+
+            installedAppsCache=[];
+            installedAppsCacheLoaded=true;
+
             return [];
         }
     }
 
     /*
-     * This synchronous view is intentionally based on localStorage,
-     * because the current filesystem stores the App Installer database
-     * in chxd:/local/. It lets tools.js rebuild its AI schema immediately
-     * whenever the provider asks for Tools.definitions.
+     * Synchronous accessor.
+     *
+     * This does NOT try to fake the CHXD filesystem with localStorage.
+     * It returns the latest cache populated by getInstalledApps().
      */
     function getInstalledAppsSync(){
-        try{
-            const key="LH::"+CIA_PATH;
-            const raw=localStorage.getItem(key);
-
-            if(!raw)
-                return [];
-
-            const data=JSON.parse(raw);
-            return Array.isArray(data)?data:[];
-        }catch(e){
-            return [];
-        }
+        return Array.isArray(
+            installedAppsCache
+        )
+            ?installedAppsCache.slice()
+            :[];
     }
 
-    function getRegisteredAppsSync(){
-        const apps=[];
+
+    /*
+     * ============================================================
+     * REGISTERED APP LIST
+     * ============================================================
+     */
+
+    function buildRegisteredBuiltins(){
+        const result=[];
         const seen=new Set();
 
-        for(const [key,def] of Object.entries(REGISTRY)){
-            if(!def||typeof def!=="object")
+        for(
+            const [key,def]
+            of Object.entries(REGISTRY)
+        ){
+            if(
+                !def ||
+                typeof def!=="object"
+            ){
                 continue;
+            }
 
-            const title=String(
-                def.title||key||""
-            ).trim();
+            const title=
+                String(
+                    def.title||
+                    key||
+                    ""
+                ).trim();
 
             if(!title)
                 continue;
 
-            const sourceKey=(def.srcDoc!=null)
-                ?"srcDoc"
-                :"src";
+            const sourceType=
+                def.srcDoc!=null
+                    ?"srcDoc"
+                    :"src";
 
-            const source=String(
-                def[sourceKey]||""
-            ).trim();
+            const source=
+                String(
+                    def[sourceType]||
+                    ""
+                ).trim();
 
-            /* Aliases such as map/maps are one registered app. */
-            const identity=(sourceKey+":"+source+":"+title)
-                .toLowerCase();
+            const identity=
+                (
+                    sourceType+
+                    ":"+
+                    source+
+                    ":"+
+                    title
+                ).toLowerCase();
 
+            /*
+             * map/maps, file manager/filemanager,
+             * etc. share one actual app definition.
+             */
             if(seen.has(identity))
                 continue;
 
             seen.add(identity);
 
-            apps.push({
+            result.push({
                 name:title,
                 title,
                 registry_key:key,
-                source:
-                    "builtin",
-                sourceType:sourceKey,
+
+                source:"builtin",
+
+                sourceType,
+
                 src:
-                    sourceKey==="src"
+                    sourceType==="src"
                         ?source
                         :undefined,
+
                 srcDoc:
-                    sourceKey==="srcDoc"
+                    sourceType==="srcDoc"
                         ?source
                         :undefined,
-                w:Number(def.w)||500,
-                h:Number(def.h)||500,
+
+                w:
+                    Number(def.w)||500,
+
+                h:
+                    Number(def.h)||500,
+
                 aliases:[key]
             });
         }
 
-        const installed=getInstalledAppsSync();
+        return result;
+    }
 
-        for(const app of installed){
-            if(!app||typeof app!=="object")
+    function buildRegisteredInstalled(){
+        const result=[];
+
+        for(
+            const app
+            of installedAppsCache
+        ){
+            if(
+                !isValidInstalledApp(app)
+            ){
                 continue;
+            }
 
-            const pkg=normalizePackage(app.pkg);
-            const title=String(
-                app.name||pkg||""
-            ).trim();
+            const pkg=
+                normalizePackage(app.pkg);
+
+            const title=
+                String(
+                    app.name||
+                    pkg||
+                    ""
+                ).trim();
 
             if(!pkg||!title)
                 continue;
 
-            const sourceType=app.srcDoc!=null
-                ?"srcDoc"
-                :"src";
+            const sourceType=
+                appSourceType(app);
 
-            apps.push({
+            result.push({
                 name:title,
                 title,
+
                 package:pkg,
                 pkg,
+
                 source:"installed",
+
                 sourceType,
+
                 src:
                     sourceType==="src"
                         ?String(app.src||"")
                         :undefined,
+
                 srcDoc:
                     sourceType==="srcDoc"
                         ?String(app.srcDoc||"")
                         :undefined,
+
                 appIcon:
-                    String(app.appIcon||"📦"),
-                w:Number(app.w||app.width)||500,
-                h:Number(app.h||app.height)||500,
+                    String(
+                        app.appIcon||
+                        "📦"
+                    ),
+
+                w:
+                    Number(
+                        app.w||
+                        app.width
+                    )||500,
+
+                h:
+                    Number(
+                        app.h||
+                        app.height
+                    )||500,
+
                 aliases:[pkg]
             });
         }
 
-        return uniqueByIdentity(apps);
+        return result;
+    }
+
+    function getRegisteredAppsSync(){
+        return uniqueByIdentity(
+            [
+                ...buildRegisteredBuiltins(),
+                ...buildRegisteredInstalled()
+            ]
+        );
     }
 
     async function getRegisteredApps(){
-        const builtins=[];
+        await getInstalledApps();
 
-        const seen=new Set();
+        return getRegisteredAppsSync();
+    }
 
-        for(const [key,def] of Object.entries(REGISTRY)){
-            if(!def||typeof def!=="object")
+
+    /*
+     * ============================================================
+     * FIND APPLICATION
+     * ============================================================
+     */
+
+    function findBuiltin(name){
+        const key=
+            normalizeName(name);
+
+        for(
+            const [registryKey,def]
+            of Object.entries(REGISTRY)
+        ){
+            if(!def)
                 continue;
 
-            const title=String(def.title||key||"").trim();
-            if(!title)
-                continue;
+            if(
+                normalizeName(registryKey)===
+                key
+            ){
+                return {
+                    key:registryKey,
+                    def
+                };
+            }
 
-            const sourceType=def.srcDoc!=null
-                ?"srcDoc"
-                :"src";
-
-            const source=String(def[sourceType]||"").trim();
-            const identity=(sourceType+":"+source+":"+title).toLowerCase();
-
-            if(seen.has(identity))
-                continue;
-
-            seen.add(identity);
-
-            builtins.push({
-                name:title,
-                title,
-                registry_key:key,
-                source:"builtin",
-                sourceType,
-                src:sourceType==="src"?source:undefined,
-                srcDoc:sourceType==="srcDoc"?source:undefined,
-                w:Number(def.w)||500,
-                h:Number(def.h)||500,
-                aliases:[key]
-            });
+            if(
+                normalizeName(def.title)===
+                key
+            ){
+                return {
+                    key:registryKey,
+                    def
+                };
+            }
         }
 
-        const installed=await getInstalledApps();
-
-        for(const app of installed){
-            if(!app||typeof app!=="object")
-                continue;
-
-            const pkg=normalizePackage(app.pkg);
-            const title=String(app.name||pkg||"").trim();
-
-            if(!pkg||!title)
-                continue;
-
-            const sourceType=app.srcDoc!=null
-                ?"srcDoc"
-                :"src";
-
-            builtins.push({
-                name:title,
-                title,
-                package:pkg,
-                pkg,
-                source:"installed",
-                sourceType,
-                src:sourceType==="src"?String(app.src||""):undefined,
-                srcDoc:sourceType==="srcDoc"?String(app.srcDoc||""):undefined,
-                appIcon:String(app.appIcon||"📦"),
-                w:Number(app.w||app.width)||500,
-                h:Number(app.h||app.height)||500,
-                aliases:[pkg]
-            });
-        }
-
-        return uniqueByIdentity(builtins);
+        return null;
     }
 
     function getApp(name){
-        const key=normalizeName(name);
-        const all=getRegisteredAppsSync();
+        const key=
+            normalizeName(name);
 
-        return all.find(app=>{
-            return normalizeName(app.name)===key||
-                normalizeName(app.title)===key||
-                normalizeName(app.package)===key||
-                normalizeName(app.pkg)===key||
-                normalizeName(app.registry_key)===key||
-                (Array.isArray(app.aliases)&&app.aliases.some(x=>normalizeName(x)===key));
-        })||null;
+        const all=
+            getRegisteredAppsSync();
+
+        return (
+            all.find(app=>{
+                if(
+                    normalizeName(app.name)===key
+                )
+                    return true;
+
+                if(
+                    normalizeName(app.title)===key
+                )
+                    return true;
+
+                if(
+                    normalizeName(app.package)===key
+                )
+                    return true;
+
+                if(
+                    normalizeName(app.pkg)===key
+                )
+                    return true;
+
+                if(
+                    normalizeName(app.registry_key)===key
+                )
+                    return true;
+
+                if(
+                    Array.isArray(app.aliases)
+                ){
+                    return app.aliases.some(
+                        alias=>
+                            normalizeName(alias)===
+                            key
+                    );
+                }
+
+                return false;
+            })
+        )||null;
     }
 
-    async function buildSrcDocURL(code){
-        const html=String(code==null?"":code);
 
-        /*
-         * Blob URLs inherit the creator's origin. This means the installed
-         * srcDoc application remains able to communicate with Little Hollow,
-         * unlike a data: URL which receives an opaque origin.
-         */
-        const blob=new Blob(
-            [html],
-            {type:"text/html"}
-        );
+    /*
+     * ============================================================
+     * SRC DOC
+     * ============================================================
+     */
+
+    function createSrcDocBlobURL(code){
+        const html=
+            String(
+                code==null
+                    ?""
+                    :code
+            );
+
+        const blob=
+            new Blob(
+                [html],
+                {
+                    type:"text/html"
+                }
+            );
 
         return URL.createObjectURL(blob);
     }
@@ -360,127 +789,362 @@
         height,
         standaloneKey
     ){
-        const r=await FS.read(sourcePath);
+        if(
+            !window.FS ||
+            typeof FS.read!=="function"
+        ){
+            return {
+                ok:false,
+                error:
+                    "Filesystem is unavailable."
+            };
+        }
 
-        if(!r||!r.ok){
+        let result;
+
+        try{
+            result=
+                await FS.read(sourcePath);
+        }catch(e){
             return {
                 ok:false,
                 error:
                     "Could not read srcDoc application source: "+
-                    (r&&r.error?r.error:sourcePath)
+                    (
+                        e &&
+                        e.message
+                            ?e.message
+                            :String(e)
+                    )
             };
         }
 
-        const blobURL=await buildSrcDocURL(r.content);
+        if(
+            !result ||
+            !result.ok
+        ){
+            return {
+                ok:false,
+                error:
+                    "Could not read srcDoc application source: "+
+                    (
+                        result &&
+                        result.error
+                            ?result.error
+                            :sourcePath
+                    )
+            };
+        }
 
-        const win=WM.openWindow({
-            title:title||"APPLICATION",
-            iframeSrc:blobURL,
-            width:(Number(width)||500)+"px",
-            height:(Number(height)||500)+"px",
-            noPad:true,
-            standaloneKey:standaloneKey||null
-        });
+        const blobURL=
+            createSrcDocBlobURL(
+                result.content
+            );
 
-        /* Revoke only after the app window is closed. */
-        const previousClose=win&&win.onClose;
+        let win;
 
+        try{
+            win=
+                WM.openWindow({
+                    title:
+                        title||
+                        "APPLICATION",
+
+                    iframeSrc:
+                        blobURL,
+
+                    width:
+                        (
+                            Number(width)||
+                            500
+                        )+"px",
+
+                    height:
+                        (
+                            Number(height)||
+                            500
+                        )+"px",
+
+                    noPad:true,
+
+                    standaloneKey:
+                        standaloneKey||
+                        null
+                });
+        }catch(e){
+            try{
+                URL.revokeObjectURL(
+                    blobURL
+                );
+            }catch(_){}
+
+            return {
+                ok:false,
+                error:
+                    "Could not open application: "+
+                    (
+                        e &&
+                        e.message
+                            ?e.message
+                            :String(e)
+                    )
+            };
+        }
+
+        /*
+         * Blob URL is kept alive until the app window closes.
+         */
         if(win){
+            const previousClose=
+                win.onClose;
+
             win.onClose=function(){
                 try{
-                    URL.revokeObjectURL(blobURL);
-                }catch(_){ }
+                    URL.revokeObjectURL(
+                        blobURL
+                    );
+                }catch(_){}
 
-                if(typeof previousClose==="function")
+                if(
+                    typeof previousClose===
+                    "function"
+                ){
                     previousClose();
+                }
             };
         }else{
             try{
-                URL.revokeObjectURL(blobURL);
-            }catch(_){ }
+                URL.revokeObjectURL(
+                    blobURL
+                );
+            }catch(_){}
         }
 
         return {
             ok:true,
             win,
-            srcDoc:sourcePath
+
+            installed:true,
+
+            srcDoc:
+                sourcePath
         };
     }
 
-    function notifyAppsChanged(detail){
+
+    /*
+     * ============================================================
+     * CHANGE NOTIFICATION
+     * ============================================================
+     */
+
+    function notifyAppsChanged(
+        detail
+    ){
+        const payload=
+            detail||{};
+
         try{
             window.dispatchEvent(
                 new CustomEvent(
                     "lh:apps-changed",
-                    {detail:detail||{}}
+                    {
+                        detail:payload
+                    }
                 )
             );
-        }catch(_){ }
+        }catch(_){}
 
         try{
             window.postMessage(
                 {
-                    type:"LH_APPS_CHANGED",
-                    detail:detail||{}
+                    type:
+                        "LH_APPS_CHANGED",
+
+                    detail:
+                        payload
                 },
                 "*"
             );
-        }catch(_){ }
+        }catch(_){}
     }
 
-    async function writeInstalledApps(data){
-        const result=await FS.write(
-            CIA_PATH,
-            JSON.stringify(data,null,4),
-            true
-        );
 
-        if(result&&result.ok){
+    /*
+     * ============================================================
+     * WRITE CIA
+     * ============================================================
+     */
+
+    async function writeInstalledApps(
+        data
+    ){
+        if(
+            !window.FS ||
+            typeof FS.write!=="function"
+        ){
+            return {
+                ok:false,
+                error:
+                    "Filesystem is unavailable."
+            };
+        }
+
+        const clean=
+            Array.isArray(data)
+                ?data
+                :[];
+
+        let result;
+
+        try{
+            result=
+                await FS.write(
+                    CIA_PATH,
+                    JSON.stringify(
+                        clean,
+                        null,
+                        4
+                    ),
+                    true
+                );
+        }catch(e){
+            return {
+                ok:false,
+                error:
+                    e &&
+                    e.message
+                        ?e.message
+                        :String(e)
+            };
+        }
+
+        if(
+            result &&
+            result.ok
+        ){
+            installedAppsCache=
+                clean.slice();
+
+            installedAppsCacheLoaded=
+                true;
+
             notifyAppsChanged({
-                source:"AppInstaller"
+                source:
+                    "AppInstaller"
             });
         }
 
         return result;
     }
 
-    async function installApp(options){
-        options=options||{};
 
-        const pkg=normalizePackage(options.pkg);
-        const title=String(
-            options.name||pkg||""
-        ).trim();
-        const icon=String(
-            options.appIcon||options.icon||"📦"
-        );
+    /*
+     * ============================================================
+     * INSTALL / UPDATE
+     * ============================================================
+     */
+
+    async function installApp(
+        options
+    ){
+        options=
+            options||{};
+
+        const pkg=
+            normalizePackage(
+                options.pkg
+            );
+
+        const title=
+            String(
+                options.name||
+                pkg||
+                ""
+            ).trim();
+
+        const icon=
+            String(
+                options.appIcon||
+                options.icon||
+                "📦"
+            );
+
         const sourceType=
-            String(options.sourceType||"src")===
-            "srcDoc"
+            String(
+                options.sourceType||
+                "src"
+            )==="srcDoc"
                 ?"srcDoc"
                 :"src";
 
-        if(!pkg)
-            return {ok:false,error:"Package Name is required."};
+        if(!pkg){
+            return {
+                ok:false,
+                error:
+                    "Package Name is required."
+            };
+        }
 
-        if(!title)
-            return {ok:false,error:"App Name is required."};
+        if(!title){
+            return {
+                ok:false,
+                error:
+                    "App Name is required."
+            };
+        }
 
-        if(sourceType==="src"){
-            const src=String(options.src||"").trim();
+        const data=
+            await getInstalledApps();
 
-            if(!src){
-                return {ok:false,error:"URL is required for src applications."};
-            }
-
-            const data=await getInstalledApps();
-            const index=data.findIndex(
-                x=>normalizePackage(x&&x.pkg)===pkg
+        const index=
+            data.findIndex(
+                x=>
+                    normalizePackage(
+                        x &&
+                        x.pkg
+                    )===pkg
             );
 
+
+        /*
+         * --------------------------------------------------------
+         * SRC APP
+         * --------------------------------------------------------
+         */
+
+        if(sourceType==="src"){
+            const src=
+                String(
+                    options.src||
+                    ""
+                ).trim();
+
+            if(!src){
+                return {
+                    ok:false,
+                    error:
+                        "URL is required for src applications."
+                };
+            }
+
+            if(
+                !/^https?:\/\//i.test(src)
+            ){
+                return {
+                    ok:false,
+                    error:
+                        "URL must start with http:// or https://."
+                };
+            }
+
             const oldSourcePath=
-                index>=0&&data[index]&&data[index].srcDoc
-                    ?String(data[index].srcDoc)
+                index>=0 &&
+                data[index] &&
+                data[index].srcDoc
+                    ?String(
+                        data[index].srcDoc
+                    )
                     :null;
 
             const app={
@@ -488,8 +1152,18 @@
                 name:title,
                 src,
                 appIcon:icon,
-                w:Number(options.w||options.width)||500,
-                h:Number(options.h||options.height)||500
+
+                w:
+                    Number(
+                        options.w||
+                        options.width
+                    )||500,
+
+                h:
+                    Number(
+                        options.h||
+                        options.height
+                    )||500
             };
 
             if(index>=0)
@@ -497,49 +1171,110 @@
             else
                 data.push(app);
 
-            /* If this app used to be srcDoc, clean its old source file. */
+            /*
+             * Switching an existing application from srcDoc
+             * to src removes the old HTML source file.
+             */
             if(oldSourcePath){
                 try{
-                    await FS.remove(oldSourcePath);
-                }catch(_){ }
+                    await FS.remove(
+                        oldSourcePath
+                    );
+                }catch(_){}
             }
 
-            const result=await writeInstalledApps(data);
+            const writeResult=
+                await writeInstalledApps(
+                    data
+                );
 
-            return result&&result.ok
-                ?{ok:true,app}
-                :{ok:false,error:result&&result.error||"Could not write CIA.json"};
+            if(
+                !writeResult ||
+                !writeResult.ok
+            ){
+                return {
+                    ok:false,
+                    error:
+                        writeResult &&
+                        writeResult.error
+                            ?writeResult.error
+                            :"Could not write CIA.json"
+                };
+            }
+
+            return {
+                ok:true,
+                app
+            };
         }
 
-        const source=String(options.srcDoc||"");
 
-        if(!source.trim())
-            return {ok:false,error:"HTML source is required for srcDoc applications."};
+        /*
+         * --------------------------------------------------------
+         * SRCDOC APP
+         * --------------------------------------------------------
+         */
 
-        const data=await getInstalledApps();
-        const index=data.findIndex(
-            x=>normalizePackage(x&&x.pkg)===pkg
-        );
+        const source=
+            String(
+                options.srcDoc||
+                ""
+            );
 
-        let oldSourcePath=null;
-        if(index>=0&&data[index])
-            oldSourcePath=data[index].srcDoc||null;
-
-        const sourcePath=
-            SRC_DOC_DIR+"/"+
-            safeFileName(pkg)+".html";
-
-        const sourceWrite=await FS.write(
-            sourcePath,
-            source,
-            true
-        );
-
-        if(!sourceWrite||!sourceWrite.ok){
+        if(!source.trim()){
             return {
                 ok:false,
                 error:
-                    sourceWrite&&sourceWrite.error
+                    "HTML source is required for srcDoc applications."
+            };
+        }
+
+        let oldSourcePath=null;
+
+        if(
+            index>=0 &&
+            data[index]
+        ){
+            oldSourcePath=
+                data[index].srcDoc||
+                null;
+        }
+
+        const sourcePath=
+            SRC_DOC_DIR+
+            "/"+
+            safeFileName(pkg)+
+            ".html";
+
+        let sourceWrite;
+
+        try{
+            sourceWrite=
+                await FS.write(
+                    sourcePath,
+                    source,
+                    true
+                );
+        }catch(e){
+            return {
+                ok:false,
+                error:
+                    e &&
+                    e.message
+                        ?e.message
+                        :"Could not save srcDoc source."
+            };
+        }
+
+        if(
+            !sourceWrite ||
+            !sourceWrite.ok
+        ){
+            return {
+                ok:false,
+                error:
+                    sourceWrite &&
+                    sourceWrite.error
                         ?sourceWrite.error
                         :"Could not save srcDoc source."
             };
@@ -548,10 +1283,26 @@
         const app={
             pkg,
             name:title,
+
+            /*
+             * CIA.json stores ONLY the path/reference.
+             * The actual HTML stays in SrcDocs.
+             */
             srcDoc:sourcePath,
+
             appIcon:icon,
-            w:Number(options.w||options.width)||500,
-            h:Number(options.h||options.height)||500
+
+            w:
+                Number(
+                    options.w||
+                    options.width
+                )||500,
+
+            h:
+                Number(
+                    options.h||
+                    options.height
+                )||500
         };
 
         if(index>=0)
@@ -559,23 +1310,36 @@
         else
             data.push(app);
 
+        /*
+         * Delete previous srcDoc file when the package path changed.
+         */
         if(
-            oldSourcePath&&
-            oldSourcePath!==sourcePath
+            oldSourcePath &&
+            String(oldSourcePath)!==
+            String(sourcePath)
         ){
             try{
-                await FS.remove(oldSourcePath);
-            }catch(_){ }
+                await FS.remove(
+                    oldSourcePath
+                );
+            }catch(_){}
         }
 
-        const result=await writeInstalledApps(data);
+        const writeResult=
+            await writeInstalledApps(
+                data
+            );
 
-        if(!result||!result.ok){
+        if(
+            !writeResult ||
+            !writeResult.ok
+        ){
             return {
                 ok:false,
                 error:
-                    result&&result.error
-                        ?result.error
+                    writeResult &&
+                    writeResult.error
+                        ?writeResult.error
                         :"Could not write CIA.json"
             };
         }
@@ -586,37 +1350,86 @@
         };
     }
 
-    async function uninstallApp(pkg){
-        pkg=normalizePackage(pkg);
 
-        if(!pkg)
-            return {ok:false,error:"Package Name is required."};
+    /*
+     * ============================================================
+     * UNINSTALL
+     * ============================================================
+     */
 
-        const data=await getInstalledApps();
-        const index=data.findIndex(
-            x=>normalizePackage(x&&x.pkg)===pkg
-        );
+    async function uninstallApp(
+        pkg
+    ){
+        pkg=
+            normalizePackage(pkg);
 
-        if(index<0)
-            return {ok:false,error:"Installed application not found: "+pkg};
-
-        const app=data[index];
-        data.splice(index,1);
-
-        if(app&&app.srcDoc){
-            try{
-                await FS.remove(app.srcDoc);
-            }catch(_){ }
-        }
-
-        const result=await writeInstalledApps(data);
-
-        if(!result||!result.ok){
+        if(!pkg){
             return {
                 ok:false,
                 error:
-                    result&&result.error
-                        ?result.error
+                    "Package Name is required."
+            };
+        }
+
+        const data=
+            await getInstalledApps();
+
+        const index=
+            data.findIndex(
+                x=>
+                    normalizePackage(
+                        x &&
+                        x.pkg
+                    )===pkg
+            );
+
+        if(index<0){
+            return {
+                ok:false,
+                error:
+                    "Installed application not found: "+
+                    pkg
+            };
+        }
+
+        const app=
+            data[index];
+
+        data.splice(
+            index,
+            1
+        );
+
+        /*
+         * srcDoc applications own a real HTML file.
+         * Delete it when the application is removed.
+         */
+        if(
+            app &&
+            app.srcDoc
+        ){
+            try{
+                await FS.remove(
+                    app.srcDoc
+                );
+            }catch(_){}
+        }
+
+        const writeResult=
+            await writeInstalledApps(
+                data
+            );
+
+        if(
+            !writeResult ||
+            !writeResult.ok
+        ){
+            return {
+                ok:false,
+                error:
+                    writeResult &&
+                    writeResult.error
+                        ?writeResult.error
                         :"Could not update CIA.json"
             };
         }
@@ -627,196 +1440,422 @@
         };
     }
 
-    async function openApp(name,opts){
-        opts=opts||{};
 
-        const key=normalizeName(name);
-        const installed=await getInstalledApps();
+    /*
+     * ============================================================
+     * OPEN APPLICATION
+     * ============================================================
+     */
 
-        /* Resolve installed apps by either package OR friendly name. */
-        const app=installed.find(x=>
-            normalizeName(x&&x.pkg)===key||
-            normalizeName(x&&x.name)===key
-        );
+    async function openApp(
+        name,
+        opts
+    ){
+        opts=
+            opts||{};
 
-        if(app){
-            const title=String(
-                app.name||app.pkg||name
+        const key=
+            normalizeName(name);
+
+        /*
+         * Always refresh installed data before resolving.
+         * This means an app installed moments ago can be opened
+         * without restarting Little Hollow.
+         */
+        const installed=
+            await getInstalledApps();
+
+        /*
+         * Installed application lookup.
+         * Package name OR friendly app name.
+         */
+        const installedApp=
+            installed.find(
+                x=>{
+                    return (
+                        normalizeName(
+                            x &&
+                            x.pkg
+                        )===key
+                    ) ||
+                    (
+                        normalizeName(
+                            x &&
+                            x.name
+                        )===key
+                    );
+                }
             );
-            const width=opts.width||app.w||app.width||500;
-            const height=opts.height||app.h||app.height||500;
 
-            if(app.srcDoc!=null){
-                const standalone=opts.allowMultiple
-                    ?null
-                    :"installed:"+app.pkg;
+        /*
+         * --------------------------------------------------------
+         * INSTALLED APP
+         * --------------------------------------------------------
+         */
 
-                return await openSourceDoc(
-                    String(app.srcDoc),
-                    title,
-                    width,
-                    height,
-                    standalone
+        if(installedApp){
+            const title=
+                String(
+                    installedApp.name||
+                    installedApp.pkg||
+                    name
                 );
+
+            const width=
+                opts.width||
+                installedApp.w||
+                installedApp.width||
+                500;
+
+            const height=
+                opts.height||
+                installedApp.h||
+                installedApp.height||
+                500;
+
+            const sourceType=
+                appSourceType(
+                    installedApp
+                );
+
+            /*
+             * Installed srcDoc:
+             *
+             * CIA:
+             * {
+             *     "pkg":"example",
+             *     "name":"Example",
+             *     "srcDoc":".../SrcDocs/example.html"
+             * }
+             */
+            if(
+                sourceType==="srcDoc"
+            ){
+                const sourcePath=
+                    String(
+                        installedApp.srcDoc||
+                        ""
+                    ).trim();
+
+                if(!sourcePath){
+                    return {
+                        ok:false,
+                        error:
+                            "Installed srcDoc application has no source path: "+
+                            (
+                                installedApp.pkg||
+                                name
+                            )
+                    };
+                }
+
+                const standalone=
+                    opts.allowMultiple
+                        ?null
+                        :"installed:"+
+                         installedApp.pkg;
+
+                const result=
+                    await openSourceDoc(
+                        sourcePath,
+                        title,
+                        width,
+                        height,
+                        standalone
+                    );
+
+                if(result){
+                    result.installed=true;
+                    result.app=installedApp;
+                }
+
+                return result;
             }
 
-            const source=String(app.src||"").trim();
+
+            /*
+             * Installed src:
+             */
+            const source=
+                String(
+                    installedApp.src||
+                    ""
+                ).trim();
 
             if(!source){
                 return {
                     ok:false,
                     error:
                         "Installed application has no src or srcDoc: "+
-                        (app.pkg||name)
+                        (
+                            installedApp.pkg||
+                            name
+                        )
                 };
             }
 
-            const win=WM.openWindow({
-                title,
-                iframeSrc:source,
-                width:Number(width)+"px",
-                height:Number(height)+"px",
-                noPad:true,
-                standaloneKey:
-                    opts.allowMultiple
-                        ?null
-                        :"installed:"+app.pkg
-            });
+            const win=
+                WM.openWindow({
+                    title,
+
+                    iframeSrc:
+                        source,
+
+                    width:
+                        Number(width)+"px",
+
+                    height:
+                        Number(height)+"px",
+
+                    noPad:true,
+
+                    standaloneKey:
+                        opts.allowMultiple
+                            ?null
+                            :"installed:"+
+                             installedApp.pkg
+                });
 
             return {
                 ok:true,
                 win,
                 installed:true,
-                app
+                app:installedApp
             };
         }
 
-        let resolvedKey=key;
-        let def=REGISTRY[key];
 
-        /* Friendly registered titles must also be valid AI/open targets. */
-        if(!def){
-            for(const [registryKey,registryDef] of Object.entries(REGISTRY)){
-                if(
-                    registryDef&&
-                    normalizeName(registryDef.title)===key
-                ){
-                    resolvedKey=registryKey;
-                    def=registryDef;
-                    break;
-                }
-            }
-        }
+        /*
+         * --------------------------------------------------------
+         * BUILT-IN APP
+         * --------------------------------------------------------
+         */
 
-        if(!def){
+        const builtin=
+            findBuiltin(
+                name
+            );
+
+        if(!builtin){
             return {
                 ok:false,
-                error:"Unknown application: "+name
+                error:
+                    "Unknown application: "+
+                    name
             };
         }
 
-        let sourceType=
+        const resolvedKey=
+            builtin.key;
+
+        const def=
+            builtin.def;
+
+        const sourceType=
             def.srcDoc!=null
                 ?"srcDoc"
                 :"src";
 
-        /* srcDoc built-in apps use the same source-file mechanism. */
+
+        /*
+         * --------------------------------------------------------
+         * BUILT-IN SRCDOC
+         * --------------------------------------------------------
+         */
+
         if(sourceType==="srcDoc"){
-            let sourcePath=String(def.srcDoc||"");
+            const sourcePath=
+                String(
+                    def.srcDoc||
+                    ""
+                ).trim();
 
             if(!sourcePath){
                 return {
                     ok:false,
-                    error:"Registered srcDoc application has no source path: "+name
+                    error:
+                        "Registered srcDoc application has no source path: "+
+                        name
                 };
             }
 
             return await openSourceDoc(
-                String(def.srcDoc),
-                opts.title||def.title,
-                opts.width||def.w,
-                opts.height||def.h,
+                sourcePath,
+                opts.title||
+                    def.title,
+
+                opts.width||
+                    def.w,
+
+                opts.height||
+                    def.h,
+
                 opts.allowMultiple
                     ?null
                     :(
                         opts.path
-                            ?"app:"+resolvedKey+":"+opts.path
-                            :"app:"+resolvedKey
+                            ?"app:"+
+                             resolvedKey+
+                             ":"+
+                             opts.path
+                            :"app:"+
+                             resolvedKey
                     )
             );
         }
 
-        let src=String(def.src||"");
+
+        /*
+         * --------------------------------------------------------
+         * BUILT-IN SRC
+         * --------------------------------------------------------
+         */
+
+        let src=
+            String(
+                def.src||
+                ""
+            );
+
         const params=[];
 
-        if(opts.src)
-            params.push("src="+encodeURIComponent(opts.src));
+        if(opts.src){
+            params.push(
+                "src="+
+                encodeURIComponent(
+                    opts.src
+                )
+            );
+        }
 
-        if(opts.path)
-            params.push("path="+encodeURIComponent(String(opts.path)));
+        if(opts.path){
+            params.push(
+                "path="+
+                encodeURIComponent(
+                    String(opts.path)
+                )
+            );
+        }
 
-        if(opts.equation!=null)
-            params.push("equation="+encodeURIComponent(String(opts.equation)));
+        if(opts.equation!=null){
+            params.push(
+                "equation="+
+                encodeURIComponent(
+                    String(
+                        opts.equation
+                    )
+                )
+            );
+        }
 
         if(opts.painting!=null){
             try{
                 params.push(
                     "painting="+
                     encodeURIComponent(
-                        JSON.stringify(opts.painting)
+                        JSON.stringify(
+                            opts.painting
+                        )
                     )
                 );
             }catch(e){
                 return {
                     ok:false,
-                    error:"Invalid painting data."
+                    error:
+                        "Invalid painting data."
                 };
             }
         }
 
-        if(opts.paintPath)
+        if(opts.paintPath){
             params.push(
                 "paintPath="+
-                encodeURIComponent(String(opts.paintPath))
-            );
-
-        if(opts.selectMode)
-            params.push("select=1");
-
-        if(opts.text!=null)
-            params.push(
-                "text="+
-                encodeURIComponent(String(opts.text))
-            );
-        else if(opts.initialText!=null)
-            params.push(
-                "text="+
-                encodeURIComponent(String(opts.initialText))
-            );
-
-        if(params.length)
-            src+="?"+params.join("&");
-
-        const standalone=opts.allowMultiple
-            ?null
-            :(
-                opts.equation!=null
-                    ?null
-                    :(
-                        opts.path
-                            ?"app:"+key+":"+opts.path
-                            :"app:"+key
+                encodeURIComponent(
+                    String(
+                        opts.paintPath
                     )
+                )
             );
+        }
 
-        const win=WM.openWindow({
-            title:opts.title||def.title,
-            iframeSrc:src,
-            width:(opts.width||def.w)+"px",
-            height:(opts.height||def.h)+"px",
-            noPad:true,
-            standaloneKey:standalone
-        });
+        if(opts.selectMode){
+            params.push(
+                "select=1"
+            );
+        }
+
+        if(opts.text!=null){
+            params.push(
+                "text="+
+                encodeURIComponent(
+                    String(
+                        opts.text
+                    )
+                )
+            );
+        }else if(
+            opts.initialText!=null
+        ){
+            params.push(
+                "text="+
+                encodeURIComponent(
+                    String(
+                        opts.initialText
+                    )
+                )
+            );
+        }
+
+        if(params.length){
+            src+=
+                "?"+
+                params.join("&");
+        }
+
+        const standalone=
+            opts.allowMultiple
+                ?null
+                :(
+                    opts.equation!=null
+                        ?null
+                        :(
+                            opts.path
+                                ?"app:"+
+                                 key+
+                                 ":"+
+                                 opts.path
+
+                                :"app:"+
+                                 key
+                        )
+                );
+
+        const win=
+            WM.openWindow({
+                title:
+                    opts.title||
+                    def.title,
+
+                iframeSrc:
+                    src,
+
+                width:
+                    (
+                        opts.width||
+                        def.w
+                    )+"px",
+
+                height:
+                    (
+                        opts.height||
+                        def.h
+                    )+"px",
+
+                noPad:true,
+
+                standaloneKey:
+                    standalone
+            });
 
         return {
             ok:true,
@@ -824,18 +1863,34 @@
         };
     }
 
-    function openOneCompiler(opts){
-        opts=opts||{};
+
+    /*
+     * ============================================================
+     * ONECOMPILER
+     * ============================================================
+     */
+
+    function openOneCompiler(
+        opts
+    ){
+        opts=
+            opts||{};
 
         const language=
             String(
-                opts.language||"javascript"
+                opts.language||
+                "javascript"
             ).toLowerCase();
 
         const iframeSrc=
             "https://onecompiler.com/embed/"+
-            encodeURIComponent(language)+
-            "?listenToEvents=true&codeChangeEvent=true&theme=dark&hideTitle=true";
+            encodeURIComponent(
+                language
+            )+
+            "?listenToEvents=true"+
+            "&codeChangeEvent=true"+
+            "&theme=dark"+
+            "&hideTitle=true";
 
         const win=
             WM.openWindow({
@@ -843,41 +1898,54 @@
                     opts.title||
                     "ONECOMPILER — "+
                     language.toUpperCase(),
+
                 iframeSrc,
+
                 width:
-                    (opts.width||760)+"px",
+                    (
+                        opts.width||
+                        760
+                    )+"px",
+
                 height:
-                    (opts.height||560)+"px",
+                    (
+                        opts.height||
+                        560
+                    )+"px",
+
                 noPad:true,
+
                 standaloneKey:null
             });
 
         const files=
             (
-                Array.isArray(opts.files)&&
+                Array.isArray(opts.files) &&
                 opts.files.length
             )
-            ?opts.files
-            :[
-                {
-                    name:
-                        opts.name||
-                        (
-                            "main."+
+                ?opts.files
+                :[
+                    {
+                        name:
+                            opts.name||
                             (
-                                language==="python"
-                                    ?"py"
-                                    :language==="javascript"
-                                        ?"js"
-                                        :"txt"
+                                "main."+
+                                (
+                                    language==="python"
+                                        ?"py"
+                                        :language==="javascript"
+                                            ?"js"
+                                            :"txt"
+                                )
+                            ),
+
+                        content:
+                            String(
+                                opts.code||
+                                ""
                             )
-                        ),
-                    content:
-                        String(
-                            opts.code||""
-                        )
-                }
-            ];
+                    }
+                ];
 
         const wantRun=
             !!opts.run;
@@ -896,11 +1964,17 @@
         let sawLife=false;
 
         function getFrame(){
-            return win.el&&
-                win.el.querySelector("iframe");
+            return (
+                win.el &&
+                win.el.querySelector(
+                    "iframe"
+                )
+            );
         }
 
-        function post(payload){
+        function post(
+            payload
+        ){
             const iframe=
                 getFrame();
 
@@ -912,6 +1986,7 @@
                     tag,
                     "no iframe/contentWindow to post to"
                 );
+
                 return false;
             }
 
@@ -941,7 +2016,8 @@
 
         function sendRun(){
             post({
-                eventType:"triggerRun"
+                eventType:
+                    "triggerRun"
             });
         }
 
@@ -964,15 +2040,18 @@
 
             if(
                 !iframe||
-                e.source!==iframe.contentWindow
-            )
+                e.source!==
+                iframe.contentWindow
+            ){
                 return;
+            }
 
             if(
-                !d||
+                !d ||
                 !d.language
-            )
+            ){
                 return;
+            }
 
             console.log(
                 tag,
@@ -986,15 +2065,18 @@
                 post({
                     eventType:
                         "populateCode",
+
                     language,
+
                     files
                 });
 
-                if(wantRun)
+                if(wantRun){
                     setTimeout(
                         sendRun,
                         300
                     );
+                }
 
                 settled=true;
 
@@ -1028,12 +2110,15 @@
             post({
                 eventType:
                     "populateCode",
+
                 language,
+
                 files
             });
 
             if(
-                attempts<MAX_ATTEMPTS
+                attempts<
+                MAX_ATTEMPTS
             ){
                 retryTimer=
                     setTimeout(
@@ -1048,11 +2133,12 @@
                     "attempts with no response from iframe"
                 );
 
-                if(wantRun)
+                if(wantRun){
                     setTimeout(
                         sendRun,
                         300
                     );
+                }
 
                 settled=true;
                 cleanup();
@@ -1069,12 +2155,15 @@
 
         win.onClose=function(){
             settled=true;
+
             cleanup();
 
             if(
-                typeof prevOnClose==="function"
-            )
+                typeof prevOnClose===
+                "function"
+            ){
                 prevOnClose();
+            }
         };
 
         const iframeEl=
@@ -1088,20 +2177,30 @@
                 );
             };
 
-        if(iframeEl)
+        if(iframeEl){
             iframeEl.addEventListener(
                 "load",
                 kickoff,
-                {once:true}
+                {
+                    once:true
+                }
             );
-        else
+        }else{
             kickoff();
+        }
 
         return {
             ok:true,
             win
         };
     }
+
+
+    /*
+     * ============================================================
+     * EXTERNAL CODE-OPEN EVENT
+     * ============================================================
+     */
 
     window.addEventListener(
         "message",
@@ -1110,10 +2209,11 @@
                 e.data||{};
 
             if(
-                !d||
+                !d ||
                 !d.language
-            )
+            ){
                 return;
+            }
 
             if(
                 d.type===
@@ -1122,8 +2222,10 @@
                 Apps.openOneCompiler({
                     language:
                         d.language,
+
                     files:
                         d.files,
+
                     run:
                         !!d.run
                 });
@@ -1131,15 +2233,82 @@
         }
     );
 
+
+    /*
+     * ============================================================
+     * PUBLIC API
+     * ============================================================
+     */
+
     window.Apps={
-        openApp,
-        openOneCompiler,
+
+        /*
+         * Built-in registry
+         */
         REGISTRY,
+
+        /*
+         * App launching
+         */
+        openApp,
+
+        /*
+         * Compiler
+         */
+        openOneCompiler,
+
+        /*
+         * Installed apps
+         */
         getInstalledApps,
+
+        getInstalledAppsSync,
+
+        /*
+         * All registered apps
+         */
         getRegisteredApps,
+
         getRegisteredAppsSync,
+
+        /*
+         * Installer API
+         */
         installApp,
+
         uninstallApp,
-        getApp
+
+        /*
+         * Lookup
+         */
+        getApp,
+
+        /*
+         * Storage paths
+         */
+        CUSTOM_APP_DIR,
+
+        CIA_PATH,
+
+        SRC_DOC_DIR,
+
+        /*
+         * Useful for tools / app system
+         */
+        isInstalledApp:
+            isValidInstalledApp,
+
+        getSourceType:
+            appSourceType
     };
+
+
+    /*
+     * Prime the installed-app cache immediately.
+     * This does not block the rest of the desktop.
+     */
+    getInstalledApps().catch(
+        ()=>{}
+    );
+
 })();
