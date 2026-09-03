@@ -412,299 +412,355 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     await loadLibrary();
   })();
 
-    window.parent.CameraAPI = {
-    async action(request){
-      if(!request || typeof request !== "object"){
-        return {
-          ok:false,
-          error:"Action request must be an object."
-        };
-      }
+  window.parent.CameraAPI = {
+    async action(actions){
 
-      const name =
-        String(
-          request.name || ""
-        ).toLowerCase();
-
-      const value =
-        request.value;
-
-      try{
-        switch(name){
-
-          case "open":
-          case "opencamera":
+        if(
+            !actions ||
+            typeof actions !== "object" ||
+            Array.isArray(actions)
+        ){
             return {
-              ok:
-                await openCamera()
-            };
-
-          case "close":
-          case "closecamera":
-            if(state.recording){
-              await stopRecording();
-            }
-
-            stopTracks(
-              state.cameraStream
-            );
-
-            state.cameraStream =
-              null;
-
-            $("preview").srcObject =
-              null;
-
-            showPlaceholder(
-              "Camera closed."
-            );
-
-            status(
-              "Camera closed."
-            );
-
-            return {
-              ok:true
-            };
-
-          case "photo":
-          case "takephoto":
-          case "takepicture":
-          case "capture":
-            return {
-              ok:
-                !!(await takePhoto())
-            };
-
-          case "start":
-          case "startrecording":
-          case "record":
-            if(
-              name === "record" &&
-              value != null
-            ){
-              const seconds =
-                Number(value);
-
-              if(
-                !Number.isFinite(seconds) ||
-                seconds <= 0
-              ){
-                return {
-                  ok:false,
-                  error:
-                    "Recording duration must be greater than 0."
-                };
-              }
-
-              const started =
-                await startRecording();
-
-              if(!started){
-                return {
-                  ok:false,
-                  error:
-                    "Recording could not be started."
-                };
-              }
-
-              await new Promise(
-                resolve =>
-                  setTimeout(
-                    resolve,
-                    seconds * 1000
-                  )
-              );
-
-              const path =
-                await stopRecording();
-
-              return {
-                ok:true,
-                path
-              };
-            }
-
-            return {
-              ok:
-                await startRecording()
-            };
-
-          case "stop":
-          case "stoprecording":
-            return {
-              ok:true,
-              path:
-                await stopRecording()
-            };
-
-          case "switch":
-          case "switchcamera":
-            if(state.recording){
-              return {
                 ok:false,
                 error:
-                  "Stop recording before switching camera."
-              };
-            }
-
-            state.facing =
-              state.facing === "user"
-                ? "environment"
-                : "user";
-
-            $("facing").value =
-              state.facing;
-
-            return {
-              ok:
-                await openCamera(),
-              facing:
-                state.facing
-            };
-
-          case "front":
-          case "frontcamera":
-          case "setfront":
-            if(state.recording){
-              return {
-                ok:false,
-                error:
-                  "Stop recording before changing camera."
-              };
-            }
-
-            state.facing =
-              "user";
-
-            $("facing").value =
-              "user";
-
-            return {
-              ok:
-                await openCamera(),
-              facing:
-                "user"
-            };
-
-          case "back":
-          case "backcamera":
-          case "setback":
-            if(state.recording){
-              return {
-                ok:false,
-                error:
-                  "Stop recording before changing camera."
-              };
-            }
-
-            state.facing =
-              "environment";
-
-            $("facing").value =
-              "environment";
-
-            return {
-              ok:
-                await openCamera(),
-              facing:
-                "environment"
-            };
-
-          case "orientation":
-          case "facing":
-          case "setcamera":
-            if(state.recording){
-              return {
-                ok:false,
-                error:
-                  "Stop recording before changing camera."
-              };
-            }
-
-            const facing =
-              String(
-                value || ""
-              ).toLowerCase();
-
-            if(
-              facing === "front" ||
-              facing === "user"
-            ){
-              state.facing =
-                "user";
-            }else if(
-              facing === "back" ||
-              facing === "rear" ||
-              facing === "environment"
-            ){
-              state.facing =
-                "environment";
-            }else{
-              return {
-                ok:false,
-                error:
-                  "Camera must be front or back."
-              };
-            }
-
-            $("facing").value =
-              state.facing;
-
-            return {
-              ok:
-                await openCamera(),
-              facing:
-                state.facing
-            };
-
-          case "state":
-          case "status":
-            return {
-              ok:true,
-              open:
-                !!state.cameraStream,
-              recording:
-                state.recording,
-              facing:
-                state.facing,
-              hasVideo:
-                !!(
-                  state.cameraStream &&
-                  state.cameraStream
-                    .getVideoTracks()
-                    .length
-                ),
-              hasAudio:
-                !!(
-                  state.cameraStream &&
-                  state.cameraStream
-                    .getAudioTracks()
-                    .length
-                ),
-              mime:
-                state.mime || ""
-            };
-
-          default:
-            return {
-              ok:false,
-              error:
-                "Unknown camera action: " +
-                name
+                    "Camera action must be an object."
             };
         }
 
-      }catch(error){
+        const results = {};
 
-        return {
-          ok:false,
-          error:
-            errText(error)
-        };
-      }
+        try{
+
+            for(
+                const key of Object.keys(actions)
+            ){
+
+                const value =
+                    actions[key];
+
+                switch(
+                    key.toLowerCase()
+                ){
+
+                    case "open":
+
+                        results.open =
+                            await openCamera();
+
+                        break;
+
+
+                    case "close":
+
+                        if(state.recording){
+                            await stopRecording();
+                        }
+
+                        stopTracks(
+                            state.cameraStream
+                        );
+
+                        state.cameraStream =
+                            null;
+
+                        $("preview").srcObject =
+                            null;
+
+                        showPlaceholder(
+                            "Camera closed."
+                        );
+
+                        status(
+                            "Camera closed."
+                        );
+
+                        results.close =
+                            true;
+
+                        break;
+
+
+                    case "photo":
+                    case "picture":
+                    case "capture":
+
+                        if(
+                            value === false ||
+                            value === null
+                        ){
+                            results[key] =
+                                false;
+                            break;
+                        }
+
+                        results[key] =
+                            !!(
+                                await takePhoto()
+                            );
+
+                        break;
+
+
+                    case "recording":
+
+                        if(
+                            String(value)
+                                .toLowerCase() ===
+                            "start"
+                        ){
+
+                            results.recording =
+                                await startRecording();
+
+                        }else if(
+                            String(value)
+                                .toLowerCase() ===
+                            "stop"
+                        ){
+
+                            results.recording =
+                                await stopRecording();
+
+                        }else{
+
+                            results.recording = {
+                                ok:false,
+                                error:
+                                    "recording must be 'start' or 'stop'."
+                            };
+
+                        }
+
+                        break;
+
+
+                    case "record":
+
+                        const milliseconds =
+                            Number(value);
+
+                        if(
+                            !Number.isFinite(
+                                milliseconds
+                            ) ||
+                            milliseconds <= 0
+                        ){
+                            results.record = {
+                                ok:false,
+                                error:
+                                    "record must be a duration in milliseconds."
+                            };
+
+                            break;
+                        }
+
+                        let startedHere =
+                            false;
+
+                        if(
+                            !state.recording
+                        ){
+                            const started =
+                                await startRecording();
+
+                            if(!started){
+                                results.record = {
+                                    ok:false,
+                                    error:
+                                        "Could not start recording."
+                                };
+
+                                break;
+                            }
+
+                            startedHere =
+                                true;
+                        }
+
+                        await new Promise(
+                            resolve =>
+                                setTimeout(
+                                    resolve,
+                                    milliseconds
+                                )
+                        );
+
+                        const path =
+                            await stopRecording();
+
+                        results.record = {
+                            ok:true,
+                            milliseconds,
+                            path,
+                            startedHere
+                        };
+
+                        break;
+
+
+                    case "camera":
+                    case "orientation":
+                    case "facing":
+
+                        if(state.recording){
+                            results[key] = {
+                                ok:false,
+                                error:
+                                    "Stop recording before changing camera."
+                            };
+
+                            break;
+                        }
+
+                        const camera =
+                            String(
+                                value || ""
+                            ).toLowerCase();
+
+                        if(
+                            camera === "front" ||
+                            camera === "user"
+                        ){
+
+                            state.facing =
+                                "user";
+
+                        }else if(
+                            camera === "back" ||
+                            camera === "rear" ||
+                            camera === "environment"
+                        ){
+
+                            state.facing =
+                                "environment";
+
+                        }else if(
+                            camera === "switch"
+                        ){
+
+                            state.facing =
+                                state.facing ===
+                                "user"
+                                    ? "environment"
+                                    : "user";
+
+                        }else{
+
+                            results[key] = {
+                                ok:false,
+                                error:
+                                    "camera must be front, back, or switch."
+                            };
+
+                            break;
+                        }
+
+                        $("facing").value =
+                            state.facing;
+
+                        results[key] = {
+                            ok:
+                                await openCamera(),
+                            facing:
+                                state.facing
+                        };
+
+                        break;
+
+
+                    case "switch":
+
+                        if(state.recording){
+                            results.switch = {
+                                ok:false,
+                                error:
+                                    "Stop recording before switching camera."
+                            };
+
+                            break;
+                        }
+
+                        state.facing =
+                            state.facing ===
+                            "user"
+                                ? "environment"
+                                : "user";
+
+                        $("facing").value =
+                            state.facing;
+
+                        results.switch = {
+                            ok:
+                                await openCamera(),
+                            facing:
+                                state.facing
+                        };
+
+                        break;
+
+
+                    case "state":
+                    case "status":
+
+                        const videoTrack =
+                            state.cameraStream &&
+                            state.cameraStream
+                                .getVideoTracks()[0];
+
+                        const audioTrack =
+                            state.cameraStream &&
+                            state.cameraStream
+                                .getAudioTracks()[0];
+
+                        results[key] = {
+                            ok:true,
+                            open:
+                                !!state.cameraStream,
+                            recording:
+                                state.recording,
+                            facing:
+                                state.facing,
+                            video:
+                                !!videoTrack,
+                            audio:
+                                !!audioTrack,
+                            mime:
+                                state.mime || ""
+                        };
+
+                        break;
+
+
+                    default:
+
+                        results[key] = {
+                            ok:false,
+                            error:
+                                "Unknown camera action: " +
+                                key
+                        };
+
+                        break;
+                }
+            }
+
+            return {
+                ok:true,
+                results
+            };
+
+        }catch(error){
+
+            return {
+                ok:false,
+                error:
+                    errText(error),
+                results
+            };
+        }
     }
-  };
+};
+  
 })();
 </script>
 </body>
