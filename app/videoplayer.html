@@ -1,48 +1,1691 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Video Player</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:monospace;}
-html,body{width:100%;height:100%;background:#000;color:#00FFFF;}
-.wrap{display:flex;flex-direction:column;height:100%;}
-.bar{flex:0 0 auto;display:flex;padding:8px;border-bottom:1px solid #00FFFF;gap:6px;}
-.bar input{flex:1;background:#001010;border:1px solid #00FFFF;color:#00FFFF;padding:6px;font-family:monospace;}
-.bar button{border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:6px 10px;cursor:pointer;}
-.stage{flex:1;display:flex;align-items:center;justify-content:center;background:#000;}
-video{max-width:100%;max-height:100%;}
-.empty{opacity:0.5;font-size:12px;}
+*{
+	box-sizing:border-box;
+	margin:0;
+	padding:0;
+	font-family:monospace
+}
+html,body{
+	width:100%;
+	height:100%;
+	background:#000;
+	color:#00FFFF
+}
+body{
+	overflow:hidden
+}
+.wrap{
+	display:flex;
+	flex-direction:column;
+	width:100%;
+	height:100%
+}
+.bar{
+	flex:0 0 auto;
+	display:flex;
+	gap:6px;
+	padding:8px;
+	border-bottom:1px solid #00FFFF
+}
+.bar input{
+	flex:1;
+	min-width:0;
+	background:#001010;
+	border:1px solid #00FFFF;
+	color:#00FFFF;
+	padding:6px 8px;
+	outline:none;
+	font:11px monospace
+}
+.bar button{
+	border:1px solid #00FFFF;
+	background:transparent;
+	color:#00FFFF;
+	padding:6px 10px;
+	cursor:pointer;
+	font:11px monospace
+}
+.bar button:active{
+	background:#00FFFF;
+	color:#000
+}
+.stage{
+	flex:1;
+	min-height:0;
+	width:100%;
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	overflow:auto;
+	position:relative;
+	padding:8px
+}
+.stage video{
+	display:block;
+	max-width:100%;
+	max-height:100%;
+	width:auto;
+	height:auto;
+	object-fit:contain;
+	background:#000
+}
+.stage audio{
+	display:block;
+	width:min(100%,700px)
+}
+.empty{
+	opacity:.55;
+	font-size:12px;
+	text-align:center;
+	white-space:pre-wrap;
+	padding:20px
+}
+.error{
+	color:#ff6666;
+	font-size:11px;
+	text-align:center;
+	white-space:pre-wrap;
+	padding:20px;
+	max-width:100%;
+	overflow:auto
+}
+.info{
+	position:absolute;
+	left:8px;
+	right:8px;
+	bottom:8px;
+	padding:6px 8px;
+	border:1px solid #064a4c;
+	background:#001113;
+	color:#00FFFF;
+	font-size:10px;
+	opacity:.8;
+	pointer-events:none;
+	display:none
+}
 </style>
 </head>
-<body>
-<div class="wrap">
-    <div class="bar">
-        <input id="url" type="text" placeholder="Video URL...">
-        <button id="loadBtn">LOAD</button>
-    </div>
-    <div class="stage" id="stage"><div class="empty">No video loaded.</div></div>
+<body><div class="wrap">
+	<div class="bar">
+		<input id="url" type="text" placeholder="Video/audio URL or chxd:/ path..." autocomplete="off" spellcheck="false">
+		<button id="loadBtn">LOAD</button>
+	</div><div class="stage" id="stage">
+	<div class="empty">No video loaded.</div>
 </div>
-<script>
-const stage=document.getElementById("stage");
-const urlInput=document.getElementById("url");
 
-function show(src){
-    stage.innerHTML="";
-    const v=document.createElement("video");
-    v.src=src;
-    v.controls=true;
-    v.autoplay=true;
-    stage.appendChild(v);
+</div><script>
+"use strict";
+
+const stage=
+	document.getElementById("stage");
+
+const urlInput=
+	document.getElementById("url");
+
+let currentObjectURL=
+	null;
+
+let currentMedia=
+	null;
+
+const params=
+	new URLSearchParams(
+		location.search
+	);
+
+const initialPath=
+	params.get("src");
+
+function getParentObject(
+	name
+){
+	try{
+		if(
+			window.parent&&
+			window.parent!==window&&
+			window.parent[name]
+		){
+			return window.parent[name]
+		}
+	}catch(_){}
+
+	try{
+		if(
+			window[name]
+		){
+			return window[name]
+		}
+	}catch(_){}
+
+	return null
 }
 
-document.getElementById("loadBtn").addEventListener("click",()=>{
-    if(urlInput.value.trim()) show(urlInput.value.trim());
-});
+function getFS(){
+	return getParentObject(
+		"FS"
+	)
+}
 
-const params=new URLSearchParams(location.search);
-const initial=params.get("src");
-if(initial){ urlInput.value=initial; show(initial); }
-</script>
-</body>
+function cleanup(){
+	if(currentMedia){
+		try{
+			currentMedia.pause()
+		}catch(_){}
+
+		try{
+			currentMedia.removeAttribute(
+				"src"
+			)
+		}catch(_){}
+
+		try{
+			currentMedia.load()
+		}catch(_){}
+
+		currentMedia=
+			null
+	}
+
+	if(currentObjectURL){
+		try{
+			URL.revokeObjectURL(
+				currentObjectURL
+			)
+		}catch(_){}
+
+		currentObjectURL=
+			null
+	}
+}
+
+function loading(){
+	cleanup();
+
+	stage.innerHTML=
+		'<div class="empty">Loading video...</div>'
+}
+
+function showError(
+	message
+){
+	cleanup();
+
+	stage.innerHTML=
+		"";
+
+	const box=
+		document.createElement(
+			"div"
+		);
+
+	box.className=
+		"error";
+
+	box.textContent=
+		String(
+			message||
+			"Failed to load video."
+		);
+
+	stage.appendChild(
+		box
+	)
+}
+
+function extension(
+	path
+){
+	const clean=
+		String(path||"")
+			.split("?")[0]
+			.split("#")[0];
+
+	const dot=
+		clean.lastIndexOf(".");
+
+	if(dot<0){
+		return ""
+	}
+
+	return clean
+		.slice(dot+1)
+		.toLowerCase()
+}
+
+function mimeFromExtension(
+	path
+){
+	switch(
+		extension(path)
+	){
+		case "webm":
+			return "video/webm";
+
+		case "mp4":
+		case "m4v":
+			return "video/mp4";
+
+		case "ogv":
+			return "video/ogg";
+
+		case "ogg":
+			return "video/ogg";
+
+		case "mov":
+			return "video/quicktime";
+
+		case "mkv":
+			return "video/x-matroska";
+
+		case "avi":
+			return "video/x-msvideo";
+
+		case "wmv":
+			return "video/x-ms-wmv";
+
+		case "flv":
+			return "video/x-flv";
+
+		case "3gp":
+			return "video/3gpp";
+
+		case "3g2":
+			return "video/3gpp2";
+
+		case "ts":
+			return "video/mp2t";
+
+		case "m2ts":
+			return "video/mp2t";
+
+		case "m2v":
+			return "video/mpeg";
+
+		case "mpg":
+		case "mpeg":
+			return "video/mpeg";
+
+		case "mkv":
+			return "video/x-matroska";
+
+		case "mp3":
+			return "audio/mpeg";
+
+		case "wav":
+			return "audio/wav";
+
+		case "flac":
+			return "audio/flac";
+
+		case "m4a":
+			return "audio/mp4";
+
+		case "aac":
+			return "audio/aac";
+
+		case "opus":
+			return "audio/opus";
+
+		case "oga":
+			return "audio/ogg";
+
+		case "weba":
+			return "audio/webm";
+
+		default:
+			return "application/octet-stream"
+	}
+}
+
+function isVirtualPath(
+	value
+){
+	const s=
+		String(value||"");
+
+	return /^chxd:\//i.test(s)||
+		/^local:\//i.test(s)||
+		/^session:\//i.test(s)||
+		/^indexdb:\//i.test(s)||
+		/^puter:\//i.test(s)
+}
+
+function isURL(
+	value
+){
+	const s=
+		String(value||"");
+
+	return /^https?:\/\//i.test(s)||
+		/^blob:/i.test(s)||
+		/^data:/i.test(s)||
+		/^file:/i.test(s)
+}
+
+function bytesFrom(
+	value
+){
+	if(
+		value instanceof ArrayBuffer
+	){
+		return new Uint8Array(
+			value
+		)
+	}
+
+	if(
+		value&&
+		typeof value==="object"&&
+		value.buffer instanceof ArrayBuffer
+	){
+		return new Uint8Array(
+			value.buffer,
+			value.byteOffset||0,
+			value.byteLength
+		)
+	}
+
+	return null
+}
+
+function bytesToString(
+	bytes,
+	start,
+	length
+){
+	if(
+		!bytes||
+		!bytes.length
+	){
+		return ""
+	}
+
+	let result=
+		"";
+
+	const end=
+		Math.min(
+			bytes.length,
+			start+
+			length
+		);
+
+	for(
+		let i=start;
+		i<end;
+		i++
+	){
+		result+=
+			String.fromCharCode(
+				bytes[i]
+			)
+	}
+
+	return result
+}
+
+function detectMime(
+	bytes,
+	path
+){
+	if(
+		!bytes||
+		bytes.length<2
+	){
+		return mimeFromExtension(
+			path
+		)
+	}
+
+	if(
+		bytes.length>=4&&
+		bytes[0]===0x1A&&
+		bytes[1]===0x45&&
+		bytes[2]===0xDF&&
+		bytes[3]===0xA3
+	){
+		return "video/webm"
+	}
+
+	if(
+		bytes.length>=4&&
+		bytes[0]===0x4F&&
+		bytes[1]===0x67&&
+		bytes[2]===0x67&&
+		bytes[3]===0x53
+	){
+		return "video/ogg"
+	}
+
+	if(
+		bytes.length>=12&&
+		bytes[0]===0x52&&
+		bytes[1]===0x49&&
+		bytes[2]===0x46&&
+		bytes[3]===0x46
+	){
+		const riff=
+			bytesToString(
+				bytes,
+				8,
+				4
+			);
+
+		if(
+			riff==="AVI "
+		){
+			return "video/x-msvideo"
+		}
+
+		if(
+			riff==="WAVE"
+		){
+			return "audio/wav"
+		}
+
+		if(
+			riff==="WEBP"
+		){
+			return "video/webm"
+		}
+	}
+
+	if(
+		bytes.length>=4&&
+		bytes[0]===0x46&&
+		bytes[1]===0x4C&&
+		bytes[2]===0x56
+	){
+		return "video/x-flv"
+	}
+
+	if(
+		bytes.length>=3&&
+		bytes[0]===0x49&&
+		bytes[1]===0x44&&
+		bytes[2]===0x33
+	){
+		return "audio/mpeg"
+	}
+
+	if(
+		bytes.length>=2&&
+		bytes[0]===0xFF&&
+		(
+			(bytes[1]&0xE0)===0xE0
+		)
+	){
+		return "audio/mpeg"
+	}
+
+	if(
+		bytes.length>=4&&
+		bytes[0]===0x66&&
+		bytes[1]===0x4C&&
+		bytes[2]===0x61&&
+		bytes[3]===0x43
+	){
+		return "audio/flac"
+	}
+
+	if(
+		bytes.length>=8&&
+		bytes[0]===0xD0&&
+		bytes[1]===0xCF
+	){
+		return mimeFromExtension(
+			path
+		)
+	}
+
+	if(
+		bytes.length>=4&&
+		bytes[0]===0x00&&
+		bytes[1]===0x00&&
+		bytes[2]===0x01&&
+		bytes[3]===0xBA
+	){
+		return "video/mpeg"
+	}
+
+	if(
+		bytes.length>=1&&
+		bytes[0]===0x47
+	){
+		return "video/mp2t"
+	}
+
+	if(
+		bytes.length>=8
+	){
+		const boxType=
+			bytesToString(
+				bytes,
+				4,
+				4
+			);
+
+		if(
+			boxType==="ftyp"
+		){
+			const brand=
+				bytesToString(
+					bytes,
+					8,
+					4
+				);
+
+			if(
+				brand==="qt  "
+			){
+				return "video/quicktime"
+			}
+
+			if(
+				brand==="3gp4"||
+				brand==="3gp5"||
+				brand==="3gp6"||
+				brand==="3gp7"
+			){
+				return "video/3gpp"
+			}
+
+			if(
+				brand==="3g2a"||
+				brand==="3g2b"
+			){
+				return "video/3gpp2"
+			}
+
+			return "video/mp4"
+		}
+	}
+
+	return mimeFromExtension(
+		path
+	)
+}
+
+function binaryStringToBytes(
+	value
+){
+	const s=
+		String(value);
+
+	const bytes=
+		new Uint8Array(
+			s.length
+		);
+
+	for(
+		let i=0;
+		i<s.length;
+		i++
+	){
+		bytes[i]=
+			s.charCodeAt(i)&255
+	}
+
+	return bytes
+}
+
+function looksLikeBinaryString(
+	value
+){
+	if(
+		typeof value!=="string"
+	){
+		return false
+	}
+
+	const s=
+		value;
+
+	if(
+		!s.length
+	){
+		return false
+	}
+
+	let binaryCount=
+		0;
+
+	const sampleLength=
+		Math.min(
+			s.length,
+			4096
+		);
+
+	for(
+		let i=0;
+		i<sampleLength;
+		i++
+	){
+		const code=
+			s.charCodeAt(i);
+
+		if(
+			code===0||
+			code===1||
+			code===2||
+			code===3||
+			code===4||
+			code===5||
+			code===6||
+			code===7||
+			code===8||
+			code===14||
+			code===15||
+			(
+				code>=16&&
+				code<=31
+			)||
+			code===127
+		){
+			binaryCount++
+		}
+	}
+
+	return (
+		binaryCount>0
+	)
+}
+
+function binaryStringToURL(
+	value,
+	path
+){
+	const bytes=
+		binaryStringToBytes(
+			value
+		);
+
+	const mime=
+		detectMime(
+			bytes,
+			path
+		);
+
+	const blob=
+		new Blob(
+			[
+				bytes
+			],
+			{
+				type:mime
+			}
+		);
+
+	currentObjectURL=
+		URL.createObjectURL(
+			blob
+		);
+
+	return currentObjectURL
+}
+
+function isProbablyBase64(
+	value
+){
+	if(
+		typeof value!=="string"
+	){
+		return false
+	}
+
+	const s=
+		value
+			.trim()
+			.replace(
+				/\s/g,
+				""
+			);
+
+	if(
+		s.length<32
+	){
+		return false
+	}
+
+	return /^[A-Za-z0-9+/]+={0,2}$/.test(
+		s
+	)
+}
+
+function detectBase64Mime(
+	value,
+	path
+){
+	const clean=
+		String(value||"")
+			.trim()
+			.replace(
+				/\s/g,
+				""
+			);
+
+	if(
+		clean.startsWith(
+			"GkXfo"
+		)
+	){
+		return "video/webm"
+	}
+
+	if(
+		clean.startsWith(
+			"T2dnUw"
+		)
+	){
+		return "video/ogg"
+	}
+
+	if(
+		clean.startsWith(
+			"SUQz"
+		)
+	){
+		return "audio/mpeg"
+	}
+
+	if(
+		clean.startsWith(
+			"AAAA"
+		)
+	){
+		return mimeFromExtension(
+			path
+		)
+	}
+
+	return mimeFromExtension(
+		path
+	)
+}
+
+function base64ToURL(
+	value,
+	path
+){
+	const clean=
+		String(value||"")
+			.trim()
+			.replace(
+				/\s/g,
+				""
+			);
+
+	const mime=
+		detectBase64Mime(
+			clean,
+			path
+		);
+
+	const binary=
+		atob(
+			clean
+		);
+
+	const bytes=
+		new Uint8Array(
+			binary.length
+		);
+
+	for(
+		let i=0;
+		i<binary.length;
+		i++
+	){
+		bytes[i]=
+			binary.charCodeAt(i)
+	}
+
+	const detected=
+		detectMime(
+			bytes,
+			path
+		);
+
+	const blob=
+		new Blob(
+			[
+				bytes
+			],
+			{
+				type:
+					detected!=="application/octet-stream"
+						?detected
+						:mime
+			}
+		);
+
+	currentObjectURL=
+		URL.createObjectURL(
+			blob
+		);
+
+	return currentObjectURL
+}
+
+function stringToSource(
+	value,
+	path
+){
+	const s=
+		String(
+			value||""
+		);
+
+	if(
+		/^data:/i.test(s)
+	){
+		return s
+	}
+
+	if(
+		/^https?:\/\//i.test(s)||
+		/^blob:/i.test(s)||
+		/^file:/i.test(s)
+	){
+		return s
+	}
+
+	if(
+		/^chxd:\//i.test(s)||
+		/^local:\//i.test(s)||
+		/^session:\//i.test(s)||
+		/^indexdb:\//i.test(s)||
+		/^puter:\//i.test(s)
+	){
+		return readVirtualFile(
+			s,
+			0
+		)
+	}
+
+	if(
+		looksLikeBinaryString(
+			s
+		)
+	){
+		return binaryStringToURL(
+			s,
+			path
+		)
+	}
+
+	if(
+		isProbablyBase64(
+			s
+		)
+	){
+		return base64ToURL(
+			s,
+			path
+		)
+	}
+
+	throw new Error(
+		"Unsupported string media source."
+	)
+}
+
+function blobToURL(
+	blob
+){
+	if(!blob){
+		throw new Error(
+			"Empty Blob."
+		)
+	}
+
+	currentObjectURL=
+		URL.createObjectURL(
+			blob
+		);
+
+	return currentObjectURL
+}
+
+function bytesToURL(
+	value,
+	path
+){
+	const bytes=
+		bytesFrom(
+			value
+		);
+
+	if(!bytes){
+		throw new Error(
+			"Invalid binary media data."
+		)
+	}
+
+	const mime=
+		detectMime(
+			bytes,
+			path
+		);
+
+	const blob=
+		new Blob(
+			[
+				bytes
+			],
+			{
+				type:mime
+			}
+		);
+
+	return blobToURL(
+		blob
+	)
+}
+
+async function resolveValue(
+	value,
+	path,
+	depth
+){
+	depth=
+		Number(depth)||0;
+
+	if(
+		depth>12
+	){
+		throw new Error(
+			"Media source resolution exceeded the limit."
+		)
+	}
+
+	if(
+		value==null
+	){
+		throw new Error(
+			"Filesystem returned no media data."
+		)
+	}
+
+	if(
+		typeof File!=="undefined"&&
+		value instanceof File
+	){
+		return blobToURL(
+			value
+		)
+	}
+
+	if(
+		value instanceof Blob
+	){
+		return blobToURL(
+			value
+		)
+	}
+
+	if(
+		value instanceof ArrayBuffer
+	){
+		return bytesToURL(
+			value,
+			path
+		)
+	}
+
+	const bytes=
+		bytesFrom(
+			value
+		);
+
+	if(bytes){
+		return bytesToURL(
+			bytes,
+			path
+		)
+	}
+
+	if(
+		value&&
+		typeof value==="object"&&
+		typeof value.getFile==="function"
+	){
+		const file=
+			await value.getFile();
+
+		return resolveValue(
+			file,
+			path,
+			depth+1
+		)
+	}
+
+	if(
+		typeof value==="string"
+	){
+		return stringToSource(
+			value,
+			path
+		)
+	}
+
+	if(
+		typeof value==="object"
+	){
+
+		const keys=[
+			"file",
+			"blob",
+			"content",
+			"data",
+			"bytes",
+			"arrayBuffer",
+			"buffer",
+			"handle",
+			"fileHandle",
+			"source",
+			"url",
+			"src",
+			"href"
+		];
+
+		for(
+			const key of keys
+		){
+
+			if(
+				!(key in value)
+			){
+				continue
+			}
+
+			let child;
+
+			try{
+				child=
+					value[key];
+
+				if(
+					typeof child==="function"
+				){
+					child=
+						await child.call(
+							value
+						)
+				}
+			}catch(_){
+				continue
+			}
+
+			if(
+				child==null
+			){
+				continue
+			}
+
+			try{
+				return await resolveValue(
+					child,
+					path,
+					depth+1
+				)
+			}catch(_){}
+		}
+	}
+
+	throw new Error(
+		"Unsupported media source type: "+
+		Object.prototype.toString.call(
+			value
+		)
+	)
+}
+
+async function getDeviceHandle(
+	path,
+	fs
+){
+	if(
+		!fs||
+		typeof fs.getDeviceMounts!=="function"
+	){
+		return null
+	}
+
+	const prefix=
+		"chxd:/device/";
+
+	if(
+		!String(path)
+			.toLowerCase()
+			.startsWith(
+				prefix.toLowerCase()
+			)
+	){
+		return null
+	}
+
+	const relative=
+		String(path).slice(
+			prefix.length
+		);
+
+	const parts=
+		relative
+			.split("/")
+			.filter(Boolean);
+
+	if(
+		parts.length<2
+	){
+		return null
+	}
+
+	const mountName=
+		parts.shift();
+
+	const mounts=
+		await fs.getDeviceMounts();
+
+	if(
+		!Array.isArray(mounts)
+	){
+		return null
+	}
+
+	const mount=
+		mounts.find(
+			m=>
+				m&&
+				String(m.name)===
+				String(mountName)
+		);
+
+	if(!mount){
+		return null
+	}
+
+	let handle=
+		mount.handle||
+		mount.directoryHandle||
+		mount.rootHandle;
+
+	if(!handle){
+		return null
+	}
+
+	if(
+		typeof handle.queryPermission===
+		"function"
+	){
+		let permission=
+			await handle.queryPermission(
+				{
+					mode:"read"
+				}
+			);
+
+		if(
+			permission!=="granted"&&
+			typeof handle.requestPermission===
+			"function"
+		){
+			permission=
+				await handle.requestPermission(
+					{
+						mode:"read"
+					}
+				);
+		}
+
+		if(
+			permission!=="granted"
+		){
+			throw new Error(
+				"File System Access permission denied for '"+mountName+"'."
+			)
+		}
+	}
+
+	for(
+		let i=0;
+		i<parts.length;
+		i++
+	){
+		const part=
+			parts[i];
+
+		const last=
+			i===
+			parts.length-1;
+
+		if(last){
+
+			try{
+				return await handle.getFileHandle(
+					part
+				)
+			}catch(_){
+
+				try{
+					return await handle.getDirectoryHandle(
+						part
+					)
+				}catch(__){
+
+					throw new Error(
+						"Could not find '"+part+"' in the mounted folder."
+					)
+				}
+			}
+		}
+
+		if(
+			typeof handle.getDirectoryHandle!=="function"
+		){
+			return null
+		}
+
+		handle=
+			await handle.getDirectoryHandle(
+				part
+			)
+	}
+
+	return null
+}
+
+async function readVirtualFile(
+	path,
+	depth
+){
+	depth=
+		Number(depth)||0;
+
+	if(
+		depth>12
+	){
+		throw new Error(
+			"Filesystem path resolution exceeded the limit."
+		)
+	}
+
+	const fs=
+		getFS();
+
+	if(!fs){
+		throw new Error(
+			"Little Hollow filesystem bridge is unavailable."
+		)
+	}
+
+	let normalized=
+		String(path);
+
+	try{
+		if(
+			typeof fs.normalize==="function"
+		){
+			normalized=
+				fs.normalize(
+					normalized
+				)
+		}
+	}catch(_){}
+
+	try{
+		const handle=
+			await getDeviceHandle(
+				normalized,
+				fs
+			);
+
+		if(
+			handle&&
+			typeof handle.getFile==="function"
+		){
+			const file=
+				await handle.getFile();
+
+			return blobToURL(
+				file
+			)
+		}
+	}catch(error){
+		console.warn(
+			"[Video Viewer] Direct FSA read failed:",
+			error
+		)
+	}
+
+	if(
+		typeof fs.read==="function"
+	){
+
+		const result=
+			await fs.read(
+				normalized
+			);
+
+		if(
+			result&&
+			typeof result==="object"&&
+			"ok" in result&&
+			!result.ok
+		){
+			throw new Error(
+				result.error||
+				result.summary||
+				"Could not read media."
+			)
+		}
+
+		let content=
+			result&&
+			typeof result==="object"&&
+			"content" in result
+				?result.content
+				:result;
+
+		if(
+			typeof content==="string"&&
+			content!==normalized&&
+			isVirtualPath(
+				content.trim()
+			)
+		){
+			return readVirtualFile(
+				content.trim(),
+				depth+1
+			)
+		}
+
+		return resolveValue(
+			content,
+			normalized,
+			depth+1
+		)
+	}
+
+	throw new Error(
+		"Could not read filesystem media:\n"+
+		normalized
+	)
+}
+
+function resolveSource(
+	src
+){
+	const s=
+		String(
+			src||""
+		).trim();
+
+	if(!s){
+		throw new Error(
+			"No media source specified."
+		)
+	}
+
+	if(
+		isVirtualPath(s)
+	){
+		return readVirtualFile(
+			s,
+			0
+		)
+	}
+
+	if(
+		isURL(s)
+	){
+		return s
+	}
+
+	throw new Error(
+		"Unsupported media source:\n"+
+		s
+	)
+}
+
+function chooseMediaElement(
+	source
+){
+	const type=
+		getSourceType(
+			source
+		);
+
+	if(
+		type.startsWith(
+			"audio/"
+		)
+	){
+		return document.createElement(
+			"audio"
+		)
+	}
+
+	return document.createElement(
+		"video"
+	)
+}
+
+function getSourceType(
+	source
+){
+	const s=
+		String(
+			source||""
+		);
+
+	if(
+		/^data:/i.test(s)
+	){
+		const match=
+			s.match(
+				/^data:([^;,]+)/i
+			);
+
+		if(
+			match&&
+			match[1]
+		){
+			return match[1].toLowerCase()
+		}
+	}
+
+	return mimeFromExtension(
+		urlInput.value
+	)
+}
+
+function displayMedia(
+	source
+){
+	return new Promise(
+		(resolve,reject)=>{
+			const media=
+				chooseMediaElement(
+					source
+				);
+
+			currentMedia=
+				media;
+
+			media.controls=
+				true;
+
+			media.autoplay=
+				false;
+
+			media.playsInline=
+				true;
+
+			media.preload=
+				"metadata";
+
+			if(
+				media.tagName.toLowerCase()==="video"
+			){
+				media.disablePictureInPicture=
+					false;
+			}
+
+			media.onloadedmetadata=
+				()=>{
+					stage.innerHTML=
+						"";
+
+					stage.appendChild(
+						media
+					);
+
+					if(
+						media.tagName.toLowerCase()==="video"
+					){
+						media
+							.play()
+							.catch(
+								()=>{}
+							);
+					}
+
+					resolve(
+						media
+					)
+				};
+
+			media.onerror=
+				()=>{
+					reject(
+						new Error(
+							"Browser could not decode this media file."
+						)
+					)
+				};
+
+			media.onabort=
+				()=>{
+					reject(
+						new Error(
+							"Media loading was aborted."
+						)
+					)
+				};
+
+			media.src=
+				source;
+
+			try{
+				media.load()
+			}catch(_){}
+		}
+	)
+}
+
+async function show(
+	src
+){
+	src=
+		String(
+			src||""
+		).trim();
+
+	if(!src){
+		showError(
+			"No media path specified."
+		);
+
+		return
+	}
+
+	loading();
+
+	try{
+		const source=
+			await resolveSource(
+				src
+			);
+
+		console.log(
+			"[Video Viewer] Resolved media:",
+			src,
+			source
+		);
+
+		await displayMedia(
+			source
+		);
+
+	}catch(err){
+
+		console.error(
+			"[Video Viewer] Media loading failed:",
+			err
+		);
+
+		showError(
+			"Failed to load media.\n\n"+
+			(
+				err&&err.message
+					?err.message
+					:String(err)
+			)
+		)
+	}
+}
+
+document
+	.getElementById("loadBtn")
+	.onclick=()=>{
+		const src=
+			urlInput.value.trim();
+
+		if(src){
+			show(
+				src
+			)
+		}
+	};
+
+urlInput.onkeydown=
+	e=>{
+		if(
+			e.key!=="Enter"
+		){
+			return
+		}
+
+		const src=
+			urlInput.value.trim();
+
+		if(src){
+			show(
+				src
+			)
+		}
+	};
+
+window.addEventListener(
+	"beforeunload",
+	()=>{
+		cleanup()
+	}
+);
+
+if(initialPath){
+	urlInput.value=
+		initialPath;
+
+	show(
+		initialPath
+	)
+}
+</script></body>
 </html>
