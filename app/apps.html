@@ -2,127 +2,399 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Apps</title>
+
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:monospace}
-html,body{width:100%;height:100%;color:#00FFFF}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:14px;padding:16px}
-.tile{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;text-align:center;font-size:11px}
-.tile .icon{width:52px;height:52px;border:1px solid #00FFFF;display:flex;align-items:center;justify-content:center;font-size:22px}
-.tile:active .icon{background:#00FFFF;color:#000}
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:monospace;
+}
+
+html,
+body{
+    width:100%;
+    height:100%;
+    color:#00FFFF;
+    background:transparent;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(86px,1fr));
+    gap:14px;
+    padding:16px;
+}
+
+.tile{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    cursor:pointer;
+    text-align:center;
+    font-size:11px;
+    min-width:0;
+}
+
+.tile .icon{
+    width:52px;
+    height:52px;
+    border:1px solid #00FFFF;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:22px;
+    overflow:hidden;
+}
+
+.tile .icon img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+}
+
+.tile .label{
+    width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.tile:active .icon{
+    background:#00FFFF;
+    color:#000;
+}
+
+.empty{
+    grid-column:1/-1;
+    opacity:.5;
+    font-size:11px;
+    text-align:center;
+    padding:20px;
+}
 </style>
 </head>
+
 <body>
 
 <div class="grid" id="grid"></div>
 
 <script>
-const CIA_PATH="chxd:/local/Custom Installed Application/CIA.json";
+(function(){
+    "use strict";
 
-const apps=[
-    {name:"File Manager",icon:"🗂"},
-    {name:"AppInstaller",label:"App Installer",icon:"📦"},
-    {name:"Clock",icon:"🕒"},
-    {name:"Calculator",icon:"🧮"},
-    {name:"Notepad",icon:"📝"},
-    {name:"Paint",icon:"🎨"},
-    {name:"ImageEditor",icon:"🖼️"},
-    {name:"TerminalJS",icon:"👨🏽‍💻"},
-    {name:"Recorder",icon:"🎙️"},
-    {name:"Camera",icon:"📷"},
+    const CIA_PATH=
+        "chxd:/local/Custom Installed Application/CIA.json";
 
-    {name:"tictactoe",label:"Tic Tac Toe",icon:"⭕"},
-    {name:"snake",label:"Snake",icon:"🐍"},
+    const grid=
+        document.getElementById("grid");
 
-    {name:"2048",label:"2048",icon:"🔢"},
-    {name:"minesweeper",label:"Minesweeper",icon:"💣"},
-    {name:"sudoku",label:"Sudoku",icon:"🔢"},
-    {name:"SOS",icon:"🆘"},
-    {name:"tetris",label:"Tetris",icon:"🧱"},
-    {name:"wordle",label:"Wordle",icon:"🔤"},
+    /*
+     * Built-in applications.
+     * These remain independent from CIA.json.
+     */
+    const BUILTIN_APPS=[
+        {name:"File Manager",icon:"🗂"},
+        {name:"AppInstaller",label:"App Installer",icon:"📦"},
+        {name:"Clock",icon:"🕒"},
+        {name:"Calculator",icon:"🧮"},
+        {name:"Notepad",icon:"📝"},
+        {name:"Paint",icon:"🎨"},
+        {name:"ImageEditor",icon:"🖼️"},
+        {name:"TerminalJS",icon:"👨🏽‍💻"},
+        {name:"Recorder",icon:"🎙️"},
+        {name:"Camera",icon:"📷"},
 
-    {name:"doom",label:"Doom",icon:"☢️"},
-    {name:"Pacman",label:"Pac-man",icon:"⍩⃝"},
-    {name:"GBA",label:"GBA",icon:"⍩⃝"},
+        {name:"tictactoe",label:"Tic Tac Toe",icon:"⭕"},
+        {name:"snake",label:"Snake",icon:"🐍"},
 
-    {name:"GameFinder",icon:"🎮"},
-    {name:"Browser",label:"Browser",icon:"🌐"},
-    {name:"Map",label:"Maps",icon:"🗺️"},
-    {name:"Messenger",icon:"💬"},
-    {name:"Settings",icon:"set"}
-];
+        {name:"2048",label:"2048",icon:"🔢"},
+        {name:"minesweeper",label:"Minesweeper",icon:"💣"},
+        {name:"sudoku",label:"Sudoku",icon:"🔢"},
+        {name:"SOS",icon:"🆘"},
+        {name:"tetris",label:"Tetris",icon:"🧱"},
+        {name:"wordle",label:"Wordle",icon:"🔤"},
 
-const grid=document.getElementById("grid");
+        {name:"doom",label:"Doom",icon:"☢️"},
+        {name:"Pacman",label:"Pac-man",icon:"⍩⃝"},
+        {name:"GBA",label:"GBA",icon:"⍩⃝"},
 
-function addTile(key,label,icon){
-    const tile=document.createElement("div");
+        {name:"GameFinder",icon:"🎮"},
+        {name:"Browser",label:"Browser",icon:"🌐"},
+        {name:"Map",label:"Maps",icon:"🗺️"},
+        {name:"Messenger",icon:"💬"},
+        {name:"Settings",icon:"set"}
+    ];
 
-    tile.className="tile";
+    function clearGrid(){
+        grid.innerHTML="";
+    }
 
-    tile.innerHTML=
-        `<div class="icon">${icon}</div>
-         <div>${label}</div>`;
+    function createIcon(icon){
+        const box=document.createElement("div");
+        box.className="icon";
 
-    tile.onclick=()=>{
-        parent.Apps.openApp(key);
-    };
+        const value=String(icon||"📦").trim();
 
-    grid.appendChild(tile);
-}
+        /*
+         * Supports:
+         *   emoji / text icons
+         *   normal image URLs
+         *   data URLs
+         *   chxd: paths
+         */
+        if(
+            /^https?:\/\//i.test(value) ||
+            /^data:image\//i.test(value) ||
+            /^chxd:/i.test(value)
+        ){
+            const img=document.createElement("img");
+            img.src=value;
+            img.alt="";
+            img.onerror=()=>{
+                box.textContent="📦";
+            };
+            box.appendChild(img);
+        }else{
+            box.textContent=value||"📦";
+        }
 
-function renderBuiltInApps(){
-    apps.forEach(app=>{
-        addTile(
-            app.name,
-            app.label||app.name,
-            app.icon
+        return box;
+    }
+
+    function addTile(
+        key,
+        label,
+        icon
+    ){
+        const tile=
+            document.createElement("div");
+
+        tile.className="tile";
+
+        const iconEl=
+            createIcon(icon);
+
+        const labelEl=
+            document.createElement("div");
+
+        labelEl.className="label";
+        labelEl.textContent=
+            String(label||key||"Application");
+
+        tile.appendChild(iconEl);
+        tile.appendChild(labelEl);
+
+        tile.onclick=async()=>{
+            try{
+                if(
+                    parent.Apps &&
+                    typeof parent.Apps.openApp==="function"
+                ){
+                    const result=
+                        await parent.Apps.openApp(key);
+
+                    if(
+                        result &&
+                        result.ok===false
+                    ){
+                        console.warn(
+                            "[Apps] Could not open:",
+                            key,
+                            result.error
+                        );
+                    }
+
+                    return;
+                }
+
+                console.warn(
+                    "[Apps] parent.Apps.openApp is unavailable."
+                );
+            }catch(e){
+                console.error(
+                    "[Apps] Failed to open application:",
+                    key,
+                    e
+                );
+            }
+        };
+
+        grid.appendChild(tile);
+    }
+
+    function renderBuiltInApps(){
+        for(const app of BUILTIN_APPS){
+            addTile(
+                app.name,
+                app.label||app.name,
+                app.icon
+            );
+        }
+    }
+
+    async function readInstalledApps(){
+        try{
+            if(
+                !parent.FS ||
+                typeof parent.FS.read!=="function"
+            ){
+                return [];
+            }
+
+            const result=
+                await parent.FS.read(CIA_PATH);
+
+            if(
+                !result ||
+                !result.ok ||
+                !result.content
+            ){
+                return [];
+            }
+
+            const parsed=
+                JSON.parse(result.content);
+
+            return Array.isArray(parsed)
+                ?parsed
+                :[];
+        }catch(e){
+            console.warn(
+                "[Apps] Could not read CIA.json:",
+                e
+            );
+
+            return [];
+        }
+    }
+
+    function validInstalledApp(app){
+        if(
+            !app ||
+            typeof app!=="object"
+        ){
+            return false;
+        }
+
+        if(!String(app.pkg||"").trim()){
+            return false;
+        }
+
+        if(
+            app.srcDoc!=null &&
+            String(app.srcDoc).trim()
+        ){
+            return true;
+        }
+
+        if(
+            app.src!=null &&
+            String(app.src).trim()
+        ){
+            return true;
+        }
+
+        return false;
+    }
+
+    function getInstalledIcon(app){
+        return String(
+            app.appIcon||
+            "📦"
         );
-    });
-}
+    }
 
-async function renderInstalledApps(){
-    try{
-        if(
-            !parent.FS ||
-            typeof parent.FS.read!=="function"
-        ){
-            return;
-        }
+    function getInstalledLabel(app){
+        return String(
+            app.name||
+            app.pkg||
+            "Application"
+        );
+    }
 
-        const result=
-            await parent.FS.read(CIA_PATH);
-
-        if(
-            !result ||
-            !result.ok ||
-            !result.content
-        ){
-            return;
-        }
-
+    async function renderInstalledApps(){
         const installed=
-            JSON.parse(result.content);
+            await readInstalledApps();
 
-        if(!Array.isArray(installed)){
-            return;
-        }
-
-        installed.forEach(app=>{
-            if(!app||!app.pkg||!app.src){
-                return;
+        for(const app of installed){
+            /*
+             * IMPORTANT:
+             * srcDoc apps are valid installed apps too.
+             * Do not check only app.src.
+             */
+            if(!validInstalledApp(app)){
+                continue;
             }
 
             addTile(
                 app.pkg,
-                app.name||app.pkg,
-                app.appIcon||"📦"
+                getInstalledLabel(app),
+                getInstalledIcon(app)
             );
-        });
-    }catch(e){}
-}
+        }
+    }
 
-renderBuiltInApps();
-renderInstalledApps();
+    async function render(){
+        clearGrid();
+
+        renderBuiltInApps();
+        await renderInstalledApps();
+
+        if(!grid.children.length){
+            const empty=
+                document.createElement("div");
+
+            empty.className="empty";
+            empty.textContent=
+                "No applications available.";
+
+            grid.appendChild(empty);
+        }
+    }
+
+    /*
+     * AppInstaller sends this after install/update/uninstall.
+     * Rebuild the app grid automatically.
+     */
+    window.addEventListener(
+        "message",
+        e=>{
+            const data=e.data||{};
+
+            if(
+                data.type==="LH_APPS_CHANGED" ||
+                data.type==="LH_INSTALLED_APP"
+            ){
+                render();
+            }
+        }
+    );
+
+    window.addEventListener(
+        "lh:apps-changed",
+        ()=>{
+            render();
+        }
+    );
+
+    /*
+     * Initial render.
+     */
+    render();
+
+    /*
+     * Expose a tiny API for the shell/tools if needed.
+     */
+    window.AppsPageAPI={
+        refresh:render,
+        readInstalledApps
+    };
+
+})();
 </script>
 
 </body>
