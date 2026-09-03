@@ -4270,32 +4270,99 @@ select{
         }
     );
 
-    window.PianoAPI={
+        window.PianoAPI={
+
+        playPKP:function(value){
+            if(
+                typeof value!=="string" ||
+                !value.trim()
+            ){
+                return false;
+            }
+
+            playPKP(
+                value.trim()
+            );
+
+            return true;
+        },
+
+        importPKP:function(value){
+            if(
+                typeof value!=="string" ||
+                !value.trim()
+            ){
+                return false;
+            }
+
+            const text=
+                value.trim();
+
+            pkpRecording=text;
+            recordingType="pkp";
+            recordTypeControl.value="pkp";
+
+            pkpRecordedNotes=[];
+            pkpActiveNotes.clear();
+            pkpRecordingSettings=[];
+            pkpInitialSettings=null;
+            recordingEvents=[];
+
+            recordState.textContent=
+                "PKP imported.";
+
+            info.textContent=
+                "PKP imported into Piano.";
+
+            return true;
+        },
+
+        importPKPFromCHXD:function(path){
+            return importPKPFromCHXD(
+                path
+            );
+        },
+
+        isRecording:function(){
+            return recording;
+        },
 
         playMidi:function(midi){
             midi=Number(midi);
 
             if(
-                Number.isFinite(midi)
+                !Number.isFinite(midi) ||
+                midi<0 ||
+                midi>127
             ){
-                startNote(
-                    midi,
-                    false
-                );
+                return false;
             }
+
+            startNote(
+                midi,
+                false
+            );
+
+            return true;
         },
 
         stopMidi:function(midi){
             midi=Number(midi);
 
             if(
-                Number.isFinite(midi)
+                !Number.isFinite(midi) ||
+                midi<0 ||
+                midi>127
             ){
-                stopNote(
-                    midi,
-                    false
-                );
+                return false;
             }
+
+            stopNote(
+                midi,
+                false
+            );
+
+            return true;
         },
 
         setOctave:function(value){
@@ -4305,7 +4372,7 @@ select{
             if(
                 !Number.isFinite(next)
             ){
-                return;
+                return false;
             }
 
             stopAllNotes();
@@ -4320,6 +4387,8 @@ select{
                 );
 
             buildPiano();
+
+            return true;
         },
 
         getOctave:function(){
@@ -4327,12 +4396,21 @@ select{
         },
 
         setVolume:function(value){
+            const next=
+                Number(value);
+
+            if(
+                !Number.isFinite(next)
+            ){
+                return false;
+            }
+
             volume=
                 Math.max(
                     0,
                     Math.min(
                         1,
-                        Number(value)||0
+                        next
                     )
                 );
 
@@ -4343,9 +4421,16 @@ select{
                 masterGain.gain.value=
                     volume;
             }
+
+            return true;
         },
 
         setWaveform:function(value){
+            value=
+                String(
+                    value||""
+                ).toLowerCase();
+
             if(
                 ![
                     "sine",
@@ -4354,15 +4439,20 @@ select{
                     "sawtooth"
                 ].includes(value)
             ){
-                return;
+                return false;
             }
 
             waveform=value;
             wave.value=value;
+
+            return true;
         },
 
         setInstrument:function(value){
-            value=String(value);
+            value=
+                String(
+                    value||""
+                ).toLowerCase();
 
             if(
                 !Object.prototype.hasOwnProperty.call(
@@ -4370,12 +4460,14 @@ select{
                     value
                 )
             ){
-                return;
+                return false;
             }
 
             instrument=value;
             instrumentControl.value=
                 value;
+
+            return true;
         },
 
         getInstrument:function(){
@@ -4383,10 +4475,14 @@ select{
         },
 
         setSustain:function(value){
-            const next=!!value;
+            const next=
+                !!value;
 
-            if(next===sustain)
-                return;
+            if(
+                next===sustain
+            ){
+                return true;
+            }
 
             sustain=next;
 
@@ -4395,8 +4491,11 @@ select{
                 sustain
             );
 
-            if(!sustain)
+            if(!sustain){
                 releaseSustain();
+            }
+
+            return true;
         },
 
         startRecording:function(){
@@ -4412,11 +4511,12 @@ select{
         },
 
         playRecording:function(){
-            playRecording();
+            return playRecording();
         },
 
         clearRecording:function(){
             clearRecording();
+            return true;
         },
 
         getRecordingType:function(){
@@ -4446,64 +4546,70 @@ select{
             return pkpRecording;
         },
 
-        getAudio:function(){
-            return audioRecordingData;
-        },
-
         getPKPData:function(){
             return {
+                recording:
+                    pkpRecording,
+
+                recordingType:
+                    recordingType,
+
+                recording:
+                    pkpRecording,
+
                 initialSettings:
                     pkpInitialSettings
                         ?{
                             ...pkpInitialSettings
                         }
                         :null,
+
                 settings:
                     pkpRecordingSettings.map(
                         event=>({
-                            time:event.time,
+                            time:
+                                event.time,
                             settings:{
                                 ...event.settings
                             }
                         })
                     ),
+
                 notes:
                     pkpRecordedNotes.map(
                         note=>({
-                            ...note
+                            key:
+                                note.key,
+                            midi:
+                                note.midi,
+                            start:
+                                note.start,
+                            end:
+                                note.end,
+                            duration:
+                                note.duration,
+                            octave:
+                                note.octave
                         })
                     ),
-                pkp:
-                    pkpRecording
+
+                noteCount:
+                    pkpRecordedNotes.length,
+
+                layerCount:
+                    (
+                        pkpRecording.match(
+                            /</g
+                        )||[]
+                    ).length,
+
+                isRecording:
+                    recording
             };
         },
 
-        playPKP:function(value){
-            playPKP(value);
-        },
-
-        importPKP:function(value){
-            if(
-                typeof value!=="string"
-            ){
-                return false;
-            }
-
-            const text=
-                value.trim();
-
-            if(!text)
-                return false;
-
-            pkpRecording=text;
-            recordingType="pkp";
-            recordTypeControl.value=
-                "pkp";
-
-            recordState.textContent=
-                "PKP imported.";
-
-            return true;
+        getAudio:function(){
+            return audioRecordingData;
         },
 
         openPKPFileManager:function(){
@@ -4526,7 +4632,7 @@ select{
             return saveAudioRecordingToCHXD();
         }
     };
-
+    
     window.playPKP=
         playPKP;
 
