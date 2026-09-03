@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Little Hollow Piano</title>
-
 <style>
 *{
     box-sizing:border-box;
@@ -14,20 +13,25 @@
     -webkit-tap-highlight-color:transparent;
 }
 
-html,
+html{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:transparent !important;
+    background-color:transparent !important;
+}
+
 body{
     width:100%;
     height:100%;
     overflow:hidden;
-    background:#000;
-    color:#00ffff;
-}
-
-body{
     display:flex;
     flex-direction:column;
     gap:8px;
     padding:10px;
+    background:transparent !important;
+    background-color:transparent !important;
+    color:#00ffff;
 }
 
 button,
@@ -35,25 +39,33 @@ select,
 input{
     font:inherit;
     color:#00ffff;
-    background:#000;
-    border:1px solid #00ffff;
+    background:rgba(0,0,0,.18);
+    border:1px solid rgba(0,255,255,.78);
+    outline:none;
 }
 
 button{
     height:34px;
     padding:0 10px;
     cursor:pointer;
+    transition:background .12s ease,box-shadow .12s ease;
+}
+
+button:hover,
+select:hover{
+    background:rgba(0,255,255,.08);
 }
 
 button:active,
 button.active{
-    background:#00ffff;
+    background:rgba(0,255,255,.88);
     color:#000;
 }
 
 select{
     height:34px;
     padding:0 7px;
+    appearance:auto;
 }
 
 .top{
@@ -69,36 +81,45 @@ select{
     display:flex;
     align-items:center;
     gap:5px;
-    border:1px solid #004d4d;
+    border:1px solid rgba(0,77,77,.72);
+    background:rgba(0,0,0,.16);
     padding:0 7px;
     font-size:10px;
+    backdrop-filter:blur(2px);
+    -webkit-backdrop-filter:blur(2px);
 }
 
 .volume input{
     width:100px;
     border:0;
+    background:transparent;
     accent-color:#00ffff;
 }
 
 .info{
     flex:0 0 auto;
     min-height:30px;
-    border:1px solid #005555;
+    border:1px solid rgba(0,85,85,.65);
+    background:rgba(0,0,0,.12);
     padding:6px 8px;
     font-size:10px;
     white-space:nowrap;
     overflow:hidden;
     text-overflow:ellipsis;
+    backdrop-filter:blur(2px);
+    -webkit-backdrop-filter:blur(2px);
 }
 
 .pianoArea{
     flex:1 1 auto;
     min-height:0;
     overflow:auto;
-    border:1px solid #00ffff;
-    background:#000;
+    border:1px solid rgba(0,255,255,.72);
+    background:rgba(0,0,0,.28);
     padding:12px;
     touch-action:none;
+    backdrop-filter:blur(3px);
+    -webkit-backdrop-filter:blur(3px);
 }
 
 .piano{
@@ -125,9 +146,9 @@ select{
     flex:0 0 64px;
     height:100%;
     min-height:240px;
-    background:#001818;
-    border:1px solid #008888;
-    border-top:3px solid #00ffff;
+    background:rgba(0,24,24,.74);
+    border:1px solid rgba(0,136,136,.78);
+    border-top:3px solid rgba(0,255,255,.9);
     border-radius:0 0 7px 7px;
     color:#00ffff;
     display:flex;
@@ -137,9 +158,13 @@ select{
     padding-bottom:13px;
     cursor:pointer;
     box-shadow:
-        inset 0 -5px 0 #000,
-        inset 0 0 0 1px #002e2e;
+        inset 0 -5px 0 rgba(0,0,0,.55),
+        inset 0 0 0 1px rgba(0,46,46,.82);
     z-index:1;
+    transition:
+        background .08s ease,
+        transform .08s ease,
+        box-shadow .08s ease;
 }
 
 .whiteKey::after{
@@ -149,17 +174,21 @@ select{
     right:7px;
     bottom:7px;
     height:2px;
-    background:#003f3f;
+    background:rgba(0,63,63,.78);
+}
+
+.whiteKey:hover{
+    background:rgba(0,45,45,.82);
 }
 
 .whiteKey.pressed{
-    background:#00ffff;
+    background:rgba(0,255,255,.9);
     color:#000;
-    border-color:#00ffff;
+    border-color:rgba(0,255,255,.98);
     transform:translateY(3px);
     box-shadow:
-        0 0 13px #00ffff,
-        inset 0 -4px 0 #008888;
+        0 0 13px rgba(0,255,255,.82),
+        inset 0 -4px 0 rgba(0,136,136,.88);
 }
 
 .whiteKey .note{
@@ -193,9 +222,9 @@ select{
     width:39px;
     height:100%;
     min-height:165px;
-    background:#001010;
-    border:1px solid #00ffff;
-    border-top:4px solid #00ffff;
+    background:rgba(0,16,16,.86);
+    border:1px solid rgba(0,255,255,.82);
+    border-top:4px solid rgba(0,255,255,.94);
     border-radius:0 0 6px 6px;
     color:#00ffff;
     display:flex;
@@ -206,18 +235,26 @@ select{
     pointer-events:auto;
     cursor:pointer;
     box-shadow:
-        0 5px 0 #000,
-        inset 0 -5px 0 #003a3a,
-        inset 0 0 0 1px #003131;
+        0 5px 0 rgba(0,0,0,.55),
+        inset 0 -5px 0 rgba(0,58,58,.85),
+        inset 0 0 0 1px rgba(0,49,49,.9);
+    transition:
+        background .08s ease,
+        transform .08s ease,
+        box-shadow .08s ease;
+}
+
+.blackKey:hover{
+    background:rgba(0,35,35,.92);
 }
 
 .blackKey.pressed{
-    background:#00ffff;
+    background:rgba(0,255,255,.92);
     color:#000;
     transform:translateY(3px);
     box-shadow:
-        0 0 13px #00ffff,
-        0 2px 0 #008888;
+        0 0 13px rgba(0,255,255,.82),
+        0 2px 0 rgba(0,136,136,.88);
 }
 
 .blackKey .note{
@@ -248,14 +285,18 @@ select{
     display:flex;
     align-items:center;
     padding:0 8px;
-    border:1px solid #004d4d;
+    border:1px solid rgba(0,77,77,.72);
+    background:rgba(0,0,0,.17);
     font-size:10px;
     min-width:170px;
+    backdrop-filter:blur(2px);
+    -webkit-backdrop-filter:blur(2px);
 }
 
 .recordState.recording{
-    background:#001919;
-    border-color:#00ffff;
+    background:rgba(0,25,25,.52);
+    border-color:rgba(0,255,255,.9);
+    box-shadow:0 0 8px rgba(0,255,255,.16);
 }
 
 @media(max-width:700px){
@@ -369,6 +410,7 @@ select{
 
     let audioContext=null;
     let masterGain=null;
+    let limiterNode=null;
     let recordingDestination=null;
     let mediaRecorder=null;
     let audioChunks=[];
@@ -398,6 +440,8 @@ select{
     let pkpRecording="";
 
     let playbackTimers=[];
+    let isPlaying=false;
+    let currentAudioElement=null;
 
     const piano=document.getElementById("piano");
     const whiteKeys=document.getElementById("whiteKeys");
@@ -1008,9 +1052,18 @@ select{
             masterGain.gain.value=
                 volume;
 
-            masterGain.connect(
-                audioContext.destination
-            );
+            // Dynamics compressor stage to limit peak output and avoid clipping/static noise
+            limiterNode=
+                audioContext.createDynamicsCompressor();
+
+            limiterNode.threshold.setValueAtTime(-6, audioContext.currentTime);
+            limiterNode.knee.setValueAtTime(0, audioContext.currentTime);
+            limiterNode.ratio.setValueAtTime(20, audioContext.currentTime);
+            limiterNode.attack.setValueAtTime(0.005, audioContext.currentTime);
+            limiterNode.release.setValueAtTime(0.1, audioContext.currentTime);
+
+            masterGain.connect(limiterNode);
+            limiterNode.connect(audioContext.destination);
 
             return true;
         }catch(_){
@@ -1510,10 +1563,15 @@ select{
                 now
             );
 
+            voice.voiceGain.gain.setValueAtTime(
+                voice.voiceGain.gain.value||0.001,
+                now
+            );
+
             voice.voiceGain.gain.setTargetAtTime(
                 .0001,
                 now,
-                .06
+                .04
             );
 
             for(
@@ -1521,7 +1579,7 @@ select{
             ){
                 try{
                     oscillator.stop(
-                        now+.35
+                        now+.25
                     );
                 }catch(_){}
             }
@@ -1529,7 +1587,7 @@ select{
             if(voice.lfo){
                 try{
                     voice.lfo.stop(
-                        now+.35
+                        now+.25
                     );
                 }catch(_){}
             }
@@ -1559,6 +1617,15 @@ select{
         note,
         settings
     ){
+        // Smoothly clear previous voice on identical MIDI note to prevent voice duplication noise
+        for(const existing of playbackVoices){
+            if(existing.midi===note.midi){
+                stopVoice(existing.voice);
+                playbackVoices.delete(existing);
+                break;
+            }
+        }
+
         const voice=
             createVoice(
                 note.midi,
@@ -2333,8 +2400,13 @@ select{
         shouldRecord=true,
         key=null
     ){
-        if(activeVoices.has(midi))
-            return;
+        // Smoothly clear previous active/sustained voice on identical MIDI note to prevent voice duplication noise
+        if(activeVoices.has(midi)){
+            const existingVoice=activeVoices.get(midi);
+            stopVoice(existingVoice);
+            activeVoices.delete(midi);
+            sustained.delete(midi);
+        }
 
         const voice=
             createVoice(midi);
@@ -2902,6 +2974,21 @@ select{
     );
 
     function stopPlayback(){
+        isPlaying=false;
+
+        if(playButton){
+            playButton.textContent="▶ PLAY";
+            playButton.classList.remove("active");
+        }
+
+        if(currentAudioElement){
+            try{
+                currentAudioElement.pause();
+                currentAudioElement.currentTime=0;
+            }catch(_){}
+            currentAudioElement=null;
+        }
+
         for(
             const timer of playbackTimers
         ){
@@ -2959,31 +3046,40 @@ select{
                     audioRecordingData
                 );
 
+            currentAudioElement=audio;
+
             audio.onplay=
                 ()=>{
+                    isPlaying=true;
+                    playButton.textContent="■ STOP";
+                    playButton.classList.add("active");
                     recordState.textContent=
                         "Playing Audio...";
                 };
 
             audio.onended=
                 ()=>{
+                    stopPlayback();
                     recordState.textContent=
                         "Audio playback complete.";
                 };
 
             audio.onerror=
                 ()=>{
+                    stopPlayback();
                     recordState.textContent=
                         "Audio playback failed.";
                 };
 
             audio.play().catch(
                 ()=>{
+                    stopPlayback();
                     recordState.textContent=
                         "Audio playback failed.";
                 }
             );
         }catch(_){
+            stopPlayback();
             recordState.textContent=
                 "Audio playback failed.";
         }
@@ -3715,39 +3811,47 @@ select{
 
         stopPlayback();
 
+        isPlaying=true;
+        playButton.textContent="■ STOP";
+        playButton.classList.add("active");
+
         const parsed=
             parsePKPDocument(
                 text
             );
 
+        // 1. Unified Mesh: Combine all events from all layers into a single sequence
+        const meshEvents=[];
         let longestTime=0;
 
         for(
-            const events of parsed.layers
+            const layerEvents of parsed.layers
         ){
             for(
-                const event of events
+                const event of layerEvents
             ){
                 if(
                     Number.isFinite(
                         event.time
                     )
                 ){
+                    meshEvents.push(event);
+
                     let end=
                         event.time;
 
                     if(
-                        event.type==="group"
+                        event.type==="group" &&
+                        Array.isArray(event.notes)
                     ){
                         for(
-                            const note of
-                            event.notes
+                            const note of event.notes
                         ){
                             end=
                                 Math.max(
                                     end,
                                     event.time+
-                                    note.duration
+                                    (Number(note.duration)||250)
                                 );
                         }
                     }
@@ -3761,93 +3865,66 @@ select{
             }
         }
 
+        // Sort all mesh events chronologically to schedule as a single unified timeline
+        meshEvents.sort(
+            (a,b)=>a.time-b.time
+        );
+
+        // 2. Play unified stream
         for(
-            const events of parsed.layers
+            const event of meshEvents
         ){
-            for(
-                const event of events
+            const scheduledTime=
+                Math.max(
+                    0,
+                    Number(event.time)||0
+                );
+
+            if(
+                event.type==="settings"
             ){
-                const scheduledTime=
-                    Math.max(
-                        0,
-                        Number(event.time)||0
-                    );
+                playbackTimers.push(
+                    setTimeout(
+                        ()=>{
+                            applySettings(
+                                event.settings,
+                                false,
+                                true
+                            );
+                        },
+                        scheduledTime
+                    )
+                );
 
-                if(
-                    event.type==="settings"
-                ){
-                    playbackTimers.push(
-                        setTimeout(
-                            ()=>{
-                                applySettings(
-                                    event.settings,
-                                    false,
-                                    true
+                continue;
+            }
+
+            if(
+                event.type==="group"
+            ){
+                playbackTimers.push(
+                    setTimeout(
+                        ()=>{
+                            for(
+                                const note of event.notes
+                            ){
+                                startPlaybackNote(
+                                    note,
+                                    event.settings||
+                                    parsed.baseSettings
                                 );
-                            },
-                            scheduledTime
-                        )
-                    );
-
-                    continue;
-                }
-
-                if(
-                    event.type==="group"
-                ){
-                    playbackTimers.push(
-                        setTimeout(
-                            ()=>{
-                                for(
-                                    const note of
-                                    event.notes
-                                ){
-                                    startPlaybackNote(
-                                        note,
-                                        event.settings||
-                                        parsed.baseSettings
-                                    );
-                                }
-                            },
-                            scheduledTime
-                        )
-                    );
-                }
+                            }
+                        },
+                        scheduledTime
+                    )
+                );
             }
         }
 
         playbackTimers.push(
             setTimeout(
                 ()=>{
-                    for(
-                        const item of playbackVoices
-                    ){
-                        stopVoice(
-                            item.voice
-                        );
-                    }
-
-                    playbackVoices.clear();
-
-                    for(
-                        const element of
-                        document.querySelectorAll(
-                            ".pressed"
-                        )
-                    ){
-                        const midi=
-                            Number(
-                                element.dataset.midi
-                            );
-
-                        if(
-                            !activeVoices.has(midi)
-                        ){
-                            element.classList.remove(
-                                "pressed"
-                            );
-                        }
-                    }
+                    stopPlayback();
 
                     recordState.textContent=
                         "PKP playback complete.";
@@ -3860,14 +3937,21 @@ select{
         );
 
         recordState.textContent=
-            "Playing PKP · "+
+            "Playing PKP · Unified Mesh ("+
             parsed.layers.length+
-            " layers";
+            " layers)";
     }
 
     function playRecording(){
         if(recording){
             stopRecording();
+            return;
+        }
+
+        if(isPlaying){
+            stopPlayback();
+            recordState.textContent=
+                "Playback stopped.";
             return;
         }
 
@@ -4270,7 +4354,7 @@ select{
         }
     );
 
-        window.PianoAPI={
+    window.PianoAPI={
 
         playPKP:function(value){
             if(
@@ -4553,9 +4637,6 @@ select{
 
                 recordingType:
                     recordingType,
-
-                recording:
-                    pkpRecording,
 
                 initialSettings:
                     pkpInitialSettings
