@@ -807,7 +807,7 @@ function breadcrumbRootForPath(
 
 	const match=
 		s.match(
-			/^([a-zA-Z][\w-]*:)/ 
+			/^([a-zA-Z][\w-]*:)/
 		);
 
 	if(match){
@@ -1073,11 +1073,8 @@ function closeContextMenu(){
 	contextMenu.style.display=
 		"none";
 
-	contextPath=
-		null;
-
-	contextIsFolder=
-		false;
+	contextPath=null;
+	contextIsFolder=false;
 }
 
 function addContextButton(
@@ -1479,8 +1476,7 @@ function openAppNameForPath(
 	}
 
 	if(
-		isAudioPath(path)&&
-		!isVideoPath(path)
+		isAudioPath(path)
 	){
 		return "audioPlayer";
 	}
@@ -2277,7 +2273,7 @@ async function renameUsingFS(
 
 	if(!w.ok){
 		throw new Error(
-			w.error||
+			r.error||
 			(
 				"Could not create "+
 				newPath
@@ -4385,6 +4381,7 @@ function goUp(){
 	){
 
 		currentPrefix="";
+
 		clearPathDisplayOverride();
 
 		refresh(false);
@@ -4433,6 +4430,7 @@ function goUp(){
 }
 
 async function edit(p){
+
 	if(isImagePath(p)){
 		await openImageEditor(p);
 		return;
@@ -4473,6 +4471,7 @@ async function edit(p){
 }
 
 async function code(){
+
 	const paths=
 		selectedPaths();
 
@@ -5856,6 +5855,7 @@ document.getElementById(
 
 box.onchange=
 	async()=>{
+
 		const v=
 			box.value.trim();
 
@@ -5870,6 +5870,7 @@ box.onchange=
 
 box.onkeydown=
 	async e=>{
+
 		if(
 			e.key!=="Enter"
 		){
@@ -5893,6 +5894,7 @@ box.onkeydown=
 document.addEventListener(
 	"keydown",
 	e=>{
+
 		if(
 			e.ctrlKey&&
 			e.key.toLowerCase()==="c"&&
@@ -5958,6 +5960,7 @@ document.getElementById(
 			uploadUiTimer=
 				setInterval(
 					()=>{
+
 						if(!uploadTerminal){
 							return;
 						}
@@ -6083,6 +6086,7 @@ document.getElementById(
 			const progressTimer=
 				setInterval(
 					()=>{
+
 						if(
 							!uploadTerminal
 						){
@@ -6213,6 +6217,7 @@ document.getElementById(
 
 zones.forEach(
 	z=>{
+
 		const b=
 			document.createElement(
 				"button"
