@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Document Viewer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:monospace}
+html,body{width:100%;height:100%;background:#000;color:#00FFFF}
+body{overflow:hidden}
+.wrap{display:flex;flex-direction:column;width:100%;height:100%}
+.bar{flex:0 0 auto;display:flex;gap:6px;padding:8px;border-bottom:1px solid #00FFFF;flex-wrap:wrap}
+.bar input{flex:1;min-width:0;background:#001010;border:1px solid #00FFFF;color:#00FFFF;padding:6px 8px;outline:none;font:11px monospace}
+.bar button,.tools button{border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:6px 9px;cursor:pointer;font:10px monospace}
+.bar button:active,.tools button:active{background:#00FFFF;color:#000}
+.tools{display:flex;gap:5px;align-items:center;padding:6px 8px;border-bottom:1px solid rgba(0,255,255,.25);overflow:auto;flex:0 0 auto}
+.tools input{width:90px;flex:0 0 90px;background:#001010;border:1px solid #00FFFF;color:#00FFFF;padding:5px;outline:none;font:10px monospace}
+.tools .info{font-size:10px;opacity:.7;white-space:nowrap}
+.stage{flex:1;min-height:0;overflow:auto;background:#000}
+.viewer{min-width:100%;min-height:100%;display:flex;justify-content:center;align-items:flex-start;padding:14px}
+.empty{min-height:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;opacity:.55;font-size:12px;white-space:pre-wrap}
+.error{max-width:900px;margin:auto;padding:20px;color:#ff6666;font-size:11px;line-height:1.5;white-space:pre-wrap}
+.status{position:absolute;left:10px;right:10px;bottom:10px;padding:7px 9px;border:1px solid #064A4C;background:#001113;color:#00FFFF;font-size:10px;display:none;z-index:20}
+.status.show{display:block}
+.doc{width:min(900px,100%);background:#fff;color:#111;padding:44px;line-height:1.55;box-shadow:0 0 0 1px #333}
+.doc img{max-width:100%;height:auto}.doc table{border-collapse:collapse;width:100%;margin:12px 0}.doc th,.doc td{border:1px solid #777;padding:5px 7px;vertical-align:top}.doc pre{white-space:pre-wrap;word-break:break-word;background:#eee;padding:10px;overflow:auto}
+.md{width:min(900px,100%);background:#fff;color:#111;padding:44px;line-height:1.6;box-shadow:0 0 0 1px #333}.md h1,.md h2,.md h3,.md h4,.md h5,.md h6{margin:1em 0 .5em}.md p,.md ul,.md ol,.md blockquote,.md pre{margin:.7em 0}.md blockquote{border-left:4px solid #888;padding-left:12px;color:#444}.md code{background:#eee;padding:2px 4px}.md pre{padding:10px;background:#eee;overflow:auto}.md img{max-width:100%}
+.text{width:min(1000px,100%);padding:25px;white-space:pre-wrap;word-break:break-word;line-height:1.5;font:13px monospace}
+.sheet{border-collapse:collapse;background:#fff;color:#000;width:max-content;min-width:100%}.sheet th,.sheet td{border:1px solid #888;padding:5px 8px;vertical-align:top;white-space:pre-wrap}.sheet th{font-weight:bold}
+.pdf{width:min(100%,1100px);display:flex;flex-direction:column;align-items:center;gap:12px}.pdf canvas{display:block;background:#fff;box-shadow:0 0 0 1px #444;max-width:100%;height:auto}.page-label{font-size:10px;opacity:.7}
+.pptx{width:min(1200px,100%);display:flex;justify-content:center}.ppt-slide{width:100%;background:#fff;color:#000;box-shadow:0 0 0 1px #333;overflow:hidden}
+.compat{width:min(900px,100%);border:1px solid #064A4C;padding:15px;font-size:11px;line-height:1.55}.compat strong{color:#FFFF00}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="bar">
+<input id="src" placeholder="Document URL or chxd:/ path..." autocomplete="off" spellcheck="false">
+<button id="load">LOAD</button>
+</div>
+<div class="tools">
+<button id="prev">◀ PREV</button>
+<button id="next">NEXT ▶</button>
+<input id="page" type="number" min="1" step="1" placeholder="PAGE" hidden>
+<button id="goto" hidden>GO</button>
+<button id="zoomOut">−</button>
+<span class="info" id="zoom">100%</span>
+<button id="zoomIn">+</button>
+<button id="fit">FIT</button>
+<input id="find" type="text" placeholder="find text" autocomplete="off" spellcheck="false">
+<button id="findBtn">FIND</button>
+<span class="info" id="pageInfo"></span>
+</div>
+<div class="stage" id="stage"><div class="viewer" id="viewer"><div class="empty">No document loaded.</div></div><div class="status" id="status"></div></div>
+</div>
+<script type="module">
+"use strict";
+const $=id=>document.getElementById(id);
+const viewer=$("viewer"),stage=$("stage"),statusBox=$("status"),srcBox=$("src"),pageBox=$("page"),goBtn=$("goto"),pageInfo=$("pageInfo"),zoomInfo=$("zoom");
+const initial=new URLSearchParams(location.search).get("src");
+const LIB={pdf:"https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/build/pdf.mjs",pdfWorker:"https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/build/pdf.worker.mjs",mammoth:"https://cdn.jsdelivr.net/npm/mammoth@1.11.0/mammoth.browser.min.js",marked:"https://cdn.jsdelivr.net/npm/marked@16.3.0/lib/marked.esm.js",xlsx:"https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs",pptx:"https://esm.sh/pptx-viewer@latest",jszip:"https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm"};
+let pdfjs=null,pptxLib=null,loaded=null,kind="",path="",zoom=1,page=1,total=0,searchText="",searchIndex=-1,searchHits=[];
+let urls=[];
+function text(e){return e&&(e.message||e.name)?e.message||e.name:String(e||"Unknown error")}
+function setStatus(s,on=true){statusBox.textContent=String(s||"");statusBox.classList.toggle("show",!!on)}
+function clearStatus(){setStatus("",false)}
+function clearUrls(){for(const u of urls){try{URL.revokeObjectURL(u)}catch(_){}}urls=[]}
+function ext(p){const s=String(p||"").split("?")[0].split("#")[0];const i=s.lastIndexOf(".");return i<0?"":s.slice(i+1).toLowerCase()}
+function mime(p){switch(ext(p)){case"pdf":return"application/pdf";case"docx":return"application/vnd.openxmlformats-officedocument.wordprocessingml.document";case"doc":return"application/msword";case"pptx":return"application/vnd.openxmlformats-officedocument.presentationml.presentation";case"ppt":return"application/vnd.ms-powerpoint";case"xlsx":return"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";case"xls":return"application/vnd.ms-excel";case"ods":return"application/vnd.oasis.opendocument.spreadsheet";case"md":case"markdown":return"text/markdown";case"csv":return"text/csv";case"rtf":return"application/rtf";case"html":case"htm":return"text/html";case"txt":return"text/plain";case"xml":return"application/xml";case"json":return"application/json";case"epub":return"application/epub+zip";case"odt":return"application/vnd.oasis.opendocument.text";case"odp":return"application/vnd.oasis.opendocument.presentation";default:return"application/octet-stream"}}
+function virtual(s){return /^(chxd|local|session|indexdb|puter):\//i.test(String(s||""))}
+async function readSource(s){
+ s=String(s||"").trim();if(!s)throw Error("No document source specified.");
+ if(virtual(s)){
+  const fs=window.parent!==window?window.parent.FS:window.FS;
+  if(!fs||typeof fs.read!=="function")throw Error("Little Hollow filesystem bridge is unavailable.");
+  let p=s;try{if(typeof fs.normalize==="function")p=fs.normalize(p)}catch(_){ }
+  const r=await fs.read(p);
+  if(r&&typeof r==="object"&&"ok" in r&&!r.ok)throw Error(r.error||"Could not read document.");
+  const c=r&&typeof r==="object"&&"content" in r?r.content:r;
+  if(c instanceof Blob)return {buffer:await c.arrayBuffer(),mime:c.type||mime(p),path:p};
+  if(c instanceof ArrayBuffer)return {buffer:c,mime:mime(p),path:p};
+  if(ArrayBuffer.isView(c))return {buffer:c.buffer.slice(c.byteOffset,c.byteOffset+c.byteLength),mime:mime(p),path:p};
+  if(typeof c==="string"&&/^data:/i.test(c)){const q=await fetch(c);return {buffer:await q.arrayBuffer(),mime:q.headers.get("content-type")||mime(p),path:p}}
+  if(typeof c==="string")return {text:c,mime:mime(p),path:p};
+  throw Error("Unsupported filesystem data type.");
+ }
+ if(/^https?:\/\//i.test(s)||/^blob:/i.test(s)||/^file:/i.test(s)||/^data:/i.test(s)){
+  const r=await fetch(s);if(!r.ok)throw Error("HTTP "+r.status+" while loading document.");
+  return {buffer:await r.arrayBuffer(),mime:r.headers.get("content-type")||mime(s),path:s};
+ }
+ throw Error("Unsupported document source:\n"+s);
+}
+function textFromBuffer(b){try{return new TextDecoder("utf-8").decode(b)}catch(_){return ""}}
+function empty(msg="No document loaded."){clearViewer();const e=document.createElement("div");e.className="empty";e.textContent=msg;viewer.appendChild(e)}
+function error(msg){clearViewer();const e=document.createElement("div");e.className="error";e.textContent=String(msg||"Failed to load document.");viewer.appendChild(e)}
+function clearViewer(){viewer.innerHTML="";viewer.style.zoom="1"}
+function updateTools(){const paged=kind==="pdf"||kind==="pptx";$("prev").disabled=!paged;$("next").disabled=!paged;pageBox.hidden=!paged;goBtn.hidden=!paged;pageInfo.textContent=paged?`${page} / ${total}`:"";zoomInfo.textContent=Math.round(zoom*100)+"%"}
+async function loadScript(src){return new Promise((resolve,reject)=>{const old=document.querySelector(`script[data-dv-src="${src}"]`);if(old){if(old.dataset.ready==="1")return resolve();old.addEventListener("load",()=>resolve(),{once:true});old.addEventListener("error",()=>reject(Error("Could not load "+src)),{once:true});return}const s=document.createElement("script");s.src=src;s.dataset.dvSrc=src;s.onload=()=>{s.dataset.ready="1";resolve()};s.onerror=()=>reject(Error("Could not load "+src));document.head.appendChild(s)})}
+async function lib(name){
+ if(name==="pdf"){if(pdfjs)return pdfjs;pdfjs=await import(LIB.pdf);pdfjs.GlobalWorkerOptions.workerSrc=LIB.pdfWorker;return pdfjs}
+ if(name==="mammoth"){if(window.mammoth)return window.mammoth;if(window.Mammoth)return window.Mammoth;await loadScript(LIB.mammoth);return window.mammoth||window.Mammoth}
+ if(name==="marked")return import(LIB.marked)
+ if(name==="xlsx")return import(LIB.xlsx)
+ if(name==="pptx"){if(pptxLib)return pptxLib;pptxLib=await import(LIB.pptx);return pptxLib}
+ if(name==="jszip"){const m=await import(LIB.jszip);return m.default||m}
+ throw Error("Unknown library: "+name)
+}
+async function openPDF(buffer){
+ const p=await lib("pdf");const task=p.getDocument({data:new Uint8Array(buffer)});loaded=await task.promise;kind="pdf";total=loaded.numPages;page=1;await renderPDF();setStatus("PDF loaded.")
+}
+async function renderPDF(){
+ if(!loaded)return;clearViewer();const p=await loaded.getPage(page);const base=p.getViewport({scale:1});const available=Math.max(280,stage.clientWidth-44);const scale=(available/base.width)*zoom;const vp=p.getViewport({scale});const wrap=document.createElement("div");wrap.className="pdf";const label=document.createElement("div");label.className="page-label";label.textContent=`PAGE ${page}`;const canvas=document.createElement("canvas");const dpr=devicePixelRatio||1;canvas.width=Math.floor(vp.width*dpr);canvas.height=Math.floor(vp.height*dpr);canvas.style.width=vp.width+"px";canvas.style.height=vp.height+"px";wrap.append(label,canvas);viewer.appendChild(wrap);await p.render({canvasContext:canvas.getContext("2d"),viewport:vp,transform:dpr!==1?[dpr,0,0,dpr,0,0]:null}).promise;updateTools()
+}
+async function openDOCX(buffer){
+ const m=await lib("mammoth");const r=await m.convertToHtml({arrayBuffer:buffer});clearViewer();const d=document.createElement("div");d.className="doc";d.innerHTML=r.value||"<p>No document content.</p>";viewer.appendChild(d);kind="docx";loaded=d;textContent=d.innerText||"";setStatus(r.messages&&r.messages.length?`DOCX loaded with ${r.messages.length} conversion note(s).`:"DOCX loaded.");updateTools()
+}
+async function openPPTX(buffer){
+ const libp=await lib("pptx");if(typeof libp.loadPresentation!=="function")throw Error("PPTX viewer library did not expose loadPresentation().");loaded=await libp.loadPresentation(new Uint8Array(buffer));kind="pptx";const slides=typeof libp.getSlides==="function"?libp.getSlides(loaded):(loaded.slides||[]);total=slides.length;page=1;await renderPPTX();setStatus("PPTX loaded.")
+}
+async function renderPPTX(){
+ if(!loaded||!pptxLib)return;clearViewer();const slides=typeof pptxLib.getSlides==="function"?pptxLib.getSlides(loaded):(loaded.slides||[]);const slide=slides[page-1];if(!slide)throw Error("Could not find slide "+page+".");const wrap=document.createElement("div");wrap.className="pptx";const host=document.createElement("div");host.className="ppt-slide";if(typeof pptxLib.renderSlideToElement==="function"){await pptxLib.renderSlideToElement(slide,host)}else{throw Error("PPTX renderer API is unavailable.")}wrap.appendChild(host);viewer.appendChild(wrap);updateTools()
+}
+async function openXLSX(buffer){const x=await lib("xlsx");const wb=x.read(buffer);loaded=wb;const ws=wb.Sheets[wb.SheetNames[0]];const rows=x.utils.sheet_to_json(ws,{header:1,raw:false,defval:""});renderTable(rows);kind="xlsx";setStatus("Spreadsheet loaded: "+wb.SheetNames[0]);pageInfo.textContent=wb.SheetNames.join(" | ")}
+function renderTable(rows){clearViewer();const t=document.createElement("table");t.className="sheet";for(let i=0;i<rows.length;i++){const tr=document.createElement("tr");for(const v of rows[i]){const c=document.createElement(i===0?"th":"td");c.textContent=v==null?"":String(v);tr.appendChild(c)}t.appendChild(tr)}viewer.appendChild(t);textContent=t.innerText||""}
+async function openMarkdown(t){const m=await lib("marked");clearViewer();const d=document.createElement("div");d.className="md";d.innerHTML=m.parse(t);viewer.appendChild(d);kind="markdown";textContent=d.innerText||t;setStatus("Markdown loaded.");updateTools()}
+function openText(t,k="text"){clearViewer();const d=document.createElement("div");d.className="text";d.textContent=t;viewer.appendChild(d);kind=k;textContent=t;updateTools()}
+function openHTML(t){clearViewer();const f=document.createElement("iframe");f.sandbox="";f.style.width="min(1000px,100%)";f.style.minHeight="calc(100vh - 120px)";f.style.border="0";f.srcdoc=t;viewer.appendChild(f);kind="html";textContent=t;updateTools()}
+async function openEPUB(buffer){
+ const JSZip=await lib("jszip");const zip=await JSZip.loadAsync(buffer);const cf=zip.file("META-INF/container.xml");if(!cf)throw Error("Invalid EPUB: container.xml not found.");const cx=await cf.async("string");const root=cx.match(/<rootfile[^>]+full-path=["']([^"']+)["']/i);if(!root)throw Error("EPUB package path could not be found.");const opfPath=root[1],opfFile=zip.file(opfPath);if(!opfFile)throw Error("EPUB package file not found.");const opf=await opfFile.async("string");const base=opfPath.includes("/")?opfPath.slice(0,opfPath.lastIndexOf("/")+1):"";const manifest={};let m;const ir=/<item\b[^>]*\bid=["']([^"']+)["'][^>]*\bhref=["']([^"']+)["'][^>]*>/gi;while(m=ir.exec(opf))manifest[m[1]]=m[2];const spine=[];const sr=/<itemref\b[^>]*\bidref=["']([^"']+)["'][^>]*>/gi;while(m=sr.exec(opf))if(manifest[m[1]])spine.push(manifest[m[1]]);let out="";for(const href of spine){const f=zip.file(base+href.replace(/^\.\//,""));if(f)out+=await f.async("string")+"<hr>"}clearViewer();const d=document.createElement("div");d.className="doc";d.innerHTML=out||"<p>No readable EPUB content.</p>";viewer.appendChild(d);kind="epub";textContent=d.innerText||"";updateTools()
+}
+function stripRTF(t){return String(t).replace(/\\'[0-9a-fA-F]{2}/g,m=>String.fromCharCode(parseInt(m.slice(2),16))).replace(/\\par[d]?/g,"\n").replace(/\\line/g,"\n").replace(/\\tab/g,"\t").replace(/\\[a-zA-Z]+-?\d* ?/g,"").replace(/[{}]/g,"")}
+async function openDocument(s){
+ cleanup();path=String(s);srcBox.value=path;empty("Loading document...");setStatus("Reading document...");try{const d=await readSource(path);const e=ext(path);const buffer=d.buffer;const t=d.text!=null?String(d.text):buffer?textFromBuffer(buffer):"";if(e==="pdf")await openPDF(buffer);else if(e==="docx")await openDOCX(buffer);else if(e==="pptx")await openPPTX(buffer);else if(["xlsx","xls","ods"].includes(e))await openXLSX(buffer);else if(["md","markdown"].includes(e))await openMarkdown(t);else if(e==="csv")renderTable(parseCSV(t));else if(["txt","log","json","xml","yaml","yml","ini","cfg","conf"].includes(e))openText(t);else if(["html","htm"].includes(e))openHTML(t);else if(e==="rtf")openText(stripRTF(t),"rtf");else if(e==="epub")await openEPUB(buffer);else if(e==="odt")openText(t,"odt");else if(e==="doc"||e==="ppt"||e==="odp")legacy(e);else openText(t);clearStatus();updateTools()}catch(e){error("Failed to load document.\n\n"+text(e));setStatus("Error: "+text(e))}}
+function cleanup(){clearUrls();loaded=null;kind="";page=1;total=0;textContent="";zoom=1;searchHits=[];searchIndex=-1;zoomInfo.textContent="100%";pageInfo.textContent=""}
+function parseCSV(t){const rows=[];let row=[],cell="",q=false;for(let i=0;i<t.length;i++){const c=t[i];if(c==='"'){if(q&&t[i+1]==='"'){cell+='"';i++}else q=!q}else if(c===","&&!q){row.push(cell);cell=""}else if((c==="\n"||c==="\r")&&!q){if(c==="\r"&&t[i+1]==="\n")i++;row.push(cell);rows.push(row);row=[];cell=""}else cell+=c}row.push(cell);if(row.length>1||row[0]!=="")rows.push(row);return rows}
+function legacy(e){clearViewer();const d=document.createElement("div");d.className="compat";d.innerHTML="<strong>Legacy Office format: ."+e+"</strong><br><br>This browser-side viewer does not have a reliable parser for the old binary Office format. The file can still be opened by another Little Hollow application or downloaded.";viewer.appendChild(d);kind="legacy";updateTools()}
+function setZoom(z){zoom=Math.max(.25,Math.min(3,Number(z)||1));zoomInfo.textContent=Math.round(zoom*100)+"%";if(kind==="pdf")renderPDF();else if(kind==="pptx")renderPPTX();else viewer.style.zoom=String(zoom)}
+function next(){if(page>=total)return;page++;if(kind==="pdf")renderPDF();else if(kind==="pptx")renderPPTX()}
+function prev(){if(page<=1)return;page--;if(kind==="pdf")renderPDF();else if(kind==="pptx")renderPPTX()}
+function gotoPage(v){const n=Math.floor(Number(v));if(!Number.isFinite(n)||n<1||n>total)return false;page=n;if(kind==="pdf")renderPDF();else if(kind==="pptx")renderPPTX();return true}
+function find(q){q=String(q||"").trim().toLowerCase();searchText=q;if(!q){searchHits=[];searchIndex=-1;setStatus("Search cleared.");return}const text=(textContent||viewer.innerText||"").toLowerCase();searchHits=[];let p=0;while((p=text.indexOf(q,p))>=0){searchHits.push(p);p+=q.length}if(!searchHits.length){setStatus("Not found: "+q);return}searchIndex=(searchIndex+1)%searchHits.length;const w=document.createTreeWalker(viewer,NodeFilter.SHOW_TEXT);while(w.nextNode()){const n=w.currentNode,at=(n.textContent||"").toLowerCase().indexOf(q);if(at>=0){n.parentElement?.scrollIntoView({behavior:"smooth",block:"center"});break}}setStatus(`Found ${searchIndex+1}/${searchHits.length}: ${q}`)}
+window.parent.DocumentAPI={action:async actions=>{if(!actions||typeof actions!=="object"||Array.isArray(actions))return{ok:false,error:"Document action must be an object."};const results={};try{for(const key of Object.keys(actions)){const v=actions[key];switch(key.toLowerCase()){case"open":await openDocument(v);results.open={ok:true,path:String(v)};break;case"close":cleanup();empty();results.close={ok:true};break;case"next":case"nextpage":next();results[key]={ok:true,page,total};break;case"previous":case"prev":case"previouspage":prev();results[key]={ok:true,page,total};break;case"page":case"goto":results[key]={ok:gotoPage(v),page,total};break;case"zoom":setZoom(String(v).toLowerCase()==="fit"?1:String(v).endsWith("%")?Number(String(v).slice(0,-1))/100:Number(v));results.zoom={ok:true,value:zoom};break;case"find":case"search":find(v);results[key]={ok:searchHits.length>0,matches:searchHits.length,query:String(v||"")};break;case"state":results.state={ok:true,path,type:kind,page,totalPages:total,zoom,mime:mime(path),loaded:!!kind};break;default:results[key]={ok:false,error:"Unknown document action: "+key}}}return{ok:true,results}}catch(e){return{ok:false,error:text(e),results}}}};window.DocumentAPI=window.parent.DocumentAPI;
+$("load").onclick=()=>{const s=srcBox.value.trim();if(s)openDocument(s)};srcBox.onkeydown=e=>{if(e.key==="Enter"){const s=srcBox.value.trim();if(s)openDocument(s)}};$("prev").onclick=prev;$("next").onclick=next;$("goto").onclick=()=>gotoPage(pageBox.value);pageBox.onkeydown=e=>{if(e.key==="Enter")gotoPage(pageBox.value)};$("zoomOut").onclick=()=>setZoom(zoom-.1);$("zoomIn").onclick=()=>setZoom(zoom+.1);$("fit").onclick=()=>setZoom(1);$("findBtn").onclick=()=>find($("find").value);$("find").onkeydown=e=>{if(e.key==="Enter")find($("find").value)};window.addEventListener("resize",()=>{if(kind==="pdf")renderPDF()});window.addEventListener("beforeunload",cleanup);updateTools();if(initial){srcBox.value=initial;openDocument(initial)}
+</script>
+</body>
+</html>
