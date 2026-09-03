@@ -4,228 +4,1544 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Little Hollow — Settings</title>
+
     <style>
         :root {
             color-scheme: dark;
-            --bg: #071216;
-            --panel: #0b1a20;
-            --panel-2: #0e232a;
-            --line: #1c6670;
-            --text: #d9ffff;
-            --muted: #78a9ad;
-            --accent: #31f4ff;
-            --good: #63ffb1;
-            --danger: #ff708c;
+
+            --bg: #061014;
+            --sidebar: #08171c;
+            --panel: #0b1d23;
+            --panel-hover: #102830;
+            --input: #07151a;
+            --line: #194b54;
+            --line-soft: rgba(25, 75, 84, .55);
+
+            --text: #dffcff;
+            --muted: #72989d;
+
+            --accent: #35e8f4;
+            --accent-soft: rgba(53, 232, 244, .12);
+
+            --good: #61efae;
+            --warn: #f2ca67;
+            --danger: #ff7188;
         }
 
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
         body {
             margin: 0;
-            min-height: 100vh;
-            background:
-                radial-gradient(circle at 15% 10%, rgba(49,244,255,.08), transparent 35%),
-                radial-gradient(circle at 90% 90%, rgba(99,255,177,.05), transparent 35%),
-                var(--bg);
+            min-height: 100%;
+            background: var(--bg);
             color: var(--text);
             font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         }
 
-        .shell { max-width: 920px; margin: 0 auto; padding: 20px; }
-        .header {
+        body {
+            min-height: 100vh;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .app {
+            display: grid;
+            grid-template-columns: 220px minmax(0, 1fr);
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+
+            display: flex;
+            flex-direction: column;
+
+            border-right: 1px solid var(--line);
+
+            background:
+                linear-gradient(
+                    180deg,
+                    rgba(11, 29, 35, .98),
+                    rgba(6, 16, 20, .98)
+                );
+        }
+
+        .brand {
+            padding: 22px 18px 19px;
+
+            border-bottom: 1px solid var(--line-soft);
+        }
+
+        .brand-title {
+            color: var(--accent);
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+        }
+
+        .brand-subtitle {
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 8px;
+            line-height: 1.5;
+        }
+
+        .nav {
+            padding: 12px 10px;
+        }
+
+        .nav-title {
+            padding: 8px 9px 6px;
+
+            color: #4e7378;
+            font-size: 7px;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+
+        .nav-button {
+            display: flex;
+            align-items: center;
+            width: 100%;
+
+            margin: 3px 0;
+            padding: 10px 10px;
+
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--muted);
+
+            text-align: left;
+            font-size: 9px;
+
+            transition:
+                background .15s ease,
+                border-color .15s ease,
+                color .15s ease;
+        }
+
+        .nav-button:hover {
+            border-color: var(--line);
+            background: rgba(53, 232, 244, .035);
+            color: var(--text);
+        }
+
+        .nav-button.active {
+            border-color: rgba(53, 232, 244, .36);
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .nav-indicator {
+            width: 5px;
+            height: 5px;
+            margin-right: 9px;
+
+            border-radius: 50%;
+
+            background: #355158;
+        }
+
+        .nav-button.active .nav-indicator {
+            background: var(--accent);
+            box-shadow: 0 0 8px rgba(53, 232, 244, .45);
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 12px 12px 14px;
+
+            border-top: 1px solid var(--line-soft);
+
+            color: var(--muted);
+            font-size: 7px;
+            line-height: 1.5;
+        }
+
+        .main {
+            min-width: 0;
+            padding: 28px;
+        }
+
+        .main-inner {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+
+            gap: 18px;
+            padding-bottom: 18px;
+
+            border-bottom: 1px solid var(--line-soft);
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: .05em;
+        }
+
+        .page-description {
+            margin-top: 7px;
+
+            color: var(--muted);
+
+            font-size: 9px;
+            line-height: 1.5;
+        }
+
+        .provider-summary {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+
+            padding: 7px 9px;
+
+            border: 1px solid var(--line);
+            background: rgba(11, 29, 35, .65);
+
+            color: var(--muted);
+
+            font-size: 8px;
+            white-space: nowrap;
+        }
+
+        .provider-summary-dot {
+            width: 6px;
+            height: 6px;
+
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 8px rgba(53, 232, 244, .4);
+        }
+
+        .page {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .section-header {
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        .section-description {
+            margin-top: 5px;
+
+            color: var(--muted);
+
+            font-size: 8px;
+            line-height: 1.55;
+        }
+
+        .provider-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .provider-option {
+            position: relative;
+
+            padding: 14px;
+
+            border: 1px solid var(--line);
+            background: var(--panel);
+
+            cursor: pointer;
+
+            transition:
+                transform .12s ease,
+                background .15s ease,
+                border-color .15s ease;
+        }
+
+        .provider-option:hover {
+            background: var(--panel-hover);
+            border-color: #276b76;
+            transform: translateY(-1px);
+        }
+
+        .provider-option.active {
+            border-color: var(--accent);
+            background:
+                linear-gradient(
+                    180deg,
+                    rgba(53, 232, 244, .09),
+                    rgba(53, 232, 244, .025)
+                );
+            box-shadow:
+                inset 0 0 0 1px rgba(53, 232, 244, .07),
+                0 0 18px rgba(53, 232, 244, .045);
+        }
+
+        .provider-option input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .provider-top {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 18px;
-            padding: 16px 18px;
-            border: 1px solid var(--line);
-            background: rgba(11,26,32,.88);
-            box-shadow: 0 0 28px rgba(49,244,255,.08);
+            gap: 8px;
         }
-        .title { font-size: 18px; letter-spacing: .08em; text-transform: uppercase; }
-        .subtitle { margin-top: 5px; color: var(--muted); font-size: 11px; }
-        .section {
-            margin-top: 16px;
-            padding: 16px;
-            border: 1px solid var(--line);
-            background: rgba(11,26,32,.82);
-        }
-        .section h2 {
-            margin: 0 0 14px;
-            font-size: 13px;
-            letter-spacing: .08em;
-            text-transform: uppercase;
-            color: var(--accent);
-        }
-        .row {
-            display: grid;
-            grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.2fr);
-            gap: 14px;
-            align-items: center;
-            padding: 10px 0;
-            border-top: 1px solid rgba(28,102,112,.36);
-        }
-        .row:first-of-type { border-top: 0; }
-        label { font-size: 12px; }
-        .desc { margin-top: 4px; color: var(--muted); font-size: 10px; line-height: 1.5; }
-        input, select {
-            width: 100%;
-            border: 1px solid var(--line);
-            background: var(--panel-2);
+
+        .provider-name {
             color: var(--text);
-            padding: 10px 11px;
-            font: inherit;
-            font-size: 12px;
-            outline: none;
-        }
-        input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(49,244,255,.22); }
-        .toggle { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
-        .toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
-        .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
-        button {
-            border: 1px solid var(--line);
-            padding: 10px 13px;
-            background: var(--panel-2);
-            color: var(--text);
-            font: inherit;
-            font-size: 11px;
-            cursor: pointer;
-        }
-        button:hover { border-color: var(--accent); }
-        button.primary { border-color: var(--accent); color: var(--accent); }
-        #status { min-height: 18px; margin-top: 12px; font-size: 11px; color: var(--muted); }
-        #status.good { color: var(--good); }
-        #status.bad { color: var(--danger); }
-        .note {
-            margin-top: 12px;
-            padding: 10px;
-            border-left: 2px solid var(--accent);
-            color: var(--muted);
             font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .05em;
+        }
+
+        .provider-status {
+            font-size: 7px;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .provider-description {
+            margin-top: 7px;
+
+            color: var(--muted);
+
+            font-size: 8px;
             line-height: 1.55;
         }
-        code { color: var(--accent); }
-        @media (max-width: 680px) {
-            .row { grid-template-columns: 1fr; }
-            .toggle { justify-content: flex-start; }
+
+        .provider-option.active .provider-status {
+            color: var(--accent);
+        }
+
+        .panel {
+            border: 1px solid var(--line);
+            background: rgba(11, 29, 35, .7);
+        }
+
+        .panel-body {
+            padding: 16px;
+        }
+
+        .config {
+            display: none;
+        }
+
+        .config.active {
+            display: block;
+        }
+
+        .field {
+            padding: 13px 0;
+            border-top: 1px solid var(--line-soft);
+        }
+
+        .field:first-child {
+            padding-top: 0;
+            border-top: 0;
+        }
+
+        .field-label {
+            color: var(--text);
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: .03em;
+        }
+
+        .field-description {
+            margin-top: 4px;
+            margin-bottom: 7px;
+
+            color: var(--muted);
+
+            font-size: 8px;
+            line-height: 1.5;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.35fr);
+
+            gap: 14px;
+            align-items: center;
+
+            padding: 12px 0;
+
+            border-top: 1px solid var(--line-soft);
+        }
+
+        .row:first-child {
+            border-top: 0;
+            padding-top: 0;
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .input-wrap {
+            min-width: 0;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+
+            min-height: 35px;
+            padding: 9px 10px;
+
+            border: 1px solid var(--line);
+            border-radius: 2px;
+
+            background: var(--input);
+            color: var(--text);
+
+            font-size: 9px;
+            outline: none;
+
+            transition:
+                border-color .15s ease,
+                box-shadow .15s ease,
+                background .15s ease;
+        }
+
+        input:hover,
+        select:hover,
+        textarea:hover {
+            background: #091a20;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px rgba(53, 232, 244, .18);
+        }
+
+        input[type="checkbox"] {
+            width: 17px;
+            min-height: 17px;
+            height: 17px;
+            padding: 0;
+            accent-color: var(--accent);
+        }
+
+        .toggle-box {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .runtime {
+            display: flex;
+            align-items: flex-start;
+
+            gap: 9px;
+
+            margin-top: 13px;
+            padding: 10px 11px;
+
+            border: 1px solid var(--line-soft);
+            background: #071317;
+        }
+
+        .runtime-dot {
+            flex: 0 0 auto;
+
+            width: 7px;
+            height: 7px;
+
+            margin-top: 3px;
+            border-radius: 50%;
+
+            background: #526a6f;
+        }
+
+        .runtime-dot.good {
+            background: var(--good);
+            box-shadow: 0 0 9px rgba(97, 239, 174, .32);
+        }
+
+        .runtime-dot.warn {
+            background: var(--warn);
+            box-shadow: 0 0 9px rgba(242, 202, 103, .25);
+        }
+
+        .runtime-dot.bad {
+            background: var(--danger);
+            box-shadow: 0 0 9px rgba(255, 113, 136, .25);
+        }
+
+        .runtime-content {
+            min-width: 0;
+        }
+
+        .runtime-title {
+            color: var(--text);
+            font-size: 8px;
+            font-weight: 700;
+        }
+
+        .runtime-detail {
+            margin-top: 3px;
+
+            color: var(--muted);
+
+            font-size: 7px;
+            line-height: 1.55;
+            word-break: break-word;
+        }
+
+        .note {
+            margin-top: 12px;
+            padding: 10px 11px;
+
+            border: 1px solid var(--line-soft);
+            border-left: 2px solid var(--accent);
+
+            background: rgba(53, 232, 244, .025);
+
+            color: var(--muted);
+
+            font-size: 8px;
+            line-height: 1.55;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+
+            margin-top: 14px;
+        }
+
+        button.action {
+            min-height: 34px;
+
+            padding: 9px 13px;
+
+            border: 1px solid var(--line);
+            border-radius: 2px;
+
+            background: #0b2026;
+            color: var(--text);
+
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: .03em;
+
+            transition:
+                border-color .15s ease,
+                background .15s ease,
+                color .15s ease;
+        }
+
+        button.action:hover {
+            border-color: var(--accent);
+            background: #102b32;
+        }
+
+        button.action.primary {
+            border-color: var(--accent);
+            background: rgba(53, 232, 244, .08);
+            color: var(--accent);
+        }
+
+        button.action.danger {
+            border-color: #693942;
+            color: #ff98a9;
+        }
+
+        button.action:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+        }
+
+        .progress {
+            height: 5px;
+
+            margin-top: 9px;
+
+            overflow: hidden;
+
+            border: 1px solid var(--line-soft);
+            background: #03090b;
+        }
+
+        .progress-bar {
+            width: 0;
+            height: 100%;
+
+            background: var(--accent);
+
+            transition: width .12s ease;
+        }
+
+        .global-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .global-card {
+            padding: 14px;
+
+            border: 1px solid var(--line);
+            background: rgba(11, 29, 35, .7);
+        }
+
+        .global-card-title {
+            margin-bottom: 5px;
+
+            color: var(--text);
+
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+        }
+
+        .global-card-description {
+            color: var(--muted);
+
+            font-size: 8px;
+            line-height: 1.5;
+        }
+
+        .save-bar {
+            position: sticky;
+            bottom: 14px;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            gap: 12px;
+
+            margin-top: 22px;
+            padding: 10px;
+
+            border: 1px solid var(--line);
+            background: rgba(6, 16, 20, .95);
+
+            backdrop-filter: blur(10px);
+        }
+
+        .save-message {
+            min-width: 0;
+
+            color: var(--muted);
+
+            font-size: 8px;
+            line-height: 1.4;
+        }
+
+        .save-message.good {
+            color: var(--good);
+        }
+
+        .save-message.bad {
+            color: var(--danger);
+        }
+
+        .save-message.warn {
+            color: var(--warn);
+        }
+
+        code {
+            color: var(--accent);
+        }
+
+        @media (max-width: 800px) {
+            .app {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+                height: auto;
+                border-right: 0;
+                border-bottom: 1px solid var(--line);
+            }
+
+            .brand {
+                padding: 16px;
+            }
+
+            .nav {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 5px;
+            }
+
+            .nav-title {
+                display: none;
+            }
+
+            .nav-button {
+                justify-content: center;
+                margin: 0;
+            }
+
+            .nav-indicator {
+                display: none;
+            }
+
+            .sidebar-footer {
+                display: none;
+            }
+
+            .main {
+                padding: 18px;
+            }
+        }
+
+        @media (max-width: 620px) {
+            .provider-grid,
+            .global-grid,
+            .input-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .page-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .row {
+                grid-template-columns: 1fr;
+            }
+
+            .toggle-box {
+                justify-content: flex-start;
+            }
+
+            .save-bar {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .save-bar .actions {
+                margin-top: 0;
+            }
         }
     </style>
 </head>
+
 <body>
-    <main class="shell">
-        <section class="header">
-            <div>
-                <div class="title">Little Hollow / Settings</div>
-                <div class="subtitle">AI provider and Gemini configuration</div>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-title">Little Hollow</div>
+                <div class="brand-subtitle">AI configuration</div>
             </div>
-            <button id="closeBtn" type="button">CLOSE</button>
-        </section>
 
-        <section class="section">
-            <h2>AI Provider</h2>
-            <div class="row">
-                <div>
-                    <label for="provider">Active provider</label>
-                    <div class="desc">Choose which provider <code>ai.js</code> sends new turns to.</div>
-                </div>
-                <select id="provider">
-                    <option value="puter">Puter</option>
-                    <option value="onnx">ONNX (local)</option>
-                    <option value="gguf">GGUF (local)</option>
-                    <option value="gemini">Google Gemini</option>
-                </select>
-            </div>
-        </section>
+            <nav class="nav">
+                <div class="nav-title">Settings</div>
 
-        <section class="section">
-            <h2>Gemini</h2>
-            <div class="row">
-                <div>
-                    <label for="geminiEnabled">Use Gemini</label>
-                    <div class="desc">Sets the active AI provider to Gemini when enabled.</div>
-                </div>
-                <div class="toggle"><input id="geminiEnabled" type="checkbox"></div>
-            </div>
-            <div class="row">
-                <div>
-                    <label for="apiKey">Google API key</label>
-                    <div class="desc">Your key is stored locally in this browser under <code>littlehollow.ai.settings</code>.</div>
-                </div>
-                <input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="AIza...">
-            </div>
-            <div class="row">
-                <div>
-                    <label for="model">Model</label>
-                    <div class="desc">Default: Gemini 3.5 Flash.</div>
-                </div>
-                <input id="model" type="text" value="gemini-3.5-flash" spellcheck="false">
-            </div>
-            <div class="row">
-                <div>
-                    <label for="pythonTool">Python Tool</label>
-                    <div class="desc">Lets Gemini use Google's managed Python code-execution tool for calculations and code-based reasoning.</div>
-                </div>
-                <div class="toggle"><input id="pythonTool" type="checkbox"></div>
-            </div>
-            <div class="row">
-                <div>
-                    <label for="maxOutputTokens">Max output tokens</label>
-                    <div class="desc">Used as a local preference; the current provider adapter leaves provider defaults intact.</div>
-                </div>
-                <input id="maxOutputTokens" type="number" min="1" max="65000" step="1">
-            </div>
-            <div class="row">
-                <div>
-                    <label for="temperature">Temperature</label>
-                    <div class="desc">Kept for compatibility with the other providers.</div>
-                </div>
-                <input id="temperature" type="number" min="0" max="2" step="0.1">
-            </div>
-            <div class="note">
-                Gemini streaming uses the Generate Content streaming endpoint, so text arrives progressively in <code>littlehollow:ai-stream</code> events. Tool calls are executed by Little Hollow's existing <code>Tools.execute()</code> and sent back to Gemini before the next streamed turn.
-            </div>
-        </section>
+                <button
+                    class="nav-button active"
+                    data-page="providers"
+                    type="button"
+                >
+                    <span class="nav-indicator"></span>
+                    Providers
+                </button>
 
-        <section class="section">
-            <h2>Live mode</h2>
-            <div class="row">
-                <div>
-                    <label for="liveEnabled">Enable live AI</label>
-                    <div class="desc">Keeps the existing debounced live-mode API available for UI code that uses it.</div>
-                </div>
-                <div class="toggle"><input id="liveEnabled" type="checkbox"></div>
-            </div>
-            <div class="row">
-                <div>
-                    <label for="debounceMs">Debounce (ms)</label>
-                    <div class="desc">Wait before starting a live turn.</div>
-                </div>
-                <input id="debounceMs" type="number" min="0" step="50">
-            </div>
-            <div class="row">
-                <div>
-                    <label for="minIntervalMs">Minimum interval (ms)</label>
-                    <div class="desc">Prevents repeated live turns from firing too quickly.</div>
-                </div>
-                <input id="minIntervalMs" type="number" min="0" step="50">
-            </div>
-        </section>
+                <button
+                    class="nav-button"
+                    data-page="agent"
+                    type="button"
+                >
+                    <span class="nav-indicator"></span>
+                    Agent
+                </button>
 
-        <div class="actions">
-            <button class="primary" id="saveBtn" type="button">SAVE SETTINGS</button>
-            <button id="testBtn" type="button">TEST GEMINI</button>
-            <button id="resetBtn" type="button">RESET GEMINI</button>
-        </div>
-        <div id="status" aria-live="polite"></div>
-    </main>
+                <button
+                    class="nav-button"
+                    data-page="live"
+                    type="button"
+                >
+                    <span class="nav-indicator"></span>
+                    Live Mode
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                Settings are stored locally through
+                <code>AI.getSettings()</code> /
+                <code>AI.setSettings()</code> when available.
+            </div>
+        </aside>
+
+        <main class="main">
+            <div class="main-inner">
+                <header class="page-header">
+                    <div>
+                        <div class="page-title" id="pageTitle">
+                            AI Providers
+                        </div>
+
+                        <div class="page-description" id="pageDescription">
+                            Select the AI backend and configure its provider-specific settings.
+                        </div>
+                    </div>
+
+                    <div class="provider-summary">
+                        <span class="provider-summary-dot"></span>
+                        <span id="activeProviderLabel">PUTER</span>
+                    </div>
+                </header>
+
+                <section
+                    id="page-providers"
+                    class="page active"
+                >
+                    <div class="section-header">
+                        <div class="section-title">Provider</div>
+                        <div class="section-description">
+                            Only the configuration belonging to the selected provider is shown below.
+                        </div>
+                    </div>
+
+                    <div class="provider-grid">
+                        <label
+                            class="provider-option"
+                            data-provider="puter"
+                        >
+                            <input
+                                type="radio"
+                                name="provider"
+                                value="puter"
+                            >
+
+                            <div class="provider-top">
+                                <div class="provider-name">PUTER.JS</div>
+                                <div
+                                    id="providerStatePuter"
+                                    class="provider-status"
+                                >
+                                    NOT TESTED
+                                </div>
+                            </div>
+
+                            <div class="provider-description">
+                                Remote AI provider through Puter.js.
+                            </div>
+                        </label>
+
+                        <label
+                            class="provider-option"
+                            data-provider="onnx"
+                        >
+                            <input
+                                type="radio"
+                                name="provider"
+                                value="onnx"
+                            >
+
+                            <div class="provider-top">
+                                <div class="provider-name">ONNX</div>
+                                <div
+                                    id="providerStateOnnx"
+                                    class="provider-status"
+                                >
+                                    NOT LOADED
+                                </div>
+                            </div>
+
+                            <div class="provider-description">
+                                Local ONNX model executed by the ONNX Web Worker.
+                            </div>
+                        </label>
+
+                        <label
+                            class="provider-option"
+                            data-provider="gguf"
+                        >
+                            <input
+                                type="radio"
+                                name="provider"
+                                value="gguf"
+                            >
+
+                            <div class="provider-top">
+                                <div class="provider-name">GGUF</div>
+                                <div
+                                    id="providerStateGguf"
+                                    class="provider-status"
+                                >
+                                    NOT READY
+                                </div>
+                            </div>
+
+                            <div class="provider-description">
+                                Local GGUF model through the configured GGUF runtime.
+                            </div>
+                        </label>
+
+                        <label
+                            class="provider-option"
+                            data-provider="gemini"
+                        >
+                            <input
+                                type="radio"
+                                name="provider"
+                                value="gemini"
+                            >
+
+                            <div class="provider-top">
+                                <div class="provider-name">GEMINI</div>
+                                <div
+                                    id="providerStateGemini"
+                                    class="provider-status"
+                                >
+                                    NOT TESTED
+                                </div>
+                            </div>
+
+                            <div class="provider-description">
+                                Google Gemini API provider.
+                            </div>
+                        </label>
+                    </div>
+
+                    <div
+                        id="config-puter"
+                        class="panel config active"
+                        style="margin-top: 12px;"
+                    >
+                        <div class="panel-body">
+                            <div class="row">
+                                <div>
+                                    <div class="field-label">Model</div>
+                                    <div class="field-description">
+                                        Model identifier passed to the Puter provider.
+                                    </div>
+                                </div>
+
+                                <input
+                                    id="puterModel"
+                                    type="text"
+                                    spellcheck="false"
+                                >
+                            </div>
+
+                            <div class="actions">
+                                <button
+                                    id="puterTestBtn"
+                                    class="action"
+                                    type="button"
+                                >
+                                    TEST PUTER
+                                </button>
+                            </div>
+
+                            <div class="runtime">
+                                <span
+                                    id="puterDot"
+                                    class="runtime-dot"
+                                ></span>
+
+                                <div class="runtime-content">
+                                    <div
+                                        id="puterStatus"
+                                        class="runtime-title"
+                                    >
+                                        NOT TESTED
+                                    </div>
+
+                                    <div
+                                        id="puterDetail"
+                                        class="runtime-detail"
+                                    >
+                                        Puter.js has not been tested.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        id="config-onnx"
+                        class="panel config"
+                        style="margin-top: 12px;"
+                    >
+                        <div class="panel-body">
+                            <div class="field">
+                                <div class="field-label">Model</div>
+                                <div class="field-description">
+                                    Hugging Face model repository.
+                                </div>
+
+                                <input
+                                    id="onnxModel"
+                                    type="text"
+                                    spellcheck="false"
+                                >
+                            </div>
+
+                            <div class="input-grid">
+                                <div class="input-wrap">
+                                    <label for="onnxDevice">DEVICE</label>
+
+                                    <select id="onnxDevice">
+                                        <option value="webgpu">
+                                            WEBGPU
+                                        </option>
+
+                                        <option value="wasm">
+                                            WASM
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div class="input-wrap">
+                                    <label for="onnxDtype">DTYPE</label>
+
+                                    <select id="onnxDtype">
+                                        <option value="q4">Q4</option>
+                                        <option value="q4f16">Q4F16</option>
+                                        <option value="q8">Q8</option>
+                                        <option value="int8">INT8</option>
+                                        <option value="uint8">UINT8</option>
+                                        <option value="fp16">FP16</option>
+                                        <option value="fp32">FP32</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="input-grid">
+                                <div class="input-wrap">
+                                    <label for="onnxMaxNewTokens">
+                                        MAX NEW TOKENS
+                                    </label>
+
+                                    <input
+                                        id="onnxMaxNewTokens"
+                                        type="number"
+                                        min="1"
+                                        max="16384"
+                                        step="1"
+                                    >
+                                </div>
+
+                                <div class="input-wrap">
+                                    <label for="onnxTemperature">
+                                        TEMPERATURE
+                                    </label>
+
+                                    <input
+                                        id="onnxTemperature"
+                                        type="number"
+                                        min="0"
+                                        max="2"
+                                        step="0.05"
+                                    >
+                                </div>
+                            </div>
+
+                            <div
+                                id="onnxCapability"
+                                class="note"
+                            ></div>
+
+                            <div class="actions">
+                                <button
+                                    id="onnxLoadBtn"
+                                    class="action primary"
+                                    type="button"
+                                >
+                                    LOAD MODEL
+                                </button>
+
+                                <button
+                                    id="onnxUnloadBtn"
+                                    class="action danger"
+                                    type="button"
+                                >
+                                    UNLOAD
+                                </button>
+                            </div>
+
+                            <div class="runtime">
+                                <span
+                                    id="onnxDot"
+                                    class="runtime-dot"
+                                ></span>
+
+                                <div class="runtime-content">
+                                    <div
+                                        id="onnxStatus"
+                                        class="runtime-title"
+                                    >
+                                        NOT LOADED
+                                    </div>
+
+                                    <div
+                                        id="onnxDetail"
+                                        class="runtime-detail"
+                                    >
+                                        ONNX model has not been loaded.
+                                    </div>
+
+                                    <div
+                                        id="onnxProgressWrap"
+                                        class="progress hidden"
+                                    >
+                                        <div
+                                            id="onnxProgress"
+                                            class="progress-bar"
+                                        ></div>
+                                    </div>
+
+                                    <div
+                                        id="onnxProgressText"
+                                        class="runtime-detail hidden"
+                                    ></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        id="config-gguf"
+                        class="panel config"
+                        style="margin-top: 12px;"
+                    >
+                        <div class="panel-body">
+                            <div class="field">
+                                <div class="field-label">Model</div>
+                                <div class="field-description">
+                                    GGUF model path, URL, or runtime-specific identifier.
+                                </div>
+
+                                <input
+                                    id="ggufModel"
+                                    type="text"
+                                    spellcheck="false"
+                                    placeholder="model.gguf"
+                                >
+                            </div>
+
+                            <div class="input-grid">
+                                <div class="input-wrap">
+                                    <label for="ggufContext">CONTEXT</label>
+
+                                    <input
+                                        id="ggufContext"
+                                        type="number"
+                                        min="512"
+                                        step="512"
+                                    >
+                                </div>
+
+                                <div class="input-wrap">
+                                    <label for="ggufThreads">THREADS</label>
+
+                                    <input
+                                        id="ggufThreads"
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                    >
+                                </div>
+                            </div>
+
+                            <div class="input-grid">
+                                <div class="input-wrap">
+                                    <label for="ggufMaxNewTokens">
+                                        MAX NEW TOKENS
+                                    </label>
+
+                                    <input
+                                        id="ggufMaxNewTokens"
+                                        type="number"
+                                        min="1"
+                                        max="16384"
+                                        step="1"
+                                    >
+                                </div>
+
+                                <div class="input-wrap">
+                                    <label for="ggufTemperature">
+                                        TEMPERATURE
+                                    </label>
+
+                                    <input
+                                        id="ggufTemperature"
+                                        type="number"
+                                        min="0"
+                                        max="2"
+                                        step="0.05"
+                                    >
+                                </div>
+                            </div>
+
+                            <div class="actions">
+                                <button
+                                    id="ggufTestBtn"
+                                    class="action primary"
+                                    type="button"
+                                >
+                                    CHECK RUNTIME
+                                </button>
+                            </div>
+
+                            <div class="runtime">
+                                <span
+                                    id="ggufDot"
+                                    class="runtime-dot"
+                                ></span>
+
+                                <div class="runtime-content">
+                                    <div
+                                        id="ggufStatus"
+                                        class="runtime-title"
+                                    >
+                                        NOT READY
+                                    </div>
+
+                                    <div
+                                        id="ggufDetail"
+                                        class="runtime-detail"
+                                    >
+                                        GGUF runtime has not been checked.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        id="config-gemini"
+                        class="panel config"
+                        style="margin-top: 12px;"
+                    >
+                        <div class="panel-body">
+                            <div class="row">
+                                <div>
+                                    <div class="field-label">API Key</div>
+                                    <div class="field-description">
+                                        Stored locally in Little Hollow settings.
+                                    </div>
+                                </div>
+
+                                <input
+                                    id="geminiApiKey"
+                                    type="password"
+                                    autocomplete="off"
+                                    spellcheck="false"
+                                    placeholder="AIza..."
+                                >
+                            </div>
+
+                            <div class="row">
+                                <div>
+                                    <div class="field-label">Model</div>
+                                    <div class="field-description">
+                                        Gemini model identifier.
+                                    </div>
+                                </div>
+
+                                <input
+                                    id="geminiModel"
+                                    type="text"
+                                    spellcheck="false"
+                                >
+                            </div>
+
+                            <div class="row">
+                                <div>
+                                    <div class="field-label">Python Tool</div>
+                                    <div class="field-description">
+                                        Enable Gemini managed code execution.
+                                    </div>
+                                </div>
+
+                                <div class="toggle-box">
+                                    <input
+                                        id="geminiPythonTool"
+                                        type="checkbox"
+                                    >
+                                </div>
+                            </div>
+
+                            <div class="input-grid">
+                                <div class="input-wrap">
+                                    <label for="geminiMaxOutputTokens">
+                                        MAX OUTPUT TOKENS
+                                    </label>
+
+                                    <input
+                                        id="geminiMaxOutputTokens"
+                                        type="number"
+                                        min="1"
+                                        max="65000"
+                                        step="1"
+                                    >
+                                </div>
+
+                                <div class="input-wrap">
+                                    <label for="geminiTemperature">
+                                        TEMPERATURE
+                                    </label>
+
+                                    <input
+                                        id="geminiTemperature"
+                                        type="number"
+                                        min="0"
+                                        max="2"
+                                        step="0.05"
+                                    >
+                                </div>
+                            </div>
+
+                            <div class="actions">
+                                <button
+                                    id="geminiTestBtn"
+                                    class="action primary"
+                                    type="button"
+                                >
+                                    TEST GEMINI
+                                </button>
+
+                                <button
+                                    id="geminiResetBtn"
+                                    class="action danger"
+                                    type="button"
+                                >
+                                    RESET GEMINI
+                                </button>
+                            </div>
+
+                            <div class="runtime">
+                                <span
+                                    id="geminiDot"
+                                    class="runtime-dot"
+                                ></span>
+
+                                <div class="runtime-content">
+                                    <div
+                                        id="geminiStatus"
+                                        class="runtime-title"
+                                    >
+                                        NOT TESTED
+                                    </div>
+
+                                    <div
+                                        id="geminiDetail"
+                                        class="runtime-detail"
+                                    >
+                                        Gemini has not been tested.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section
+                    id="page-agent"
+                    class="page"
+                >
+                    <div class="section-header">
+                        <div class="section-title">Agent</div>
+                        <div class="section-description">
+                            Global agent behavior used by the AI tool loop regardless of the selected provider.
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-body">
+                            <div class="row">
+                                <div>
+                                    <div class="field-label">
+                                        Maximum Tool Rounds
+                                    </div>
+
+                                    <div class="field-description">
+                                        Maximum number of model → tool → model rounds permitted for one AI turn.
+                                    </div>
+                                </div>
+
+                                <input
+                                    id="maxToolRounds"
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    step="1"
+                                >
+                            </div>
+
+                            <div class="note">
+                                This is a global agent setting. It is not specific to Gemini, ONNX, GGUF, or Puter.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section
+                    id="page-live"
+                    class="page"
+                >
+                    <div class="section-header">
+                        <div class="section-title">Live Mode</div>
+                        <div class="section-description">
+                            Global live-AI scheduling and throttling controls.
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-body">
+                            <div class="row">
+                                <div>
+                                    <div class="field-label">
+                                        Enable Live AI
+                                    </div>
+
+                                    <div class="field-description">
+                                        Enables Little Hollow's debounced live AI scheduler.
+                                    </div>
+                                </div>
+
+                                <div class="toggle-box">
+                                    <input
+                                        id="liveEnabled"
+                                        type="checkbox"
+                                    >
+                                </div>
+                            </div>
+
+                            <div class="input-grid">
+                                <div class="input-wrap">
+                                    <label for="debounceMs">
+                                        DEBOUNCE MS
+                                    </label>
+
+                                    <input
+                                        id="debounceMs"
+                                        type="number"
+                                        min="0"
+                                        step="50"
+                                    >
+                                </div>
+
+                                <div class="input-wrap">
+                                    <label for="minIntervalMs">
+                                        MINIMUM INTERVAL MS
+                                    </label>
+
+                                    <input
+                                        id="minIntervalMs"
+                                        type="number"
+                                        min="0"
+                                        step="50"
+                                    >
+                                </div>
+                            </div>
+
+                            <div class="note">
+                                Live mode is global scheduling behavior. The selected AI provider is still the backend used when a live turn is generated.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="save-bar">
+                    <div
+                        id="saveMessage"
+                        class="save-message"
+                    >
+                        Changes are stored when you press Save Settings.
+                    </div>
+
+                    <div class="actions">
+                        <button
+                            id="saveBtn"
+                            class="action primary"
+                            type="button"
+                        >
+                            SAVE SETTINGS
+                        </button>
+
+                        <button
+                            id="refreshBtn"
+                            class="action"
+                            type="button"
+                        >
+                            RELOAD
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
 
     <script>
         (() => {
             "use strict";
 
             const SETTINGS_KEY = "littlehollow.ai.settings";
+
             const DEFAULTS = {
                 provider: "puter",
+
+                puter: {
+                    model: "claude-sonnet-5"
+                },
+
+                onnx: {
+                    model: "onnx-community/Qwen2.5-0.5B-Instruct",
+                    device: "webgpu",
+                    dtype: "q4",
+                    maxNewTokens: 256,
+                    temperature: 0.7
+                },
+
+                gguf: {
+                    model: "",
+                    context: 8192,
+                    threads: 4,
+                    maxNewTokens: 512,
+                    temperature: 0.7
+                },
+
                 gemini: {
                     apiKey: "",
                     model: "gemini-3.5-flash",
@@ -233,140 +1549,1313 @@
                     maxOutputTokens: 4096,
                     temperature: 0.7
                 },
+
                 live: {
                     enabled: false,
                     debounceMs: 1800,
                     minIntervalMs: 2500
+                },
+
+                agent: {
+                    maxToolRounds: 8
                 }
             };
 
             const $ = id => document.getElementById(id);
 
-            function readSettings() {
-                const source = window.parent && window.parent !== window ? window.parent : window;
+            function clone(value) {
                 try {
-                    if (source.AI && typeof source.AI.getSettings === "function") return source.AI.getSettings();
+                    return JSON.parse(JSON.stringify(value));
+                } catch (_) {
+                    return value;
+                }
+            }
+
+            function merge(base, extra) {
+                const result = clone(base);
+
+                if (!extra || typeof extra !== "object") {
+                    return result;
+                }
+
+                Object.keys(extra).forEach(key => {
+                    const value = extra[key];
+
+                    if (
+                        value &&
+                        typeof value === "object" &&
+                        !Array.isArray(value)
+                    ) {
+                        result[key] = Object.assign(
+                            {},
+                            result[key] || {},
+                            value
+                        );
+                    } else {
+                        result[key] = value;
+                    }
+                });
+
+                return result;
+            }
+
+            function readLocalSettings() {
+                try {
+                    const raw =
+                        localStorage.getItem(
+                            SETTINGS_KEY
+                        );
+
+                    if (!raw) {
+                        return clone(DEFAULTS);
+                    }
+
+                    return merge(
+                        DEFAULTS,
+                        JSON.parse(raw)
+                    );
+                } catch (_) {
+                    return clone(DEFAULTS);
+                }
+            }
+
+            function readSettings() {
+                try {
+                    if (
+                        window.parent &&
+                        window.parent !== window &&
+                        window.parent.AI &&
+                        typeof window.parent.AI.getSettings === "function"
+                    ) {
+                        return merge(
+                            DEFAULTS,
+                            window.parent.AI.getSettings()
+                        );
+                    }
                 } catch (_) {}
 
-                try {
-                    const raw = source.localStorage.getItem(SETTINGS_KEY);
-                    return raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULTS));
-                } catch (_) {
-                    return JSON.parse(JSON.stringify(DEFAULTS));
-                }
+                return readLocalSettings();
             }
 
             function saveSettings(settings) {
-                const source = window.parent && window.parent !== window ? window.parent : window;
+                const normalized =
+                    merge(
+                        DEFAULTS,
+                        settings
+                    );
+
                 try {
-                    if (source.AI && typeof source.AI.setSettings === "function") {
-                        return source.AI.setSettings(settings);
+                    localStorage.setItem(
+                        SETTINGS_KEY,
+                        JSON.stringify(normalized)
+                    );
+                } catch (_) {}
+
+                try {
+                    if (
+                        window.parent &&
+                        window.parent !== window &&
+                        window.parent.AI &&
+                        typeof window.parent.AI.setSettings === "function"
+                    ) {
+                        window.parent.AI.setSettings(
+                            normalized
+                        );
                     }
                 } catch (_) {}
 
-                source.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-                return settings;
+                return normalized;
+            }
+
+            function getAI() {
+                try {
+                    if (
+                        window.parent &&
+                        window.parent !== window &&
+                        window.parent.AI
+                    ) {
+                        return window.parent.AI;
+                    }
+                } catch (_) {}
+
+                return window.AI || null;
+            }
+
+            function currentProvider() {
+                const active =
+                    document.querySelector(
+                        ".provider-option.active"
+                    );
+
+                return active
+                    ? active.dataset.provider
+                    : "puter";
+            }
+
+            function setSaveMessage(
+                text,
+                type = ""
+            ) {
+                $("saveMessage").textContent =
+                    text || "";
+
+                $("saveMessage").className =
+                    "save-message" +
+                    (type ? " " + type : "");
+            }
+
+            function setRuntime(
+                prefix,
+                state,
+                title,
+                detail
+            ) {
+                const dot =
+                    $(prefix + "Dot");
+
+                const status =
+                    $(prefix + "Status");
+
+                const detailElement =
+                    $(prefix + "Detail");
+
+                if (dot) {
+                    dot.className = "runtime-dot";
+
+                    if (state === "good") {
+                        dot.classList.add("good");
+                    } else if (state === "warn") {
+                        dot.classList.add("warn");
+                    } else if (state === "bad") {
+                        dot.classList.add("bad");
+                    }
+                }
+
+                if (status) {
+                    status.textContent =
+                        title || "";
+                }
+
+                if (detailElement) {
+                    detailElement.textContent =
+                        detail || "";
+                }
+
+                const map = {
+                    puter:
+                        "providerStatePuter",
+
+                    onnx:
+                        "providerStateOnnx",
+
+                    gguf:
+                        "providerStateGguf",
+
+                    gemini:
+                        "providerStateGemini"
+                };
+
+                const stateElement =
+                    $(map[prefix]);
+
+                if (stateElement) {
+                    stateElement.textContent =
+                        title || "";
+                }
+            }
+
+            function setActiveProvider(
+                provider
+            ) {
+                const name =
+                    provider || "puter";
+
+                document
+                    .querySelectorAll(
+                        ".provider-option"
+                    )
+                    .forEach(option => {
+                        const active =
+                            option.dataset.provider === name;
+
+                        option.classList.toggle(
+                            "active",
+                            active
+                        );
+
+                        const radio =
+                            option.querySelector(
+                                'input[type="radio"]'
+                            );
+
+                        if (radio) {
+                            radio.checked =
+                                active;
+                        }
+                    });
+
+                document
+                    .querySelectorAll(
+                        ".config"
+                    )
+                    .forEach(section => {
+                        section.classList.toggle(
+                            "active",
+                            section.id ===
+                            "config-" + name
+                        );
+                    });
+
+                const names = {
+                    puter:
+                        "PUTER",
+
+                    onnx:
+                        "ONNX",
+
+                    gguf:
+                        "GGUF",
+
+                    gemini:
+                        "GEMINI"
+                };
+
+                $("activeProviderLabel").textContent =
+                    names[name] || name.toUpperCase();
+            }
+
+            function collectSettings() {
+                const settings =
+                    readSettings();
+
+                settings.provider =
+                    currentProvider();
+
+                settings.puter =
+                    Object.assign(
+                        {},
+                        settings.puter || {},
+                        {
+                            model:
+                                $("puterModel")
+                                    .value
+                                    .trim() ||
+                                DEFAULTS.puter.model
+                        }
+                    );
+
+                settings.onnx =
+                    Object.assign(
+                        {},
+                        settings.onnx || {},
+                        {
+                            model:
+                                $("onnxModel")
+                                    .value
+                                    .trim() ||
+                                DEFAULTS.onnx.model,
+
+                            device:
+                                $("onnxDevice")
+                                    .value,
+
+                            dtype:
+                                $("onnxDtype")
+                                    .value,
+
+                            maxNewTokens:
+                                Number(
+                                    $("onnxMaxNewTokens")
+                                        .value
+                                ) ||
+                                DEFAULTS.onnx.maxNewTokens,
+
+                            temperature:
+                                Number(
+                                    $("onnxTemperature")
+                                        .value
+                                )
+                        }
+                    );
+
+                if (
+                    !Number.isFinite(
+                        settings.onnx.temperature
+                    )
+                ) {
+                    settings.onnx.temperature =
+                        DEFAULTS.onnx.temperature;
+                }
+
+                settings.gguf =
+                    Object.assign(
+                        {},
+                        settings.gguf || {},
+                        {
+                            model:
+                                $("ggufModel")
+                                    .value
+                                    .trim(),
+
+                            context:
+                                Number(
+                                    $("ggufContext")
+                                        .value
+                                ) ||
+                                DEFAULTS.gguf.context,
+
+                            threads:
+                                Number(
+                                    $("ggufThreads")
+                                        .value
+                                ) ||
+                                DEFAULTS.gguf.threads,
+
+                            maxNewTokens:
+                                Number(
+                                    $("ggufMaxNewTokens")
+                                        .value
+                                ) ||
+                                DEFAULTS.gguf.maxNewTokens,
+
+                            temperature:
+                                Number(
+                                    $("ggufTemperature")
+                                        .value
+                                )
+                        }
+                    );
+
+                if (
+                    !Number.isFinite(
+                        settings.gguf.temperature
+                    )
+                ) {
+                    settings.gguf.temperature =
+                        DEFAULTS.gguf.temperature;
+                }
+
+                settings.gemini =
+                    Object.assign(
+                        {},
+                        settings.gemini || {},
+                        {
+                            apiKey:
+                                $("geminiApiKey")
+                                    .value
+                                    .trim(),
+
+                            model:
+                                $("geminiModel")
+                                    .value
+                                    .trim() ||
+                                DEFAULTS.gemini.model,
+
+                            pythonTool:
+                                $("geminiPythonTool")
+                                    .checked,
+
+                            maxOutputTokens:
+                                Number(
+                                    $("geminiMaxOutputTokens")
+                                        .value
+                                ) ||
+                                DEFAULTS.gemini.maxOutputTokens,
+
+                            temperature:
+                                Number(
+                                    $("geminiTemperature")
+                                        .value
+                                )
+                        }
+                    );
+
+                if (
+                    !Number.isFinite(
+                        settings.gemini.temperature
+                    )
+                ) {
+                    settings.gemini.temperature =
+                        DEFAULTS.gemini.temperature;
+                }
+
+                settings.agent =
+                    Object.assign(
+                        {},
+                        settings.agent || {},
+                        {
+                            maxToolRounds:
+                                Number(
+                                    $("maxToolRounds")
+                                        .value
+                                ) ||
+                                DEFAULTS.agent.maxToolRounds
+                        }
+                    );
+
+                settings.live =
+                    Object.assign(
+                        {},
+                        settings.live || {},
+                        {
+                            enabled:
+                                $("liveEnabled")
+                                    .checked,
+
+                            debounceMs:
+                                Number(
+                                    $("debounceMs")
+                                        .value
+                                ) ||
+                                DEFAULTS.live.debounceMs,
+
+                            minIntervalMs:
+                                Number(
+                                    $("minIntervalMs")
+                                        .value
+                                ) ||
+                                DEFAULTS.live.minIntervalMs
+                        }
+                    );
+
+                return merge(
+                    DEFAULTS,
+                    settings
+                );
             }
 
             function render() {
-                const settings = readSettings();
-                const gemini = settings.gemini || DEFAULTS.gemini;
-                const live = settings.live || DEFAULTS.live;
+                const settings =
+                    readSettings();
 
-                $("provider").value = settings.provider || "puter";
-                $("geminiEnabled").checked = (settings.provider || "") === "gemini";
-                $("apiKey").value = gemini.apiKey || "";
-                $("model").value = gemini.model || "gemini-3.5-flash";
-                $("pythonTool").checked = Boolean(gemini.pythonTool);
-                $("maxOutputTokens").value = Number(gemini.maxOutputTokens || 4096);
-                $("temperature").value = Number(gemini.temperature ?? 0.7);
-                $("liveEnabled").checked = Boolean(live.enabled);
-                $("debounceMs").value = Number(live.debounceMs || 1800);
-                $("minIntervalMs").value = Number(live.minIntervalMs || 2500);
+                $("puterModel").value =
+                    settings.puter?.model ||
+                    DEFAULTS.puter.model;
+
+                $("onnxModel").value =
+                    settings.onnx?.model ||
+                    DEFAULTS.onnx.model;
+
+                $("onnxDevice").value =
+                    settings.onnx?.device ||
+                    DEFAULTS.onnx.device;
+
+                $("onnxDtype").value =
+                    settings.onnx?.dtype ||
+                    DEFAULTS.onnx.dtype;
+
+                $("onnxMaxNewTokens").value =
+                    Number(
+                        settings.onnx?.maxNewTokens ||
+                        DEFAULTS.onnx.maxNewTokens
+                    );
+
+                $("onnxTemperature").value =
+                    Number(
+                        settings.onnx?.temperature ??
+                        DEFAULTS.onnx.temperature
+                    );
+
+                $("ggufModel").value =
+                    settings.gguf?.model ||
+                    "";
+
+                $("ggufContext").value =
+                    Number(
+                        settings.gguf?.context ||
+                        DEFAULTS.gguf.context
+                    );
+
+                $("ggufThreads").value =
+                    Number(
+                        settings.gguf?.threads ||
+                        DEFAULTS.gguf.threads
+                    );
+
+                $("ggufMaxNewTokens").value =
+                    Number(
+                        settings.gguf?.maxNewTokens ||
+                        DEFAULTS.gguf.maxNewTokens
+                    );
+
+                $("ggufTemperature").value =
+                    Number(
+                        settings.gguf?.temperature ??
+                        DEFAULTS.gguf.temperature
+                    );
+
+                $("geminiApiKey").value =
+                    settings.gemini?.apiKey ||
+                    "";
+
+                $("geminiModel").value =
+                    settings.gemini?.model ||
+                    DEFAULTS.gemini.model;
+
+                $("geminiPythonTool").checked =
+                    Boolean(
+                        settings.gemini?.pythonTool
+                    );
+
+                $("geminiMaxOutputTokens").value =
+                    Number(
+                        settings.gemini?.maxOutputTokens ||
+                        DEFAULTS.gemini.maxOutputTokens
+                    );
+
+                $("geminiTemperature").value =
+                    Number(
+                        settings.gemini?.temperature ??
+                        DEFAULTS.gemini.temperature
+                    );
+
+                $("maxToolRounds").value =
+                    Number(
+                        settings.agent?.maxToolRounds ||
+                        DEFAULTS.agent.maxToolRounds
+                    );
+
+                $("liveEnabled").checked =
+                    Boolean(
+                        settings.live?.enabled
+                    );
+
+                $("debounceMs").value =
+                    Number(
+                        settings.live?.debounceMs ||
+                        DEFAULTS.live.debounceMs
+                    );
+
+                $("minIntervalMs").value =
+                    Number(
+                        settings.live?.minIntervalMs ||
+                        DEFAULTS.live.minIntervalMs
+                    );
+
+                setActiveProvider(
+                    settings.provider ||
+                    "puter"
+                );
+
+                updateOnnxCapability();
             }
 
-            function collect() {
-                const settings = readSettings();
-                settings.provider = $("geminiEnabled").checked ? "gemini" : $("provider").value;
-                settings.gemini = Object.assign({}, settings.gemini || {}, {
-                    apiKey: $("apiKey").value.trim(),
-                    model: $("model").value.trim() || "gemini-3.5-flash",
-                    pythonTool: $("pythonTool").checked,
-                    maxOutputTokens: Number($("maxOutputTokens").value || 4096),
-                    temperature: Number($("temperature").value || 0.7)
-                });
-                settings.live = Object.assign({}, settings.live || {}, {
-                    enabled: $("liveEnabled").checked,
-                    debounceMs: Number($("debounceMs").value || 1800),
-                    minIntervalMs: Number($("minIntervalMs").value || 2500)
-                });
-                return settings;
-            }
+            function updateOnnxCapability() {
+                const device =
+                    $("onnxDevice").value;
 
-            function status(message, kind) {
-                $("status").textContent = message;
-                $("status").className = kind || "";
-            }
+                const dtype =
+                    $("onnxDtype").value;
 
-            $("saveBtn").addEventListener("click", () => {
-                saveSettings(collect());
-                status("Saved.", "good");
-            });
-
-            $("provider").addEventListener("change", () => {
-                $("geminiEnabled").checked = $("provider").value === "gemini";
-            });
-
-            $("geminiEnabled").addEventListener("change", () => {
-                if ($("geminiEnabled").checked) $("provider").value = "gemini";
-            });
-
-            $("testBtn").addEventListener("click", async () => {
-                const settings = collect();
-                const key = settings.gemini.apiKey;
-                const model = settings.gemini.model;
-                if (!key) {
-                    status("Enter a Gemini API key first.", "bad");
+                if (
+                    device === "webgpu" &&
+                    !navigator.gpu
+                ) {
+                    $("onnxCapability").textContent =
+                        "WebGPU is not exposed by this browser.";
                     return;
                 }
 
-                status("Testing Gemini...");
-                try {
-                    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(key), {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            contents: [{ role: "user", parts: [{ text: "Reply with exactly: LITTLE HOLLOW GEMINI OK" }] }]
-                        })
+                if (
+                    device === "webgpu" &&
+                    dtype === "q4f16"
+                ) {
+                    $("onnxCapability").textContent =
+                        "WebGPU selected with Q4F16.";
+                    return;
+                }
+
+                if (
+                    device === "webgpu"
+                ) {
+                    $("onnxCapability").textContent =
+                        "WebGPU selected.";
+                    return;
+                }
+
+                $("onnxCapability").textContent =
+                    "WASM selected.";
+            }
+
+            function showPage(
+                page
+            ) {
+                document
+                    .querySelectorAll(
+                        ".nav-button"
+                    )
+                    .forEach(button => {
+                        button.classList.toggle(
+                            "active",
+                            button.dataset.page === page
+                        );
                     });
 
-                    const data = await response.json();
-                    if (!response.ok) throw new Error(data?.error?.message || `HTTP ${response.status}`);
+                document
+                    .querySelectorAll(
+                        ".page"
+                    )
+                    .forEach(section => {
+                        section.classList.toggle(
+                            "active",
+                            section.id ===
+                            "page-" + page
+                        );
+                    });
 
-                    saveSettings(settings);
-                    status("Gemini connection OK.", "good");
-                } catch (error) {
-                    status("Gemini test failed: " + (error?.message || String(error)), "bad");
+                const metadata = {
+                    providers: {
+                        title:
+                            "AI Providers",
+
+                        description:
+                            "Select the AI backend and configure its provider-specific settings."
+                    },
+
+                    agent: {
+                        title:
+                            "Agent",
+
+                        description:
+                            "Configure the global model/tool execution loop."
+                    },
+
+                    live: {
+                        title:
+                            "Live Mode",
+
+                        description:
+                            "Configure the global live-AI scheduler."
+                    }
+                };
+
+                const data =
+                    metadata[page];
+
+                if (data) {
+                    $("pageTitle").textContent =
+                        data.title;
+
+                    $("pageDescription").textContent =
+                        data.description;
                 }
-            });
+            }
 
-            $("resetBtn").addEventListener("click", () => {
-                const settings = readSettings();
-                settings.gemini = JSON.parse(JSON.stringify(DEFAULTS.gemini));
+            async function testPuter() {
+                const settings =
+                    collectSettings();
+
+                saveSettings(settings);
+
+                setRuntime(
+                    "puter",
+                    "warn",
+                    "TESTING",
+                    "Checking Puter.js..."
+                );
+
+                try {
+                    const ai =
+                        getAI();
+
+                    if (
+                        !ai ||
+                        typeof ai.getProvider !==
+                            "function"
+                    ) {
+                        throw new Error(
+                            "Little Hollow AI controller is unavailable."
+                        );
+                    }
+
+                    const provider =
+                        await ai.getProvider(
+                            "puter"
+                        );
+
+                    if (
+                        !provider
+                    ) {
+                        throw new Error(
+                            "Puter provider is unavailable."
+                        );
+                    }
+
+                    if (
+                        typeof provider.getStatus ===
+                        "function"
+                    ) {
+                        const status =
+                            provider.getStatus();
+
+                        if (status?.ready) {
+                            setRuntime(
+                                "puter",
+                                "good",
+                                "READY",
+                                "Puter.js is ready."
+                            );
+                            return;
+                        }
+                    }
+
+                    setRuntime(
+                        "puter",
+                        "warn",
+                        "LOADED",
+                        "Puter provider loaded."
+                    );
+                } catch (error) {
+                    setRuntime(
+                        "puter",
+                        "bad",
+                        "FAILED",
+                        error?.message ||
+                        String(error)
+                    );
+                }
+            }
+
+            async function loadOnnx() {
+                const settings =
+                    collectSettings();
+
+                saveSettings(settings);
+
+                $("onnxProgressWrap")
+                    .classList.remove("hidden");
+
+                $("onnxProgressText")
+                    .classList.remove("hidden");
+
+                $("onnxProgress")
+                    .style.width = "0%";
+
+                $("onnxProgressText")
+                    .textContent =
+                    "Starting ONNX provider...";
+
+                setRuntime(
+                    "onnx",
+                    "warn",
+                    "LOADING",
+                    "Initializing ONNX model..."
+                );
+
+                try {
+                    const ai =
+                        getAI();
+
+                    if (
+                        !ai ||
+                        typeof ai.getProvider !==
+                            "function"
+                    ) {
+                        throw new Error(
+                            "Little Hollow AI controller is unavailable."
+                        );
+                    }
+
+                    const provider =
+                        await ai.getProvider(
+                            "onnx"
+                        );
+
+                    if (
+                        !provider ||
+                        typeof provider.prepare !==
+                            "function"
+                    ) {
+                        throw new Error(
+                            "ONNX provider is unavailable."
+                        );
+                    }
+
+                    const result =
+                        await provider.prepare(
+                            settings
+                        );
+
+                    $("onnxProgress")
+                        .style.width =
+                        "100%";
+
+                    $("onnxProgressText")
+                        .textContent =
+                        "ONNX model ready.";
+
+                    setRuntime(
+                        "onnx",
+                        "good",
+                        "READY",
+                        result?.status?.message ||
+                        "ONNX model loaded."
+                    );
+                } catch (error) {
+                    $("onnxProgress")
+                        .style.width =
+                        "0%";
+
+                    $("onnxProgressText")
+                        .textContent =
+                        "ONNX initialization failed.";
+
+                    setRuntime(
+                        "onnx",
+                        "bad",
+                        "FAILED",
+                        error?.message ||
+                        String(error)
+                    );
+                }
+            }
+
+            async function unloadOnnx() {
+                try {
+                    const ai =
+                        getAI();
+
+                    if (
+                        ai &&
+                        typeof ai.getProvider ===
+                            "function"
+                    ) {
+                        const provider =
+                            await ai.getProvider(
+                                "onnx"
+                            );
+
+                        if (
+                            provider &&
+                            typeof provider.unload ===
+                                "function"
+                        ) {
+                            provider.unload();
+                        }
+                    }
+
+                    $("onnxProgressWrap")
+                        .classList.add("hidden");
+
+                    $("onnxProgressText")
+                        .classList.add("hidden");
+
+                    setRuntime(
+                        "onnx",
+                        "warn",
+                        "NOT LOADED",
+                        "ONNX model unloaded."
+                    );
+                } catch (error) {
+                    setRuntime(
+                        "onnx",
+                        "bad",
+                        "FAILED",
+                        error?.message ||
+                        String(error)
+                    );
+                }
+            }
+
+            async function checkGguf() {
+                const settings =
+                    collectSettings();
+
+                saveSettings(settings);
+
+                setRuntime(
+                    "gguf",
+                    "warn",
+                    "CHECKING",
+                    "Checking GGUF runtime..."
+                );
+
+                try {
+                    const ai =
+                        getAI();
+
+                    if (
+                        !ai ||
+                        typeof ai.getProvider !==
+                            "function"
+                    ) {
+                        throw new Error(
+                            "Little Hollow AI controller is unavailable."
+                        );
+                    }
+
+                    const provider =
+                        await ai.getProvider(
+                            "gguf"
+                        );
+
+                    if (
+                        !provider
+                    ) {
+                        throw new Error(
+                            "GGUF provider is unavailable."
+                        );
+                    }
+
+                    if (
+                        typeof provider.getStatus ===
+                        "function"
+                    ) {
+                        const state =
+                            provider.getStatus();
+
+                        if (state?.ready) {
+                            setRuntime(
+                                "gguf",
+                                "good",
+                                "READY",
+                                "GGUF runtime is ready."
+                            );
+                            return;
+                        }
+                    }
+
+                    setRuntime(
+                        "gguf",
+                        "warn",
+                        "LOADED",
+                        "GGUF provider loaded."
+                    );
+                } catch (error) {
+                    setRuntime(
+                        "gguf",
+                        "bad",
+                        "FAILED",
+                        error?.message ||
+                        String(error)
+                    );
+                }
+            }
+
+            async function testGemini() {
+                const settings =
+                    collectSettings();
+
+                const key =
+                    settings.gemini.apiKey;
+
+                const model =
+                    settings.gemini.model;
+
+                if (!key) {
+                    setRuntime(
+                        "gemini",
+                        "bad",
+                        "NO API KEY",
+                        "Enter a Gemini API key first."
+                    );
+
+                    return;
+                }
+
+                saveSettings(settings);
+
+                setRuntime(
+                    "gemini",
+                    "warn",
+                    "TESTING",
+                    "Sending Gemini request..."
+                );
+
+                try {
+                    const url =
+                        "https://generativelanguage.googleapis.com/v1beta/models/" +
+                        encodeURIComponent(model) +
+                        ":generateContent?key=" +
+                        encodeURIComponent(key);
+
+                    const response =
+                        await fetch(
+                            url,
+                            {
+                                method: "POST",
+
+                                headers: {
+                                    "Content-Type":
+                                        "application/json"
+                                },
+
+                                body:
+                                    JSON.stringify({
+                                        contents: [
+                                            {
+                                                role: "user",
+                                                parts: [
+                                                    {
+                                                        text:
+                                                            "Reply with exactly: LITTLE HOLLOW GEMINI OK"
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    })
+                            }
+                        );
+
+                    const data =
+                        await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(
+                            data?.error?.message ||
+                            (
+                                "HTTP " +
+                                response.status
+                            )
+                        );
+                    }
+
+                    setRuntime(
+                        "gemini",
+                        "good",
+                        "READY",
+                        "Gemini API responded successfully."
+                    );
+                } catch (error) {
+                    setRuntime(
+                        "gemini",
+                        "bad",
+                        "FAILED",
+                        error?.message ||
+                        String(error)
+                    );
+                }
+            }
+
+            function resetGemini() {
+                const settings =
+                    readSettings();
+
+                settings.gemini =
+                    clone(
+                        DEFAULTS.gemini
+                    );
+
                 saveSettings(settings);
                 render();
-                status("Gemini settings reset.", "good");
-            });
 
-            $("closeBtn").addEventListener("click", () => {
-                try {
-                    if (window.parent && window.parent !== window && window.parent.WM && typeof window.parent.WM.closeTopWindow === "function") {
-                        window.parent.WM.closeTopWindow();
-                        return;
+                setRuntime(
+                    "gemini",
+                    "warn",
+                    "RESET",
+                    "Gemini settings reset."
+                );
+
+                setSaveMessage(
+                    "Gemini settings reset.",
+                    "good"
+                );
+            }
+
+            document
+                .querySelectorAll(
+                    ".provider-option"
+                )
+                .forEach(option => {
+                    option.addEventListener(
+                        "click",
+                        () => {
+                            const provider =
+                                option.dataset.provider;
+
+                            const settings =
+                                collectSettings();
+
+                            settings.provider =
+                                provider;
+
+                            saveSettings(settings);
+                            setActiveProvider(provider);
+
+                            setSaveMessage(
+                                "Active provider changed to " +
+                                provider.toUpperCase() +
+                                ".",
+                                "good"
+                            );
+                        }
+                    );
+                });
+
+            document
+                .querySelectorAll(
+                    ".nav-button"
+                )
+                .forEach(button => {
+                    button.addEventListener(
+                        "click",
+                        () => {
+                            showPage(
+                                button.dataset.page
+                            );
+                        }
+                    );
+                });
+
+            $("saveBtn")
+                .addEventListener(
+                    "click",
+                    () => {
+                        const settings =
+                            collectSettings();
+
+                        saveSettings(settings);
+                        setActiveProvider(
+                            settings.provider
+                        );
+
+                        setSaveMessage(
+                            "Settings saved.",
+                            "good"
+                        );
                     }
-                } catch (_) {}
-                window.history.back();
-            });
+                );
+
+            $("refreshBtn")
+                .addEventListener(
+                    "click",
+                    () => {
+                        render();
+
+                        setSaveMessage(
+                            "Settings reloaded.",
+                            "good"
+                        );
+                    }
+                );
+
+            $("puterTestBtn")
+                .addEventListener(
+                    "click",
+                    testPuter
+                );
+
+            $("onnxLoadBtn")
+                .addEventListener(
+                    "click",
+                    loadOnnx
+                );
+
+            $("onnxUnloadBtn")
+                .addEventListener(
+                    "click",
+                    unloadOnnx
+                );
+
+            $("ggufTestBtn")
+                .addEventListener(
+                    "click",
+                    checkGguf
+                );
+
+            $("geminiTestBtn")
+                .addEventListener(
+                    "click",
+                    testGemini
+                );
+
+            $("geminiResetBtn")
+                .addEventListener(
+                    "click",
+                    resetGemini
+                );
+
+            $("onnxDevice")
+                .addEventListener(
+                    "change",
+                    updateOnnxCapability
+                );
+
+            $("onnxDtype")
+                .addEventListener(
+                    "change",
+                    updateOnnxCapability
+                );
+
+            window.addEventListener(
+                "littlehollow:onnxstatus",
+                event => {
+                    const detail =
+                        event?.detail || {};
+
+                    const state =
+                        detail.state;
+
+                    let runtimeState =
+                        "warn";
+
+                    if (
+                        state === "ready"
+                    ) {
+                        runtimeState =
+                            "good";
+                    } else if (
+                        state === "error"
+                    ) {
+                        runtimeState =
+                            "bad";
+                    }
+
+                    const progress =
+                        Number(
+                            detail.progress || 0
+                        );
+
+                    $("onnxProgress")
+                        .style.width =
+                        Math.max(
+                            0,
+                            Math.min(
+                                100,
+                                progress
+                            )
+                        ) +
+                        "%";
+
+                    const loading =
+                        state === "starting" ||
+                        state === "loading" ||
+                        state === "downloading";
+
+                    $("onnxProgressWrap")
+                        .classList.toggle(
+                            "hidden",
+                            !loading
+                        );
+
+                    $("onnxProgressText")
+                        .classList.toggle(
+                            "hidden",
+                            !loading
+                        );
+
+                    $("onnxProgressText")
+                        .textContent =
+                        detail.message ||
+                        (
+                            String(
+                                state ||
+                                "unknown"
+                            )
+                        );
+
+                    setRuntime(
+                        "onnx",
+                        runtimeState,
+                        String(
+                            state ||
+                            "UNKNOWN"
+                        ).toUpperCase(),
+                        detail.message ||
+                        "ONNX status updated."
+                    );
+                }
+            );
 
             render();
         })();
