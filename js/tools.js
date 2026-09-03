@@ -21,6 +21,7 @@
               "Clock",
               "Calculator",
               "Notepad",
+              "NotepadIDE",
               "Paint",
               "Piano",
               "tictactoe",
