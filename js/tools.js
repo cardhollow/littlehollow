@@ -22,6 +22,7 @@
               "Calculator",
               "Notepad",
               "Paint",
+              "Piano",
               "tictactoe",
               "snake",
               "imageViewer",
@@ -206,6 +207,148 @@
     type: "function",
     function:
     {
+      name: "open_piano",
+      description: "Open the built-in Little Hollow Piano application. Optionally load a PKP recording from a virtual path or directly import PKP text.",
+      parameters:
+      {
+        type: "object",
+        properties:
+        {
+          path:
+          {
+            type: "string"
+          },
+          pkp:
+          {
+            type: "string"
+          }
+        },
+        required: []
+      }
+    }
+  },
+  {
+    type: "function",
+    function:
+    {
+      name: "piano_action",
+      description: "Control the built-in Little Hollow Piano through PianoAPI. Supports playing/importing PKP, MIDI note control, octave/volume/waveform/instrument/sustain settings, recording control, playback, recording inspection, PKP file manager, saving and loading.",
+      parameters:
+      {
+        type: "object",
+        properties:
+        {
+          action:
+          {
+            type: "string",
+            enum:
+            [
+              "play_pkp",
+              "import_pkp",
+              "import_pkp_from_chxd",
+              "play_midi",
+              "stop_midi",
+              "set_octave",
+              "get_octave",
+              "set_volume",
+              "set_waveform",
+              "set_instrument",
+              "get_instrument",
+              "set_sustain",
+              "start_recording",
+              "stop_recording",
+              "toggle_recording",
+              "play_recording",
+              "clear_recording",
+              "get_recording_type",
+              "get_recording",
+              "get_pkp",
+              "get_pkp_data",
+              "get_audio",
+              "open_pkp_file_manager",
+              "save",
+              "load",
+              "save_pkp",
+              "save_audio"
+            ]
+          },
+          value:
+          {
+            type: "string"
+          },
+          midi:
+          {
+            type: "integer",
+            minimum: 0,
+            maximum: 127
+          },
+          octave:
+          {
+            type: "integer",
+            minimum: 1,
+            maximum: 7
+          },
+          volume:
+          {
+            type: "number",
+            minimum: 0,
+            maximum: 1
+          },
+          waveform:
+          {
+            type: "string",
+            enum:
+            [
+              "sine",
+              "triangle",
+              "square",
+              "sawtooth"
+            ]
+          },
+          instrument:
+          {
+            type: "string",
+            enum:
+            [
+              "piano",
+              "synth",
+              "organ",
+              "strings",
+              "brass",
+              "choir",
+              "pluck",
+              "bell",
+              "harpsichord",
+              "guitar",
+              "bass",
+              "pad",
+              "lead"
+            ]
+          },
+          sustain:
+          {
+            type: "boolean"
+          },
+          path:
+          {
+            type: "string"
+          },
+          pkp:
+          {
+            type: "string"
+          }
+        },
+        required:
+        [
+          "action"
+        ]
+      }
+    }
+  },
+  {
+    type: "function",
+    function:
+    {
       name: "open_window",
       description: "Open a window showing text, code, HTML, generated content, results, or other structured output.",
       parameters:
@@ -220,7 +363,9 @@
           content_type:
           {
             type: "string",
-            enum: ["text", "code",
+            enum: [
+              "text",
+              "code",
               "html"
             ]
           },
@@ -229,7 +374,8 @@
             type: "string"
           }
         },
-        required: [
+        required:
+        [
           "content_type",
           "content"
         ]
@@ -266,7 +412,10 @@
             minimum: 180
           }
         },
-        required: ["url"]
+        required:
+        [
+          "url"
+        ]
       }
     }
   },
@@ -292,7 +441,10 @@
             maximum: 10
           }
         },
-        required: ["query"]
+        required:
+        [
+          "query"
+        ]
       }
     }
   },
@@ -320,7 +472,8 @@
             type: "boolean"
           }
         },
-        required: [
+        required:
+        [
           "path",
           "content"
         ]
@@ -359,14 +512,18 @@
                   type: "boolean"
                 }
               },
-              required: [
+              required:
+              [
                 "path",
                 "content"
               ]
             }
           }
         },
-        required: ["files"]
+        required:
+        [
+          "files"
+        ]
       }
     }
   },
@@ -386,7 +543,10 @@
             type: "string"
           }
         },
-        required: ["path"]
+        required:
+        [
+          "path"
+        ]
       }
     }
   },
@@ -406,7 +566,10 @@
             type: "string"
           }
         },
-        required: ["path"]
+        required:
+        [
+          "path"
+        ]
       }
     }
   },
@@ -426,7 +589,10 @@
             type: "string"
           }
         },
-        required: ["pattern"]
+        required:
+        [
+          "pattern"
+        ]
       }
     }
   },
@@ -446,7 +612,10 @@
             type: "string"
           }
         },
-        required: ["prefix"]
+        required:
+        [
+          "prefix"
+        ]
       }
     }
   },
@@ -474,7 +643,8 @@
             type: "string"
           }
         },
-        required: [
+        required:
+        [
           "files",
           "output_path"
         ]
@@ -517,7 +687,10 @@
             type: "boolean"
           }
         },
-        required: ["language"]
+        required:
+        [
+          "language"
+        ]
       }
     }
   },
@@ -545,7 +718,10 @@
             type: "boolean"
           }
         },
-        required: ["path"]
+        required:
+        [
+          "path"
+        ]
       }
     }
   },
@@ -571,7 +747,10 @@
             maximum: 10000
           }
         },
-        required: ["code"]
+        required:
+        [
+          "code"
+        ]
       }
     }
   },
@@ -589,7 +768,8 @@
           action:
           {
             type: "string",
-            enum: [
+            enum:
+            [
               "open_url",
               "new_tab",
               "get_tabs",
@@ -620,7 +800,10 @@
             minimum: 0
           }
         },
-        required: ["action"]
+        required:
+        [
+          "action"
+        ]
       }
     }
   },
@@ -641,7 +824,10 @@
             description: "CameraAPI action object. Examples: {\"open\":true}, {\"photo\":true}, {\"recording\":\"start\"}, {\"record\":5000}, {\"facing\":\"front\"}, {\"switch\":true}, {\"state\":true}. Multiple actions can be supplied in one call."
           }
         },
-        required: ["actions"]
+        required:
+        [
+          "actions"
+        ]
       }
     }
   },
@@ -659,11 +845,13 @@
           actions:
           {
             type: "object",
-            
             description: "DocumentAPI action object. Examples: {\"open\":\"chxd:/local/file.pdf\"}, {\"next\":true}, {\"goto\":3}, {\"zoom\":1.5}, {\"search\":\"hello\"}, {\"state\":true}. Multiple actions can be supplied in one call."
           }
         },
-        required: ["actions"]
+        required:
+        [
+          "actions"
+        ]
       }
     }
   },
@@ -681,7 +869,8 @@
           action:
           {
             type: "string",
-            enum: [
+            enum:
+            [
               "receive_image",
               "open_image_data",
               "load_image",
@@ -704,7 +893,13 @@
           format:
           {
             type: "string",
-            enum: ["png", "jpeg", "jpg", "webp"]
+            enum:
+            [
+              "png",
+              "jpeg",
+              "jpg",
+              "webp"
+            ]
           },
           quality:
           {
@@ -717,7 +912,10 @@
             type: "string"
           }
         },
-        required: ["action"]
+        required:
+        [
+          "action"
+        ]
       }
     }
   },
@@ -735,7 +933,8 @@
           action:
           {
             type: "string",
-            enum: [
+            enum:
+            [
               "search",
               "get_coordinates",
               "set_zoom",
@@ -769,7 +968,10 @@
             type: "string"
           }
         },
-        required: ["action"]
+        required:
+        [
+          "action"
+        ]
       }
     }
   },
@@ -802,7 +1004,10 @@
             type: "string"
           }
         },
-        required: ["window_id"]
+        required:
+        [
+          "window_id"
+        ]
       }
     }
   },
@@ -822,7 +1027,10 @@
             type: "string"
           }
         },
-        required: ["window_id"]
+        required:
+        [
+          "window_id"
+        ]
       }
     }
   },
@@ -847,20 +1055,24 @@
     {
       return "";
     }
+
     if (value === null)
     {
       return "null";
     }
+
     if (value instanceof Error)
     {
       return value.stack ||
         value.message ||
         String(value);
     }
+
     if (typeof value === "string")
     {
       return value;
     }
+
     if (
       typeof value === "number" ||
       typeof value === "boolean" ||
@@ -869,6 +1081,7 @@
     {
       return String(value);
     }
+
     try
     {
       return JSON.stringify(
@@ -898,6 +1111,7 @@
       {
         return result.summary.trim();
       }
+
       if (
         typeof result.message ===
         "string" &&
@@ -906,6 +1120,7 @@
       {
         return result.message.trim();
       }
+
       if (
         typeof result.error ===
         "string" &&
@@ -915,20 +1130,37 @@
         return result.error.trim();
       }
     }
+
     return formatValue(result);
   }
+
   const esc = s =>
     String(
       s == null ?
       "" :
       formatValue(s)
     )
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    );
 
-  function commandLine(name, args)
+  function commandLine(
+    name,
+    args
+  )
   {
     const shown =
       Object.entries(
@@ -937,19 +1169,24 @@
       )
       .map(
         ([k, v]) =>
-        k + "=" +
-        (
-          typeof v === "string" ?
-          v :
-          formatValue(v)
-        )
+          k +
+          "=" +
+          (
+            typeof v === "string" ?
+            v :
+            formatValue(v)
+          )
       )
-      .join(" ");
+      .join(
+        " "
+      );
+
     return "> " +
       name +
       (
         shown ?
-        " " + shown :
+        " " +
+        shown :
         ""
       );
   }
@@ -970,6 +1207,7 @@
       "overflow:hidden;" +
       "box-sizing:border-box;" +
       "'>" +
+
       "<div style='" +
       "height:30px;" +
       "min-height:30px;" +
@@ -984,11 +1222,14 @@
       "letter-spacing:1px;" +
       "box-sizing:border-box;" +
       "'>" +
+
       "<span style='opacity:.45;margin-right:6px'>●</span>" +
       "<span style='opacity:.65;margin-right:6px'>●</span>" +
       "<span style='opacity:.9;margin-right:12px'>●</span>" +
       "<span>LITTLE HOLLOW TERMINAL</span>" +
+
       "</div>" +
+
       "<div id='terminal-screen' style='" +
       "flex:1;" +
       "min-height:0;" +
@@ -1005,14 +1246,19 @@
       "word-break:break-word;" +
       "box-sizing:border-box;" +
       "'>" +
+
       "<div id='terminal-out'>" +
+
       "<div style='opacity:.75'>" +
       "LITTLE HOLLOW TERMINAL" +
       "</div>" +
+
       "<div style='opacity:.4'>" +
       "SYSTEM READY" +
       "</div>" +
+
       "<br>" +
+
       "<div>" +
       "<span style='color:#00FFFF'>" +
       "chxd@little-hollow" +
@@ -1022,23 +1268,37 @@
       "<span style='opacity:.45'>$</span> " +
       esc(command) +
       "</div>" +
+
       "<div style='margin-top:8px'>" +
       "<span style='color:#FFFF00'>" +
       "[ RUNNING ]" +
       "</span>" +
       "</div>" +
+
       "<span class='cursor'>█</span>" +
+
       "</div>" +
       "</div>" +
       "</div>";
+
     return WM.openWindow(
     {
-      title: "TERMINAL",
+      title:
+        "TERMINAL",
+
       html,
-      width: "560px",
-      height: "320px",
-      noPad: false,
-      standaloneKey: null
+
+      width:
+        "560px",
+
+      height:
+        "320px",
+
+      noPad:
+        false,
+
+      standaloneKey:
+        null
     });
   }
 
@@ -1055,39 +1315,49 @@
     {
       return;
     }
+
     const out =
       win.el.querySelector(
         "#terminal-out"
       );
+
     if (!out)
     {
       return;
     }
+
     const ok = !!(
       result &&
       typeof result === "object" &&
       result.ok === true
     );
+
     const message =
       resultMessage(
         result
       );
+
     const state =
-      ok ?
-      "[ OK ]" :
-      "[ ERROR ]";
+      ok
+        ? "[ OK ]"
+        : "[ ERROR ]";
+
     const stateColor =
-      ok ?
-      "#00FF88" :
-      "#FF6666";
+      ok
+        ? "#00FF88"
+        : "#FF6666";
+
     out.innerHTML =
       "<div style='opacity:.75'>" +
       "LITTLE HOLLOW TERMINAL" +
       "</div>" +
+
       "<div style='opacity:.4'>" +
       "TOOL EXECUTION" +
       "</div>" +
+
       "<br>" +
+
       "<div>" +
       "<span style='color:#00FFFF'>" +
       "chxd@little-hollow" +
@@ -1097,29 +1367,37 @@
       "<span style='opacity:.45'>$</span> " +
       esc(command) +
       "</div>" +
+
       "<div style='margin-top:8px;color:" +
       stateColor +
       "'>" +
       state +
       "</div>" +
+
       "<div style='margin-top:8px;opacity:.92'>" +
       esc(message) +
       "</div>" +
+
       "<br>" +
+
       "<div style='opacity:.4'>" +
       "PROCESS COMPLETE" +
       "</div>" +
+
       "<span class='cursor'>█</span>";
+
     const screen =
       win.el.querySelector(
         "#terminal-screen"
       );
+
     if (screen)
     {
       screen.scrollTop =
         screen.scrollHeight;
     }
   }
+
   console.log(
     "terminal/tools"
   );
@@ -1145,6 +1423,7 @@
       delay
     );
   }
+
   async function webSearch(
     query,
     maxResults
@@ -1155,13 +1434,16 @@
         query || ""
       )
       .trim();
+
     if (!query)
     {
       return {
         ok: false,
-        summary: "Search query is empty."
+        summary:
+          "Search query is empty."
       };
     }
+
     const limit =
       Math.max(
         1,
@@ -1172,10 +1454,12 @@
           ) || 5
         )
       );
+
     Avatar.setEye(
       "search",
       -1
     );
+
     try
     {
       const url =
@@ -1184,16 +1468,19 @@
           query
         ) +
         "&format=json&no_html=1&skip_disambig=0";
+
       const r =
         await fetch(
           url,
           {
             headers:
             {
-              Accept: "application/json"
+              Accept:
+                "application/json"
             }
           }
         );
+
       if (!r.ok)
       {
         throw new Error(
@@ -1201,28 +1488,36 @@
           r.status
         );
       }
+
       const d =
         await r.json();
+
       const results = [];
+
       if (d.AbstractText)
       {
         results.push(
         {
-          title: d.Heading ||
+          title:
+            d.Heading ||
             query,
-          snippet: d
-            .AbstractText,
-          url: d.AbstractURL ||
+
+          snippet:
+            d.AbstractText,
+
+          url:
+            d.AbstractURL ||
             ""
         });
       }
+
       const walk = a =>
       {
         for (
           const x of
-            Array.isArray(a) ?
-            a :
-            []
+            Array.isArray(a)
+              ? a
+              : []
         )
         {
           if (
@@ -1232,6 +1527,7 @@
           {
             break;
           }
+
           if (x.Topics)
           {
             walk(
@@ -1242,7 +1538,8 @@
           {
             results.push(
             {
-              title: String(
+              title:
+                String(
                   x.Text
                 )
                 .split(
@@ -1252,28 +1549,37 @@
                   0,
                   120
                 ),
-              snippet: x.Text,
-              url: x
-                .FirstURL ||
+
+              snippet:
+                x.Text,
+
+              url:
+                x.FirstURL ||
                 ""
             });
           }
         }
       };
+
       walk(
         d.RelatedTopics
       );
+
       walk(
         d.Results
       );
+
       return {
         ok: true,
-        summary: "Search completed for \"" +
+        summary:
+          "Search completed for \"" +
           query +
           "\" with " +
           results.length +
           " result(s).",
+
         results,
+
         query
       };
     }
@@ -1281,7 +1587,8 @@
     {
       return {
         ok: false,
-        summary: "Web search failed: " +
+        summary:
+          "Web search failed: " +
           e.message,
         query
       };
@@ -1324,26 +1631,32 @@
   {
     let c =
       0xffffffff;
+
     for (
       const b of bytes
     )
     {
       c ^= b;
+
       for (
-        let i = 0; i < 8; i++
+        let i = 0;
+        i < 8;
+        i++
       )
       {
         c =
           (c >>> 1) ^
           (
-            (c & 1) ?
-            0xedb88320 :
-            0
+            (c & 1)
+              ? 0xedb88320
+              : 0
           );
       }
     }
+
     return (
-      c ^ 0xffffffff
+      c ^
+      0xffffffff
     ) >>> 0;
   }
 
@@ -1351,7 +1664,9 @@
   {
     const parts = [];
     const central = [];
+
     let offset = 0;
+
     for (
       const entry of
         entries
@@ -1360,19 +1675,23 @@
       const name =
         utf8(
           entry.name
-          .replace(
-            /^\/+/,
-            ""
-          )
+            .replace(
+              /^\/+/,
+              ""
+            )
         );
+
       const data =
         entry.data;
+
       const crc =
         crc32(
           data
         );
+
       const header =
-        new Uint8Array([
+        new Uint8Array(
+        [
           ...u32(
             0x04034b50
           ),
@@ -1384,18 +1703,19 @@
           ...u32(crc),
           ...u32(data.length),
           ...u32(data.length),
-          ...u16(
-            name.length
-          ),
+          ...u16(name.length),
           ...u16(0),
           ...name,
           ...data
         ]);
+
       parts.push(
         header
       );
+
       central.push(
-        new Uint8Array([
+        new Uint8Array(
+        [
           ...u32(
             0x02014b50
           ),
@@ -1418,19 +1738,24 @@
           ...name
         ])
       );
+
       offset +=
         header.length;
     }
+
     const cdStart =
       offset;
+
     const cdSize =
       central.reduce(
         (n, x) =>
-        n + x.length,
+          n + x.length,
         0
       );
+
     const eocd =
-      new Uint8Array([
+      new Uint8Array(
+      [
         ...u32(
           0x06054b50
         ),
@@ -1446,15 +1771,18 @@
         ...u32(cdStart),
         ...u16(0)
       ]);
+
     const all = [
       ...parts,
       ...central,
       eocd
     ];
+
     return new Blob(
       all,
       {
-        type: "application/zip"
+        type:
+          "application/zip"
       }
     );
   }
@@ -1466,53 +1794,63 @@
       {
         const r =
           new FileReader();
+
         r.onload = () =>
         {
           res(
             r.result
           );
         };
+
         r.onerror = () =>
         {
           rej(
             r.error
           );
         };
+
         r.readAsDataURL(
           blob
         );
       }
     );
   }
+
   async function zipFiles(
     files,
     output
   )
   {
     const entries = [];
+
     for (
       const path of
-        Array.isArray(files) ?
-        files :
-        []
+        Array.isArray(files)
+          ? files
+          : []
     )
     {
       const p =
         FS.normalize(
           path
         );
+
       const r =
         await FS.read(
           p
         );
+
       if (!r.ok)
       {
         return {
           ok: false,
-          summary: r.error
+          summary:
+            r.error
         };
       }
+
       let data;
+
       if (
         /^data:[^;]+;base64,/i
         .test(
@@ -1523,21 +1861,26 @@
         const b =
           atob(
             r.content
-            .split(",")[1]
+              .split(",")[1]
           );
+
         const a =
           new Uint8Array(
             b.length
           );
+
         for (
-          let i = 0; i < b
-          .length; i++
+          let i = 0;
+          i < b.length;
+          i++
         )
         {
           a[i] =
             b.charCodeAt(i);
         }
-        data = a;
+
+        data =
+          a;
       }
       else
       {
@@ -1546,50 +1889,66 @@
             r.content
           );
       }
+
       entries.push(
       {
-        name: p.replace(
+        name:
+          p.replace(
             /^.*?:\/(?:[^/]+\/)?/,
             ""
           ) ||
-          p.split("/").pop(),
+          p.split("/")
+            .pop(),
+
         data
       });
     }
+
     const blob =
       makeZip(
         entries
       );
+
     const dataUrl =
       await blobDataURL(
         blob
       );
+
     const dest =
       FS.normalize(
         output
       );
+
     const w =
       await FS.write(
         dest,
         dataUrl,
         true
       );
+
     if (!w.ok)
     {
       return {
         ok: false,
-        summary: w.error
+        summary:
+          w.error
       };
     }
+
     return {
       ok: true,
-      summary: "Created ZIP " +
+      summary:
+        "Created ZIP " +
         dest +
         " containing " +
         entries.length +
         " file(s).",
-      path: dest,
-      binary: true
+
+      path:
+        dest,
+
+      binary:
+        true
     };
   }
 
@@ -1606,17 +1965,21 @@
           Date.now() +
           "-" +
           Math.random()
-          .toString(36)
-          .slice(2);
+            .toString(36)
+            .slice(2);
+
         const logs = [];
+
         const frame =
           document.createElement(
             "iframe"
           );
+
         frame.setAttribute(
           "sandbox",
           "allow-scripts"
         );
+
         frame.style.cssText =
           "position:fixed;" +
           "left:-10000px;" +
@@ -1624,6 +1987,7 @@
           "width:1px;" +
           "height:1px;" +
           "border:0";
+
         const csp =
           "default-src 'none'; " +
           "script-src 'unsafe-inline'; " +
@@ -1634,6 +1998,7 @@
           "child-src 'none'; " +
           "form-action 'none'; " +
           "base-uri 'none'";
+
         const safeCode =
           String(
             code || ""
@@ -1642,6 +2007,7 @@
             /<\/script/gi,
             "<\\/script"
           );
+
         frame.srcdoc =
           `<!doctype html>
 <meta http-equiv="Content-Security-Policy" content="${csp}">
@@ -1653,191 +2019,195 @@ const pending=new Map();
 
 let seq=0;
 
-function call(api,args){
-
-return new Promise(
-(resolve,reject)=>{
-
-const rid=
-RID+
-":"+
-(++seq);
-
-pending.set(
-rid,
+function call(api,args)
 {
-resolve,
-reject
-}
-);
+  return new Promise(
+    (resolve,reject)=>
+    {
+      const rid=
+        RID+
+        ":"+
+        (++seq);
 
-parent.postMessage(
-{
-type:
-"LH_SANDBOX_REQ",
-rid,
-api,
-args
-},
-"*"
-);
+      pending.set(
+        rid,
+        {
+          resolve,
+          reject
+        }
+      );
 
-}
-);
+      parent.postMessage(
+        {
+          type:
+            "LH_SANDBOX_REQ",
 
+          rid,
+
+          api,
+
+          args
+        },
+        "*"
+      );
+    }
+  );
 }
 
 window.addEventListener(
-"message",
-e=>{
+  "message",
+  e =>
+  {
+    const d =
+      e.data ||
+      {};
 
-const d=
-e.data||
-{};
+    if (
+      d.type ===
+      "LH_SANDBOX_RES" &&
+      pending.has(
+        d.rid
+      )
+    )
+    {
+      const p =
+        pending.get(
+          d.rid
+        );
 
-if(
-d.type===
-"LH_SANDBOX_RES"&&
-pending.has(
-d.rid
-)
-){
+      pending.delete(
+        d.rid
+      );
 
-const p=
-pending.get(
-d.rid
+      d.ok
+        ? p.resolve(
+            d.value
+          )
+        : p.reject(
+            new Error(
+              d.error ||
+              "operation failed"
+            )
+          );
+    }
+  }
 );
 
-pending.delete(
-d.rid
-);
-
-d.ok
-?p.resolve(
-d.value
-)
-:p.reject(
-new Error(
-d.error||
-"operation failed"
-)
-);
-
-}
-
-}
-);
-
-const lh={
-
-readFile:
-p=>
-call(
-"readFile",
-[p]
-),
-
-writeFile:
-(p,c)=>
-call(
-"writeFile",
-[p,c]
-),
-
-listFiles:
-p=>
-call(
-"listFiles",
-[p||""]
-),
-
-removeFile:
-p=>
-call(
-"removeFile",
-[p]
-),
-
-log:
-(...a)=>
-parent.postMessage(
+const lh =
 {
-type:
-"LH_SANDBOX_LOG",
-id:RID,
-args:
-a.map(
-String
-)
-},
-"*"
-)
+  readFile:
+    p =>
+      call(
+        "readFile",
+        [p]
+      ),
 
+  writeFile:
+    (p,c) =>
+      call(
+        "writeFile",
+        [p,c]
+      ),
+
+  listFiles:
+    p =>
+      call(
+        "listFiles",
+        [p || ""]
+      ),
+
+  removeFile:
+    p =>
+      call(
+        "removeFile",
+        [p]
+      ),
+
+  log:
+    (...a) =>
+      parent.postMessage(
+        {
+          type:
+            "LH_SANDBOX_LOG",
+
+          id:
+            RID,
+
+          args:
+            a.map(
+              String
+            )
+        },
+        "*"
+      )
 };
 
-(async()=>{
-
-try{
-
-const result=
-await(
-async()=>{
-
-${safeCode}
-
-}
-)();
-
-parent.postMessage(
+(async() =>
 {
-type:
-"LH_SANDBOX_DONE",
+  try
+  {
+    const result =
+      await(
+        async() =>
+        {
+          ${safeCode}
+        }
+      )();
 
-id:RID,
+    parent.postMessage(
+      {
+        type:
+          "LH_SANDBOX_DONE",
 
-ok:true,
+        id:
+          RID,
 
-result:
-result==null
-?""
-:String(
-result
-)
+        ok:
+          true,
 
-},
-"*"
-);
+        result:
+          result == null
+            ? ""
+            : String(
+                result
+              )
+      },
+      "*"
+    );
+  }
+  catch(e)
+  {
+    parent.postMessage(
+      {
+        type:
+          "LH_SANDBOX_DONE",
 
-}catch(e){
+        id:
+          RID,
 
-parent.postMessage(
-{
-type:
-"LH_SANDBOX_DONE",
+        ok:
+          false,
 
-id:RID,
-
-ok:false,
-
-error:
-e&&e.stack||
-String(
-e
-)
-
-},
-"*"
-);
-
-}
-
+        error:
+          e &&
+          e.stack ||
+          String(
+            e
+          )
+      },
+      "*"
+    );
+  }
 })();
 
 </script>`;
+
         document.body.appendChild(
           frame
         );
+
         let done = false;
+
         const finish =
           r =>
           {
@@ -1845,21 +2215,26 @@ e
             {
               return;
             }
+
             done = true;
-            window
-              .removeEventListener(
-                "message",
-                onMessage
-              );
+
+            window.removeEventListener(
+              "message",
+              onMessage
+            );
+
             frame.remove();
+
             resolve(r);
           };
+
         const onMessage =
           async e =>
           {
             const d =
               e.data ||
               {};
+
             if (
               d.id !== id &&
               d.rid !==
@@ -1874,6 +2249,7 @@ e
             {
               return;
             }
+
             if (
               d.type ===
               "LH_SANDBOX_LOG"
@@ -1885,6 +2261,7 @@ e
                 )
               );
             }
+
             if (
               d.type ===
               "LH_SANDBOX_REQ" &&
@@ -1899,8 +2276,11 @@ e
               try
               {
                 let value;
+
                 const a =
-                  d.args || [];
+                  d.args ||
+                  [];
+
                 if (
                   d.api ===
                   "readFile"
@@ -1910,12 +2290,14 @@ e
                     await FS.read(
                       a[0]
                     );
+
                   if (!r.ok)
                   {
                     throw new Error(
                       r.error
                     );
                   }
+
                   value =
                     r.content;
                 }
@@ -1925,19 +2307,21 @@ e
                 )
                 {
                   const r =
-                    await FS
-                    .write(
+                    await FS.write(
                       a[0],
                       a[1],
                       true
                     );
+
                   if (!r.ok)
                   {
                     throw new Error(
                       r.error
                     );
                   }
-                  value = true;
+
+                  value =
+                    true;
                 }
                 else if (
                   d.api ===
@@ -1955,17 +2339,19 @@ e
                 )
                 {
                   const r =
-                    await FS
-                    .remove(
+                    await FS.remove(
                       a[0]
                     );
+
                   if (!r.ok)
                   {
                     throw new Error(
                       r.error
                     );
                   }
-                  value = true;
+
+                  value =
+                    true;
                 }
                 else
                 {
@@ -1974,35 +2360,47 @@ e
                     d.api
                   );
                 }
-                e.source
-                  .postMessage(
-                    {
-                      type: "LH_SANDBOX_RES",
-                      rid: d.rid,
-                      ok: true,
-                      value
-                    },
-                    "*"
-                  );
+
+                e.source.postMessage(
+                  {
+                    type:
+                      "LH_SANDBOX_RES",
+
+                    rid:
+                      d.rid,
+
+                    ok:
+                      true,
+
+                    value
+                  },
+                  "*"
+                );
               }
               catch (err)
               {
-                e.source
-                  .postMessage(
-                    {
-                      type: "LH_SANDBOX_RES",
-                      rid: d.rid,
-                      ok: false,
-                      error: String(
-                        err
-                        .message ||
+                e.source.postMessage(
+                  {
+                    type:
+                      "LH_SANDBOX_RES",
+
+                    rid:
+                      d.rid,
+
+                    ok:
+                      false,
+
+                    error:
+                      String(
+                        err.message ||
                         err
                       )
-                    },
-                    "*"
-                  );
+                  },
+                  "*"
+                );
               }
             }
+
             if (
               d.type ===
               "LH_SANDBOX_DONE"
@@ -2012,197 +2410,1802 @@ e
               {
                 ok:
                   !!d.ok,
-                summary: d
-                  .ok ?
-                  (
-                    "Sandbox JavaScript finished." +
+
+                summary:
+                  d.ok
+                    ?
                     (
-                      d
-                      .result ?
-                      " Result: " +
-                      d
-                      .result :
-                      ""
+                      "Sandbox JavaScript finished." +
+                      (
+                        d.result
+                          ? " Result: " +
+                            d.result
+                          : ""
+                      )
                     )
-                  ) :
-                  (
-                    "Sandbox JavaScript failed: " +
-                    d.error
-                  ),
+                    :
+                    (
+                      "Sandbox JavaScript failed: " +
+                      d.error
+                    ),
+
                 logs
               });
             }
           };
+
         window.addEventListener(
           "message",
           onMessage
         );
+
         setTimeout(
-          () => finish(
-          {
-            ok: false,
-            summary: "Sandbox JavaScript timed out after " +
-              timeoutMs +
-              " ms.",
-            logs
-          }),
+          () =>
+            finish(
+            {
+              ok:
+                false,
+
+              summary:
+                "Sandbox JavaScript timed out after " +
+                timeoutMs +
+                " ms.",
+
+              logs
+            }),
           timeoutMs
         );
       });
   }
-  function listWMWindows(){
-    try{
-      return WM && typeof WM.list === "function" ? WM.list() : [];
-    }catch(_){
+
+  function listWMWindows()
+  {
+    try
+    {
+      return WM &&
+        typeof WM.list === "function"
+        ? WM.list()
+        : [];
+    }
+    catch(_)
+    {
       return [];
     }
   }
 
-  function findWindowById(id){
-    const wanted=String(id||"");
-    return listWMWindows().find(w=>String(w&&w.id||"")===wanted) || null;
+  function findWindowById(
+    id
+  )
+  {
+    const wanted =
+      String(
+        id ||
+        ""
+      );
+
+    return listWMWindows()
+      .find(
+        w =>
+          String(
+            w &&
+            w.id ||
+            ""
+          ) ===
+          wanted
+      ) ||
+      null;
   }
 
-  function findIframeWindowByPath(parts){
-    const wanted=(Array.isArray(parts)?parts:[]).map(x=>String(x).toLowerCase());
-    for(const win of listWMWindows()){
-      try{
-        const frame=win && win.el && win.el.querySelector ? win.el.querySelector("iframe") : null;
-        if(!frame || !frame.contentWindow) continue;
-        const src=String(frame.getAttribute("src")||frame.src||"").toLowerCase();
-        if(wanted.some(part=>src.includes(part))) return {win,frame,api:frame.contentWindow};
-      }catch(_){ }
+  function findIframeWindowByPath(
+    parts
+  )
+  {
+    const wanted =
+      (
+        Array.isArray(parts)
+          ? parts
+          : []
+      )
+      .map(
+        x =>
+          String(
+            x
+          )
+          .toLowerCase()
+      );
+
+    for (
+      const win of
+        listWMWindows()
+    )
+    {
+      try
+      {
+        const frame =
+          win &&
+          win.el &&
+          win.el.querySelector
+            ? win.el.querySelector(
+                "iframe"
+              )
+            : null;
+
+        if (
+          !frame ||
+          !frame.contentWindow
+        )
+        {
+          continue;
+        }
+
+        const src =
+          String(
+            frame.getAttribute(
+              "src"
+            ) ||
+            frame.src ||
+            ""
+          )
+          .toLowerCase();
+
+        if (
+          wanted.some(
+            part =>
+              src.includes(
+                part
+              )
+          )
+        )
+        {
+          return {
+            win,
+            frame,
+            api:
+              frame.contentWindow
+          };
+        }
+      }
+      catch(_)
+      {
+      }
     }
+
     return null;
   }
 
-  async function waitForIframeApp(appName, pathHints, timeoutMs=5000){
-    let found=findIframeWindowByPath(pathHints);
-    if(found) return found;
-    let opened=null;
-    try{
-      opened=Apps.openApp(appName,{allowMultiple:false});
-    }catch(e){
-      return {ok:false,error:e.message||String(e)};
+  async function waitForIframeApp(
+    appName,
+    pathHints,
+    timeoutMs = 5000
+  )
+  {
+    let found =
+      findIframeWindowByPath(
+        pathHints
+      );
+
+    if (found)
+    {
+      return found;
     }
-    if(opened && opened.ok && opened.win){
-      const frame=opened.win.el && opened.win.el.querySelector ? opened.win.el.querySelector("iframe") : null;
-      const start=Date.now();
-      while(Date.now()-start<timeoutMs){
-        try{
-          if(frame && frame.contentWindow){
-            const doc=frame.contentDocument;
-            if(doc && doc.readyState!=="loading") return {win:opened.win,frame,api:frame.contentWindow};
+
+    let opened = null;
+
+    try
+    {
+      opened =
+        Apps.openApp(
+          appName,
+          {
+            allowMultiple:
+              false
           }
-        }catch(_){ }
-        await new Promise(r=>setTimeout(r,50));
+        );
+    }
+    catch(e)
+    {
+      return {
+        ok:
+          false,
+
+        error:
+          e.message ||
+          String(e)
+      };
+    }
+
+    if (
+      opened &&
+      opened.ok &&
+      opened.win
+    )
+    {
+      const frame =
+        opened.win.el &&
+        opened.win.el.querySelector
+          ? opened.win.el.querySelector(
+              "iframe"
+            )
+          : null;
+
+      const start =
+        Date.now();
+
+      while (
+        Date.now() -
+        start <
+        timeoutMs
+      )
+      {
+        try
+        {
+          if (
+            frame &&
+            frame.contentWindow
+          )
+          {
+            const doc =
+              frame.contentDocument;
+
+            if (
+              doc &&
+              doc.readyState !==
+              "loading"
+            )
+            {
+              return {
+                win:
+                  opened.win,
+
+                frame,
+
+                api:
+                  frame.contentWindow
+              };
+            }
+          }
+        }
+        catch(_)
+        {
+        }
+
+        await new Promise(
+          r =>
+            setTimeout(
+              r,
+              50
+            )
+        );
       }
-      if(frame && frame.contentWindow) return {win:opened.win,frame,api:frame.contentWindow};
+
+      if (
+        frame &&
+        frame.contentWindow
+      )
+      {
+        return {
+          win:
+            opened.win,
+
+          frame,
+
+          api:
+            frame.contentWindow
+        };
+      }
     }
-    const start=Date.now();
-    while(Date.now()-start<timeoutMs){
-      found=findIframeWindowByPath(pathHints);
-      if(found) return found;
-      await new Promise(r=>setTimeout(r,50));
+
+    const start =
+      Date.now();
+
+    while (
+      Date.now() -
+      start <
+      timeoutMs
+    )
+    {
+      found =
+        findIframeWindowByPath(
+          pathHints
+        );
+
+      if (found)
+      {
+        return found;
+      }
+
+      await new Promise(
+        r =>
+          setTimeout(
+            r,
+            50
+          )
+      );
     }
-    return {ok:false,error:"Could not access the "+appName+" application frame."};
+
+    return {
+      ok:
+        false,
+
+      error:
+        "Could not access the " +
+        appName +
+        " application frame."
+    };
   }
 
-  async function waitForGlobalAPI(apiName, appName, pathHints, timeoutMs=5000){
-    if(window[apiName]) return window[apiName];
-    const info=await waitForIframeApp(appName,pathHints,timeoutMs);
-    if(info && info.ok===false) throw new Error(info.error);
-    const start=Date.now();
-    while(Date.now()-start<timeoutMs){
-      if(window[apiName]) return window[apiName];
-      await new Promise(r=>setTimeout(r,50));
+  async function waitForGlobalAPI(
+    apiName,
+    appName,
+    pathHints,
+    timeoutMs = 5000
+  )
+  {
+    if (
+      window[apiName]
+    )
+    {
+      return {
+        api:
+          window[apiName],
+
+        win:
+          null,
+
+        frame:
+          null
+      };
     }
-    // A few apps intentionally export the API into their own iframe window.
-    if(info && info.api && info.api[apiName]) return info.api[apiName];
-    throw new Error(appName+" API is not available.");
+
+    const info =
+      await waitForIframeApp(
+        appName,
+        pathHints,
+        timeoutMs
+      );
+
+    if (
+      info &&
+      info.ok === false
+    )
+    {
+      throw new Error(
+        info.error
+      );
+    }
+
+    const start =
+      Date.now();
+
+    while (
+      Date.now() -
+      start <
+      timeoutMs
+    )
+    {
+      if (
+        window[apiName]
+      )
+      {
+        return {
+          api:
+            window[apiName],
+
+          win:
+            info.win ||
+            null,
+
+          frame:
+            info.frame ||
+            null
+        };
+      }
+
+      if (
+        info &&
+        info.api &&
+        info.api[apiName]
+      )
+      {
+        return {
+          api:
+            info.api[apiName],
+
+          win:
+            info.win ||
+            null,
+
+          frame:
+            info.frame ||
+            null
+        };
+      }
+
+      await new Promise(
+        r =>
+          setTimeout(
+            r,
+            50
+          )
+      );
+    }
+
+    throw new Error(
+      appName +
+      " API is not available."
+    );
   }
 
-  async function browserAction(args){
-    const info=await waitForIframeApp("Browser",["app/browser.html","/browser.html"]);
-    if(info && info.ok===false) return {ok:false,summary:info.error};
-    const api=info.api && info.api.BrowserAPI;
-    if(!api) return {ok:false,summary:"BrowserAPI is not available."};
-    try{
-      const action=String(args.action||"").toLowerCase();
+  async function browserAction(
+    args
+  )
+  {
+    const info =
+      await waitForIframeApp(
+        "Browser",
+        [
+          "app/browser.html",
+          "/browser.html"
+        ]
+      );
+
+    if (
+      info &&
+      info.ok === false
+    )
+    {
+      return {
+        ok:
+          false,
+
+        summary:
+          info.error
+      };
+    }
+
+    const api =
+      info.api &&
+      info.api.BrowserAPI;
+
+    if (!api)
+    {
+      return {
+        ok:
+          false,
+
+        summary:
+          "BrowserAPI is not available."
+      };
+    }
+
+    try
+    {
+      const action =
+        String(
+          args.action ||
+          ""
+        )
+        .toLowerCase();
+
       let result;
-      if(action==="open_url"){
-        if(!args.url) return {ok:false,summary:"url is required for open_url."};
-        result=api.openUrl(String(args.url),args.title);
-      }else if(action==="new_tab") result=api.newTab();
-      else if(action==="get_tabs") result=api.getTabs();
-      else if(action==="get_current_tab") result=api.getCurrentTab();
-      else if(action==="close_tab") result=api.closeTab(Number(args.index));
-      else if(action==="close_tab_by_id") result=api.closeTabById(Number(args.id));
-      else if(action==="back") result=api.back();
-      else if(action==="forward") result=api.forward();
-      else if(action==="reload") result=api.reload();
-      else return {ok:false,summary:"Unknown browser action: "+action};
-      return {ok:true,summary:"Browser action "+action+" completed.",result};
-    }catch(e){return {ok:false,summary:"Browser action failed: "+(e.message||String(e))};}
+
+      if (
+        action ===
+        "open_url"
+      )
+      {
+        if (!args.url)
+        {
+          return {
+            ok:
+              false,
+
+            summary:
+              "url is required for open_url."
+          };
+        }
+
+        result =
+          api.openUrl(
+            String(
+              args.url
+            ),
+            args.title
+          );
+      }
+      else if (
+        action ===
+        "new_tab"
+      )
+      {
+        result =
+          api.newTab();
+      }
+      else if (
+        action ===
+        "get_tabs"
+      )
+      {
+        result =
+          api.getTabs();
+      }
+      else if (
+        action ===
+        "get_current_tab"
+      )
+      {
+        result =
+          api.getCurrentTab();
+      }
+      else if (
+        action ===
+        "close_tab"
+      )
+      {
+        result =
+          api.closeTab(
+            Number(
+              args.index
+            )
+          );
+      }
+      else if (
+        action ===
+        "close_tab_by_id"
+      )
+      {
+        result =
+          api.closeTabById(
+            Number(
+              args.id
+            )
+          );
+      }
+      else if (
+        action ===
+        "back"
+      )
+      {
+        result =
+          api.back();
+      }
+      else if (
+        action ===
+        "forward"
+      )
+      {
+        result =
+          api.forward();
+      }
+      else if (
+        action ===
+        "reload"
+      )
+      {
+        result =
+          api.reload();
+      }
+      else
+      {
+        return {
+          ok:
+            false,
+
+          summary:
+            "Unknown browser action: " +
+            action
+        };
+      }
+
+      return {
+        ok:
+          true,
+
+        summary:
+          "Browser action " +
+          action +
+          " completed.",
+
+        result
+      };
+    }
+    catch(e)
+    {
+      return {
+        ok:
+          false,
+
+        summary:
+          "Browser action failed: " +
+          (
+            e.message ||
+            String(e)
+          )
+      };
+    }
   }
 
-  async function cameraAction(args){
-    try{
-      const api=await waitForGlobalAPI("CameraAPI","Camera",["app/camera.html","/camera.html"]);
-      const result=await api.action(args.actions||{});
-      return result && typeof result==="object" ? result : {ok:true,summary:"Camera action completed.",result};
-    }catch(e){return {ok:false,summary:"Camera action failed: "+(e.message||String(e))};}
+  async function cameraAction(
+    args
+  )
+  {
+    try
+    {
+      const info =
+        await waitForGlobalAPI(
+          "CameraAPI",
+          "Camera",
+          [
+            "app/camera.html",
+            "/camera.html"
+          ]
+        );
+
+      const result =
+        await info.api.action(
+          args.actions ||
+          {}
+        );
+
+      return result &&
+        typeof result ===
+        "object"
+        ?
+        result
+        :
+        {
+          ok:
+            true,
+
+          summary:
+            "Camera action completed.",
+
+          result
+        };
+    }
+    catch(e)
+    {
+      return {
+        ok:
+          false,
+
+        summary:
+          "Camera action failed: " +
+          (
+            e.message ||
+            String(e)
+          )
+      };
+    }
   }
 
-  async function documentAction(args){
-    const info=await waitForIframeApp("Document Viewer",["app/DocumentViewer.html","/DocumentViewer.html"]);
-    if(info && info.ok===false) return {ok:false,summary:info.error};
-    const api=(window.DocumentAPI|| (info.api&&info.api.DocumentAPI));
-    if(!api) return {ok:false,summary:"DocumentAPI is not available."};
-    try{
-      const result=await api.action(args.actions||{});
-      return result && typeof result==="object" ? result : {ok:true,summary:"Document action completed.",result};
-    }catch(e){return {ok:false,summary:"Document action failed: "+(e.message||String(e))};}
+  async function documentAction(
+    args
+  )
+  {
+    const info =
+      await waitForIframeApp(
+        "Document Viewer",
+        [
+          "app/DocumentViewer.html",
+          "/DocumentViewer.html"
+        ]
+      );
+
+    if (
+      info &&
+      info.ok === false
+    )
+    {
+      return {
+        ok:
+          false,
+
+        summary:
+          info.error
+      };
+    }
+
+    const api =
+      window.DocumentAPI ||
+      (
+        info.api &&
+        info.api.DocumentAPI
+      );
+
+    if (!api)
+    {
+      return {
+        ok:
+          false,
+
+        summary:
+          "DocumentAPI is not available."
+      };
+    }
+
+    try
+    {
+      const result =
+        await api.action(
+          args.actions ||
+          {}
+        );
+
+      return result &&
+        typeof result ===
+        "object"
+        ?
+        result
+        :
+        {
+          ok:
+            true,
+
+          summary:
+            "Document action completed.",
+
+          result
+        };
+    }
+    catch(e)
+    {
+      return {
+        ok:
+          false,
+
+        summary:
+          "Document action failed: " +
+          (
+            e.message ||
+            String(e)
+          )
+      };
+    }
   }
 
-  async function imageEditorAction(args){
-    const info=await waitForIframeApp("Image Editor",["app/imageEditor.html","/imageEditor.html"]);
-    if(info && info.ok===false) return {ok:false,summary:info.error};
-    const api=info.api&&info.api.LHImageEditor;
-    if(!api) return {ok:false,summary:"LHImageEditor API is not available."};
-    try{
-      const action=String(args.action||"").toLowerCase();
+  async function imageEditorAction(
+    args
+  )
+  {
+    const info =
+      await waitForIframeApp(
+        "Image Editor",
+        [
+          "app/imageEditor.html",
+          "/imageEditor.html"
+        ]
+      );
+
+    if (
+      info &&
+      info.ok === false
+    )
+    {
+      return {
+        ok:
+          false,
+
+        summary:
+          info.error
+      };
+    }
+
+    const api =
+      info.api &&
+      info.api.LHImageEditor;
+
+    if (!api)
+    {
+      return {
+        ok:
+          false,
+
+        summary:
+          "LHImageEditor API is not available."
+      };
+    }
+
+    try
+    {
+      const action =
+        String(
+          args.action ||
+          ""
+        )
+        .toLowerCase();
+
       let result;
-      if(action==="receive_image"||action==="open_image_data"||action==="load_image") result=await api[action==="receive_image"?"receiveImage":action==="open_image_data"?"openImageData":"loadImage"](args.data,args.name);
-      else if(action==="get_document") result=api.getDocument();
-      else if(action==="get_state") result=api.getState();
-      else if(action==="export_image") result=await api.exportImage(args.format||"png",args.quality==null?.92:Number(args.quality));
-      else if(action==="set_tool") result=api.setTool(String(args.tool||""));
-      else if(action==="fit_canvas") result=api.fitCanvas();
-      else return {ok:false,summary:"Unknown image editor action: "+action};
-      return {ok:true,summary:"Image Editor action "+action+" completed.",result};
-    }catch(e){return {ok:false,summary:"Image Editor action failed: "+(e.message||String(e))};}
+
+      if (
+        action ===
+        "receive_image" ||
+        action ===
+        "open_image_data" ||
+        action ===
+        "load_image"
+      )
+      {
+        const method =
+          action ===
+          "receive_image"
+            ? "receiveImage"
+            :
+            action ===
+            "open_image_data"
+              ? "openImageData"
+              : "loadImage";
+
+        result =
+          await api[method](
+            args.data,
+            args.name
+          );
+      }
+      else if (
+        action ===
+        "get_document"
+      )
+      {
+        result =
+          api.getDocument();
+      }
+      else if (
+        action ===
+        "get_state"
+      )
+      {
+        result =
+          api.getState();
+      }
+      else if (
+        action ===
+        "export_image"
+      )
+      {
+        result =
+          await api.exportImage(
+            args.format ||
+            "png",
+
+            args.quality == null
+              ? .92
+              : Number(
+                  args.quality
+                )
+          );
+      }
+      else if (
+        action ===
+        "set_tool"
+      )
+      {
+        result =
+          api.setTool(
+            String(
+              args.tool ||
+              ""
+            )
+          );
+      }
+      else if (
+        action ===
+        "fit_canvas"
+      )
+      {
+        result =
+          api.fitCanvas();
+      }
+      else
+      {
+        return {
+          ok:
+            false,
+
+          summary:
+            "Unknown image editor action: " +
+            action
+        };
+      }
+
+      return {
+        ok:
+          true,
+
+        summary:
+          "Image Editor action " +
+          action +
+          " completed.",
+
+        result
+      };
+    }
+    catch(e)
+    {
+      return {
+        ok:
+          false,
+
+        summary:
+          "Image Editor action failed: " +
+          (
+            e.message ||
+            String(e)
+          )
+      };
+    }
   }
 
-  async function mapsAction(args){
-    const info=await waitForIframeApp("Maps",["app/map.html","/map.html"]);
-    if(info && info.ok===false) return {ok:false,summary:info.error};
-    const api=info.api&&info.api.Maps;
-    if(!api) return {ok:false,summary:"Maps API is not available."};
-    try{
-      const action=String(args.action||"").toLowerCase();
+  async function mapsAction(
+    args
+  )
+  {
+    const info =
+      await waitForIframeApp(
+        "Maps",
+        [
+          "app/map.html",
+          "/map.html"
+        ]
+      );
+
+    if (
+      info &&
+      info.ok === false
+    )
+    {
+      return {
+        ok:
+          false,
+
+        summary:
+          info.error
+      };
+    }
+
+    const api =
+      info.api &&
+      info.api.Maps;
+
+    if (!api)
+    {
+      return {
+        ok:
+          false,
+
+        summary:
+          "Maps API is not available."
+      };
+    }
+
+    try
+    {
+      const action =
+        String(
+          args.action ||
+          ""
+        )
+        .toLowerCase();
+
       let result;
-      if(action==="search"){
-        if(!args.query) return {ok:false,summary:"query is required for search."};
-        result=await api.search(String(args.query));
-      }else if(action==="get_coordinates") result=api.getCoordinates();
-      else if(action==="set_zoom") result=api.setZoom(Number(args.zoom));
-      else if(action==="set_location"){
-        if(!Number.isFinite(Number(args.lat))||!Number.isFinite(Number(args.lng))) return {ok:false,summary:"lat and lng are required for set_location."};
-        result=api.setLocation(Number(args.lat),Number(args.lng),args.name);
-      }else return {ok:false,summary:"Unknown maps action: "+action};
-      return {ok:true,summary:"Maps action "+action+" completed.",result};
-    }catch(e){return {ok:false,summary:"Maps action failed: "+(e.message||String(e))};}
+
+      if (
+        action ===
+        "search"
+      )
+      {
+        if (!args.query)
+        {
+          return {
+            ok:
+              false,
+
+            summary:
+              "query is required for search."
+          };
+        }
+
+        result =
+          await api.search(
+            String(
+              args.query
+            )
+          );
+      }
+      else if (
+        action ===
+        "get_coordinates"
+      )
+      {
+        result =
+          api.getCoordinates();
+      }
+      else if (
+        action ===
+        "set_zoom"
+      )
+      {
+        result =
+          api.setZoom(
+            Number(
+              args.zoom
+            )
+          );
+      }
+      else if (
+        action ===
+        "set_location"
+      )
+      {
+        if (
+          !Number.isFinite(
+            Number(
+              args.lat
+            )
+          ) ||
+          !Number.isFinite(
+            Number(
+              args.lng
+            )
+          )
+        )
+        {
+          return {
+            ok:
+              false,
+
+            summary:
+              "lat and lng are required for set_location."
+          };
+        }
+
+        result =
+          api.setLocation(
+            Number(
+              args.lat
+            ),
+            Number(
+              args.lng
+            ),
+            args.name
+          );
+      }
+      else
+      {
+        return {
+          ok:
+            false,
+
+          summary:
+            "Unknown maps action: " +
+            action
+        };
+      }
+
+      return {
+        ok:
+          true,
+
+        summary:
+          "Maps action " +
+          action +
+          " completed.",
+
+        result
+      };
+    }
+    catch(e)
+    {
+      return {
+        ok:
+          false,
+
+        summary:
+          "Maps action failed: " +
+          (
+            e.message ||
+            String(e)
+          )
+      };
+    }
+  }
+
+  async function pianoInfo()
+  {
+    const info =
+      await waitForIframeApp(
+        "Piano",
+        [
+          "app/piano.html",
+          "/piano.html",
+          "piano.html"
+        ]
+      );
+
+    if (
+      info &&
+      info.ok === false
+    )
+    {
+      return {
+        ok:
+          false,
+
+        summary:
+          info.error
+      };
+    }
+
+    const api =
+      window.PianoAPI ||
+      (
+        info &&
+        info.api &&
+        info.api.PianoAPI
+      );
+
+    if (!api)
+    {
+      return {
+        ok:
+          false,
+
+        summary:
+          "PianoAPI is not available."
+      };
+    }
+
+    return {
+      ok:
+        true,
+
+      info,
+
+      api
+    };
+  }
+
+  async function pianoAction(
+    args
+  )
+  {
+    args =
+      args ||
+      {};
+
+    const action =
+      String(
+        args.action ||
+        ""
+      )
+      .toLowerCase()
+      .trim();
+
+    if (!action)
+    {
+      return {
+        ok:
+          false,
+
+        summary:
+          "Piano action is required."
+      };
+    }
+
+    const resolved =
+      await pianoInfo();
+
+    if (
+      !resolved.ok
+    )
+    {
+      return resolved;
+    }
+
+    const api =
+      resolved.api;
+
+    try
+    {
+      let result;
+
+      switch(action)
+      {
+        case "play_pkp":
+        {
+          const value =
+            String(
+              args.pkp != null
+                ? args.pkp
+                :
+                args.value != null
+                  ? args.value
+                  : ""
+            )
+            .trim();
+
+          if (!value)
+          {
+            return {
+              ok:
+                false,
+
+              summary:
+                "PKP text is required."
+            };
+          }
+
+          result =
+            api.playPKP(
+              value
+            );
+
+          break;
+        }
+
+        case "import_pkp":
+        {
+          const value =
+            String(
+              args.pkp != null
+                ? args.pkp
+                :
+                args.value != null
+                  ? args.value
+                  : ""
+            )
+            .trim();
+
+          if (!value)
+          {
+            return {
+              ok:
+                false,
+
+              summary:
+                "PKP text is required."
+            };
+          }
+
+          result =
+            api.importPKP(
+              value
+            );
+
+          break;
+        }
+
+        case "import_pkp_from_chxd":
+        {
+          const path =
+            String(
+              args.path != null
+                ? args.path
+                :
+                args.value != null
+                  ? args.value
+                  : ""
+            )
+            .trim();
+
+          if (!path)
+          {
+            return {
+              ok:
+                false,
+
+              summary:
+                "A PKP path is required."
+            };
+          }
+
+          result =
+            api.importPKPFromCHXD(
+              path
+            );
+
+          break;
+        }
+
+        case "play_midi":
+        {
+          const midi =
+            Number(
+              args.midi
+            );
+
+          if (
+            !Number.isInteger(midi) ||
+            midi < 0 ||
+            midi > 127
+          )
+          {
+            return {
+              ok:
+                false,
+
+              summary:
+                "MIDI must be an integer from 0 to 127."
+            };
+          }
+
+          result =
+            api.playMidi(
+              midi
+            );
+
+          break;
+        }
+
+        case "stop_midi":
+        {
+          const midi =
+            Number(
+              args.midi
+            );
+
+          if (
+            !Number.isInteger(midi) ||
+            midi < 0 ||
+            midi > 127
+          )
+          {
+            return {
+              ok:
+                false,
+
+              summary:
+                "MIDI must be an integer from 0 to 127."
+            };
+          }
+
+          result =
+            api.stopMidi(
+              midi
+            );
+
+          break;
+        }
+
+        case "set_octave":
+        {
+          const value =
+            Number(
+              args.octave != null
+                ? args.octave
+                : args.value
+            );
+
+          if (
+            !Number.isFinite(
+              value
+            )
+          )
+          {
+            return {
+              ok:
+                false,
+
+              summary:
+                "Octave is required."
+            };
+          }
+
+          result =
+            api.setOctave(
+              value
+            );
+
+          break;
+        }
+
+        case "get_octave":
+        {
+          result =
+            api.getOctave();
+
+          break;
+        }
+
+        case "set_volume":
+        {
+          const value =
+            Number(
+              args.volume != null
+                ? args.volume
+                : args.value
+            );
+
+          if (
+            !Number.isFinite(
+              value
+            )
+          )
+          {
+            return {
+              ok:
+                false,
+
+              summary:
+                "Volume is required."
+            };
+          }
+
+          result =
+            api.setVolume(
+              value
+            );
+
+          break;
+        }
+
+        case "set_waveform":
+        {
+          const value =
+            String(
+              args.waveform != null
+                ? args.waveform
+                :
+                args.value != null
+                  ? args.value
+                  : ""
+            )
+            .toLowerCase()
+            .trim();
+
+          result =
+            api.setWaveform(
+              value
+            );
+
+          break;
+        }
+
+        case "set_instrument":
+        {
+          const value =
+            String(
+              args.instrument != null
+                ? args.instrument
+                :
+                args.value != null
+                  ? args.value
+                  : ""
+            )
+            .toLowerCase()
+            .trim();
+
+          result =
+            api.setInstrument(
+              value
+            );
+
+          break;
+        }
+
+        case "get_instrument":
+        {
+          result =
+            api.getInstrument();
+
+          break;
+        }
+
+        case "set_sustain":
+        {
+          let value =
+            args.sustain;
+
+          if (
+            value ===
+            undefined
+          )
+          {
+            value =
+              args.value;
+          }
+
+          if (
+            typeof value ===
+            "string"
+          )
+          {
+            value =
+              value
+                .toLowerCase()
+                .trim() ===
+              "true";
+          }
+
+          result =
+            api.setSustain(
+              !!value
+            );
+
+          break;
+        }
+
+        case "start_recording":
+        {
+          result =
+            api.startRecording();
+
+          break;
+        }
+
+        case "stop_recording":
+        {
+          result =
+            api.stopRecording();
+
+          break;
+        }
+
+        case "toggle_recording":
+        {
+          result =
+            api.toggleRecording();
+
+          break;
+        }
+
+        case "play_recording":
+        {
+          result =
+            api.playRecording();
+
+          break;
+        }
+
+        case "clear_recording":
+        {
+          result =
+            api.clearRecording();
+
+          break;
+        }
+
+        case "get_recording_type":
+        {
+          result =
+            api.getRecordingType();
+
+          break;
+        }
+
+        case "get_recording":
+        {
+          result =
+            api.getRecording();
+
+          break;
+        }
+
+        case "get_pkp":
+        {
+          result =
+            api.getPKP();
+
+          break;
+        }
+
+        case "get_pkp_data":
+        {
+          result =
+            api.getPKPData();
+
+          break;
+        }
+
+        case "get_audio":
+        {
+          result =
+            api.getAudio();
+
+          break;
+        }
+
+        case "open_pkp_file_manager":
+        {
+          result =
+            api.openPKPFileManager();
+
+          break;
+        }
+
+        case "save":
+        {
+          result =
+            api.save();
+
+          break;
+        }
+
+        case "load":
+        {
+          result =
+            api.load();
+
+          break;
+        }
+
+        case "save_pkp":
+        {
+          result =
+            api.savePKP();
+
+          break;
+        }
+
+        case "save_audio":
+        {
+          result =
+            api.saveAudio();
+
+          break;
+        }
+
+        default:
+        {
+          return {
+            ok:
+              false,
+
+            summary:
+              "Unknown Piano action: " +
+              action
+          };
+        }
+      }
+
+      if (
+        result &&
+        typeof result.then ===
+        "function"
+      )
+      {
+        result =
+          await result;
+      }
+
+      return {
+        ok:
+          result === false
+            ? false
+            : true,
+
+        summary:
+          "Piano action " +
+          action +
+          " completed.",
+
+        result
+      };
+    }
+    catch(e)
+    {
+      return {
+        ok:
+          false,
+
+        summary:
+          "Piano action failed: " +
+          (
+            e.message ||
+            String(e)
+          )
+      };
+    }
+  }
+
+  async function openPiano(
+    args
+  )
+  {
+    args =
+      args ||
+      {};
+
+    const hasPKP =
+      typeof args.pkp ===
+      "string" &&
+      args.pkp.trim()
+        .length > 0;
+
+    const hasPath =
+      typeof args.path ===
+      "string" &&
+      args.path.trim()
+        .length > 0;
+
+    const result =
+      Apps.openApp(
+        "Piano",
+        {
+          path:
+            hasPath
+              ? args.path
+              : undefined,
+
+          allowMultiple:
+            hasPKP ||
+            hasPath
+        }
+      );
+
+    if (
+      !result ||
+      !result.ok
+    )
+    {
+      return {
+        ok:
+          false,
+
+        summary:
+          "Could not open Piano."
+      };
+    }
+
+    if (
+      hasPKP
+    )
+    {
+      try
+      {
+        const resolved =
+          await pianoInfo();
+
+        if (
+          resolved.ok &&
+          resolved.api &&
+          typeof resolved.api.importPKP ===
+          "function"
+        )
+        {
+          resolved.api.importPKP(
+            args.pkp.trim()
+          );
+        }
+      }
+      catch(_)
+      {
+      }
+    }
+
+    if (
+      hasPath
+    )
+    {
+      try
+      {
+        const resolved =
+          await pianoInfo();
+
+        if (
+          resolved.ok &&
+          resolved.api &&
+          typeof resolved.api.importPKPFromCHXD ===
+          "function"
+        )
+        {
+          await resolved.api.importPKPFromCHXD(
+            args.path
+          );
+        }
+      }
+      catch(_)
+      {
+      }
+    }
+
+    return {
+      ok:
+        true,
+
+      summary:
+        "Opened Piano."
+    };
   }
 
   async function executeRaw(
@@ -2213,6 +4216,7 @@ e
     args =
       args ||
       {};
+
     if (
       name ===
       "open_application"
@@ -2226,41 +4230,66 @@ e
           Array.isArray(
             args.strokes
           ) &&
-          args.strokes.length > 0
+          args.strokes.length >
+          0
         ) ||
         !!args.select;
+
       const result =
         Apps.openApp(
           args.name,
           {
-            src: args.src,
-            path: args.path,
-            text: args.text,
-            equation: args.equation,
-            painting: Array.isArray(
+            src:
+              args.src,
+
+            path:
+              args.path,
+
+            text:
+              args.text,
+
+            equation:
+              args.equation,
+
+            painting:
+              Array.isArray(
                 args.strokes
-              ) ?
-              args.strokes :
-              undefined,
+              )
+                ? args.strokes
+                : undefined,
+
             selectMode:
               !!args.select,
-            allowMultiple: hasContent
+
+            allowMultiple:
+              hasContent
           }
         );
-      return result && result.ok ?
+
+      return result &&
+        result.ok
+        ?
         {
-          ok: true,
-          summary: "Opened " +
+          ok:
+            true,
+
+          summary:
+            "Opened " +
             args.name +
             "."
-        } :
+        }
+        :
         {
-          ok: false,
-          summary: "Could not open " +
+          ok:
+            false,
+
+          summary:
+            "Could not open " +
             args.name +
             "."
         };
     }
+
     if (
       name ===
       "open_notepad"
@@ -2270,31 +4299,48 @@ e
         Apps.openApp(
           "Notepad",
           {
-            path: args.path,
-            text: args.text,
-            title: args.title,
+            path:
+              args.path,
+
+            text:
+              args.text,
+
+            title:
+              args.title,
+
             allowMultiple:
               !!args.path ||
               args.text != null
           }
         );
-      return result && result.ok ?
+
+      return result &&
+        result.ok
+        ?
         {
-          ok: true,
-          summary: "Opened Notepad" +
+          ok:
+            true,
+
+          summary:
+            "Opened Notepad" +
             (
-              args.path ?
-              " with " +
-              args.path :
-              ""
+              args.path
+                ? " with " +
+                  args.path
+                : ""
             ) +
             "."
-        } :
+        }
+        :
         {
-          ok: false,
-          summary: "Could not open Notepad."
+          ok:
+            false,
+
+          summary:
+            "Could not open Notepad."
         };
     }
+
     if (
       name ===
       "open_paint"
@@ -2304,25 +4350,41 @@ e
         Apps.openApp(
           "Paint",
           {
-            painting: Array.isArray(
+            painting:
+              Array.isArray(
                 args.strokes
-              ) ?
-              args.strokes :
-              [],
-            title: args.title,
-            allowMultiple: true
+              )
+                ? args.strokes
+                : [],
+
+            title:
+              args.title,
+
+            allowMultiple:
+              true
           }
         );
-      return result && result.ok ?
+
+      return result &&
+        result.ok
+        ?
         {
-          ok: true,
-          summary: "Opened Paint with the requested painting."
-        } :
+          ok:
+            true,
+
+          summary:
+            "Opened Paint with the requested painting."
+        }
+        :
         {
-          ok: false,
-          summary: "Could not open Paint."
+          ok:
+            false,
+
+          summary:
+            "Could not open Paint."
         };
     }
+
     if (
       name ===
       "open_calculator"
@@ -2332,25 +4394,59 @@ e
         Apps.openApp(
           "Calculator",
           {
-            equation: String(
-              args.equation ||
-              ""
-            ),
-            allowMultiple: true
+            equation:
+              String(
+                args.equation ||
+                ""
+              ),
+
+            allowMultiple:
+              true
           }
         );
-      return result && result.ok ?
+
+      return result &&
+        result.ok
+        ?
         {
-          ok: true,
-          summary: "Opened Calculator with equation " +
+          ok:
+            true,
+
+          summary:
+            "Opened Calculator with equation " +
             args.equation +
             "."
-        } :
+        }
+        :
         {
-          ok: false,
-          summary: "Could not open Calculator."
+          ok:
+            false,
+
+          summary:
+            "Could not open Calculator."
         };
     }
+
+    if (
+      name ===
+      "open_piano"
+    )
+    {
+      return await openPiano(
+        args
+      );
+    }
+
+    if (
+      name ===
+      "piano_action"
+    )
+    {
+      return await pianoAction(
+        args
+      );
+    }
+
     if (
       name ===
       "open_file_manager"
@@ -2362,21 +4458,35 @@ e
           {
             selectMode:
               !!args.select,
-            path: args.path,
+
+            path:
+              args.path,
+
             allowMultiple:
               !!args.select
           }
         );
-      return result && result.ok ?
+
+      return result &&
+        result.ok
+        ?
         {
-          ok: true,
-          summary: "Opened File Manager."
-        } :
+          ok:
+            true,
+
+          summary:
+            "Opened File Manager."
+        }
+        :
         {
-          ok: false,
-          summary: "Could not open File Manager."
+          ok:
+            false,
+
+          summary:
+            "Could not open File Manager."
         };
     }
+
     if (
       name ===
       "open_file"
@@ -2386,127 +4496,214 @@ e
         FS.normalize(
           args.path
         );
+
       const ext =
         (
-          p.split("?")[0]
-          .split(".")
-          .pop() ||
+          p
+            .split("?")[0]
+            .split(".")
+            .pop() ||
           ""
         )
         .toLowerCase();
+
       if (
-        ext ===
-        "png" ||
-        ext ===
-        "jpg" ||
-        ext ===
-        "jpeg" ||
-        ext ===
-        "gif" ||
-        ext ===
-        "webp"
+        ext === "png" ||
+        ext === "jpg" ||
+        ext === "jpeg" ||
+        ext === "gif" ||
+        ext === "webp"
       )
       {
         const result =
           Apps.openApp(
             "imageViewer",
             {
-              src: p,
-              allowMultiple: true
+              src:
+                p,
+
+              allowMultiple:
+                true
             }
           );
-        return result && result.ok ?
+
+        return result &&
+          result.ok
+          ?
           {
-            ok: true,
-            summary: "Opened image " +
+            ok:
+              true,
+
+            summary:
+              "Opened image " +
               p +
               "."
-          } :
+          }
+          :
           {
-            ok: false,
-            summary: "Could not open image."
+            ok:
+              false,
+
+            summary:
+              "Could not open image."
           };
       }
+
       if (
-        ext ===
-        "mp4" ||
-        ext ===
-        "webm" ||
-        ext ===
-        "mov"
+        ext === "mp4" ||
+        ext === "webm" ||
+        ext === "mov"
       )
       {
         const result =
           Apps.openApp(
             "videoPlayer",
             {
-              src: p,
-              allowMultiple: true
+              src:
+                p,
+
+              allowMultiple:
+                true
             }
           );
-        return result && result.ok ?
+
+        return result &&
+          result.ok
+          ?
           {
-            ok: true,
-            summary: "Opened video " +
+            ok:
+              true,
+
+            summary:
+              "Opened video " +
               p +
               "."
-          } :
+          }
+          :
           {
-            ok: false,
-            summary: "Could not open video."
+            ok:
+              false,
+
+            summary:
+              "Could not open video."
           };
       }
+
       if (
-        ext ===
-        "mp3" ||
-        ext ===
-        "wav" ||
-        ext ===
-        "ogg"
+        ext === "mp3" ||
+        ext === "wav" ||
+        ext === "ogg"
       )
       {
         const result =
           Apps.openApp(
             "audioPlayer",
             {
-              src: p,
-              allowMultiple: true
+              src:
+                p,
+
+              allowMultiple:
+                true
             }
           );
-        return result && result.ok ?
+
+        return result &&
+          result.ok
+          ?
           {
-            ok: true,
-            summary: "Opened audio " +
+            ok:
+              true,
+
+            summary:
+              "Opened audio " +
               p +
               "."
-          } :
+          }
+          :
           {
-            ok: false,
-            summary: "Could not open audio."
+            ok:
+              false,
+
+            summary:
+              "Could not open audio."
           };
       }
+
+      if (
+        ext ===
+        "pkp"
+      )
+      {
+        const result =
+          Apps.openApp(
+            "Piano",
+            {
+              path:
+                p,
+
+              allowMultiple:
+                true
+            }
+          );
+
+        return result &&
+          result.ok
+          ?
+          {
+            ok:
+              true,
+
+            summary:
+              "Opened PKP file " +
+              p +
+              " in Piano."
+          }
+          :
+          {
+            ok:
+              false,
+
+            summary:
+              "Could not open PKP file in Piano."
+          };
+      }
+
       const result =
         Apps.openApp(
           "Notepad",
           {
-            path: p,
-            allowMultiple: true
+            path:
+              p,
+
+            allowMultiple:
+              true
           }
         );
-      return result && result.ok ?
+
+      return result &&
+        result.ok
+        ?
         {
-          ok: true,
-          summary: "Opened " +
+          ok:
+            true,
+
+          summary:
+            "Opened " +
             p +
             " in Notepad."
-        } :
+        }
+        :
         {
-          ok: false,
-          summary: "Could not open " +
+          ok:
+            false,
+
+          summary:
+            "Could not open " +
             p +
             "."
         };
     }
+
     if (
       name ===
       "open_window"
@@ -2518,42 +4715,60 @@ e
           "text"
         )
         .toLowerCase();
+
       const c =
         String(
           args.content ||
           ""
         );
+
       const html =
         type ===
-        "html" ?
-        c :
+        "html"
+        ?
+        c
+        :
         (
           type ===
-          "code" ?
+          "code"
+          ?
           (
             "<pre style='white-space:pre-wrap;margin:0;font-family:monospace;font-size:12px;'>" +
             esc(c) +
             "</pre>"
-          ) :
+          )
+          :
           (
             "<div style='white-space:pre-wrap;'>" +
             esc(c) +
             "</div>"
           )
         );
+
       WM.openWindow(
       {
-        title: args.title ||
+        title:
+          args.title ||
           "OUTPUT",
+
         html,
-        width: "560px",
-        height: "400px"
+
+        width:
+          "560px",
+
+        height:
+          "400px"
       });
+
       return {
-        ok: true,
-        summary: "Opened output window."
+        ok:
+          true,
+
+        summary:
+          "Opened output window."
       };
     }
+
     if (
       name ===
       "open_iframe"
@@ -2564,6 +4779,7 @@ e
           args.url ||
           ""
         );
+
       if (
         !/^https?:\/\//i.test(
           u
@@ -2571,30 +4787,52 @@ e
       )
       {
         return {
-          ok: false,
-          summary: "URL must start with http:// or https://."
+          ok:
+            false,
+
+          summary:
+            "URL must start with http:// or https://."
         };
       }
+
       WM.openWindow(
       {
-        title: args.title ||
+        title:
+          args.title ||
           "WEB",
-        iframeSrc: u,
-        width: (Number(
-            args.width
-          ) || 720) +
+
+        iframeSrc:
+          u,
+
+        width:
+          (
+            Number(
+              args.width
+            ) || 720
+          ) +
           "px",
-        height: (Number(
-            args.height
-          ) || 520) +
+
+        height:
+          (
+            Number(
+              args.height
+            ) || 520
+          ) +
           "px",
-        noPad: true
+
+        noPad:
+          true
       });
+
       return {
-        ok: true,
-        summary: "Opened web content."
+        ok:
+          true,
+
+        summary:
+          "Opened web content."
       };
     }
+
     if (
       name ===
       "web_search"
@@ -2605,6 +4843,7 @@ e
         args.max_results
       );
     }
+
     if (
       name ===
       "write_file"
@@ -2614,25 +4853,37 @@ e
         FS.normalize(
           args.path
         );
+
       const r =
         await FS.write(
           p,
           args.content ||
           "",
-          args.create !== false
+          args.create !==
+          false
         );
-      return r.ok ?
+
+      return r.ok
+        ?
         {
-          ok: true,
-          summary: "Wrote " +
+          ok:
+            true,
+
+          summary:
+            "Wrote " +
             p +
             "."
-        } :
+        }
+        :
         {
-          ok: false,
-          summary: r.error
+          ok:
+            false,
+
+          summary:
+            r.error
         };
     }
+
     if (
       name ===
       "write_files"
@@ -2641,40 +4892,56 @@ e
       const fs =
         Array.isArray(
           args.files
-        ) ?
-        args.files :
-        [];
+        )
+          ? args.files
+          : [];
+
       const done = [];
+
       for (
-        const f of fs
+        const f of
+          fs
       )
       {
         const p =
           FS.normalize(
             f.path
           );
+
         const r =
           await FS.write(
             p,
             f.content ||
             "",
-            f.create !== false
+            f.create !==
+            false
           );
+
         if (!r.ok)
         {
           return {
-            ok: false,
-            summary: r.error,
-            written: done
+            ok:
+              false,
+
+            summary:
+              r.error,
+
+            written:
+              done
           };
         }
+
         done.push(
           p
         );
       }
+
       return {
-        ok: true,
-        summary: "Wrote " +
+        ok:
+          true,
+
+        summary:
+          "Wrote " +
           done.length +
           " file(s): " +
           done.join(
@@ -2683,6 +4950,7 @@ e
           "."
       };
     }
+
     if (
       name ===
       "read_file"
@@ -2692,34 +4960,54 @@ e
         FS.normalize(
           args.path
         );
+
       const r =
         await FS.read(
           p
         );
+
       if (!r.ok)
       {
         return {
-          ok: false,
-          summary: r.error
+          ok:
+            false,
+
+          summary:
+            r.error
         };
       }
+
       WM.openWindow(
       {
-        title: p.split("/")
-          .pop(),
-        html: "<pre style='white-space:pre-wrap;margin:0;font-family:monospace;font-size:12px;'>" +
-          esc(r.content) +
+        title:
+          p.split("/")
+            .pop(),
+
+        html:
+          "<pre style='white-space:pre-wrap;margin:0;font-family:monospace;font-size:12px;'>" +
+          esc(
+            r.content
+          ) +
           "</pre>",
-        width: "560px",
-        height: "420px"
+
+        width:
+          "560px",
+
+        height:
+          "420px"
       });
+
       return {
-        ok: true,
-        summary: "Opened " +
+        ok:
+          true,
+
+        summary:
+          "Opened " +
           p +
           "."
       };
     }
+
     if (
       name ===
       "remove_file"
@@ -2729,22 +5017,33 @@ e
         FS.normalize(
           args.path
         );
+
       const r =
         await FS.remove(
           p
         );
-      return r.ok ?
+
+      return r.ok
+        ?
         {
-          ok: true,
-          summary: "Removed " +
+          ok:
+            true,
+
+          summary:
+            "Removed " +
             p +
             "."
-        } :
+        }
+        :
         {
-          ok: false,
-          summary: r.error
+          ok:
+            false,
+
+          summary:
+            r.error
         };
     }
+
     if (
       name ===
       "find_files"
@@ -2755,16 +5054,25 @@ e
           args.pattern ||
           "*"
         );
+
       return {
-        ok: true,
-        summary: r.length ?
-          "Found " +
-          r.length +
-          " file(s)." :
-          "No files matched.",
-        files: r
+        ok:
+          true,
+
+        summary:
+          r.length
+            ?
+            "Found " +
+            r.length +
+            " file(s)."
+            :
+            "No files matched.",
+
+        files:
+          r
       };
     }
+
     if (
       name ===
       "list_files"
@@ -2775,15 +5083,24 @@ e
           args.prefix ||
           ""
         );
+
       return {
-        ok: true,
-        summary: r.length ?
-          r.length +
-          " file(s) found." :
-          "No files found.",
-        files: r
+        ok:
+          true,
+
+        summary:
+          r.length
+            ?
+            r.length +
+            " file(s) found."
+            :
+            "No files found.",
+
+        files:
+          r
       };
     }
+
     if (
       name ===
       "zip_files"
@@ -2794,6 +5111,7 @@ e
         args.output_path
       );
     }
+
     if (
       name ===
       "open_onecompiler"
@@ -2802,24 +5120,43 @@ e
       const result =
         Apps.openOneCompiler(
         {
-          language: args.language,
-          code: args.code ||
+          language:
+            args.language,
+
+          code:
+            args.code ||
             "",
-          name: args.name,
-          files: args.files,
+
+          name:
+            args.name,
+
+          files:
+            args.files,
+
           run:
             !!args.run
         });
-      return result && result.ok ?
+
+      return result &&
+        result.ok
+        ?
         {
-          ok: true,
-          summary: "Opened OneCompiler."
-        } :
+          ok:
+            true,
+
+          summary:
+            "Opened OneCompiler."
+        }
+        :
         {
-          ok: false,
-          summary: "Could not open OneCompiler."
+          ok:
+            false,
+
+          summary:
+            "Could not open OneCompiler."
         };
     }
+
     if (
       name ===
       "run_code"
@@ -2829,64 +5166,116 @@ e
         FS.normalize(
           args.path
         );
+
       const r =
         await FS.read(
           p
         );
+
       if (!r.ok)
       {
         return {
-          ok: false,
-          summary: r.error
+          ok:
+            false,
+
+          summary:
+            r.error
         };
       }
+
       const ext =
         p.split(".")
-        .pop()
-        .toLowerCase();
+          .pop()
+          .toLowerCase();
+
       const lang =
         args.language ||
         (
           {
-            js: "javascript",
-            javascript: "javascript",
-            py: "python",
-            python: "python",
-            java: "java",
-            c: "c",
-            cpp: "cpp",
-            cs: "csharp",
-            php: "php",
-            ts: "typescript",
-            html: "html",
-            css: "css"
-          } [ext] ||
+            js:
+              "javascript",
+
+            javascript:
+              "javascript",
+
+            py:
+              "python",
+
+            python:
+              "python",
+
+            java:
+              "java",
+
+            c:
+              "c",
+
+            cpp:
+              "cpp",
+
+            cs:
+              "csharp",
+
+            php:
+              "php",
+
+            ts:
+              "typescript",
+
+            html:
+              "html",
+
+            css:
+              "css"
+          }[ext] ||
           "javascript"
         );
+
       const result =
         Apps.openOneCompiler(
-        {
-          language: lang,
-          files: [
           {
-            name: p.split("/")
-              .pop(),
-            content: r.content
-          }],
-          run: args.run !== false
-        });
-      return result && result.ok ?
+            language:
+              lang,
+
+            files:
+            [
+              {
+                name:
+                  p.split("/")
+                    .pop(),
+
+                content:
+                  r.content
+              }
+            ],
+
+            run:
+              args.run !==
+              false
+          });
+
+      return result &&
+        result.ok
+        ?
         {
-          ok: true,
-          summary: "Opened " +
+          ok:
+            true,
+
+          summary:
+            "Opened " +
             p +
             " in OneCompiler."
-        } :
+        }
+        :
         {
-          ok: false,
-          summary: "Could not open OneCompiler."
+          ok:
+            false,
+
+          summary:
+            "Could not open OneCompiler."
         };
     }
+
     if (
       name ===
       "execute_javascript"
@@ -2895,10 +5284,13 @@ e
       return await sandboxRun(
         args.code ||
         "",
+
         Math.max(
           250,
+
           Math.min(
             10000,
+
             Number(
               args.timeout_ms
             ) ||
@@ -2907,56 +5299,236 @@ e
         )
       );
     }
-    if (name === "browser_action") return await browserAction(args);
-    if (name === "camera_action") return await cameraAction(args);
-    if (name === "document_action") return await documentAction(args);
-    if (name === "image_editor_action") return await imageEditorAction(args);
-    if (name === "maps_action") return await mapsAction(args);
-    if (name === "list_windows"){
-      const windows=listWMWindows().map(w=>({
-        id:w.id,
-        title:w.title,
-        standaloneKey:w.standaloneKey,
-        minimized:!!w.minimized,
-        maximized:!!w.maximized,
-        closed:!!w.closed
-      }));
-      return {ok:true,summary:"Listed "+windows.length+" open window(s).",windows};
+
+    if (
+      name ===
+      "browser_action"
+    )
+    {
+      return await browserAction(
+        args
+      );
     }
-    if (name === "close_window"){
-      const win=findWindowById(args.window_id);
-      if(!win) return {ok:false,summary:"Window not found: "+args.window_id};
-      WM.closeWindow(win);
-      return {ok:true,summary:"Closed window "+win.id+" ("+win.title+")."};
+
+    if (
+      name ===
+      "camera_action"
+    )
+    {
+      return await cameraAction(
+        args
+      );
     }
-    if (name === "focus_window"){
-      const win=findWindowById(args.window_id);
-      if(!win) return {ok:false,summary:"Window not found: "+args.window_id};
-      if(win.minimized && typeof win.el?.querySelector==="function"){
-        // Use the existing window manager's controls when available.
-        const restore=Array.from(win.el.querySelectorAll("button")).find(b=>b.textContent==="_");
-        if(restore) restore.click();
+
+    if (
+      name ===
+      "document_action"
+    )
+    {
+      return await documentAction(
+        args
+      );
+    }
+
+    if (
+      name ===
+      "image_editor_action"
+    )
+    {
+      return await imageEditorAction(
+        args
+      );
+    }
+
+    if (
+      name ===
+      "maps_action"
+    )
+    {
+      return await mapsAction(
+        args
+      );
+    }
+
+    if (
+      name ===
+      "list_windows"
+    )
+    {
+      const windows =
+        listWMWindows()
+          .map(
+            w =>
+            ({
+              id:
+                w.id,
+
+              title:
+                w.title,
+
+              standaloneKey:
+                w.standaloneKey,
+
+              minimized:
+                !!w.minimized,
+
+              maximized:
+                !!w.maximized,
+
+              closed:
+                !!w.closed
+            })
+          );
+
+      return {
+        ok:
+          true,
+
+        summary:
+          "Listed " +
+          windows.length +
+          " open window(s).",
+
+        windows
+      };
+    }
+
+    if (
+      name ===
+      "close_window"
+    )
+    {
+      const win =
+        findWindowById(
+          args.window_id
+        );
+
+      if (!win)
+      {
+        return {
+          ok:
+            false,
+
+          summary:
+            "Window not found: " +
+            args.window_id
+        };
       }
-      try{ win.el.style.zIndex=String(100000+Date.now()); }catch(_){ }
-      return {ok:true,summary:"Focused window "+win.id+" ("+win.title+")."};
+
+      WM.closeWindow(
+        win
+      );
+
+      return {
+        ok:
+          true,
+
+        summary:
+          "Closed window " +
+          win.id +
+          " (" +
+          win.title +
+          ")."
+      };
     }
+
+    if (
+      name ===
+      "focus_window"
+    )
+    {
+      const win =
+        findWindowById(
+          args.window_id
+        );
+
+      if (!win)
+      {
+        return {
+          ok:
+            false,
+
+          summary:
+            "Window not found: " +
+            args.window_id
+        };
+      }
+
+      if (
+        win.minimized &&
+        typeof win.el?.querySelector ===
+        "function"
+      )
+      {
+        const restore =
+          Array.from(
+            win.el.querySelectorAll(
+              "button"
+            )
+          )
+          .find(
+            b =>
+              b.textContent ===
+              "_"
+          );
+
+        if (restore)
+        {
+          restore.click();
+        }
+      }
+
+      try
+      {
+        win.el.style.zIndex =
+          String(
+            100000 +
+            Date.now()
+          );
+      }
+      catch(_)
+      {
+      }
+
+      return {
+        ok:
+          true,
+
+        summary:
+          "Focused window " +
+          win.id +
+          " (" +
+          win.title +
+          ")."
+      };
+    }
+
     if (
       name ===
       "close_all_windows"
     )
     {
       WM.closeAll();
+
       return {
-        ok: true,
-        summary: "Closed all windows."
+        ok:
+          true,
+
+        summary:
+          "Closed all windows."
       };
     }
+
     return {
-      ok: false,
-      summary: "Unknown tool: " +
+      ok:
+        false,
+
+      summary:
+        "Unknown tool: " +
         name
     };
   }
+
   async function execute(
     name,
     args
@@ -2964,39 +5536,46 @@ e
   {
     Avatar.setEye(
       name ===
-      "web_search" ?
-      "search" :
-      "matrix",
+      "web_search"
+        ? "search"
+        : "matrix",
       -1
     );
+
     const command =
       commandLine(
         name,
         args
       );
+
     let win = null;
+
     try
     {
       win =
         terminal(
           command
         );
+
       if (!win)
       {
         throw new Error(
           "Could not create terminal window."
         );
       }
+
       const result =
         await executeRaw(
           name,
           args
         );
+
       terminalUpdate(
         win,
         command,
         result
       );
+
       if (
         result &&
         result.ok
@@ -3014,18 +5593,24 @@ e
           1400
         );
       }
+
       return result;
     }
-    catch (e)
+    catch(e)
     {
-      const r = {
-        ok: false,
-        summary: "Tool error: " +
+      const r =
+      {
+        ok:
+          false,
+
+        summary:
+          "Tool error: " +
           (
             e.message ||
             String(e)
           )
       };
+
       if (win)
       {
         terminalUpdate(
@@ -3033,17 +5618,20 @@ e
           command,
           r
         );
+
         closeTerminalSoon(
           win,
           1600
         );
       }
+
       return r;
     }
     finally
     {
       if (
-        name !== "web_search"
+        name !==
+        "web_search"
       )
       {
         Avatar.setEye(
@@ -3052,7 +5640,9 @@ e
       }
     }
   }
-  window.Tools = {
+
+  window.Tools =
+  {
     definitions,
     execute
   };
