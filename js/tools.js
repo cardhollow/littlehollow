@@ -15,7 +15,8 @@
           name:
           {
             type: "string",
-            enum: [
+            enum:
+            [
               "Apps",
               "File Manager",
               "Clock",
@@ -78,7 +79,10 @@
             type: "boolean"
           }
         },
-        required: ["name"]
+        required:
+        [
+          "name"
+        ]
       }
     }
   },
@@ -154,7 +158,10 @@
             type: "string"
           }
         },
-        required: ["equation"]
+        required:
+        [
+          "equation"
+        ]
       }
     }
   },
@@ -174,7 +181,10 @@
             type: "string"
           }
         },
-        required: ["path"]
+        required:
+        [
+          "path"
+        ]
       }
     }
   },
@@ -220,7 +230,10 @@
           content_type:
           {
             type: "string",
-            enum: ["text", "code",
+            enum:
+            [
+              "text",
+              "code",
               "html"
             ]
           },
@@ -229,7 +242,8 @@
             type: "string"
           }
         },
-        required: [
+        required:
+        [
           "content_type",
           "content"
         ]
@@ -266,7 +280,10 @@
             minimum: 180
           }
         },
-        required: ["url"]
+        required:
+        [
+          "url"
+        ]
       }
     }
   },
@@ -292,7 +309,10 @@
             maximum: 10
           }
         },
-        required: ["query"]
+        required:
+        [
+          "query"
+        ]
       }
     }
   },
@@ -320,7 +340,8 @@
             type: "boolean"
           }
         },
-        required: [
+        required:
+        [
           "path",
           "content"
         ]
@@ -359,14 +380,18 @@
                   type: "boolean"
                 }
               },
-              required: [
+              required:
+              [
                 "path",
                 "content"
               ]
             }
           }
         },
-        required: ["files"]
+        required:
+        [
+          "files"
+        ]
       }
     }
   },
@@ -386,7 +411,10 @@
             type: "string"
           }
         },
-        required: ["path"]
+        required:
+        [
+          "path"
+        ]
       }
     }
   },
@@ -406,7 +434,10 @@
             type: "string"
           }
         },
-        required: ["path"]
+        required:
+        [
+          "path"
+        ]
       }
     }
   },
@@ -426,7 +457,10 @@
             type: "string"
           }
         },
-        required: ["pattern"]
+        required:
+        [
+          "pattern"
+        ]
       }
     }
   },
@@ -446,7 +480,10 @@
             type: "string"
           }
         },
-        required: ["prefix"]
+        required:
+        [
+          "prefix"
+        ]
       }
     }
   },
@@ -474,7 +511,8 @@
             type: "string"
           }
         },
-        required: [
+        required:
+        [
           "files",
           "output_path"
         ]
@@ -517,7 +555,10 @@
             type: "boolean"
           }
         },
-        required: ["language"]
+        required:
+        [
+          "language"
+        ]
       }
     }
   },
@@ -545,7 +586,10 @@
             type: "boolean"
           }
         },
-        required: ["path"]
+        required:
+        [
+          "path"
+        ]
       }
     }
   },
@@ -571,7 +615,10 @@
             maximum: 10000
           }
         },
-        required: ["code"]
+        required:
+        [
+          "code"
+        ]
       }
     }
   },
@@ -589,7 +636,8 @@
           action:
           {
             type: "string",
-            enum: [
+            enum:
+            [
               "open_url",
               "new_tab",
               "get_tabs",
@@ -620,7 +668,10 @@
             minimum: 0
           }
         },
-        required: ["action"]
+        required:
+        [
+          "action"
+        ]
       }
     }
   },
@@ -638,11 +689,13 @@
           actions:
           {
             type: "object",
-            additionalProperties: true,
-            description: "CameraAPI action object. Examples: {\"open\":true}, {\"photo\":true}, {\"recording\":\"start\"}, {\"record\":5000}, {\"facing\":\"front\"}, {\"switch\":true}, {\"state\":true}. Multiple actions can be supplied in one call."
+            description: "CameraAPI action object. Supported fields may include open, photo, recording, record, facing, switch, state and related CameraAPI actions."
           }
         },
-        required: ["actions"]
+        required:
+        [
+          "actions"
+        ]
       }
     }
   },
@@ -660,11 +713,13 @@
           actions:
           {
             type: "object",
-            additionalProperties: true,
-            description: "DocumentAPI action object. Examples: {\"open\":\"chxd:/local/file.pdf\"}, {\"next\":true}, {\"goto\":3}, {\"zoom\":1.5}, {\"search\":\"hello\"}, {\"state\":true}. Multiple actions can be supplied in one call."
+            description: "DocumentAPI action object. Supported fields may include open, close, next, previous, goto, page, zoom, search, find, state and related DocumentAPI actions."
           }
         },
-        required: ["actions"]
+        required:
+        [
+          "actions"
+        ]
       }
     }
   },
@@ -682,7 +737,8 @@
           action:
           {
             type: "string",
-            enum: [
+            enum:
+            [
               "receive_image",
               "open_image_data",
               "load_image",
@@ -705,7 +761,13 @@
           format:
           {
             type: "string",
-            enum: ["png", "jpeg", "jpg", "webp"]
+            enum:
+            [
+              "png",
+              "jpeg",
+              "jpg",
+              "webp"
+            ]
           },
           quality:
           {
@@ -718,7 +780,10 @@
             type: "string"
           }
         },
-        required: ["action"]
+        required:
+        [
+          "action"
+        ]
       }
     }
   },
@@ -736,7 +801,8 @@
           action:
           {
             type: "string",
-            enum: [
+            enum:
+            [
               "search",
               "get_coordinates",
               "set_zoom",
@@ -770,7 +836,10 @@
             type: "string"
           }
         },
-        required: ["action"]
+        required:
+        [
+          "action"
+        ]
       }
     }
   },
@@ -803,7 +872,10 @@
             type: "string"
           }
         },
-        required: ["window_id"]
+        required:
+        [
+          "window_id"
+        ]
       }
     }
   },
@@ -823,7 +895,10 @@
             type: "string"
           }
         },
-        required: ["window_id"]
+        required:
+        [
+          "window_id"
+        ]
       }
     }
   },
@@ -836,8 +911,7 @@
       parameters:
       {
         type: "object",
-        properties:
-        {}
+        properties: {}
       }
     }
   }];
@@ -848,20 +922,24 @@
     {
       return "";
     }
+
     if (value === null)
     {
       return "null";
     }
+
     if (value instanceof Error)
     {
       return value.stack ||
         value.message ||
         String(value);
     }
+
     if (typeof value === "string")
     {
       return value;
     }
+
     if (
       typeof value === "number" ||
       typeof value === "boolean" ||
@@ -870,6 +948,7 @@
     {
       return String(value);
     }
+
     try
     {
       return JSON.stringify(
@@ -892,32 +971,33 @@
     )
     {
       if (
-        typeof result.summary ===
-        "string" &&
+        typeof result.summary === "string" &&
         result.summary.trim()
       )
       {
         return result.summary.trim();
       }
+
       if (
-        typeof result.message ===
-        "string" &&
+        typeof result.message === "string" &&
         result.message.trim()
       )
       {
         return result.message.trim();
       }
+
       if (
-        typeof result.error ===
-        "string" &&
+        typeof result.error === "string" &&
         result.error.trim()
       )
       {
         return result.error.trim();
       }
     }
+
     return formatValue(result);
   }
+
   const esc = s =>
     String(
       s == null ?
@@ -933,20 +1013,21 @@
   {
     const shown =
       Object.entries(
-        args ||
-        {}
+        args || {}
       )
       .map(
         ([k, v]) =>
-        k + "=" +
-        (
-          typeof v === "string" ?
-          v :
-          formatValue(v)
-        )
+          k + "=" +
+          (
+            typeof v === "string" ?
+            v :
+            formatValue(v)
+          )
       )
       .join(" ");
-    return "> " +
+
+    return ">" +
+      " " +
       name +
       (
         shown ?
@@ -971,6 +1052,7 @@
       "overflow:hidden;" +
       "box-sizing:border-box;" +
       "'>" +
+
       "<div style='" +
       "height:30px;" +
       "min-height:30px;" +
@@ -985,19 +1067,20 @@
       "letter-spacing:1px;" +
       "box-sizing:border-box;" +
       "'>" +
+
       "<span style='opacity:.45;margin-right:6px'>●</span>" +
       "<span style='opacity:.65;margin-right:6px'>●</span>" +
       "<span style='opacity:.9;margin-right:12px'>●</span>" +
       "<span>LITTLE HOLLOW TERMINAL</span>" +
+
       "</div>" +
+
       "<div id='terminal-screen' style='" +
       "flex:1;" +
       "min-height:0;" +
       "overflow:auto;" +
       "padding:12px;" +
-      "background:" +
-      "radial-gradient(circle at top left,rgba(0,255,255,.06),transparent 40%)," +
-      "#000;" +
+      "background:radial-gradient(circle at top left,rgba(0,255,255,.06),transparent 40%),#000;" +
       "color:#00FFFF;" +
       "font-family:monospace;" +
       "font-size:12px;" +
@@ -1006,32 +1089,30 @@
       "word-break:break-word;" +
       "box-sizing:border-box;" +
       "'>" +
+
       "<div id='terminal-out'>" +
-      "<div style='opacity:.75'>" +
-      "LITTLE HOLLOW TERMINAL" +
-      "</div>" +
-      "<div style='opacity:.4'>" +
-      "SYSTEM READY" +
-      "</div>" +
+      "<div style='opacity:.75'>LITTLE HOLLOW TERMINAL</div>" +
+      "<div style='opacity:.4'>SYSTEM READY</div>" +
       "<br>" +
+
       "<div>" +
-      "<span style='color:#00FFFF'>" +
-      "chxd@little-hollow" +
-      "</span>" +
+      "<span style='color:#00FFFF'>chxd@little-hollow</span>" +
       "<span style='opacity:.45'>:</span>" +
       "<span style='color:#66FFFF'>~</span>" +
       "<span style='opacity:.45'>$</span> " +
       esc(command) +
       "</div>" +
+
       "<div style='margin-top:8px'>" +
-      "<span style='color:#FFFF00'>" +
-      "[ RUNNING ]" +
-      "</span>" +
+      "<span style='color:#FFFF00'>[ RUNNING ]</span>" +
       "</div>" +
+
       "<span class='cursor'>█</span>" +
       "</div>" +
+
       "</div>" +
       "</div>";
+
     return WM.openWindow(
     {
       title: "TERMINAL",
@@ -1056,71 +1137,81 @@
     {
       return;
     }
+
     const out =
       win.el.querySelector(
         "#terminal-out"
       );
+
     if (!out)
     {
       return;
     }
+
     const ok = !!(
       result &&
       typeof result === "object" &&
       result.ok === true
     );
+
     const message =
       resultMessage(
         result
       );
+
     const state =
       ok ?
       "[ OK ]" :
       "[ ERROR ]";
+
     const stateColor =
       ok ?
       "#00FF88" :
       "#FF6666";
+
     out.innerHTML =
-      "<div style='opacity:.75'>" +
-      "LITTLE HOLLOW TERMINAL" +
-      "</div>" +
-      "<div style='opacity:.4'>" +
-      "TOOL EXECUTION" +
-      "</div>" +
+      "<div style='opacity:.75'>LITTLE HOLLOW TERMINAL</div>" +
+      "<div style='opacity:.4'>TOOL EXECUTION</div>" +
       "<br>" +
+
       "<div>" +
-      "<span style='color:#00FFFF'>" +
-      "chxd@little-hollow" +
-      "</span>" +
+      "<span style='color:#00FFFF'>chxd@little-hollow</span>" +
       "<span style='opacity:.45'>:</span>" +
       "<span style='color:#66FFFF'>~</span>" +
       "<span style='opacity:.45'>$</span> " +
       esc(command) +
       "</div>" +
+
       "<div style='margin-top:8px;color:" +
       stateColor +
       "'>" +
       state +
       "</div>" +
+
       "<div style='margin-top:8px;opacity:.92'>" +
       esc(message) +
       "</div>" +
+
       "<br>" +
+
       "<div style='opacity:.4'>" +
       "PROCESS COMPLETE" +
       "</div>" +
+
       "<span class='cursor'>█</span>";
+
     const screen =
       win.el.querySelector(
         "#terminal-screen"
       );
+
     if (screen)
     {
       screen.scrollTop =
         screen.scrollHeight;
     }
   }
+
   console.log(
     "terminal/tools"
   );
@@ -1146,6 +1237,7 @@
       delay
     );
   }
+
   async function webSearch(
     query,
     maxResults
@@ -1156,6 +1248,7 @@
         query || ""
       )
       .trim();
+
     if (!query)
     {
       return {
@@ -1163,6 +1256,7 @@
         summary: "Search query is empty."
       };
     }
+
     const limit =
       Math.max(
         1,
@@ -1173,10 +1267,12 @@
           ) || 5
         )
       );
+
     Avatar.setEye(
       "search",
       -1
     );
+
     try
     {
       const url =
@@ -1185,16 +1281,19 @@
           query
         ) +
         "&format=json&no_html=1&skip_disambig=0";
+
       const r =
         await fetch(
           url,
           {
             headers:
             {
-              Accept: "application/json"
+              Accept:
+                "application/json"
             }
           }
         );
+
       if (!r.ok)
       {
         throw new Error(
@@ -1202,21 +1301,27 @@
           r.status
         );
       }
+
       const d =
         await r.json();
+
       const results = [];
+
       if (d.AbstractText)
       {
         results.push(
         {
-          title: d.Heading ||
+          title:
+            d.Heading ||
             query,
-          snippet: d
-            .AbstractText,
-          url: d.AbstractURL ||
+          snippet:
+            d.AbstractText,
+          url:
+            d.AbstractURL ||
             ""
         });
       }
+
       const walk = a =>
       {
         for (
@@ -1233,6 +1338,7 @@
           {
             break;
           }
+
           if (x.Topics)
           {
             walk(
@@ -1243,7 +1349,8 @@
           {
             results.push(
             {
-              title: String(
+              title:
+                String(
                   x.Text
                 )
                 .split(
@@ -1253,23 +1360,28 @@
                   0,
                   120
                 ),
-              snippet: x.Text,
-              url: x
-                .FirstURL ||
+              snippet:
+                x.Text,
+              url:
+                x.FirstURL ||
                 ""
             });
           }
         }
       };
+
       walk(
         d.RelatedTopics
       );
+
       walk(
         d.Results
       );
+
       return {
         ok: true,
-        summary: "Search completed for \"" +
+        summary:
+          "Search completed for \"" +
           query +
           "\" with " +
           results.length +
@@ -1282,7 +1394,8 @@
     {
       return {
         ok: false,
-        summary: "Web search failed: " +
+        summary:
+          "Web search failed: " +
           e.message,
         query
       };
@@ -1325,13 +1438,17 @@
   {
     let c =
       0xffffffff;
+
     for (
       const b of bytes
     )
     {
       c ^= b;
+
       for (
-        let i = 0; i < 8; i++
+        let i = 0;
+        i < 8;
+        i++
       )
       {
         c =
@@ -1343,8 +1460,10 @@
           );
       }
     }
+
     return (
-      c ^ 0xffffffff
+      c ^
+      0xffffffff
     ) >>> 0;
   }
 
@@ -1353,6 +1472,7 @@
     const parts = [];
     const central = [];
     let offset = 0;
+
     for (
       const entry of
         entries
@@ -1360,20 +1480,23 @@
     {
       const name =
         utf8(
-          entry.name
-          .replace(
+          entry.name.replace(
             /^\/+/,
             ""
           )
         );
+
       const data =
         entry.data;
+
       const crc =
         crc32(
           data
         );
+
       const header =
-        new Uint8Array([
+        new Uint8Array(
+        [
           ...u32(
             0x04034b50
           ),
@@ -1385,18 +1508,19 @@
           ...u32(crc),
           ...u32(data.length),
           ...u32(data.length),
-          ...u16(
-            name.length
-          ),
+          ...u16(name.length),
           ...u16(0),
           ...name,
           ...data
         ]);
+
       parts.push(
         header
       );
+
       central.push(
-        new Uint8Array([
+        new Uint8Array(
+        [
           ...u32(
             0x02014b50
           ),
@@ -1417,21 +1541,26 @@
           ...u32(0),
           ...u32(offset),
           ...name
-        ])
+        ]);
       );
+
       offset +=
         header.length;
     }
+
     const cdStart =
       offset;
+
     const cdSize =
       central.reduce(
         (n, x) =>
-        n + x.length,
+          n + x.length,
         0
       );
+
     const eocd =
-      new Uint8Array([
+      new Uint8Array(
+      [
         ...u32(
           0x06054b50
         ),
@@ -1447,15 +1576,19 @@
         ...u32(cdStart),
         ...u16(0)
       ]);
-    const all = [
-      ...parts,
-      ...central,
-      eocd
-    ];
+
+    const all =
+      [
+        ...parts,
+        ...central,
+        eocd
+      ];
+
     return new Blob(
       all,
       {
-        type: "application/zip"
+        type:
+          "application/zip"
       }
     );
   }
@@ -1467,30 +1600,35 @@
       {
         const r =
           new FileReader();
+
         r.onload = () =>
         {
           res(
             r.result
           );
         };
+
         r.onerror = () =>
         {
           rej(
             r.error
           );
         };
+
         r.readAsDataURL(
           blob
         );
       }
     );
   }
+
   async function zipFiles(
     files,
     output
   )
   {
     const entries = [];
+
     for (
       const path of
         Array.isArray(files) ?
@@ -1502,42 +1640,49 @@
         FS.normalize(
           path
         );
+
       const r =
         await FS.read(
           p
         );
+
       if (!r.ok)
       {
         return {
           ok: false,
-          summary: r.error
+          summary:
+            r.error
         };
       }
+
       let data;
+
       if (
-        /^data:[^;]+;base64,/i
-        .test(
+        /^data:[^;]+;base64,/i.test(
           r.content
         )
       )
       {
         const b =
           atob(
-            r.content
-            .split(",")[1]
+            r.content.split(",")[1]
           );
+
         const a =
           new Uint8Array(
             b.length
           );
+
         for (
-          let i = 0; i < b
-          .length; i++
+          let i = 0;
+          i < b.length;
+          i++
         )
         {
           a[i] =
             b.charCodeAt(i);
         }
+
         data = a;
       }
       else
@@ -1547,9 +1692,11 @@
             r.content
           );
       }
+
       entries.push(
       {
-        name: p.replace(
+        name:
+          p.replace(
             /^.*?:\/(?:[^/]+\/)?/,
             ""
           ) ||
@@ -1557,40 +1704,50 @@
         data
       });
     }
+
     const blob =
       makeZip(
         entries
       );
+
     const dataUrl =
       await blobDataURL(
         blob
       );
+
     const dest =
       FS.normalize(
         output
       );
+
     const w =
       await FS.write(
         dest,
         dataUrl,
         true
       );
+
     if (!w.ok)
     {
       return {
         ok: false,
-        summary: w.error
+        summary:
+          w.error
       };
     }
+
     return {
       ok: true,
-      summary: "Created ZIP " +
+      summary:
+        "Created ZIP " +
         dest +
         " containing " +
         entries.length +
         " file(s).",
-      path: dest,
-      binary: true
+      path:
+        dest,
+      binary:
+        true
     };
   }
 
@@ -1607,17 +1764,21 @@
           Date.now() +
           "-" +
           Math.random()
-          .toString(36)
-          .slice(2);
+            .toString(36)
+            .slice(2);
+
         const logs = [];
+
         const frame =
           document.createElement(
             "iframe"
           );
+
         frame.setAttribute(
           "sandbox",
           "allow-scripts"
         );
+
         frame.style.cssText =
           "position:fixed;" +
           "left:-10000px;" +
@@ -1625,6 +1786,7 @@
           "width:1px;" +
           "height:1px;" +
           "border:0";
+
         const csp =
           "default-src 'none'; " +
           "script-src 'unsafe-inline'; " +
@@ -1635,6 +1797,7 @@
           "child-src 'none'; " +
           "form-action 'none'; " +
           "base-uri 'none'";
+
         const safeCode =
           String(
             code || ""
@@ -1643,6 +1806,7 @@
             /<\/script/gi,
             "<\\/script"
           );
+
         frame.srcdoc =
           `<!doctype html>
 <meta http-equiv="Content-Security-Policy" content="${csp}">
@@ -1835,10 +1999,13 @@ e
 })();
 
 </script>`;
+
         document.body.appendChild(
           frame
         );
+
         let done = false;
+
         const finish =
           r =>
           {
@@ -1846,21 +2013,27 @@ e
             {
               return;
             }
+
             done = true;
+
             window
               .removeEventListener(
                 "message",
                 onMessage
               );
+
             frame.remove();
+
             resolve(r);
           };
+
         const onMessage =
           async e =>
           {
             const d =
               e.data ||
               {};
+
             if (
               d.id !== id &&
               d.rid !==
@@ -1875,6 +2048,7 @@ e
             {
               return;
             }
+
             if (
               d.type ===
               "LH_SANDBOX_LOG"
@@ -1886,6 +2060,7 @@ e
                 )
               );
             }
+
             if (
               d.type ===
               "LH_SANDBOX_REQ" &&
@@ -1902,6 +2077,7 @@ e
                 let value;
                 const a =
                   d.args || [];
+
                 if (
                   d.api ===
                   "readFile"
@@ -1911,12 +2087,14 @@ e
                     await FS.read(
                       a[0]
                     );
+
                   if (!r.ok)
                   {
                     throw new Error(
                       r.error
                     );
                   }
+
                   value =
                     r.content;
                 }
@@ -1926,19 +2104,21 @@ e
                 )
                 {
                   const r =
-                    await FS
-                    .write(
+                    await FS.write(
                       a[0],
                       a[1],
                       true
                     );
+
                   if (!r.ok)
                   {
                     throw new Error(
                       r.error
                     );
                   }
-                  value = true;
+
+                  value =
+                    true;
                 }
                 else if (
                   d.api ===
@@ -1956,17 +2136,19 @@ e
                 )
                 {
                   const r =
-                    await FS
-                    .remove(
+                    await FS.remove(
                       a[0]
                     );
+
                   if (!r.ok)
                   {
                     throw new Error(
                       r.error
                     );
                   }
-                  value = true;
+
+                  value =
+                    true;
                 }
                 else
                 {
@@ -1975,35 +2157,41 @@ e
                     d.api
                   );
                 }
-                e.source
-                  .postMessage(
-                    {
-                      type: "LH_SANDBOX_RES",
-                      rid: d.rid,
-                      ok: true,
-                      value
-                    },
-                    "*"
-                  );
+
+                e.source.postMessage(
+                {
+                  type:
+                    "LH_SANDBOX_RES",
+                  rid:
+                    d.rid,
+                  ok:
+                    true,
+                  value
+                },
+                "*"
+                );
               }
               catch (err)
               {
-                e.source
-                  .postMessage(
-                    {
-                      type: "LH_SANDBOX_RES",
-                      rid: d.rid,
-                      ok: false,
-                      error: String(
-                        err
-                        .message ||
-                        err
-                      )
-                    },
-                    "*"
-                  );
+                e.source.postMessage(
+                {
+                  type:
+                    "LH_SANDBOX_RES",
+                  rid:
+                    d.rid,
+                  ok:
+                    false,
+                  error:
+                    String(
+                      err.message ||
+                      err
+                    )
+                },
+                "*"
+                );
               }
             }
+
             if (
               d.type ===
               "LH_SANDBOX_DONE"
@@ -2013,16 +2201,15 @@ e
               {
                 ok:
                   !!d.ok,
-                summary: d
-                  .ok ?
+
+                summary:
+                  d.ok ?
                   (
                     "Sandbox JavaScript finished." +
                     (
-                      d
-                      .result ?
+                      d.result ?
                       " Result: " +
-                      d
-                      .result :
+                      d.result :
                       ""
                     )
                   ) :
@@ -2030,180 +2217,960 @@ e
                     "Sandbox JavaScript failed: " +
                     d.error
                   ),
+
                 logs
               });
             }
           };
+
         window.addEventListener(
           "message",
           onMessage
         );
+
         setTimeout(
-          () => finish(
-          {
-            ok: false,
-            summary: "Sandbox JavaScript timed out after " +
-              timeoutMs +
-              " ms.",
-            logs
-          }),
+          () =>
+            finish(
+            {
+              ok: false,
+              summary:
+                "Sandbox JavaScript timed out after " +
+                timeoutMs +
+                " ms.",
+              logs
+            }),
           timeoutMs
         );
       });
   }
-  function listWMWindows(){
-    try{
-      return WM && typeof WM.list === "function" ? WM.list() : [];
-    }catch(_){
+
+  function listWMWindows()
+  {
+    try
+    {
+      return WM &&
+        typeof WM.list === "function" ?
+        WM.list() :
+        [];
+    }
+    catch(_)
+    {
       return [];
     }
   }
 
-  function findWindowById(id){
-    const wanted=String(id||"");
-    return listWMWindows().find(w=>String(w&&w.id||"")===wanted) || null;
+  function findWindowById(id)
+  {
+    const wanted =
+      String(
+        id || ""
+      );
+
+    return listWMWindows()
+      .find(
+        w =>
+          String(
+            w &&
+            w.id ||
+            ""
+          ) === wanted
+      ) ||
+      null;
   }
 
-  function findIframeWindowByPath(parts){
-    const wanted=(Array.isArray(parts)?parts:[]).map(x=>String(x).toLowerCase());
-    for(const win of listWMWindows()){
-      try{
-        const frame=win && win.el && win.el.querySelector ? win.el.querySelector("iframe") : null;
-        if(!frame || !frame.contentWindow) continue;
-        const src=String(frame.getAttribute("src")||frame.src||"").toLowerCase();
-        if(wanted.some(part=>src.includes(part))) return {win,frame,api:frame.contentWindow};
-      }catch(_){ }
+  function findIframeWindowByPath(parts)
+  {
+    const wanted =
+      (
+        Array.isArray(parts) ?
+        parts :
+        []
+      )
+      .map(
+        x =>
+          String(x)
+            .toLowerCase()
+      );
+
+    for (
+      const win of
+        listWMWindows()
+    )
+    {
+      try
+      {
+        const frame =
+          win &&
+          win.el &&
+          win.el.querySelector ?
+          win.el.querySelector(
+            "iframe"
+          ) :
+          null;
+
+        if (
+          !frame ||
+          !frame.contentWindow
+        )
+        {
+          continue;
+        }
+
+        const src =
+          String(
+            frame.getAttribute(
+              "src"
+            ) ||
+            frame.src ||
+            ""
+          )
+          .toLowerCase();
+
+        if (
+          wanted.some(
+            part =>
+              src.includes(
+                part
+              )
+          )
+        )
+        {
+          return {
+            win,
+            frame,
+            api:
+              frame.contentWindow
+          };
+        }
+      }
+      catch(_)
+      {
+      }
     }
+
     return null;
   }
 
-  async function waitForIframeApp(appName, pathHints, timeoutMs=5000){
-    let found=findIframeWindowByPath(pathHints);
-    if(found) return found;
-    let opened=null;
-    try{
-      opened=Apps.openApp(appName,{allowMultiple:false});
-    }catch(e){
-      return {ok:false,error:e.message||String(e)};
+  async function waitForIframeApp(
+    appName,
+    pathHints,
+    timeoutMs = 5000
+  )
+  {
+    let found =
+      findIframeWindowByPath(
+        pathHints
+      );
+
+    if (found)
+    {
+      return found;
     }
-    if(opened && opened.ok && opened.win){
-      const frame=opened.win.el && opened.win.el.querySelector ? opened.win.el.querySelector("iframe") : null;
-      const start=Date.now();
-      while(Date.now()-start<timeoutMs){
-        try{
-          if(frame && frame.contentWindow){
-            const doc=frame.contentDocument;
-            if(doc && doc.readyState!=="loading") return {win:opened.win,frame,api:frame.contentWindow};
+
+    let opened = null;
+
+    try
+    {
+      opened =
+        Apps.openApp(
+          appName,
+          {
+            allowMultiple:
+              false
           }
-        }catch(_){ }
-        await new Promise(r=>setTimeout(r,50));
+        );
+    }
+    catch(e)
+    {
+      return {
+        ok: false,
+        error:
+          e.message ||
+          String(e)
+      };
+    }
+
+    if (
+      opened &&
+      opened.ok &&
+      opened.win
+    )
+    {
+      const frame =
+        opened.win.el &&
+        opened.win.el.querySelector ?
+        opened.win.el.querySelector(
+          "iframe"
+        ) :
+        null;
+
+      const start =
+        Date.now();
+
+      while (
+        Date.now() -
+        start <
+        timeoutMs
+      )
+      {
+        try
+        {
+          if (
+            frame &&
+            frame.contentWindow
+          )
+          {
+            const doc =
+              frame.contentDocument;
+
+            if (
+              doc &&
+              doc.readyState !==
+              "loading"
+            )
+            {
+              return {
+                win:
+                  opened.win,
+                frame,
+                api:
+                  frame.contentWindow
+              };
+            }
+          }
+        }
+        catch(_)
+        {
+        }
+
+        await new Promise(
+          r =>
+            setTimeout(
+              r,
+              50
+            )
+        );
       }
-      if(frame && frame.contentWindow) return {win:opened.win,frame,api:frame.contentWindow};
+
+      if (
+        frame &&
+        frame.contentWindow
+      )
+      {
+        return {
+          win:
+            opened.win,
+          frame,
+          api:
+            frame.contentWindow
+        };
+      }
     }
-    const start=Date.now();
-    while(Date.now()-start<timeoutMs){
-      found=findIframeWindowByPath(pathHints);
-      if(found) return found;
-      await new Promise(r=>setTimeout(r,50));
+
+    const start =
+      Date.now();
+
+    while (
+      Date.now() -
+      start <
+      timeoutMs
+    )
+    {
+      found =
+        findIframeWindowByPath(
+          pathHints
+        );
+
+      if (found)
+      {
+        return found;
+      }
+
+      await new Promise(
+        r =>
+          setTimeout(
+            r,
+            50
+          )
+      );
     }
-    return {ok:false,error:"Could not access the "+appName+" application frame."};
+
+    return {
+      ok: false,
+      error:
+        "Could not access the " +
+        appName +
+        " application frame."
+    };
   }
 
-  async function waitForGlobalAPI(apiName, appName, pathHints, timeoutMs=5000){
-    if(window[apiName]) return window[apiName];
-    const info=await waitForIframeApp(appName,pathHints,timeoutMs);
-    if(info && info.ok===false) throw new Error(info.error);
-    const start=Date.now();
-    while(Date.now()-start<timeoutMs){
-      if(window[apiName]) return window[apiName];
-      await new Promise(r=>setTimeout(r,50));
+  async function waitForGlobalAPI(
+    apiName,
+    appName,
+    pathHints,
+    timeoutMs = 5000
+  )
+  {
+    if (window[apiName])
+    {
+      return window[apiName];
     }
-    // A few apps intentionally export the API into their own iframe window.
-    if(info && info.api && info.api[apiName]) return info.api[apiName];
-    throw new Error(appName+" API is not available.");
+
+    const info =
+      await waitForIframeApp(
+        appName,
+        pathHints,
+        timeoutMs
+      );
+
+    if (
+      info &&
+      info.ok === false
+    )
+    {
+      throw new Error(
+        info.error
+      );
+    }
+
+    const start =
+      Date.now();
+
+    while (
+      Date.now() -
+      start <
+      timeoutMs
+    )
+    {
+      if (
+        window[apiName]
+      )
+      {
+        return window[apiName];
+      }
+
+      await new Promise(
+        r =>
+          setTimeout(
+            r,
+            50
+          )
+      );
+    }
+
+    if (
+      info &&
+      info.api &&
+      info.api[apiName]
+    )
+    {
+      return info.api[apiName];
+    }
+
+    throw new Error(
+      appName +
+      " API is not available."
+    );
   }
 
-  async function browserAction(args){
-    const info=await waitForIframeApp("Browser",["app/browser.html","/browser.html"]);
-    if(info && info.ok===false) return {ok:false,summary:info.error};
-    const api=info.api && info.api.BrowserAPI;
-    if(!api) return {ok:false,summary:"BrowserAPI is not available."};
-    try{
-      const action=String(args.action||"").toLowerCase();
+  async function browserAction(args)
+  {
+    const info =
+      await waitForIframeApp(
+        "Browser",
+        [
+          "app/browser.html",
+          "/browser.html"
+        ]
+      );
+
+    if (
+      info &&
+      info.ok === false
+    )
+    {
+      return {
+        ok: false,
+        summary:
+          info.error
+      };
+    }
+
+    const api =
+      info.api &&
+      info.api.BrowserAPI;
+
+    if (!api)
+    {
+      return {
+        ok: false,
+        summary:
+          "BrowserAPI is not available."
+      };
+    }
+
+    try
+    {
+      const action =
+        String(
+          args.action || ""
+        )
+        .toLowerCase();
+
       let result;
-      if(action==="open_url"){
-        if(!args.url) return {ok:false,summary:"url is required for open_url."};
-        result=api.openUrl(String(args.url),args.title);
-      }else if(action==="new_tab") result=api.newTab();
-      else if(action==="get_tabs") result=api.getTabs();
-      else if(action==="get_current_tab") result=api.getCurrentTab();
-      else if(action==="close_tab") result=api.closeTab(Number(args.index));
-      else if(action==="close_tab_by_id") result=api.closeTabById(Number(args.id));
-      else if(action==="back") result=api.back();
-      else if(action==="forward") result=api.forward();
-      else if(action==="reload") result=api.reload();
-      else return {ok:false,summary:"Unknown browser action: "+action};
-      return {ok:true,summary:"Browser action "+action+" completed.",result};
-    }catch(e){return {ok:false,summary:"Browser action failed: "+(e.message||String(e))};}
+
+      if (
+        action ===
+        "open_url"
+      )
+      {
+        if (!args.url)
+        {
+          return {
+            ok: false,
+            summary:
+              "url is required for open_url."
+          };
+        }
+
+        result =
+          api.openUrl(
+            String(
+              args.url
+            ),
+            args.title
+          );
+      }
+      else if (
+        action ===
+        "new_tab"
+      )
+      {
+        result =
+          api.newTab();
+      }
+      else if (
+        action ===
+        "get_tabs"
+      )
+      {
+        result =
+          api.getTabs();
+      }
+      else if (
+        action ===
+        "get_current_tab"
+      )
+      {
+        result =
+          api.getCurrentTab();
+      }
+      else if (
+        action ===
+        "close_tab"
+      )
+      {
+        result =
+          api.closeTab(
+            Number(
+              args.index
+            )
+          );
+      }
+      else if (
+        action ===
+        "close_tab_by_id"
+      )
+      {
+        result =
+          api.closeTabById(
+            Number(
+              args.id
+            )
+          );
+      }
+      else if (
+        action ===
+        "back"
+      )
+      {
+        result =
+          api.back();
+      }
+      else if (
+        action ===
+        "forward"
+      )
+      {
+        result =
+          api.forward();
+      }
+      else if (
+        action ===
+        "reload"
+      )
+      {
+        result =
+          api.reload();
+      }
+      else
+      {
+        return {
+          ok: false,
+          summary:
+            "Unknown browser action: " +
+            action
+        };
+      }
+
+      return {
+        ok: true,
+        summary:
+          "Browser action " +
+          action +
+          " completed.",
+        result
+      };
+    }
+    catch(e)
+    {
+      return {
+        ok: false,
+        summary:
+          "Browser action failed: " +
+          (
+            e.message ||
+            String(e)
+          )
+      };
+    }
   }
 
-  async function cameraAction(args){
-    try{
-      const api=await waitForGlobalAPI("CameraAPI","Camera",["app/camera.html","/camera.html"]);
-      const result=await api.action(args.actions||{});
-      return result && typeof result==="object" ? result : {ok:true,summary:"Camera action completed.",result};
-    }catch(e){return {ok:false,summary:"Camera action failed: "+(e.message||String(e))};}
+  async function cameraAction(args)
+  {
+    try
+    {
+      const api =
+        await waitForGlobalAPI(
+          "CameraAPI",
+          "Camera",
+          [
+            "app/camera.html",
+            "/camera.html"
+          ]
+        );
+
+      const result =
+        await api.action(
+          args.actions ||
+          {}
+        );
+
+      return result &&
+        typeof result ===
+        "object" ?
+        result :
+        {
+          ok: true,
+          summary:
+            "Camera action completed.",
+          result
+        };
+    }
+    catch(e)
+    {
+      return {
+        ok: false,
+        summary:
+          "Camera action failed: " +
+          (
+            e.message ||
+            String(e)
+          )
+      };
+    }
   }
 
-  async function documentAction(args){
-    const info=await waitForIframeApp("Document Viewer",["app/DocumentViewer.html","/DocumentViewer.html"]);
-    if(info && info.ok===false) return {ok:false,summary:info.error};
-    const api=(window.DocumentAPI|| (info.api&&info.api.DocumentAPI));
-    if(!api) return {ok:false,summary:"DocumentAPI is not available."};
-    try{
-      const result=await api.action(args.actions||{});
-      return result && typeof result==="object" ? result : {ok:true,summary:"Document action completed.",result};
-    }catch(e){return {ok:false,summary:"Document action failed: "+(e.message||String(e))};}
+  async function documentAction(args)
+  {
+    const info =
+      await waitForIframeApp(
+        "Document Viewer",
+        [
+          "app/DocumentViewer.html",
+          "/DocumentViewer.html"
+        ]
+      );
+
+    if (
+      info &&
+      info.ok === false
+    )
+    {
+      return {
+        ok: false,
+        summary:
+          info.error
+      };
+    }
+
+    const api =
+      window.DocumentAPI ||
+      (
+        info.api &&
+        info.api.DocumentAPI
+      );
+
+    if (!api)
+    {
+      return {
+        ok: false,
+        summary:
+          "DocumentAPI is not available."
+      };
+    }
+
+    try
+    {
+      const result =
+        await api.action(
+          args.actions ||
+          {}
+        );
+
+      return result &&
+        typeof result ===
+        "object" ?
+        result :
+        {
+          ok: true,
+          summary:
+            "Document action completed.",
+          result
+        };
+    }
+    catch(e)
+    {
+      return {
+        ok: false,
+        summary:
+          "Document action failed: " +
+          (
+            e.message ||
+            String(e)
+          )
+      };
+    }
   }
 
-  async function imageEditorAction(args){
-    const info=await waitForIframeApp("Image Editor",["app/imageEditor.html","/imageEditor.html"]);
-    if(info && info.ok===false) return {ok:false,summary:info.error};
-    const api=info.api&&info.api.LHImageEditor;
-    if(!api) return {ok:false,summary:"LHImageEditor API is not available."};
-    try{
-      const action=String(args.action||"").toLowerCase();
+  async function imageEditorAction(args)
+  {
+    const info =
+      await waitForIframeApp(
+        "Image Editor",
+        [
+          "app/imageEditor.html",
+          "/imageEditor.html"
+        ]
+      );
+
+    if (
+      info &&
+      info.ok === false
+    )
+    {
+      return {
+        ok: false,
+        summary:
+          info.error
+      };
+    }
+
+    const api =
+      info.api &&
+      info.api.LHImageEditor;
+
+    if (!api)
+    {
+      return {
+        ok: false,
+        summary:
+          "LHImageEditor API is not available."
+      };
+    }
+
+    try
+    {
+      const action =
+        String(
+          args.action || ""
+        )
+        .toLowerCase();
+
       let result;
-      if(action==="receive_image"||action==="open_image_data"||action==="load_image") result=await api[action==="receive_image"?"receiveImage":action==="open_image_data"?"openImageData":"loadImage"](args.data,args.name);
-      else if(action==="get_document") result=api.getDocument();
-      else if(action==="get_state") result=api.getState();
-      else if(action==="export_image") result=await api.exportImage(args.format||"png",args.quality==null?.92:Number(args.quality));
-      else if(action==="set_tool") result=api.setTool(String(args.tool||""));
-      else if(action==="fit_canvas") result=api.fitCanvas();
-      else return {ok:false,summary:"Unknown image editor action: "+action};
-      return {ok:true,summary:"Image Editor action "+action+" completed.",result};
-    }catch(e){return {ok:false,summary:"Image Editor action failed: "+(e.message||String(e))};}
+
+      if (
+        action ===
+          "receive_image" ||
+        action ===
+          "open_image_data" ||
+        action ===
+          "load_image"
+      )
+      {
+        result =
+          await api[
+            action ===
+            "receive_image" ?
+            "receiveImage" :
+            action ===
+            "open_image_data" ?
+            "openImageData" :
+            "loadImage"
+          ](
+            args.data,
+            args.name
+          );
+      }
+      else if (
+        action ===
+        "get_document"
+      )
+      {
+        result =
+          api.getDocument();
+      }
+      else if (
+        action ===
+        "get_state"
+      )
+      {
+        result =
+          api.getState();
+      }
+      else if (
+        action ===
+        "export_image"
+      )
+      {
+        result =
+          await api.exportImage(
+            args.format ||
+              "png",
+            args.quality == null ?
+            .92 :
+            Number(
+              args.quality
+            )
+          );
+      }
+      else if (
+        action ===
+        "set_tool"
+      )
+      {
+        result =
+          api.setTool(
+            String(
+              args.tool || ""
+            )
+          );
+      }
+      else if (
+        action ===
+        "fit_canvas"
+      )
+      {
+        result =
+          api.fitCanvas();
+      }
+      else
+      {
+        return {
+          ok: false,
+          summary:
+            "Unknown image editor action: " +
+            action
+        };
+      }
+
+      return {
+        ok: true,
+        summary:
+          "Image Editor action " +
+          action +
+          " completed.",
+        result
+      };
+    }
+    catch(e)
+    {
+      return {
+        ok: false,
+        summary:
+          "Image Editor action failed: " +
+          (
+            e.message ||
+            String(e)
+          )
+      };
+    }
   }
 
-  async function mapsAction(args){
-    const info=await waitForIframeApp("Maps",["app/map.html","/map.html"]);
-    if(info && info.ok===false) return {ok:false,summary:info.error};
-    const api=info.api&&info.api.Maps;
-    if(!api) return {ok:false,summary:"Maps API is not available."};
-    try{
-      const action=String(args.action||"").toLowerCase();
+  async function mapsAction(args)
+  {
+    const info =
+      await waitForIframeApp(
+        "Maps",
+        [
+          "app/map.html",
+          "/map.html"
+        ]
+      );
+
+    if (
+      info &&
+      info.ok === false
+    )
+    {
+      return {
+        ok: false,
+        summary:
+          info.error
+      };
+    }
+
+    const api =
+      info.api &&
+      info.api.Maps;
+
+    if (!api)
+    {
+      return {
+        ok: false,
+        summary:
+          "Maps API is not available."
+      };
+    }
+
+    try
+    {
+      const action =
+        String(
+          args.action || ""
+        )
+        .toLowerCase();
+
       let result;
-      if(action==="search"){
-        if(!args.query) return {ok:false,summary:"query is required for search."};
-        result=await api.search(String(args.query));
-      }else if(action==="get_coordinates") result=api.getCoordinates();
-      else if(action==="set_zoom") result=api.setZoom(Number(args.zoom));
-      else if(action==="set_location"){
-        if(!Number.isFinite(Number(args.lat))||!Number.isFinite(Number(args.lng))) return {ok:false,summary:"lat and lng are required for set_location."};
-        result=api.setLocation(Number(args.lat),Number(args.lng),args.name);
-      }else return {ok:false,summary:"Unknown maps action: "+action};
-      return {ok:true,summary:"Maps action "+action+" completed.",result};
-    }catch(e){return {ok:false,summary:"Maps action failed: "+(e.message||String(e))};}
+
+      if (
+        action ===
+        "search"
+      )
+      {
+        if (!args.query)
+        {
+          return {
+            ok: false,
+            summary:
+              "query is required for search."
+          };
+        }
+
+        result =
+          await api.search(
+            String(
+              args.query
+            )
+          );
+      }
+      else if (
+        action ===
+        "get_coordinates"
+      )
+      {
+        result =
+          api.getCoordinates();
+      }
+      else if (
+        action ===
+        "set_zoom"
+      )
+      {
+        result =
+          api.setZoom(
+            Number(
+              args.zoom
+            )
+          );
+      }
+      else if (
+        action ===
+        "set_location"
+      )
+      {
+        if (
+          !Number.isFinite(
+            Number(
+              args.lat
+            )
+          ) ||
+          !Number.isFinite(
+            Number(
+              args.lng
+            )
+          )
+        )
+        {
+          return {
+            ok: false,
+            summary:
+              "lat and lng are required for set_location."
+          };
+        }
+
+        result =
+          api.setLocation(
+            Number(
+              args.lat
+            ),
+            Number(
+              args.lng
+            ),
+            args.name
+          );
+      }
+      else
+      {
+        return {
+          ok: false,
+          summary:
+            "Unknown maps action: " +
+            action
+        };
+      }
+
+      return {
+        ok: true,
+        summary:
+          "Maps action " +
+          action +
+          " completed.",
+        result
+      };
+    }
+    catch(e)
+    {
+      return {
+        ok: false,
+        summary:
+          "Maps action failed: " +
+          (
+            e.message ||
+            String(e)
+          )
+      };
+    }
   }
 
   async function executeRaw(
@@ -2214,6 +3181,7 @@ e
     args =
       args ||
       {};
+
     if (
       name ===
       "open_application"
@@ -2230,38 +3198,50 @@ e
           args.strokes.length > 0
         ) ||
         !!args.select;
+
       const result =
         Apps.openApp(
           args.name,
           {
-            src: args.src,
-            path: args.path,
-            text: args.text,
-            equation: args.equation,
-            painting: Array.isArray(
+            src:
+              args.src,
+            path:
+              args.path,
+            text:
+              args.text,
+            equation:
+              args.equation,
+            painting:
+              Array.isArray(
                 args.strokes
               ) ?
               args.strokes :
               undefined,
             selectMode:
               !!args.select,
-            allowMultiple: hasContent
+            allowMultiple:
+              hasContent
           }
         );
-      return result && result.ok ?
+
+      return result &&
+        result.ok ?
         {
           ok: true,
-          summary: "Opened " +
+          summary:
+            "Opened " +
             args.name +
             "."
         } :
         {
           ok: false,
-          summary: "Could not open " +
+          summary:
+            "Could not open " +
             args.name +
             "."
         };
     }
+
     if (
       name ===
       "open_notepad"
@@ -2271,18 +3251,24 @@ e
         Apps.openApp(
           "Notepad",
           {
-            path: args.path,
-            text: args.text,
-            title: args.title,
+            path:
+              args.path,
+            text:
+              args.text,
+            title:
+              args.title,
             allowMultiple:
               !!args.path ||
               args.text != null
           }
         );
-      return result && result.ok ?
+
+      return result &&
+        result.ok ?
         {
           ok: true,
-          summary: "Opened Notepad" +
+          summary:
+            "Opened Notepad" +
             (
               args.path ?
               " with " +
@@ -2293,9 +3279,11 @@ e
         } :
         {
           ok: false,
-          summary: "Could not open Notepad."
+          summary:
+            "Could not open Notepad."
         };
     }
+
     if (
       name ===
       "open_paint"
@@ -2305,25 +3293,33 @@ e
         Apps.openApp(
           "Paint",
           {
-            painting: Array.isArray(
+            painting:
+              Array.isArray(
                 args.strokes
               ) ?
               args.strokes :
               [],
-            title: args.title,
-            allowMultiple: true
+            title:
+              args.title,
+            allowMultiple:
+              true
           }
         );
-      return result && result.ok ?
+
+      return result &&
+        result.ok ?
         {
           ok: true,
-          summary: "Opened Paint with the requested painting."
+          summary:
+            "Opened Paint with the requested painting."
         } :
         {
           ok: false,
-          summary: "Could not open Paint."
+          summary:
+            "Could not open Paint."
         };
     }
+
     if (
       name ===
       "open_calculator"
@@ -2333,25 +3329,32 @@ e
         Apps.openApp(
           "Calculator",
           {
-            equation: String(
-              args.equation ||
-              ""
-            ),
-            allowMultiple: true
+            equation:
+              String(
+                args.equation ||
+                ""
+              ),
+            allowMultiple:
+              true
           }
         );
-      return result && result.ok ?
+
+      return result &&
+        result.ok ?
         {
           ok: true,
-          summary: "Opened Calculator with equation " +
+          summary:
+            "Opened Calculator with equation " +
             args.equation +
             "."
         } :
         {
           ok: false,
-          summary: "Could not open Calculator."
+          summary:
+            "Could not open Calculator."
         };
     }
+
     if (
       name ===
       "open_file_manager"
@@ -2363,21 +3366,27 @@ e
           {
             selectMode:
               !!args.select,
-            path: args.path,
+            path:
+              args.path,
             allowMultiple:
               !!args.select
           }
         );
-      return result && result.ok ?
+
+      return result &&
+        result.ok ?
         {
           ok: true,
-          summary: "Opened File Manager."
+          summary:
+            "Opened File Manager."
         } :
         {
           ok: false,
-          summary: "Could not open File Manager."
+          summary:
+            "Could not open File Manager."
         };
     }
+
     if (
       name ===
       "open_file"
@@ -2387,127 +3396,146 @@ e
         FS.normalize(
           args.path
         );
+
       const ext =
         (
           p.split("?")[0]
-          .split(".")
-          .pop() ||
+            .split(".")
+            .pop() ||
           ""
         )
         .toLowerCase();
+
       if (
-        ext ===
-        "png" ||
-        ext ===
-        "jpg" ||
-        ext ===
-        "jpeg" ||
-        ext ===
-        "gif" ||
-        ext ===
-        "webp"
+        ext === "png" ||
+        ext === "jpg" ||
+        ext === "jpeg" ||
+        ext === "gif" ||
+        ext === "webp"
       )
       {
         const result =
           Apps.openApp(
             "imageViewer",
             {
-              src: p,
-              allowMultiple: true
+              src:
+                p,
+              allowMultiple:
+                true
             }
           );
-        return result && result.ok ?
+
+        return result &&
+          result.ok ?
           {
             ok: true,
-            summary: "Opened image " +
+            summary:
+              "Opened image " +
               p +
               "."
           } :
           {
             ok: false,
-            summary: "Could not open image."
+            summary:
+              "Could not open image."
           };
       }
+
       if (
-        ext ===
-        "mp4" ||
-        ext ===
-        "webm" ||
-        ext ===
-        "mov"
+        ext === "mp4" ||
+        ext === "webm" ||
+        ext === "mov"
       )
       {
         const result =
           Apps.openApp(
             "videoPlayer",
             {
-              src: p,
-              allowMultiple: true
+              src:
+                p,
+              allowMultiple:
+                true
             }
           );
-        return result && result.ok ?
+
+        return result &&
+          result.ok ?
           {
             ok: true,
-            summary: "Opened video " +
+            summary:
+              "Opened video " +
               p +
               "."
           } :
           {
             ok: false,
-            summary: "Could not open video."
+            summary:
+              "Could not open video."
           };
       }
+
       if (
-        ext ===
-        "mp3" ||
-        ext ===
-        "wav" ||
-        ext ===
-        "ogg"
+        ext === "mp3" ||
+        ext === "wav" ||
+        ext === "ogg"
       )
       {
         const result =
           Apps.openApp(
             "audioPlayer",
             {
-              src: p,
-              allowMultiple: true
+              src:
+                p,
+              allowMultiple:
+                true
             }
           );
-        return result && result.ok ?
+
+        return result &&
+          result.ok ?
           {
             ok: true,
-            summary: "Opened audio " +
+            summary:
+              "Opened audio " +
               p +
               "."
           } :
           {
             ok: false,
-            summary: "Could not open audio."
+            summary:
+              "Could not open audio."
           };
       }
+
       const result =
         Apps.openApp(
           "Notepad",
           {
-            path: p,
-            allowMultiple: true
+            path:
+              p,
+            allowMultiple:
+              true
           }
         );
-      return result && result.ok ?
+
+      return result &&
+        result.ok ?
         {
           ok: true,
-          summary: "Opened " +
+          summary:
+            "Opened " +
             p +
             " in Notepad."
         } :
         {
           ok: false,
-          summary: "Could not open " +
+          summary:
+            "Could not open " +
             p +
             "."
         };
     }
+
     if (
       name ===
       "open_window"
@@ -2519,18 +3547,18 @@ e
           "text"
         )
         .toLowerCase();
+
       const c =
         String(
           args.content ||
           ""
         );
+
       const html =
-        type ===
-        "html" ?
+        type === "html" ?
         c :
         (
-          type ===
-          "code" ?
+          type === "code" ?
           (
             "<pre style='white-space:pre-wrap;margin:0;font-family:monospace;font-size:12px;'>" +
             esc(c) +
@@ -2542,19 +3570,26 @@ e
             "</div>"
           )
         );
+
       WM.openWindow(
       {
-        title: args.title ||
+        title:
+          args.title ||
           "OUTPUT",
         html,
-        width: "560px",
-        height: "400px"
+        width:
+          "560px",
+        height:
+          "400px"
       });
+
       return {
         ok: true,
-        summary: "Opened output window."
+        summary:
+          "Opened output window."
       };
     }
+
     if (
       name ===
       "open_iframe"
@@ -2565,6 +3600,7 @@ e
           args.url ||
           ""
         );
+
       if (
         !/^https?:\/\//i.test(
           u
@@ -2573,29 +3609,45 @@ e
       {
         return {
           ok: false,
-          summary: "URL must start with http:// or https://."
+          summary:
+            "URL must start with http:// or https://."
         };
       }
+
       WM.openWindow(
       {
-        title: args.title ||
+        title:
+          args.title ||
           "WEB",
-        iframeSrc: u,
-        width: (Number(
-            args.width
-          ) || 720) +
+        iframeSrc:
+          u,
+        width:
+          (
+            Number(
+              args.width
+            ) ||
+            720
+          ) +
           "px",
-        height: (Number(
-            args.height
-          ) || 520) +
+        height:
+          (
+            Number(
+              args.height
+            ) ||
+            520
+          ) +
           "px",
-        noPad: true
+        noPad:
+          true
       });
+
       return {
         ok: true,
-        summary: "Opened web content."
+        summary:
+          "Opened web content."
       };
     }
+
     if (
       name ===
       "web_search"
@@ -2606,6 +3658,7 @@ e
         args.max_results
       );
     }
+
     if (
       name ===
       "write_file"
@@ -2615,25 +3668,30 @@ e
         FS.normalize(
           args.path
         );
+
       const r =
         await FS.write(
           p,
           args.content ||
-          "",
+            "",
           args.create !== false
         );
+
       return r.ok ?
         {
           ok: true,
-          summary: "Wrote " +
+          summary:
+            "Wrote " +
             p +
             "."
         } :
         {
           ok: false,
-          summary: r.error
+          summary:
+            r.error
         };
     }
+
     if (
       name ===
       "write_files"
@@ -2645,37 +3703,47 @@ e
         ) ?
         args.files :
         [];
+
       const done = [];
+
       for (
-        const f of fs
+        const f of
+          fs
       )
       {
         const p =
           FS.normalize(
             f.path
           );
+
         const r =
           await FS.write(
             p,
             f.content ||
-            "",
+              "",
             f.create !== false
           );
+
         if (!r.ok)
         {
           return {
             ok: false,
-            summary: r.error,
-            written: done
+            summary:
+              r.error,
+            written:
+              done
           };
         }
+
         done.push(
           p
         );
       }
+
       return {
         ok: true,
-        summary: "Wrote " +
+        summary:
+          "Wrote " +
           done.length +
           " file(s): " +
           done.join(
@@ -2684,6 +3752,7 @@ e
           "."
       };
     }
+
     if (
       name ===
       "read_file"
@@ -2693,34 +3762,45 @@ e
         FS.normalize(
           args.path
         );
+
       const r =
         await FS.read(
           p
         );
+
       if (!r.ok)
       {
         return {
           ok: false,
-          summary: r.error
+          summary:
+            r.error
         };
       }
+
       WM.openWindow(
       {
-        title: p.split("/")
-          .pop(),
-        html: "<pre style='white-space:pre-wrap;margin:0;font-family:monospace;font-size:12px;'>" +
+        title:
+          p.split("/")
+            .pop(),
+        html:
+          "<pre style='white-space:pre-wrap;margin:0;font-family:monospace;font-size:12px;'>" +
           esc(r.content) +
           "</pre>",
-        width: "560px",
-        height: "420px"
+        width:
+          "560px",
+        height:
+          "420px"
       });
+
       return {
         ok: true,
-        summary: "Opened " +
+        summary:
+          "Opened " +
           p +
           "."
       };
     }
+
     if (
       name ===
       "remove_file"
@@ -2730,22 +3810,27 @@ e
         FS.normalize(
           args.path
         );
+
       const r =
         await FS.remove(
           p
         );
+
       return r.ok ?
         {
           ok: true,
-          summary: "Removed " +
+          summary:
+            "Removed " +
             p +
             "."
         } :
         {
           ok: false,
-          summary: r.error
+          summary:
+            r.error
         };
     }
+
     if (
       name ===
       "find_files"
@@ -2756,16 +3841,20 @@ e
           args.pattern ||
           "*"
         );
+
       return {
         ok: true,
-        summary: r.length ?
+        summary:
+          r.length ?
           "Found " +
           r.length +
           " file(s)." :
           "No files matched.",
-        files: r
+        files:
+          r
       };
     }
+
     if (
       name ===
       "list_files"
@@ -2776,15 +3865,19 @@ e
           args.prefix ||
           ""
         );
+
       return {
         ok: true,
-        summary: r.length ?
+        summary:
+          r.length ?
           r.length +
           " file(s) found." :
           "No files found.",
-        files: r
+        files:
+          r
       };
     }
+
     if (
       name ===
       "zip_files"
@@ -2795,6 +3888,7 @@ e
         args.output_path
       );
     }
+
     if (
       name ===
       "open_onecompiler"
@@ -2803,24 +3897,33 @@ e
       const result =
         Apps.openOneCompiler(
         {
-          language: args.language,
-          code: args.code ||
+          language:
+            args.language,
+          code:
+            args.code ||
             "",
-          name: args.name,
-          files: args.files,
+          name:
+            args.name,
+          files:
+            args.files,
           run:
             !!args.run
         });
-      return result && result.ok ?
+
+      return result &&
+        result.ok ?
         {
           ok: true,
-          summary: "Opened OneCompiler."
+          summary:
+            "Opened OneCompiler."
         } :
         {
           ok: false,
-          summary: "Could not open OneCompiler."
+          summary:
+            "Could not open OneCompiler."
         };
     }
+
     if (
       name ===
       "run_code"
@@ -2830,64 +3933,92 @@ e
         FS.normalize(
           args.path
         );
+
       const r =
         await FS.read(
           p
         );
+
       if (!r.ok)
       {
         return {
           ok: false,
-          summary: r.error
+          summary:
+            r.error
         };
       }
+
       const ext =
         p.split(".")
-        .pop()
-        .toLowerCase();
+          .pop()
+          .toLowerCase();
+
       const lang =
         args.language ||
         (
           {
-            js: "javascript",
-            javascript: "javascript",
-            py: "python",
-            python: "python",
-            java: "java",
-            c: "c",
-            cpp: "cpp",
-            cs: "csharp",
-            php: "php",
-            ts: "typescript",
-            html: "html",
-            css: "css"
-          } [ext] ||
+            js:
+              "javascript",
+            javascript:
+              "javascript",
+            py:
+              "python",
+            python:
+              "python",
+            java:
+              "java",
+            c:
+              "c",
+            cpp:
+              "cpp",
+            cs:
+              "csharp",
+            php:
+              "php",
+            ts:
+              "typescript",
+            html:
+              "html",
+            css:
+              "css"
+          }[ext] ||
           "javascript"
         );
+
       const result =
         Apps.openOneCompiler(
-        {
-          language: lang,
-          files: [
           {
-            name: p.split("/")
-              .pop(),
-            content: r.content
-          }],
-          run: args.run !== false
-        });
-      return result && result.ok ?
+            language:
+              lang,
+            files:
+            [
+            {
+              name:
+                p.split("/")
+                  .pop(),
+              content:
+                r.content
+            }],
+            run:
+              args.run !== false
+          });
+
+      return result &&
+        result.ok ?
         {
           ok: true,
-          summary: "Opened " +
+          summary:
+            "Opened " +
             p +
             " in OneCompiler."
         } :
         {
           ok: false,
-          summary: "Could not open OneCompiler."
+          summary:
+            "Could not open OneCompiler."
         };
     }
+
     if (
       name ===
       "execute_javascript"
@@ -2895,7 +4026,7 @@ e
     {
       return await sandboxRun(
         args.code ||
-        "",
+          "",
         Math.max(
           250,
           Math.min(
@@ -2908,56 +4039,216 @@ e
         )
       );
     }
-    if (name === "browser_action") return await browserAction(args);
-    if (name === "camera_action") return await cameraAction(args);
-    if (name === "document_action") return await documentAction(args);
-    if (name === "image_editor_action") return await imageEditorAction(args);
-    if (name === "maps_action") return await mapsAction(args);
-    if (name === "list_windows"){
-      const windows=listWMWindows().map(w=>({
-        id:w.id,
-        title:w.title,
-        standaloneKey:w.standaloneKey,
-        minimized:!!w.minimized,
-        maximized:!!w.maximized,
-        closed:!!w.closed
-      }));
-      return {ok:true,summary:"Listed "+windows.length+" open window(s).",windows};
+
+    if (
+      name ===
+      "browser_action"
+    )
+    {
+      return await browserAction(
+        args
+      );
     }
-    if (name === "close_window"){
-      const win=findWindowById(args.window_id);
-      if(!win) return {ok:false,summary:"Window not found: "+args.window_id};
-      WM.closeWindow(win);
-      return {ok:true,summary:"Closed window "+win.id+" ("+win.title+")."};
+
+    if (
+      name ===
+      "camera_action"
+    )
+    {
+      return await cameraAction(
+        args
+      );
     }
-    if (name === "focus_window"){
-      const win=findWindowById(args.window_id);
-      if(!win) return {ok:false,summary:"Window not found: "+args.window_id};
-      if(win.minimized && typeof win.el?.querySelector==="function"){
-        // Use the existing window manager's controls when available.
-        const restore=Array.from(win.el.querySelectorAll("button")).find(b=>b.textContent==="_");
-        if(restore) restore.click();
+
+    if (
+      name ===
+      "document_action"
+    )
+    {
+      return await documentAction(
+        args
+      );
+    }
+
+    if (
+      name ===
+      "image_editor_action"
+    )
+    {
+      return await imageEditorAction(
+        args
+      );
+    }
+
+    if (
+      name ===
+      "maps_action"
+    )
+    {
+      return await mapsAction(
+        args
+      );
+    }
+
+    if (
+      name ===
+      "list_windows"
+    )
+    {
+      const windows =
+        listWMWindows()
+        .map(
+          w =>
+          ({
+            id:
+              w.id,
+            title:
+              w.title,
+            standaloneKey:
+              w.standaloneKey,
+            minimized:
+              !!w.minimized,
+            maximized:
+              !!w.maximized,
+            closed:
+              !!w.closed
+          })
+        );
+
+      return {
+        ok: true,
+        summary:
+          "Listed " +
+          windows.length +
+          " open window(s).",
+        windows
+      };
+    }
+
+    if (
+      name ===
+      "close_window"
+    )
+    {
+      const win =
+        findWindowById(
+          args.window_id
+        );
+
+      if (!win)
+      {
+        return {
+          ok: false,
+          summary:
+            "Window not found: " +
+            args.window_id
+        };
       }
-      try{ win.el.style.zIndex=String(100000+Date.now()); }catch(_){ }
-      return {ok:true,summary:"Focused window "+win.id+" ("+win.title+")."};
+
+      WM.closeWindow(
+        win
+      );
+
+      return {
+        ok: true,
+        summary:
+          "Closed window " +
+          win.id +
+          " (" +
+          win.title +
+          ")."
+      };
     }
+
+    if (
+      name ===
+      "focus_window"
+    )
+    {
+      const win =
+        findWindowById(
+          args.window_id
+        );
+
+      if (!win)
+      {
+        return {
+          ok: false,
+          summary:
+            "Window not found: " +
+            args.window_id
+        };
+      }
+
+      if (
+        win.minimized &&
+        typeof win.el?.querySelector ===
+        "function"
+      )
+      {
+        const restore =
+          Array.from(
+            win.el.querySelectorAll(
+              "button"
+            )
+          )
+          .find(
+            b =>
+              b.textContent ===
+              "_"
+          );
+
+        if (restore)
+        {
+          restore.click();
+        }
+      }
+
+      try
+      {
+        win.el.style.zIndex =
+          String(
+            100000 +
+            Date.now()
+          );
+      }
+      catch(_)
+      {
+      }
+
+      return {
+        ok: true,
+        summary:
+          "Focused window " +
+          win.id +
+          " (" +
+          win.title +
+          ")."
+      };
+    }
+
     if (
       name ===
       "close_all_windows"
     )
     {
       WM.closeAll();
+
       return {
         ok: true,
-        summary: "Closed all windows."
+        summary:
+          "Closed all windows."
       };
     }
+
     return {
       ok: false,
-      summary: "Unknown tool: " +
+      summary:
+        "Unknown tool: " +
         name
     };
   }
+
   async function execute(
     name,
     args
@@ -2970,34 +4261,41 @@ e
       "matrix",
       -1
     );
+
     const command =
       commandLine(
         name,
         args
       );
+
     let win = null;
+
     try
     {
       win =
         terminal(
           command
         );
+
       if (!win)
       {
         throw new Error(
           "Could not create terminal window."
         );
       }
+
       const result =
         await executeRaw(
           name,
           args
         );
+
       terminalUpdate(
         win,
         command,
         result
       );
+
       if (
         result &&
         result.ok
@@ -3015,18 +4313,22 @@ e
           1400
         );
       }
+
       return result;
     }
-    catch (e)
+    catch(e)
     {
-      const r = {
+      const r =
+      {
         ok: false,
-        summary: "Tool error: " +
+        summary:
+          "Tool error: " +
           (
             e.message ||
             String(e)
           )
       };
+
       if (win)
       {
         terminalUpdate(
@@ -3034,17 +4336,20 @@ e
           command,
           r
         );
+
         closeTerminalSoon(
           win,
           1600
         );
       }
+
       return r;
     }
     finally
     {
       if (
-        name !== "web_search"
+        name !==
+        "web_search"
       )
       {
         Avatar.setEye(
@@ -3053,7 +4358,9 @@ e
       }
     }
   }
-  window.Tools = {
+
+  window.Tools =
+  {
     definitions,
     execute
   };
