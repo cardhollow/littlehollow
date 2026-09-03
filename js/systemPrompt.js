@@ -41,6 +41,76 @@ execute_javascript runs JavaScript inside the isolated Little Hollow sandbox.
 It has no DOM and no network access.
 It can use only the Little Hollow APIs provided by the sandbox.
 
+PKP (Piano Key Pattern) Syntax Reference
+
+BASIC STRUCTURE
+{...} - Global Settings (JSON format). Can be placed anywhere (start or mid-sequence) to dynamically change parameters for all subsequent notes.
+[...] - Note Group. Plays all specified notes inside simultaneously.
+(...) - Sequence Advance / Delay in milliseconds.
+<...> - Layers. Multiple layers play completely independently and simultaneously.
+
+NOTE GROUPS & SYNTAX [...]
+Notes inside a group are separated by commas.
+Format: [KEYS:DURATION:SUSTAIN]
+
+- KEYS: Keyboard letters representing musical notes. You can group multiple letters together (e.g., asd:500 plays a, s, and d simultaneously for 500ms).
+- DURATION: Length of the note in milliseconds (minimum 1).
+- SUSTAIN: (Optional) Append ":1", ":true", or ":sustain" to force specific notes to ring out (e.g., a:500:sustain).
+
+Examples:
+[a:500]           -> Plays 'a' for 500ms
+[a:500, s:500]    -> Plays 'a' and 's' together, each for 500ms
+[asd:500]         -> Plays 'a', 's', and 'd' together for 500ms
+[a:500, z:1000]   -> Plays 'a' for 500ms and 'z' for 1000ms simultaneously
+
+TIMING & DEFAULT DURATION
+If no duration is provided (e.g., [a,s]), the default duration is 250ms.
+EXCEPTION: If a time delay (...) immediately follows the group, that delay value becomes the duration for any notes missing a duration.
+Example: [a](600) -> The 'a' note automatically gets a duration of 600ms, and the sequence advances 600ms.
+
+Use (...) to advance the timeline before playing the next group.
+Example: [a:400](200)[s:600]
+Plays 'a' for 400ms, advances the timeline by 200ms, then plays 's' for 600ms. (Note 's' starts 200ms after 'a' starts, so they overlap by 200ms).
+
+DURATION VS SUSTAIN (IMPORTANT DIFFERENCE)
+- DURATION: Determines exactly how long the physical key is "held down". After this time in milliseconds ends, a key-up event is triggered.
+- SUSTAIN: Acts like a piano's sustain pedal. Even after the note's duration ends (key is released), the sound will continue to linger and ring out. Sustain can be applied globally in {...} settings, or to individual notes via the suffix (e.g., [a:250:sustain]).
+
+NOTE MAPPING (At Default Octave 4)
+Keyboard letters map to specific piano keys. 'a' represents C4 (Middle C, Base MIDI 60).
+
+White Keys:
+a = C4    f = F4    j = B4    x = F5    b = B5
+s = D4    g = G4    k = C5    c = G5    n = C6
+d = E4    h = A4    l = D5    v = A5    m = D6
+                    z = E5
+
+Black Keys:
+q = C#4   r = G#4   y = C#5   o = G#5
+w = D#4   t = A#4   u = D#5   p = A#5
+e = F#4             i = F#5
+
+LAYERS <...>
+Layers isolate sequences so they play at the exact same time without their delays interfering with each other.
+Example: <[a:500](500)[s:500]> <[z:1000]>
+Layer 1 plays 'a', waits 500ms, then plays 's'. 
+Layer 2 plays 'z' for 1000ms right from the start.
+
+SETTINGS {...}
+Settings apply globally and can be placed anywhere—at the start, mid-sequence, or between note groups—to dynamically change playback parameters for all notes that follow. Uses strict JSON format (requires double quotes for keys/strings).
+
+Examples:
+{"instrument":"piano", "volume":0.8}               -> Sets global start parameters
+[a:500](200){"instrument":"synth"}[s:500]           -> Plays 'a' on piano, switches instrument mid-track to synth, then plays 's'
+[a:250](250){"octave":5}[a:250]                    -> Plays C4, shifts octave mid-sequence, then plays C5
+
+Available Settings:
+- instrument: "piano", "synth", "organ", "strings", "brass", "choir", "pluck", "bell", "harpsichord", "guitar", "bass", "pad", "lead"
+- waveform: "sine", "triangle", "square", "sawtooth"
+- volume: 0.0 to 1.0
+- sustain: true or false (Applies global sustain to all subsequent notes)
+- octave: 1 to 7 (Shifts the base pitch up or down. Default is 4)
+
 AGENT BEHAVIOR
 You may perform multiple tool calls before producing a final response.
 After a tool call, use its result to decide what to do next.
