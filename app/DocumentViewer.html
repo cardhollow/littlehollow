@@ -5,90 +5,397 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>Document Viewer</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:monospace}
-html,body{width:100%;height:100%;background:#000;color:#00FFFF}
-body{overflow:hidden}
-button,input{font-family:monospace}
-.wrap{display:flex;flex-direction:column;width:100%;height:100%}
-.bar{display:flex;gap:6px;padding:8px;border-bottom:1px solid #00FFFF;flex-wrap:wrap}
-.bar input{flex:1;min-width:0;background:#001010;border:1px solid #00FFFF;color:#00FFFF;padding:7px 8px;outline:none;font:11px monospace}
-.bar button,.tools button{border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:6px 9px;cursor:pointer;font:10px monospace}
-.bar button:active,.tools button:active{background:#00FFFF;color:#000}
-.bar button:disabled,.tools button:disabled{opacity:.35;cursor:not-allowed}
-.tools{display:flex;gap:5px;align-items:center;padding:6px 8px;border-bottom:1px solid rgba(0,255,255,.25);overflow:auto;flex:0 0 auto}
-.tools input{width:100px;flex:0 0 100px;background:#001010;border:1px solid #00FFFF;color:#00FFFF;padding:5px 6px;outline:none;font:10px monospace}
-.tools .info{font-size:10px;opacity:.7;white-space:nowrap}
-.stage{position:relative;flex:1;min-height:0;overflow:auto;background:#000}
-.viewer{min-width:100%;min-height:100%;display:flex;justify-content:center;align-items:flex-start;padding:14px}
-.empty{min-height:100%;width:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;opacity:.55;font-size:12px;white-space:pre-wrap}
-.error{width:min(950px,100%);margin:auto;padding:20px;color:#ff6666;font-size:11px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
-.status{position:fixed;left:10px;right:10px;bottom:10px;padding:8px 10px;border:1px solid #064A4C;background:#001113;color:#00FFFF;font-size:10px;line-height:1.4;display:none;z-index:999999;white-space:pre-wrap;pointer-events:none}
-.status.show{display:block}
-.doc{width:min(900px,100%);background:#fff;color:#111;padding:44px;line-height:1.55;box-shadow:0 0 0 1px #333}
-.doc img{max-width:100%;height:auto}
-.doc table{border-collapse:collapse;width:100%;margin:12px 0}
-.doc th,.doc td{border:1px solid #777;padding:5px 7px;vertical-align:top}
-.doc pre{white-space:pre-wrap;word-break:break-word;background:#eee;padding:10px;overflow:auto}
-.md{width:min(900px,100%);background:#fff;color:#111;padding:44px;line-height:1.6;box-shadow:0 0 0 1px #333}
-.md h1,.md h2,.md h3,.md h4,.md h5,.md h6{margin:1em 0 .5em}
-.md p,.md ul,.md ol,.md blockquote,.md pre{margin:.7em 0}
-.md blockquote{border-left:4px solid #888;padding-left:12px;color:#444}
-.md code{background:#eee;padding:2px 4px}
-.md pre{padding:10px;background:#eee;overflow:auto}
-.md img{max-width:100%}
-.text{width:min(1000px,100%);padding:25px;white-space:pre-wrap;word-break:break-word;line-height:1.5;font:13px monospace;color:#00FFFF}
-.sheet-wrap{width:100%;overflow:auto;background:#fff}
-.sheet{border-collapse:collapse;background:#fff;color:#000;width:max-content;min-width:100%}
-.sheet th,.sheet td{border:1px solid #888;padding:5px 8px;vertical-align:top;white-space:pre-wrap;min-width:70px}
-.sheet th{font-weight:bold;background:#e8e8e8;position:sticky;top:0;z-index:2}
-.pdf{width:min(100%,1100px);display:flex;flex-direction:column;align-items:center;gap:12px}
-.pdf canvas{display:block;background:#fff;box-shadow:0 0 0 1px #444;height:auto}
-.pdf-native{width:100%;height:calc(100vh - 120px);border:0;background:#fff}
-.page-label{font-size:10px;opacity:.7}
-.pptx{width:min(1200px,100%);display:flex;justify-content:center}
-.ppt-slide{position:relative;width:100%;aspect-ratio:16/9;background:#fff;color:#000;box-shadow:0 0 0 1px #333;overflow:hidden}
-.ppt-text{position:absolute;white-space:pre-wrap;overflow:hidden;font-family:Arial,sans-serif;color:#000}
-.image-view{width:100%;display:flex;justify-content:center}
-.image-view img{max-width:100%;height:auto;background:#fff;box-shadow:0 0 0 1px #444}
-.compat{width:min(900px,100%);border:1px solid #064A4C;padding:16px;font-size:11px;line-height:1.6}
-.compat strong{color:#FFFF00}
-.html-frame{width:min(1100px,100%);height:calc(100vh - 120px);border:0;background:#fff}
-.loader{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;width:100%;min-height:50vh;font-size:11px}
-.loader-ring{width:28px;height:28px;border:2px solid #064A4C;border-top-color:#00FFFF;border-radius:50%;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+*{
+box-sizing:border-box;
+margin:0;
+padding:0;
+font-family:monospace
+}
+html,body{
+width:100%;
+height:100%;
+background:#000;
+color:#00FFFF
+}
+body{
+overflow:hidden
+}
+button,input{
+font-family:monospace
+}
+.wrap{
+display:flex;
+flex-direction:column;
+width:100%;
+height:100%
+}
+.bar{
+flex:0 0 auto;
+display:flex;
+gap:6px;
+padding:8px;
+border-bottom:1px solid #00FFFF;
+flex-wrap:wrap
+}
+.bar input{
+flex:1;
+min-width:0;
+background:#001010;
+border:1px solid #00FFFF;
+color:#00FFFF;
+padding:7px 8px;
+outline:none;
+font:11px monospace
+}
+.bar button,.tools button{
+border:1px solid #00FFFF;
+background:transparent;
+color:#00FFFF;
+padding:6px 9px;
+cursor:pointer;
+font:10px monospace
+}
+.bar button:active,.tools button:active{
+background:#00FFFF;
+color:#000
+}
+.bar button:disabled,.tools button:disabled{
+opacity:.35;
+cursor:not-allowed
+}
+.tools{
+display:flex;
+gap:5px;
+align-items:center;
+padding:6px 8px;
+border-bottom:1px solid rgba(0,255,255,.25);
+overflow:auto;
+flex:0 0 auto
+}
+.tools input{
+width:100px;
+flex:0 0 100px;
+background:#001010;
+border:1px solid #00FFFF;
+color:#00FFFF;
+padding:5px 6px;
+outline:none;
+font:10px monospace
+}
+.tools .info{
+font-size:10px;
+opacity:.7;
+white-space:nowrap
+}
+.stage{
+position:relative;
+flex:1;
+min-height:0;
+overflow:auto;
+background:#000;
+touch-action:none;
+overscroll-behavior:contain;
+-webkit-overflow-scrolling:touch
+}
+.viewer{
+min-width:100%;
+min-height:100%;
+display:flex;
+justify-content:center;
+align-items:flex-start;
+padding:14px;
+transform-origin:top center
+}
+.empty{
+min-height:100%;
+width:100%;
+display:flex;
+align-items:center;
+justify-content:center;
+text-align:center;
+padding:20px;
+opacity:.55;
+font-size:12px;
+white-space:pre-wrap
+}
+.error{
+width:min(950px,100%);
+margin:auto;
+padding:20px;
+color:#ff6666;
+font-size:11px;
+line-height:1.55;
+white-space:pre-wrap;
+overflow-wrap:anywhere
+}
+.status{
+position:fixed;
+left:10px;
+right:10px;
+bottom:10px;
+padding:8px 10px;
+border:1px solid #064A4C;
+background:#001113;
+color:#00FFFF;
+font-size:10px;
+line-height:1.4;
+display:none;
+z-index:999999;
+white-space:pre-wrap;
+pointer-events:none
+}
+.status.show{
+display:block
+}
+.doc{
+width:min(900px,100%);
+background:#fff;
+color:#111;
+padding:44px;
+line-height:1.55;
+box-shadow:0 0 0 1px #333;
+transform-origin:top center
+}
+.doc img{
+max-width:100%;
+height:auto
+}
+.doc table{
+border-collapse:collapse;
+width:100%;
+margin:12px 0
+}
+.doc th,.doc td{
+border:1px solid #777;
+padding:5px 7px;
+vertical-align:top
+}
+.doc pre{
+white-space:pre-wrap;
+word-break:break-word;
+background:#eee;
+padding:10px;
+overflow:auto
+}
+.md{
+width:min(900px,100%);
+background:#fff;
+color:#111;
+padding:44px;
+line-height:1.6;
+box-shadow:0 0 0 1px #333
+}
+.md h1,.md h2,.md h3,.md h4,.md h5,.md h6{
+margin:1em 0 .5em
+}
+.md p,.md ul,.md ol,.md blockquote,.md pre{
+margin:.7em 0
+}
+.md blockquote{
+border-left:4px solid #888;
+padding-left:12px;
+color:#444
+}
+.md code{
+background:#eee;
+padding:2px 4px
+}
+.md pre{
+padding:10px;
+background:#eee;
+overflow:auto
+}
+.md img{
+max-width:100%
+}
+.text{
+width:min(1000px,100%);
+padding:25px;
+white-space:pre-wrap;
+word-break:break-word;
+line-height:1.5;
+font:13px monospace;
+color:#00FFFF
+}
+.sheet-wrap{
+width:100%;
+overflow:auto;
+background:#fff
+}
+.sheet{
+border-collapse:collapse;
+background:#fff;
+color:#000;
+width:max-content;
+min-width:100%
+}
+.sheet th,.sheet td{
+border:1px solid #888;
+padding:5px 8px;
+vertical-align:top;
+white-space:pre-wrap;
+min-width:70px
+}
+.sheet th{
+font-weight:bold;
+background:#e8e8e8;
+position:sticky;
+top:0;
+z-index:2
+}
+.pdf{
+width:min(100%,1100px);
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:12px;
+transform-origin:top center
+}
+.pdf canvas{
+display:block;
+background:#fff;
+box-shadow:0 0 0 1px #444;
+height:auto
+}
+.pdf-native{
+width:100%;
+height:calc(100vh - 120px);
+border:0;
+background:#fff
+}
+.page-label{
+font-size:10px;
+opacity:.7
+}
+.pptx{
+width:min(1200px,100%);
+display:flex;
+justify-content:center
+}
+.ppt-slide{
+position:relative;
+width:100%;
+aspect-ratio:16/9;
+background:#fff;
+color:#000;
+box-shadow:0 0 0 1px #333;
+overflow:hidden;
+transform-origin:top center
+}
+.ppt-text{
+position:absolute;
+white-space:pre-wrap;
+overflow:hidden;
+font-family:Arial,sans-serif;
+color:#000
+}
+.image-view{
+width:100%;
+display:flex;
+justify-content:center
+}
+.image-view img{
+max-width:100%;
+height:auto;
+background:#fff;
+box-shadow:0 0 0 1px #444
+}
+.compat{
+width:min(900px,100%);
+border:1px solid #064A4C;
+padding:16px;
+font-size:11px;
+line-height:1.6
+}
+.compat strong{
+color:#FFFF00
+}
+.html-frame{
+width:min(1100px,100%);
+height:calc(100vh - 120px);
+border:0;
+background:#fff
+}
+.search-mark{
+background:#FFFF00;
+color:#000;
+outline:1px solid #FFFF00;
+border-radius:2px
+}
+.search-mark.current{
+background:#00FFFF;
+color:#000;
+outline:2px solid #00FFFF
+}
+.loader{
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:10px;
+width:100%;
+min-height:50vh;
+font-size:11px
+}
+.loader-ring{
+width:28px;
+height:28px;
+border:2px solid #064A4C;
+border-top-color:#00FFFF;
+border-radius:50%;
+animation:spin .8s linear infinite
+}
+@keyframes spin{
+to{
+transform:rotate(360deg)
+}
+}
 </style>
 </head>
+
 <body>
+
 <div class="wrap">
+
 <div class="bar">
 <input id="src" placeholder="Document URL or chxd:/ path..." autocomplete="off" spellcheck="false">
 <button id="load">LOAD</button>
 </div>
+
 <div class="tools">
 <button id="prev">◀ PREV</button>
 <button id="next">NEXT ▶</button>
+
 <input id="page" type="number" min="1" step="1" placeholder="PAGE" hidden>
 <button id="goto" hidden>GO</button>
+
 <button id="zoomOut">−</button>
 <span class="info" id="zoom">100%</span>
 <button id="zoomIn">+</button>
 <button id="fit">FIT</button>
+
 <input id="find" type="text" placeholder="find text" autocomplete="off" spellcheck="false">
 <button id="findBtn">FIND</button>
+
 <span class="info" id="pageInfo"></span>
 </div>
+
 <div class="stage" id="stage">
 <div class="viewer" id="viewer">
 <div class="empty">No document loaded.</div>
 </div>
 </div>
+
 </div>
+
 <div class="status" id="status"></div>
 
 <script type="module">
+
 "use strict";
 
 const $=id=>document.getElementById(id);
+
 const viewer=$("viewer");
 const stage=$("stage");
 const statusBox=$("status");
@@ -97,7 +404,9 @@ const pageBox=$("page");
 const goBtn=$("goto");
 const pageInfo=$("pageInfo");
 const zoomInfo=$("zoom");
-const initial=new URLSearchParams(location.search).get("src");
+
+const initial=
+new URLSearchParams(location.search).get("src");
 
 const LIB={
 pdf:"https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/build/pdf.mjs",
@@ -121,16 +430,22 @@ let zoom=1;
 let page=1;
 let total=0;
 let textContent="";
-let searchHits=[];
-let searchIndex=-1;
 let urls=[];
+let nativePDF=false;
+
 let currentSheets=[];
 let currentSheetIndex=0;
-let nativePDF=false;
+
+let searchQuery="";
+let searchMatches=[];
+let searchIndex=-1;
+
+let pointerState=null;
+let pinchState=null;
 
 function errorText(e){
 return e&&typeof e==="object"
-?(e.message||e.name||String(e))
+?String(e.message||e.name||e)
 :String(e??"Unknown error");
 }
 
@@ -145,7 +460,9 @@ setStatus("",false);
 
 function clearUrls(){
 for(const u of urls){
-try{URL.revokeObjectURL(u)}catch(_){}
+try{
+URL.revokeObjectURL(u);
+}catch(_){}
 }
 urls=[];
 }
@@ -157,103 +474,303 @@ viewer.style.zoom="1";
 
 function empty(message="No document loaded."){
 clearViewer();
+
 const d=document.createElement("div");
 d.className="empty";
 d.textContent=message;
+
 viewer.appendChild(d);
 }
 
 function showError(message){
 clearViewer();
+
 const d=document.createElement("div");
 d.className="error";
 d.textContent=String(message);
+
 viewer.appendChild(d);
 }
 
 function ext(value){
-const s=String(value||"").split("?")[0].split("#")[0];
+const s=String(value||"")
+.split("?")[0]
+.split("#")[0];
+
 const i=s.lastIndexOf(".");
-return i<0?"":s.slice(i+1).toLowerCase();
+
+return i<0
+?""
+:s.slice(i+1).toLowerCase();
 }
 
 function mime(value){
 switch(ext(value)){
-case"pdf":return"application/pdf";
-case"docx":return"application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-case"doc":return"application/msword";
-case"pptx":return"application/vnd.openxmlformats-officedocument.presentationml.presentation";
-case"ppt":return"application/vnd.ms-powerpoint";
-case"xlsx":return"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-case"xls":return"application/vnd.ms-excel";
-case"ods":return"application/vnd.oasis.opendocument.spreadsheet";
-case"odp":return"application/vnd.oasis.opendocument.presentation";
-case"odt":return"application/vnd.oasis.opendocument.text";
-case"epub":return"application/epub+zip";
+
+case"pdf":
+return"application/pdf";
+
+case"docx":
+return"application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+case"doc":
+return"application/msword";
+
+case"pptx":
+return"application/vnd.openxmlformats-officedocument.presentationml.presentation";
+
+case"ppt":
+return"application/vnd.ms-powerpoint";
+
+case"xlsx":
+return"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+case"xls":
+return"application/vnd.ms-excel";
+
+case"ods":
+return"application/vnd.oasis.opendocument.spreadsheet";
+
+case"odp":
+return"application/vnd.oasis.opendocument.presentation";
+
+case"odt":
+return"application/vnd.oasis.opendocument.text";
+
+case"epub":
+return"application/epub+zip";
+
 case"md":
-case"markdown":return"text/markdown";
-case"csv":return"text/csv";
-case"rtf":return"application/rtf";
+case"markdown":
+return"text/markdown";
+
+case"csv":
+return"text/csv";
+
+case"rtf":
+return"application/rtf";
+
 case"html":
-case"htm":return"text/html";
+case"htm":
+return"text/html";
+
 case"txt":
-case"log":return"text/plain";
-case"xml":return"application/xml";
-case"json":return"application/json";
+case"log":
+return"text/plain";
+
+case"xml":
+return"application/xml";
+
+case"json":
+return"application/json";
+
 case"yaml":
-case"yml":return"text/yaml";
-case"png":return"image/png";
+case"yml":
+return"text/yaml";
+
+case"png":
+return"image/png";
+
 case"jpg":
-case"jpeg":return"image/jpeg";
-case"gif":return"image/gif";
-case"webp":return"image/webp";
-case"svg":return"image/svg+xml";
-default:return"application/octet-stream";
+case"jpeg":
+return"image/jpeg";
+
+case"gif":
+return"image/gif";
+
+case"webp":
+return"image/webp";
+
+case"svg":
+return"image/svg+xml";
+
+default:
+return"application/octet-stream";
 }
 }
 
-function virtual(source){
-return /^(chxd|local|session|indexdb|puter):\//i.test(String(source||""));
+function virtual(value){
+return /^(chxd|local|session|indexdb|puter):\//i.test(
+String(value||"")
+);
 }
 
-function typedArrayToArrayBuffer(value){
+function normalizeRemoteURL(value){
+let current=String(value||"").trim();
+
+for(let i=0;i<5;i++){
+
+try{
+
+const u=new URL(current);
+
+if(
+u.hostname.toLowerCase()==="www.google.com"&&
+u.pathname==="/url"
+){
+const target=u.searchParams.get("url");
+
+if(target){
+current=decodeURIComponent(target);
+continue;
+}
+}
+
+if(
+u.hostname.toLowerCase()==="google.com"&&
+u.pathname==="/url"
+){
+const target=u.searchParams.get("url");
+
+if(target){
+current=decodeURIComponent(target);
+continue;
+}
+}
+
+}catch(_){}
+
+break;
+}
+
+return current;
+}
+
+function arrayBufferFromView(value){
+
 if(value instanceof ArrayBuffer){
 return value;
 }
+
 if(ArrayBuffer.isView(value)){
 return value.buffer.slice(
 value.byteOffset,
 value.byteOffset+value.byteLength
 );
 }
+
 return null;
 }
 
 function base64ToArrayBuffer(value){
-let s=String(value||"").trim();
-s=s.replace(/^data:[^,]+,/i,"").replace(/\s+/g,"");
-const binary=atob(s);
+
+let clean=String(value||"")
+.trim()
+.replace(/^data:[^,]+,/i,"")
+.replace(/\s+/g,"");
+
+const binary=atob(clean);
 const bytes=new Uint8Array(binary.length);
+
 for(let i=0;i<binary.length;i++){
 bytes[i]=binary.charCodeAt(i);
 }
+
 return bytes.buffer;
 }
 
-async function decodeDataURL(value){
-const response=await fetch(value);
-if(!response.ok){
-throw Error("Could not decode data URL.");
-}
-return await response.arrayBuffer();
+function binaryStringToArrayBuffer(value){
+
+const s=String(value||"");
+
+const bytes=new Uint8Array(
+s.length
+);
+
+for(let i=0;i<s.length;i++){
+bytes[i]=s.charCodeAt(i)&255;
 }
 
-async function normalizeBinary(value,source){
+return bytes.buffer;
+}
+
+function binaryStringScore(value){
+
+const s=String(value||"");
+
+if(!s)return 0;
+
+let binary=0;
+const limit=Math.min(
+s.length,
+8192
+);
+
+for(let i=0;i<limit;i++){
+
+const c=s.charCodeAt(i);
+
+if(
+c===0||
+c===1||
+c===2||
+c===3||
+c===4||
+c===5||
+c===6||
+c===7||
+c===8||
+c===11||
+c===12||
+c===14||
+c===15||
+(c>=16&&c<=31)||
+c===127
+){
+binary++;
+}
+}
+
+return binary;
+}
+
+function looksBinaryString(value,source){
+
+const s=String(value||"");
+
+if(!s)return false;
+
+if(
+binaryStringScore(s)>0
+){
+return true;
+}
+
+const e=ext(source);
+
+if(
+[
+"pdf",
+"docx",
+"doc",
+"pptx",
+"ppt",
+"xlsx",
+"xls",
+"ods",
+"odt",
+"odp",
+"epub",
+"zip",
+"cbz"
+].includes(e)
+){
+return true;
+}
+
+return false;
+}
+
+async function normalizeSourceValue(value,source){
+
 if(value==null){
-throw Error("Filesystem returned no data for:\n"+source);
+throw Error(
+"Filesystem returned no data for:\n"+source
+);
 }
 
 if(value instanceof Blob){
+
 return{
 buffer:await value.arrayBuffer(),
 mime:value.type||mime(source),
@@ -261,30 +778,65 @@ path:source
 };
 }
 
-const typed=typedArrayToArrayBuffer(value);
-if(typed){
+const ab=arrayBufferFromView(value);
+
+if(ab){
+
 return{
-buffer:typed,
+buffer:ab,
 mime:mime(source),
 path:source
 };
 }
 
 if(typeof value==="string"){
+
 if(/^data:/i.test(value)){
+
 return{
-buffer:await decodeDataURL(value),
-mime:(value.match(/^data:([^;,]+)/i)||[])[1]||mime(source),
+buffer:await (
+await fetch(value)
+).arrayBuffer(),
+mime:
+(
+value.match(
+/^data:([^;,]+)/i
+)||[]
+)[1]||
+mime(source),
 path:source
 };
 }
+
 if(/^base64:/i.test(value)){
+
 return{
-buffer:base64ToArrayBuffer(value.slice(7)),
+buffer:
+base64ToArrayBuffer(
+value.slice(7)
+),
 mime:mime(source),
 path:source
 };
 }
+
+if(
+looksBinaryString(
+value,
+source
+)
+){
+
+return{
+buffer:
+binaryStringToArrayBuffer(
+value
+),
+mime:mime(source),
+path:source
+};
+}
+
 return{
 text:value,
 mime:mime(source),
@@ -293,168 +845,445 @@ path:source
 }
 
 if(typeof value==="object"){
-if(value.buffer!=null)return normalizeBinary(value.buffer,source);
-if(value.bytes!=null)return normalizeBinary(value.bytes,source);
-if(value.data!=null)return normalizeBinary(value.data,source);
-if(value.content!=null)return normalizeBinary(value.content,source);
+
+if(value.buffer!=null){
+return normalizeSourceValue(
+value.buffer,
+source
+);
+}
+
+if(value.bytes!=null){
+return normalizeSourceValue(
+value.bytes,
+source
+);
+}
+
+if(value.data!=null){
+return normalizeSourceValue(
+value.data,
+source
+);
+}
+
+if(value.content!=null){
+return normalizeSourceValue(
+value.content,
+source
+);
+}
+
+if(value.file!=null){
+return normalizeSourceValue(
+value.file,
+source
+);
+}
+
+if(value.blob!=null){
+return normalizeSourceValue(
+value.blob,
+source
+);
+}
+
 if(value.base64!=null){
+
 return{
-buffer:base64ToArrayBuffer(value.base64),
+buffer:
+base64ToArrayBuffer(
+value.base64
+),
 mime:value.mime||mime(source),
 path:source
 };
 }
-}
 
-throw Error("Unsupported filesystem data type for:\n"+source);
-}
+if(value.fileHandle){
 
-function getFS(){
-const fs=window.parent!==window?window.parent.FS:window.FS;
-if(!fs){
-throw Error("Little Hollow filesystem bridge is unavailable.");
-}
-return fs;
-}
+const f=
+await value.fileHandle.getFile();
 
-function googleUnwrap(source){
-try{
-const u=new URL(source);
-if(
-u.hostname.toLowerCase()==="www.google.com" &&
-u.pathname==="/url"
-){
-const target=u.searchParams.get("url");
-if(target){
-return target;
-}
-}
-}catch(_){}
-return source;
-}
-
-function normalizeRemoteSource(source){
-source=String(source||"").trim();
-let previous="";
-let current=source;
-for(let i=0;i<3&&current!==previous;i++){
-previous=current;
-current=googleUnwrap(current);
-}
-return current;
-}
-
-async function readSource(source){
-source=String(source||"").trim();
-if(!source){
-throw Error("No document source specified.");
-}
-
-if(virtual(source)){
-const fs=getFS();
-let normalized=source;
-if(typeof fs.normalize==="function"){
-try{
-normalized=await fs.normalize(source);
-}catch(_){}
-}
-
-if(typeof fs.read!=="function"){
-throw Error("Little Hollow FS.read() is unavailable.");
-}
-
-const result=await fs.read(normalized);
-
-if(result&&typeof result==="object"&&"ok"in result&&!result.ok){
-throw Error(result.error||"Could not read document.");
-}
-
-const content=
-result&&typeof result==="object"&&"content"in result
-?result.content
-:result;
-
-return await normalizeBinary(content,normalized);
-}
-
-source=normalizeRemoteSource(source);
-
-if(
-/^https?:\/\//i.test(source) ||
-/^blob:/i.test(source) ||
-/^data:/i.test(source)
-){
-const response=await fetch(source,{
-redirect:"follow"
-});
-if(!response.ok){
-throw Error("HTTP "+response.status+" while loading document.");
-}
-const buffer=await response.arrayBuffer();
 return{
-buffer,
-mime:response.headers.get("content-type")||mime(source),
+buffer:
+await f.arrayBuffer(),
+mime:
+f.type||
+mime(source),
 path:source
 };
 }
 
-throw Error("Unsupported document source:\n"+source);
+if(value.handle){
+
+if(
+typeof value.handle.getFile==="function"
+){
+
+const f=
+await value.handle.getFile();
+
+return{
+buffer:
+await f.arrayBuffer(),
+mime:
+f.type||
+mime(source),
+path:source
+};
+}
+}
+
+}
+
+throw Error(
+"Unsupported filesystem data type."
+);
+}
+
+async function readDeviceDirect(source){
+
+const fs=
+window.parent!==window
+?window.parent.FS
+:window.FS;
+
+if(
+!fs||
+typeof fs.getDeviceMounts!=="function"
+){
+return null;
+}
+
+let p=source;
+
+try{
+if(typeof fs.normalize==="function"){
+p=await fs.normalize(p);
+}
+}catch(_){}
+
+const prefix="chxd:/device/";
+
+if(
+!p.toLowerCase().startsWith(
+prefix
+)
+){
+return null;
+}
+
+const relative=p.slice(
+prefix.length
+);
+
+const parts=relative
+.split("/")
+.filter(Boolean);
+
+if(parts.length<2){
+throw Error(
+"Invalid device path:\n"+p
+);
+}
+
+const mountName=parts.shift();
+
+const mounts=
+await fs.getDeviceMounts();
+
+if(!Array.isArray(mounts)){
+return null;
+}
+
+const mount=
+mounts.find(
+x=>
+x&&
+String(x.name).toLowerCase()===
+String(mountName).toLowerCase()
+);
+
+if(!mount){
+throw Error(
+"Device mount not found: "+mountName
+);
+}
+
+let current=
+mount.handle||
+mount.directoryHandle||
+mount.rootHandle;
+
+if(!current){
+return null;
+}
+
+if(
+typeof current.queryPermission==="function"
+){
+
+let permission=
+await current.queryPermission({
+mode:"read"
+});
+
+if(
+permission!=="granted"&&
+typeof current.requestPermission==="function"
+){
+
+permission=
+await current.requestPermission({
+mode:"read"
+});
+}
+
+if(permission!=="granted"){
+throw Error(
+"File permission denied for "+mountName
+);
+}
+}
+
+for(
+let i=0;
+i<parts.length-1;
+i++
+){
+
+if(
+typeof current.getDirectoryHandle!=="function"
+){
+return null;
+}
+
+current=
+await current.getDirectoryHandle(
+parts[i]
+);
+}
+
+if(
+typeof current.getFileHandle!=="function"
+){
+return null;
+}
+
+const fileHandle=
+await current.getFileHandle(
+parts[parts.length-1]
+);
+
+const file=
+await fileHandle.getFile();
+
+return{
+buffer:
+await file.arrayBuffer(),
+mime:
+file.type||
+mime(p),
+path:p
+};
+}
+
+async function readSource(source){
+
+source=String(source||"").trim();
+
+if(!source){
+throw Error(
+"No document source specified."
+);
+}
+
+if(
+/^chxd:\/device\//i.test(source)
+){
+
+const direct=
+await readDeviceDirect(source);
+
+if(direct){
+return direct;
+}
+}
+
+if(virtual(source)){
+
+const fs=
+window.parent!==window
+?window.parent.FS
+:window.FS;
+
+if(
+!fs||
+typeof fs.read!=="function"
+){
+throw Error(
+"Little Hollow filesystem bridge is unavailable."
+);
+}
+
+let p=source;
+
+try{
+if(typeof fs.normalize==="function"){
+p=await fs.normalize(p);
+}
+}catch(_){}
+
+const result=
+await fs.read(p);
+
+if(
+result&&
+typeof result==="object"&&
+"ok"in result&&
+!result.ok
+){
+throw Error(
+result.error||
+"Could not read document."
+);
+}
+
+const content=
+result&&
+typeof result==="object"&&
+"content"in result
+?result.content
+:result;
+
+return normalizeSourceValue(
+content,
+p
+);
+}
+
+const remote=
+normalizeRemoteURL(source);
+
+if(
+/^https?:\/\//i.test(remote)||
+/^blob:/i.test(remote)||
+/^data:/i.test(remote)
+){
+
+const response=
+await fetch(
+remote,
+{
+redirect:"follow"
+}
+);
+
+if(!response.ok){
+throw Error(
+"HTTP "+
+response.status+
+" while loading document."
+);
+}
+
+const buffer=
+await response.arrayBuffer();
+
+return{
+buffer,
+mime:
+response.headers.get(
+"content-type"
+)||
+mime(remote),
+path:remote
+};
+}
+
+throw Error(
+"Unsupported document source:\n"+
+source
+);
 }
 
 function textFromBuffer(buffer){
+
 try{
-return new TextDecoder("utf-8",{fatal:false}).decode(buffer);
+
+return new TextDecoder(
+"utf-8",
+{
+fatal:false
+}
+).decode(buffer);
+
 }catch(_){
+
 return"";
 }
 }
 
 function detectSignature(buffer){
+
 if(!buffer)return"";
-const b=new Uint8Array(buffer);
+
+const b=
+new Uint8Array(buffer);
 
 if(
-b.length>=4 &&
-b[0]===0x25 &&
-b[1]===0x50 &&
-b[2]===0x44 &&
+b.length>=4&&
+b[0]===0x25&&
+b[1]===0x50&&
+b[2]===0x44&&
 b[3]===0x46
 ){
 return"pdf";
 }
 
 if(
-b.length>=4 &&
-b[0]===0x50 &&
-b[1]===0x4b &&
-b[2]===0x03 &&
+b.length>=4&&
+b[0]===0x50&&
+b[1]===0x4b&&
+b[2]===0x03&&
 b[3]===0x04
 ){
 return"zip";
 }
 
 if(
-b.length>=8 &&
-b[0]===0x89 &&
-b[1]===0x50 &&
-b[2]===0x4e &&
+b.length>=8&&
+b[0]===0x89&&
+b[1]===0x50&&
+b[2]===0x4e&&
 b[3]===0x47
 ){
 return"png";
 }
 
 if(
-b.length>=3 &&
-b[0]===0xff &&
-b[1]===0xd8 &&
+b.length>=3&&
+b[0]===0xff&&
+b[1]===0xd8&&
 b[2]===0xff
 ){
 return"jpg";
 }
 
-if(b.length>=6){
-const s=String.fromCharCode(...b.slice(0,6));
-if(s==="GIF87a"||s==="GIF89a"){
+if(
+b.length>=6
+){
+
+const s=
+String.fromCharCode(
+...b.slice(0,6)
+);
+
+if(
+s==="GIF87a"||
+s==="GIF89a"
+){
 return"gif";
 }
 }
@@ -463,26 +1292,49 @@ return"";
 }
 
 async function loadScript(src){
-return new Promise((resolve,reject)=>{
-const existing=document.querySelector(
+
+return new Promise(
+(resolve,reject)=>{
+
+const existing=
+document.querySelector(
 `script[data-dv-src="${src}"]`
 );
 
 if(existing){
-if(existing.dataset.ready==="1"){
+
+if(
+existing.dataset.ready==="1"
+){
 resolve();
 return;
 }
-existing.addEventListener("load",resolve,{once:true});
+
 existing.addEventListener(
-"error",
-()=>reject(Error("Could not load "+src)),
+"load",
+resolve,
 {once:true}
 );
+
+existing.addEventListener(
+"error",
+()=>reject(
+Error(
+"Could not load "+
+src
+)
+),
+{once:true}
+);
+
 return;
 }
 
-const s=document.createElement("script");
+const s=
+document.createElement(
+"script"
+);
+
 s.src=src;
 s.dataset.dvSrc=src;
 
@@ -492,168 +1344,384 @@ resolve();
 };
 
 s.onerror=()=>{
-reject(Error("Could not load "+src));
+reject(
+Error(
+"Could not load "+
+src
+)
+);
 };
 
 document.head.appendChild(s);
-});
+
+}
+);
 }
 
 async function lib(name){
+
 if(name==="pdf"){
-if(pdfjs)return pdfjs;
-pdfjs=await import(LIB.pdf);
-pdfjs.GlobalWorkerOptions.workerSrc=LIB.pdfWorker;
+
+if(pdfjs){
+return pdfjs;
+}
+
+pdfjs=
+await import(
+LIB.pdf
+);
+
+pdfjs
+.GlobalWorkerOptions
+.workerSrc=
+LIB.pdfWorker;
+
 return pdfjs;
 }
 
 if(name==="mammoth"){
-if(mammoth)return mammoth;
-if(window.mammoth){
-mammoth=window.mammoth;
+
+if(mammoth){
 return mammoth;
 }
-await loadScript(LIB.mammoth);
-mammoth=window.mammoth||window.Mammoth;
-if(!mammoth){
-throw Error("Mammoth.js was not exposed.");
+
+if(window.mammoth){
+mammoth=
+window.mammoth;
+return mammoth;
 }
+
+await loadScript(
+LIB.mammoth
+);
+
+mammoth=
+window.mammoth||
+window.Mammoth;
+
+if(!mammoth){
+throw Error(
+"Mammoth.js failed to initialize."
+);
+}
+
 return mammoth;
 }
 
 if(name==="marked"){
-if(marked)return marked;
-marked=await import(LIB.marked);
+
+if(marked){
+return marked;
+}
+
+marked=
+await import(
+LIB.marked
+);
+
 return marked;
 }
 
 if(name==="xlsx"){
-if(XLSX)return XLSX;
-XLSX=await import(LIB.xlsx);
+
+if(XLSX){
+return XLSX;
+}
+
+XLSX=
+await import(
+LIB.xlsx
+);
+
 return XLSX;
 }
 
 if(name==="jszip"){
-if(JSZip)return JSZip;
-const m=await import(LIB.jszip);
-JSZip=m.default||m;
+
+if(JSZip){
 return JSZip;
 }
 
-throw Error("Unknown library: "+name);
+const module=
+await import(
+LIB.jszip
+);
+
+JSZip=
+module.default||
+module;
+
+return JSZip;
+}
+
+throw Error(
+"Unknown library: "+name
+);
 }
 
 function updateTools(){
-const paged=kind==="pdf"&&!nativePDF||kind==="pptx";
-$("prev").disabled=!paged;
-$("next").disabled=!paged;
-pageBox.hidden=!paged;
-goBtn.hidden=!paged;
-pageInfo.textContent=paged?`${page} / ${total}`:"";
-zoomInfo.textContent=Math.round(zoom*100)+"%";
+
+const paged=
+(
+kind==="pdf"&&
+!nativePDF
+)||
+kind==="pptx";
+
+$("prev").disabled=
+!paged;
+
+$("next").disabled=
+!paged;
+
+pageBox.hidden=
+!paged;
+
+goBtn.hidden=
+!paged;
+
+pageInfo.textContent=
+paged
+?`${page} / ${total}`
+:"";
+
+zoomInfo.textContent=
+Math.round(
+zoom*100
+)+"%";
 }
 
 async function openPDF(buffer,source){
+
 try{
-const p=await lib("pdf");
-const task=p.getDocument({
+
+const p=
+await lib("pdf");
+
+const task=
+p.getDocument({
 data:new Uint8Array(buffer)
 });
-loaded=await task.promise;
+
+loaded=
+await task.promise;
+
 kind="pdf";
 nativePDF=false;
 total=loaded.numPages;
 page=1;
 textContent="";
+
 await renderPDF();
-setStatus("PDF loaded.");
-}catch(error){
-if(/^https?:\/\//i.test(source)){
-openNativePDF(source);
+
+setStatus(
+"PDF loaded."
+);
+
+}catch(err){
+
+if(
+/^https?:\/\//i.test(
+source
+)
+){
+
+openNativePDF(
+source
+);
+
 return;
 }
-throw error;
+
+throw err;
 }
 }
 
 function openNativePDF(source){
+
 clearViewer();
-const frame=document.createElement("iframe");
-frame.className="pdf-native";
-frame.src=source;
-frame.title="PDF";
-viewer.appendChild(frame);
+
+const frame=
+document.createElement(
+"iframe"
+);
+
+frame.className=
+"pdf-native";
+
+frame.src=
+source;
+
+frame.title=
+"PDF";
+
+viewer.appendChild(
+frame
+);
+
+loaded=null;
 kind="pdf";
 nativePDF=true;
-loaded=null;
 total=0;
 page=1;
-setStatus("PDF opened with the browser PDF viewer.");
+
+setStatus(
+"PDF opened with browser PDF viewer."
+);
+
 updateTools();
 }
 
 async function renderPDF(){
+
 if(!loaded)return;
 
 clearViewer();
 
-const pdfPage=await loaded.getPage(page);
-const base=pdfPage.getViewport({scale:1});
-const available=Math.max(280,stage.clientWidth-44);
-const scale=(available/base.width)*zoom;
-const viewport=pdfPage.getViewport({scale});
+const pdfPage=
+await loaded.getPage(
+page
+);
 
-const wrap=document.createElement("div");
+const base=
+pdfPage.getViewport({
+scale:1
+});
+
+const available=
+Math.max(
+280,
+stage.clientWidth-44
+);
+
+const scale=
+(
+available/base.width
+)*
+zoom;
+
+const viewport=
+pdfPage.getViewport({
+scale
+});
+
+const wrap=
+document.createElement(
+"div"
+);
+
 wrap.className="pdf";
 
-const label=document.createElement("div");
-label.className="page-label";
-label.textContent=`PAGE ${page}`;
+const label=
+document.createElement(
+"div"
+);
 
-const canvas=document.createElement("canvas");
-const dpr=window.devicePixelRatio||1;
+label.className=
+"page-label";
 
-canvas.width=Math.floor(viewport.width*dpr);
-canvas.height=Math.floor(viewport.height*dpr);
-canvas.style.width=viewport.width+"px";
-canvas.style.height=viewport.height+"px";
+label.textContent=
+`PAGE ${page}`;
 
-wrap.append(label,canvas);
-viewer.appendChild(wrap);
+const canvas=
+document.createElement(
+"canvas"
+);
+
+const dpr=
+window.devicePixelRatio||1;
+
+canvas.width=
+Math.floor(
+viewport.width*dpr
+);
+
+canvas.height=
+Math.floor(
+viewport.height*dpr
+);
+
+canvas.style.width=
+viewport.width+"px";
+
+canvas.style.height=
+viewport.height+"px";
+
+wrap.append(
+label,
+canvas
+);
+
+viewer.appendChild(
+wrap
+);
 
 await pdfPage.render({
-canvasContext:canvas.getContext("2d"),
+canvasContext:
+canvas.getContext("2d"),
 viewport,
-transform:dpr!==1?[dpr,0,0,dpr,0,0]:null
+transform:
+dpr!==1
+?[dpr,0,0,dpr,0,0]
+:null
 }).promise;
 
 try{
-const tc=await pdfPage.getTextContent();
-const pageText=tc.items.map(x=>x.str||"").join(" ");
-textContent=[textContent,pageText].filter(Boolean).join("\n");
+
+const tc=
+await pdfPage.getTextContent();
+
+const pageText=
+tc.items
+.map(
+x=>x.str||""
+)
+.join(" ");
+
+textContent=
+[
+textContent,
+pageText
+]
+.filter(Boolean)
+.join("\n");
+
 }catch(_){}
 
 updateTools();
 }
 
 async function openDOCX(buffer){
-const m=await lib("mammoth");
-const result=await m.convertToHtml({
+
+const m=
+await lib("mammoth");
+
+const result=
+await m.convertToHtml({
 arrayBuffer:buffer
 });
 
 clearViewer();
 
-const d=document.createElement("div");
+const d=
+document.createElement(
+"div"
+);
+
 d.className="doc";
-d.innerHTML=result.value||"<p>No document content.</p>";
+
+d.innerHTML=
+result.value||
+"<p>No document content.</p>";
 
 viewer.appendChild(d);
 
 loaded=d;
 kind="docx";
 nativePDF=false;
-textContent=d.innerText||"";
+
+textContent=
+d.innerText||"";
 
 setStatus(
 result.messages?.length
@@ -665,97 +1733,212 @@ updateTools();
 }
 
 async function openXLSX(buffer){
-const x=await lib("xlsx");
-const wb=x.read(buffer,{type:"array"});
 
-loaded=wb;
+const x=
+await lib("xlsx");
+
+const workbook=
+x.read(
+buffer,
+{
+type:"array"
+}
+);
+
+loaded=workbook;
 kind="xlsx";
 nativePDF=false;
-currentSheets=wb.SheetNames||[];
+
+currentSheets=
+workbook.SheetNames||[];
+
 currentSheetIndex=0;
 
 renderCurrentSheet();
-setStatus("Spreadsheet loaded: "+(currentSheets[0]||""));
+
+setStatus(
+"Spreadsheet loaded."
+);
+
 updateTools();
 }
 
 function renderCurrentSheet(){
-if(!loaded||!currentSheets.length)return;
 
-const sheetName=currentSheets[currentSheetIndex];
-const ws=loaded.Sheets[sheetName];
+if(
+!loaded||
+!currentSheets.length
+){
+return;
+}
 
-const rows=XLSX.utils.sheet_to_json(ws,{
+const sheetName=
+currentSheets[
+currentSheetIndex
+];
+
+const ws=
+loaded.Sheets[
+sheetName
+];
+
+const rows=
+XLSX.utils.sheet_to_json(
+ws,
+{
 header:1,
 raw:false,
 defval:""
-});
+}
+);
 
 clearViewer();
 
-const wrap=document.createElement("div");
-wrap.className="sheet-wrap";
+const wrap=
+document.createElement(
+"div"
+);
 
-const title=document.createElement("div");
+wrap.className=
+"sheet-wrap";
+
+const title=
+document.createElement(
+"div"
+);
+
 title.style.color="#000";
 title.style.background="#ddd";
-title.style.borderBottom="1px solid #888";
 title.style.padding="8px";
-title.textContent=sheetName;
+title.style.borderBottom="1px solid #888";
+title.textContent=
+sheetName;
 
-const table=document.createElement("table");
-table.className="sheet";
+const table=
+document.createElement(
+"table"
+);
 
-for(let r=0;r<rows.length;r++){
-const tr=document.createElement("tr");
+table.className=
+"sheet";
 
-for(const value of rows[r]){
-const cell=document.createElement(r===0?"th":"td");
-cell.textContent=value==null?"":String(value);
-tr.appendChild(cell);
+for(
+let r=0;
+r<rows.length;
+r++
+){
+
+const tr=
+document.createElement(
+"tr"
+);
+
+for(
+const value of
+rows[r]
+){
+
+const cell=
+document.createElement(
+r===0
+?"th"
+:"td"
+);
+
+cell.textContent=
+value==null
+?""
+:String(value);
+
+tr.appendChild(
+cell
+);
 }
 
-table.appendChild(tr);
+table.appendChild(
+tr
+);
 }
 
-wrap.append(title,table);
-viewer.appendChild(wrap);
+wrap.append(
+title,
+table
+);
 
-pageInfo.textContent=currentSheets.join(" | ");
-textContent=table.innerText||"";
+viewer.appendChild(
+wrap
+);
+
+textContent=
+table.innerText||"";
+
+pageInfo.textContent=
+currentSheets.join(
+" | "
+);
 }
 
 function parseCSV(input){
+
 const rows=[];
 let row=[];
 let cell="";
 let quoted=false;
 
-for(let i=0;i<input.length;i++){
+for(
+let i=0;
+i<input.length;
+i++
+){
+
 const c=input[i];
 
 if(c==='"'){
-if(quoted&&input[i+1]==='"'){
+
+if(
+quoted&&
+input[i+1]==='"'
+){
+
 cell+='"';
 i++;
+
 }else{
+
 quoted=!quoted;
 }
+
 continue;
 }
 
-if(c===","&&!quoted){
+if(
+c===","&&
+!quoted
+){
+
 row.push(cell);
 cell="";
 continue;
 }
 
-if((c==="\n"||c==="\r")&&!quoted){
-if(c==="\r"&&input[i+1]==="\n")i++;
+if(
+(c==="\n"||c==="\r")&&
+!quoted
+){
+
+if(
+c==="\r"&&
+input[i+1]==="\n"
+){
+i++;
+}
+
 row.push(cell);
 rows.push(row);
+
 row=[];
 cell="";
+
 continue;
 }
 
@@ -764,7 +1947,10 @@ cell+=c;
 
 row.push(cell);
 
-if(row.length>1||row[0]!==""){
+if(
+row.length>1||
+row[0]!==""
+){
 rows.push(row);
 }
 
@@ -772,237 +1958,530 @@ return rows;
 }
 
 function renderTable(rows){
+
 clearViewer();
 
-const wrap=document.createElement("div");
-wrap.className="sheet-wrap";
+const wrap=
+document.createElement(
+"div"
+);
 
-const table=document.createElement("table");
-table.className="sheet";
+wrap.className=
+"sheet-wrap";
 
-for(let i=0;i<rows.length;i++){
-const tr=document.createElement("tr");
+const table=
+document.createElement(
+"table"
+);
 
-for(const value of rows[i]){
-const cell=document.createElement(i===0?"th":"td");
-cell.textContent=value==null?"":String(value);
-tr.appendChild(cell);
+table.className=
+"sheet";
+
+for(
+let i=0;
+i<rows.length;
+i++
+){
+
+const tr=
+document.createElement(
+"tr"
+);
+
+for(
+const value of
+rows[i]
+){
+
+const cell=
+document.createElement(
+i===0
+?"th"
+:"td"
+);
+
+cell.textContent=
+value==null
+?""
+:String(value);
+
+tr.appendChild(
+cell
+);
 }
 
-table.appendChild(tr);
+table.appendChild(
+tr
+);
 }
 
-wrap.appendChild(table);
-viewer.appendChild(wrap);
-textContent=table.innerText||"";
+wrap.appendChild(
+table
+);
+
+viewer.appendChild(
+wrap
+);
+
+textContent=
+table.innerText||"";
 }
 
 async function openMarkdown(value){
-const m=await lib("marked");
+
+const m=
+await lib("marked");
 
 clearViewer();
 
-const d=document.createElement("div");
-d.className="md";
-d.innerHTML=m.parse(String(value||""));
+const d=
+document.createElement(
+"div"
+);
 
-viewer.appendChild(d);
+d.className="md";
+
+d.innerHTML=
+m.parse(
+String(value||"")
+);
+
+viewer.appendChild(
+d
+);
 
 kind="markdown";
 nativePDF=false;
-textContent=d.innerText||"";
+
+textContent=
+d.innerText||"";
 
 updateTools();
 }
 
 function openHTML(value){
+
 clearViewer();
 
-const frame=document.createElement("iframe");
-frame.className="html-frame";
-frame.sandbox="";
-frame.srcdoc=String(value||"");
+const frame=
+document.createElement(
+"iframe"
+);
 
-viewer.appendChild(frame);
+frame.className=
+"html-frame";
+
+frame.sandbox="";
+
+frame.srcdoc=
+String(value||"");
+
+viewer.appendChild(
+frame
+);
 
 kind="html";
 nativePDF=false;
-textContent=String(value||"");
+
+textContent=
+String(value||"");
 
 updateTools();
 }
 
 function openText(value,type="text"){
+
 clearViewer();
 
-const d=document.createElement("div");
-d.className="text";
-d.textContent=String(value||"");
+const d=
+document.createElement(
+"div"
+);
 
-viewer.appendChild(d);
+d.className="text";
+d.textContent=
+String(value||"");
+
+viewer.appendChild(
+d
+);
 
 kind=type;
 nativePDF=false;
-textContent=String(value||"");
+
+textContent=
+String(value||"");
 
 updateTools();
 }
 
 function stripRTF(value){
+
 return String(value||"")
-.replace(/\\'[0-9a-fA-F]{2}/g,m=>String.fromCharCode(parseInt(m.slice(2),16)))
-.replace(/\\par[d]?/g,"\n")
-.replace(/\\line/g,"\n")
-.replace(/\\tab/g,"\t")
-.replace(/\\[a-zA-Z]+-?\d* ?/g,"")
-.replace(/[{}]/g,"");
+.replace(
+/\\'[0-9a-fA-F]{2}/g,
+m=>
+String.fromCharCode(
+parseInt(
+m.slice(2),
+16
+)
+)
+)
+.replace(
+/\\par[d]?/g,
+"\n"
+)
+.replace(
+/\\line/g,
+"\n"
+)
+.replace(
+/\\tab/g,
+"\t"
+)
+.replace(
+/\\[a-zA-Z]+-?\d* ?/g,
+""
+)
+.replace(
+/[{}]/g,
+""
+);
 }
 
 async function openEPUB(buffer){
-const Z=await lib("jszip");
-const zip=await Z.loadAsync(new Uint8Array(buffer));
 
-const container=zip.file("META-INF/container.xml");
+const Z=
+await lib("jszip");
+
+const zip=
+await Z.loadAsync(
+new Uint8Array(buffer)
+);
+
+const container=
+zip.file(
+"META-INF/container.xml"
+);
+
 if(!container){
-throw Error("Invalid EPUB.");
+throw Error(
+"Invalid EPUB."
+);
 }
 
-const cx=await container.async("string");
-const root=cx.match(
+const xml=
+await container.async(
+"string"
+);
+
+const root=
+xml.match(
 /<rootfile[^>]+full-path=["']([^"']+)["']/i
 );
 
 if(!root){
-throw Error("EPUB package path not found.");
+throw Error(
+"EPUB package path not found."
+);
 }
 
-const opfPath=root[1];
-const opfFile=zip.file(opfPath);
+const opfPath=
+root[1];
+
+const opfFile=
+zip.file(opfPath);
 
 if(!opfFile){
-throw Error("EPUB package file not found.");
+throw Error(
+"EPUB package file not found."
+);
 }
 
-const opfXml=await opfFile.async("string");
-const parser=new DOMParser();
-const opf=parser.parseFromString(opfXml,"application/xml");
+const opf=
+new DOMParser().parseFromString(
+await opfFile.async("string"),
+"application/xml"
+);
 
-const base=opfPath.includes("/")
-?opfPath.slice(0,opfPath.lastIndexOf("/")+1)
+const base=
+opfPath.includes("/")
+?opfPath.slice(
+0,
+opfPath.lastIndexOf("/")+
+1
+)
 :"";
 
-const manifest=new Map();
+const manifest=
+new Map();
 
-for(const item of opf.querySelectorAll("item")){
-const id=item.getAttribute("id");
-const href=item.getAttribute("href");
+for(
+const item of
+opf.querySelectorAll(
+"item"
+)
+){
+
+const id=
+item.getAttribute("id");
+
+const href=
+item.getAttribute("href");
+
 if(id&&href){
-manifest.set(id,href);
+manifest.set(
+id,
+href
+);
 }
 }
 
 const spine=[];
 
-for(const itemref of opf.querySelectorAll("itemref")){
-const idref=itemref.getAttribute("idref");
-if(idref&&manifest.has(idref)){
-spine.push(manifest.get(idref));
+for(
+const item of
+opf.querySelectorAll(
+"itemref"
+)
+){
+
+const idref=
+item.getAttribute(
+"idref"
+);
+
+if(
+idref&&
+manifest.has(idref)
+){
+spine.push(
+manifest.get(idref)
+);
 }
 }
 
-let html="";
+let output="";
 
-for(const href of spine){
-const full=base+decodeURIComponent(href).replace(/^\.\//,"");
-const file=zip.file(full);
-if(!file)continue;
+for(
+const href of
+spine
+){
 
-let part=await file.async("string");
-part=part.replace(/<script[\s\S]*?<\/script>/gi,"");
-html+=part+"<hr>";
+const full=
+base+
+decodeURIComponent(
+href
+)
+.replace(
+/^\.\//,
+""
+);
+
+const file=
+zip.file(
+full
+);
+
+if(!file){
+continue;
+}
+
+let html=
+await file.async(
+"string"
+);
+
+html=
+html.replace(
+/<script[\s\S]*?<\/script>/gi,
+""
+);
+
+output+=
+html+
+"<hr>";
 }
 
 clearViewer();
 
-const d=document.createElement("div");
+const d=
+document.createElement(
+"div"
+);
+
 d.className="doc";
-d.innerHTML=html||"<p>No readable EPUB content.</p>";
+
+d.innerHTML=
+output||
+"<p>No readable EPUB content.</p>";
 
 viewer.appendChild(d);
 
 kind="epub";
 nativePDF=false;
-textContent=d.innerText||"";
+
+textContent=
+d.innerText||"";
 
 updateTools();
 }
 
 async function openODT(buffer){
-const Z=await lib("jszip");
-const zip=await Z.loadAsync(new Uint8Array(buffer));
-const file=zip.file("content.xml");
+
+const Z=
+await lib("jszip");
+
+const zip=
+await Z.loadAsync(
+new Uint8Array(buffer)
+);
+
+const file=
+zip.file(
+"content.xml"
+);
 
 if(!file){
-throw Error("Invalid ODT.");
+throw Error(
+"Invalid ODT."
+);
 }
 
-const xml=await file.async("string");
-const doc=new DOMParser().parseFromString(xml,"application/xml");
+const xml=
+await file.async("string");
 
-const html=[];
+const doc=
+new DOMParser().parseFromString(
+xml,
+"application/xml"
+);
 
-for(const node of doc.querySelectorAll("text\\:h,text\\:p,h,p")){
-const value=escapeHTML(node.textContent||"");
-const tag=node.localName==="h"||node.nodeName.endsWith(":h")?"h2":"p";
-html.push(`<${tag}>${value}</${tag}>`);
+const parts=[];
+
+for(
+const node of
+doc.querySelectorAll(
+"text\\:h,text\\:p,h,p"
+)
+){
+
+const value=
+escapeHTML(
+node.textContent||""
+);
+
+const tag=
+(
+node.localName==="h"||
+node.nodeName.endsWith(":h")
+)
+?"h2"
+:"p";
+
+parts.push(
+`<${tag}>${value}</${tag}>`
+);
 }
 
 clearViewer();
 
-const d=document.createElement("div");
+const d=
+document.createElement(
+"div"
+);
+
 d.className="doc";
-d.innerHTML=html.join("")||"<p>No readable ODT content.</p>";
+
+d.innerHTML=
+parts.join("")||
+"<p>No readable ODT content.</p>";
 
 viewer.appendChild(d);
 
 kind="odt";
 nativePDF=false;
-textContent=d.innerText||"";
+
+textContent=
+d.innerText||"";
 
 updateTools();
 }
 
 async function openODS(buffer){
-const Z=await lib("jszip");
-const zip=await Z.loadAsync(new Uint8Array(buffer));
-const file=zip.file("content.xml");
+
+const Z=
+await lib("jszip");
+
+const zip=
+await Z.loadAsync(
+new Uint8Array(buffer)
+);
+
+const file=
+zip.file(
+"content.xml"
+);
 
 if(!file){
-throw Error("Invalid ODS.");
+throw Error(
+"Invalid ODS."
+);
 }
 
-const xml=await file.async("string");
-const doc=new DOMParser().parseFromString(xml,"application/xml");
+const xml=
+await file.async("string");
+
+const doc=
+new DOMParser().parseFromString(
+xml,
+"application/xml"
+);
+
 const rows=[];
 
-for(const rowNode of doc.querySelectorAll("table\\:table-row,table-row")){
+for(
+const rowNode of
+doc.querySelectorAll(
+"table\\:table-row,table-row"
+)
+){
+
 const row=[];
 
-for(const cell of rowNode.children){
+for(
+const cell of
+rowNode.children
+){
+
 if(
-cell.localName!=="table-cell" &&
-!cell.nodeName.endsWith(":table-cell")
+cell.localName!=="table-cell"&&
+!cell.nodeName.endsWith(
+":table-cell"
+)
 ){
 continue;
 }
 
-const repeat=Number(
-cell.getAttribute("table:number-columns-repeated")||1
+const repeat=
+Number(
+cell.getAttribute(
+"table:number-columns-repeated"
+)||1
 );
 
-const value=(cell.textContent||"").trim();
+const value=
+(cell.textContent||"").trim();
 
-for(let i=0;i<Math.max(1,repeat);i++){
+for(
+let i=0;
+i<Math.max(
+1,
+repeat
+);
+i++
+){
 row.push(value);
 }
 }
@@ -1013,126 +2492,253 @@ rows.push(row);
 }
 
 renderTable(rows);
+
 kind="ods";
 nativePDF=false;
+
 updateTools();
 }
 
 async function openODP(buffer){
-const Z=await lib("jszip");
-const zip=await Z.loadAsync(new Uint8Array(buffer));
-const file=zip.file("content.xml");
+
+const Z=
+await lib("jszip");
+
+const zip=
+await Z.loadAsync(
+new Uint8Array(buffer)
+);
+
+const file=
+zip.file(
+"content.xml"
+);
 
 if(!file){
-throw Error("Invalid ODP.");
+throw Error(
+"Invalid ODP."
+);
 }
 
-const xml=await file.async("string");
-const doc=new DOMParser().parseFromString(xml,"application/xml");
-const pages=[...doc.querySelectorAll("draw\\:page,draw-page")];
+const xml=
+await file.async("string");
+
+const doc=
+new DOMParser().parseFromString(
+xml,
+"application/xml"
+);
+
+const pages=[
+...doc.querySelectorAll(
+"draw\\:page,draw-page"
+)
+];
 
 clearViewer();
 
-const container=document.createElement("div");
+const container=
+document.createElement(
+"div"
+);
+
 container.className="pptx";
 
-for(const pageNode of pages){
-const slide=document.createElement("div");
-slide.className="ppt-slide";
+for(
+const pageNode of
+pages
+){
 
-const p=document.createElement("div");
-p.className="ppt-text";
-p.style.left="6%";
-p.style.right="6%";
-p.style.top="6%";
-p.style.fontSize="18px";
-p.textContent=(pageNode.textContent||"").trim();
+const slide=
+document.createElement(
+"div"
+);
 
-slide.appendChild(p);
-container.appendChild(slide);
+slide.className=
+"ppt-slide";
+
+const text=
+document.createElement(
+"div"
+);
+
+text.className=
+"ppt-text";
+
+text.style.left="6%";
+text.style.right="6%";
+text.style.top="6%";
+text.style.fontSize="18px";
+
+text.textContent=
+(
+pageNode.textContent||""
+).trim();
+
+slide.appendChild(
+text
+);
+
+container.appendChild(
+slide
+);
 }
 
-viewer.appendChild(container);
+viewer.appendChild(
+container
+);
 
 kind="odp";
 nativePDF=false;
-textContent=viewer.innerText||"";
+
+textContent=
+viewer.innerText||"";
 
 updateTools();
 }
 
 async function openPPTX(buffer){
-const Z=await lib("jszip");
-const zip=await Z.loadAsync(new Uint8Array(buffer));
-const parser=new DOMParser();
 
-const presentationFile=zip.file("ppt/presentation.xml");
+const Z=
+await lib("jszip");
+
+const zip=
+await Z.loadAsync(
+new Uint8Array(buffer)
+);
+
+const parser=
+new DOMParser();
+
+const presentationFile=
+zip.file(
+"ppt/presentation.xml"
+);
 
 if(!presentationFile){
-throw Error("Invalid PPTX.");
+throw Error(
+"Invalid PPTX."
+);
 }
 
-const presentation=parser.parseFromString(
-await presentationFile.async("string"),
+const presentation=
+parser.parseFromString(
+await presentationFile.async(
+"string"
+),
 "application/xml"
 );
 
-const relFile=zip.file("ppt/_rels/presentation.xml.rels");
+const relFile=
+zip.file(
+"ppt/_rels/presentation.xml.rels"
+);
 
 if(!relFile){
-throw Error("PPTX relationships not found.");
+throw Error(
+"PPTX relationships not found."
+);
 }
 
-const relDoc=parser.parseFromString(
+const relDoc=
+parser.parseFromString(
 await relFile.async("string"),
 "application/xml"
 );
 
-const relations=new Map();
+const relationships=
+new Map();
 
-for(const rel of relDoc.querySelectorAll("Relationship")){
-relations.set(
+for(
+const rel of
+relDoc.querySelectorAll(
+"Relationship"
+)
+){
+
+relationships.set(
 rel.getAttribute("Id"),
 rel.getAttribute("Target")
 );
 }
 
-const ids=[...presentation.querySelectorAll("sldIdLst sldId,p\\:sldIdLst p\\:sldId")];
+const ids=[
+...presentation.querySelectorAll(
+"p\\:sldId,p\\:sldIdLst sldId"
+)
+];
+
 const slides=[];
 
-for(const id of ids){
-const rid=id.getAttribute("r:id")||id.getAttribute("id");
-const target=relations.get(rid);
+for(
+const id of
+ids
+){
 
-if(!target)continue;
+const rid=
+id.getAttribute("r:id")||
+id.getAttribute("id");
 
-let slidePath=String(target).replace(/^\.\//,"");
+let target=
+relationships.get(rid);
 
-if(!slidePath.startsWith("ppt/")){
-slidePath="ppt/"+slidePath;
+if(!target){
+continue;
 }
 
-const file=zip.file(slidePath);
+target=
+String(target)
+.replace(
+/^\.\//,
+""
+);
+
+const slidePath=
+target.startsWith(
+"ppt/"
+)
+?target
+:"ppt/"+target;
+
+const file=
+zip.file(slidePath);
 
 if(file){
+
 slides.push(
-await file.async("string")
+await file.async(
+"string"
+)
 );
 }
 }
 
 if(!slides.length){
-for(const name of Object.keys(zip.files)){
-if(/^ppt\/slides\/slide\d+\.xml$/i.test(name)){
+
+for(
+const name of
+Object.keys(zip.files)
+){
+
+if(
+/^ppt\/slides\/slide\d+\.xml$/i.test(
+name
+)
+){
+
 slides.push(
-await zip.file(name).async("string")
+await zip
+.file(name)
+.async("string")
 );
 }
 }
 }
 
 if(!slides.length){
-throw Error("No readable PPTX slides found.");
+throw Error(
+"No readable PPTX slides found."
+);
 }
 
 loaded={
@@ -1142,29 +2748,56 @@ zip
 
 kind="pptx";
 nativePDF=false;
+
 total=slides.length;
 page=1;
 
-textContent=slides.join("\n");
+textContent=
+slides.join("\n");
 
 await renderPPTX();
 
-setStatus("PPTX loaded.");
+setStatus(
+"PPTX loaded."
+);
 }
 
 async function renderPPTX(){
-if(!loaded||!loaded.slides)return;
+
+if(
+!loaded||
+!loaded.slides
+){
+return;
+}
 
 clearViewer();
 
-const xml=loaded.slides[page-1];
-const doc=new DOMParser().parseFromString(xml,"application/xml");
+const xml=
+loaded.slides[
+page-1
+];
 
-const wrap=document.createElement("div");
+const doc=
+new DOMParser().parseFromString(
+xml,
+"application/xml"
+);
+
+const wrap=
+document.createElement(
+"div"
+);
+
 wrap.className="pptx";
 
-const slide=document.createElement("div");
-slide.className="ppt-slide";
+const slide=
+document.createElement(
+"div"
+);
+
+slide.className=
+"ppt-slide";
 
 const shapes=[
 ...doc.querySelectorAll(
@@ -1174,39 +2807,79 @@ const shapes=[
 
 let index=0;
 
-for(const shape of shapes){
-const tx=shape.querySelector("p\\:txBody,txBody");
+for(
+const shape of
+shapes
+){
 
-if(!tx)continue;
+const tx=
+shape.querySelector(
+"p\\:txBody,txBody"
+);
+
+if(!tx){
+continue;
+}
 
 const value=[
-...tx.querySelectorAll("a\\:t,t")
+...tx.querySelectorAll(
+"a\\:t,t"
+)
 ]
-.map(x=>x.textContent||"")
+.map(
+x=>x.textContent||""
+)
 .join("");
 
-if(!value)continue;
+if(!value){
+continue;
+}
 
-const p=document.createElement("div");
-p.className="ppt-text";
+const p=
+document.createElement(
+"div"
+);
+
+p.className=
+"ppt-text";
+
 p.style.left="6%";
 p.style.right="6%";
-p.style.top=(7+index*11)+"%";
-p.style.fontSize=Math.max(14,30-index*2)+"px";
-p.textContent=value;
+p.style.top=
+(7+index*11)+"%";
+
+p.style.fontSize=
+Math.max(
+14,
+30-index*2
+)+"px";
+
+p.textContent=
+value;
 
 slide.appendChild(p);
+
 index++;
 }
 
 if(!index){
-const p=document.createElement("div");
-p.className="ppt-text";
+
+const p=
+document.createElement(
+"div"
+);
+
+p.className=
+"ppt-text";
+
 p.style.left="6%";
 p.style.right="6%";
 p.style.top="6%";
 p.style.fontSize="18px";
-p.textContent=doc.documentElement.textContent||"";
+
+p.textContent=
+doc.documentElement.textContent||"";
+
 slide.appendChild(p);
 }
 
@@ -1216,18 +2889,41 @@ viewer.appendChild(wrap);
 updateTools();
 }
 
-async function openImage(buffer,source){
-const blob=new Blob([buffer],{type:mime(source)});
-const url=URL.createObjectURL(blob);
+async function openImage(
+buffer,
+source
+){
+
+const blob=
+new Blob(
+[buffer],
+{
+type:mime(source)
+}
+);
+
+const url=
+URL.createObjectURL(
+blob
+);
 
 urls.push(url);
 
 clearViewer();
 
-const wrap=document.createElement("div");
-wrap.className="image-view";
+const wrap=
+document.createElement(
+"div"
+);
 
-const img=document.createElement("img");
+wrap.className=
+"image-view";
+
+const img=
+document.createElement(
+"img"
+);
+
 img.src=url;
 img.alt=source;
 
@@ -1250,18 +2946,22 @@ return String(value||"")
 }
 
 function legacyOffice(extension){
+
 clearViewer();
 
-const d=document.createElement("div");
+const d=
+document.createElement(
+"div"
+);
+
 d.className="compat";
 
 d.innerHTML=
 "<strong>LEGACY OFFICE FORMAT: ."+
 escapeHTML(extension)+
 "</strong><br><br>"+
-"This is the old binary Microsoft Office format. "+
-"Modern browser-side JavaScript parsers do not reliably render "+
-"all legacy .doc/.ppt files.";
+"Old binary Office files such as .doc and .ppt "+
+"do not have a reliable universal browser renderer.";
 
 viewer.appendChild(d);
 
@@ -1271,20 +2971,35 @@ nativePDF=false;
 updateTools();
 }
 
-function binaryFallback(source,buffer){
+function binaryFallback(
+source,
+buffer
+){
+
 clearViewer();
 
-const d=document.createElement("div");
+const d=
+document.createElement(
+"div"
+);
+
 d.className="compat";
 
 d.innerHTML=
-"<strong>UNSUPPORTED DOCUMENT FORMAT</strong><br><br>"+
-escapeHTML(ext(source).toUpperCase()||"UNKNOWN")+
+"<strong>UNSUPPORTED DOCUMENT FORMAT</strong>"+
 "<br><br>"+
-"File was successfully read, but this viewer has no browser renderer for this format."+
+escapeHTML(
+ext(source).toUpperCase()||
+"UNKNOWN"
+)+
+"<br><br>"+
+"File was read successfully, but this viewer does not have "+
+"a renderer for this particular format."+
 "<br><br>"+
 "Size: "+
-(buffer?.byteLength||0).toLocaleString()+
+(
+buffer?.byteLength||0
+).toLocaleString()+
 " bytes";
 
 viewer.appendChild(d);
@@ -1295,46 +3010,50 @@ nativePDF=false;
 updateTools();
 }
 
-function cleanup(){
-clearUrls();
-loaded=null;
-kind="";
-path="";
-zoom=1;
-page=1;
-total=0;
-textContent="";
-searchHits=[];
-searchIndex=-1;
-currentSheets=[];
-currentSheetIndex=0;
-nativePDF=false;
-zoomInfo.textContent="100%";
-pageInfo.textContent="";
-}
-
 async function openDocument(source){
+
 cleanup();
 
-path=String(source||"");
-srcBox.value=path;
+source=
+String(source||"").trim();
 
-empty("Loading document...");
-setStatus("Reading document...");
+srcBox.value=source;
+
+empty(
+"Loading document..."
+);
+
+setStatus(
+"Reading document..."
+);
 
 try{
-const resolved=normalizeRemoteSource(path);
-const data=await readSource(resolved);
 
-path=data.path||resolved;
+const data=
+await readSource(
+source
+);
 
-let extension=ext(path);
+path=
+data.path||
+normalizeRemoteURL(
+source
+);
+
+let extension=
+ext(path);
 
 if(!extension){
-extension=detectSignature(data.buffer);
+
+extension=
+detectSignature(
+data.buffer
+);
 }
 
-const buffer=data.buffer;
+const buffer=
+data.buffer;
+
 const content=
 data.text!=null
 ?String(data.text)
@@ -1345,65 +3064,157 @@ data.text!=null
 switch(extension){
 
 case"pdf":
-if(!buffer)throw Error("PDF requires binary data.");
-await openPDF(buffer,path);
+
+if(!buffer){
+throw Error(
+"PDF binary data was not returned."
+);
+}
+
+await openPDF(
+buffer,
+path
+);
+
 break;
 
 case"docx":
-if(!buffer)throw Error("DOCX requires binary data.");
-await openDOCX(buffer);
+
+if(!buffer){
+throw Error(
+"DOCX binary data was not returned."
+);
+}
+
+await openDOCX(
+buffer
+);
+
 break;
 
 case"pptx":
-if(!buffer)throw Error("PPTX requires binary data.");
-await openPPTX(buffer);
+
+if(!buffer){
+throw Error(
+"PPTX binary data was not returned."
+);
+}
+
+await openPPTX(
+buffer
+);
+
 break;
 
 case"xlsx":
 case"xls":
-if(!buffer)throw Error("Spreadsheet requires binary data.");
-await openXLSX(buffer);
+
+if(!buffer){
+throw Error(
+"Spreadsheet binary data was not returned."
+);
+}
+
+await openXLSX(
+buffer
+);
+
 break;
 
 case"ods":
-if(!buffer)throw Error("ODS requires binary data.");
-await openODS(buffer);
+
+if(!buffer){
+throw Error(
+"ODS binary data was not returned."
+);
+}
+
+await openODS(
+buffer
+);
+
 break;
 
 case"odp":
-if(!buffer)throw Error("ODP requires binary data.");
-await openODP(buffer);
+
+if(!buffer){
+throw Error(
+"ODP binary data was not returned."
+);
+}
+
+await openODP(
+buffer
+);
+
 break;
 
 case"odt":
-if(!buffer)throw Error("ODT requires binary data.");
-await openODT(buffer);
+
+if(!buffer){
+throw Error(
+"ODT binary data was not returned."
+);
+}
+
+await openODT(
+buffer
+);
+
 break;
 
 case"epub":
-if(!buffer)throw Error("EPUB requires binary data.");
-await openEPUB(buffer);
+
+if(!buffer){
+throw Error(
+"EPUB binary data was not returned."
+);
+}
+
+await openEPUB(
+buffer
+);
+
 break;
 
 case"md":
 case"markdown":
-await openMarkdown(content);
+
+await openMarkdown(
+content
+);
+
 break;
 
 case"csv":
-renderTable(parseCSV(content));
+
+renderTable(
+parseCSV(content)
+);
+
 kind="csv";
 nativePDF=false;
+
 updateTools();
+
 break;
 
 case"html":
 case"htm":
-openHTML(content);
+
+openHTML(
+content
+);
+
 break;
 
 case"rtf":
-openText(stripRTF(content),"rtf");
+
+openText(
+stripRTF(content),
+"rtf"
+);
+
 break;
 
 case"txt":
@@ -1415,7 +3226,12 @@ case"yml":
 case"ini":
 case"cfg":
 case"conf":
-openText(content,"text");
+
+openText(
+content,
+"text"
+);
+
 break;
 
 case"png":
@@ -1423,85 +3239,242 @@ case"jpg":
 case"jpeg":
 case"gif":
 case"webp":
-await openImage(buffer,path);
+
+if(!buffer){
+throw Error(
+"Image binary data was not returned."
+);
+}
+
+await openImage(
+buffer,
+path
+);
+
 break;
 
 case"svg":
-openHTML(content);
+
+openHTML(
+content
+);
+
 break;
 
 case"doc":
 case"ppt":
-legacyOffice(extension);
+
+legacyOffice(
+extension
+);
+
 break;
 
 default:
+
 if(data.text!=null){
-openText(content,"text");
+
+openText(
+content,
+"text"
+);
+
 }else if(buffer){
-binaryFallback(path,buffer);
+
+binaryFallback(
+path,
+buffer
+);
+
 }else{
-throw Error("Could not determine document type.");
+
+throw Error(
+"No readable document data was returned."
+);
 }
+
+break;
 }
 
 clearStatus();
 updateTools();
 
 }catch(e){
-const message=errorText(e);
-showError("Failed to load document.\n\n"+message);
-setStatus("ERROR: "+message);
+
+const message=
+errorText(e);
+
+showError(
+"Failed to load document.\n\n"+
+message
+);
+
+setStatus(
+"ERROR: "+
+message
+);
 }
+}
+
+function cleanup(){
+
+clearUrls();
+
+loaded=null;
+kind="";
+path="";
+zoom=1;
+page=1;
+total=0;
+textContent="";
+nativePDF=false;
+
+currentSheets=[];
+currentSheetIndex=0;
+
+clearSearchMarks();
+
+searchQuery="";
+searchMatches=[];
+searchIndex=-1;
+
+zoomInfo.textContent=
+"100%";
+
+pageInfo.textContent=
+"";
+}
+
+function applyZoom(){
+
+zoom=
+Math.max(
+.25,
+Math.min(
+4,
+zoom
+)
+);
+
+zoomInfo.textContent=
+Math.round(
+zoom*100
+)+"%";
+
+if(
+kind==="pdf"&&
+!nativePDF
+){
+
+renderPDF();
+
+return;
+}
+
+viewer.style.zoom=
+String(zoom);
 }
 
 function setZoom(value){
-let z=Number(value);
+
+let z=
+Number(value);
 
 if(
-typeof value==="string" &&
+typeof value==="string"&&
 value.endsWith("%")
 ){
-z=Number(value.slice(0,-1))/100;
+
+z=
+Number(
+value.slice(0,-1)
+)/
+100;
 }
 
-if(!Number.isFinite(z))z=1;
-
-zoom=Math.max(.25,Math.min(3,z));
-
-zoomInfo.textContent=Math.round(zoom*100)+"%";
-
-if(kind==="pdf"&&!nativePDF){
-renderPDF();
-}else{
-viewer.style.zoom=String(zoom);
+if(!Number.isFinite(z)){
+z=1;
 }
+
+zoom=z;
+
+applyZoom();
 }
 
 function next(){
-if(page>=total)return;
+
+if(
+kind==="pdf"&&
+nativePDF
+){
+return;
+}
+
+if(
+page>=total
+){
+return;
+}
+
 page++;
 
-if(kind==="pdf"&&!nativePDF){
+if(kind==="pdf"){
 renderPDF();
 }else if(kind==="pptx"){
 renderPPTX();
+}
+
+if(searchQuery){
+setTimeout(
+()=>searchText(
+searchQuery,
+true
+),
+150
+);
 }
 }
 
 function prev(){
-if(page<=1)return;
+
+if(
+kind==="pdf"&&
+nativePDF
+){
+return;
+}
+
+if(
+page<=1
+){
+return;
+}
+
 page--;
 
-if(kind==="pdf"&&!nativePDF){
+if(kind==="pdf"){
 renderPDF();
 }else if(kind==="pptx"){
 renderPPTX();
 }
+
+if(searchQuery){
+setTimeout(
+()=>searchText(
+searchQuery,
+true
+),
+150
+);
+}
 }
 
 function gotoPage(value){
-const n=Math.floor(Number(value));
+
+const n=
+Math.floor(
+Number(value)
+);
 
 if(
 !Number.isFinite(n)||
@@ -1513,161 +3486,744 @@ return false;
 
 page=n;
 
-if(kind==="pdf"&&!nativePDF){
+if(kind==="pdf"){
 renderPDF();
 }else if(kind==="pptx"){
 renderPPTX();
 }
 
+if(searchQuery){
+setTimeout(
+()=>searchText(
+searchQuery,
+true
+),
+150
+);
+}
+
 return true;
 }
 
-function findText(value){
-const query=String(value||"").trim().toLowerCase();
+function clearSearchMarks(){
 
-if(!query){
-searchHits=[];
-searchIndex=-1;
-setStatus("Search cleared.");
-return;
-}
-
-const allText=(
-textContent||
-viewer.innerText||
-""
-).toLowerCase();
-
-searchHits=[];
-let position=0;
-
-while(
-(position=allText.indexOf(query,position))>=0
+for(
+const mark of
+document.querySelectorAll(
+".search-mark"
+)
 ){
-searchHits.push(position);
-position+=Math.max(1,query.length);
+
+const parent=
+mark.parentNode;
+
+if(!parent){
+continue;
 }
 
-if(!searchHits.length){
-setStatus("Not found: "+query);
-return;
-}
-
-searchIndex=
-(searchIndex+1)%searchHits.length;
-
-const walker=document.createTreeWalker(
-viewer,
-NodeFilter.SHOW_TEXT
+parent.replaceChild(
+document.createTextNode(
+mark.textContent
+),
+mark
 );
 
-while(walker.nextNode()){
-const node=walker.currentNode;
-const value=(node.textContent||"").toLowerCase();
+parent.normalize();
+}
+}
 
-if(value.includes(query)){
-node.parentElement?.scrollIntoView({
+function findTextNodes(root){
+
+const walker=
+document.createTreeWalker(
+root,
+NodeFilter.SHOW_TEXT,
+{
+acceptNode(node){
+
+if(
+!node.nodeValue||
+!node.nodeValue.trim()
+){
+return NodeFilter.FILTER_REJECT;
+}
+
+if(
+node.parentElement?.closest(
+"script,style,input,textarea,button"
+)
+){
+return NodeFilter.FILTER_REJECT;
+}
+
+return NodeFilter.FILTER_ACCEPT;
+}
+}
+);
+
+const nodes=[];
+
+while(
+walker.nextNode()
+){
+nodes.push(
+walker.currentNode
+);
+}
+
+return nodes;
+}
+
+function highlightQuery(root,query){
+
+if(!query){
+return [];
+}
+
+const regex=
+new RegExp(
+query.replace(
+/[.*+?^${}()|[\]\\]/g,
+"\\$&"
+),
+"gi"
+);
+
+const matches=[];
+
+const nodes=
+findTextNodes(root);
+
+for(
+const node of
+nodes
+){
+
+const text=
+node.nodeValue;
+
+let last=0;
+let match;
+
+regex.lastIndex=0;
+
+const fragment=
+document.createDocumentFragment();
+
+let changed=false;
+
+while(
+(match=regex.exec(text))
+){
+
+changed=true;
+
+if(
+match.index>last
+){
+
+fragment.appendChild(
+document.createTextNode(
+text.slice(
+last,
+match.index
+)
+)
+);
+}
+
+const mark=
+document.createElement(
+"mark"
+);
+
+mark.className=
+"search-mark";
+
+mark.textContent=
+match[0];
+
+fragment.appendChild(
+mark
+);
+
+matches.push(
+mark
+);
+
+last=
+match.index+
+match[0].length;
+}
+
+if(!changed){
+continue;
+}
+
+if(last<text.length){
+
+fragment.appendChild(
+document.createTextNode(
+text.slice(last)
+)
+);
+}
+
+node.parentNode.replaceChild(
+fragment,
+node
+);
+}
+
+return matches;
+}
+
+function searchText(
+query,
+keepIndex=false
+){
+
+query=
+String(
+query||""
+).trim();
+
+if(!query){
+
+clearSearchMarks();
+
+searchQuery="";
+searchMatches=[];
+searchIndex=-1;
+
+setStatus(
+"Search cleared."
+);
+
+return;
+}
+
+searchQuery=
+query;
+
+clearSearchMarks();
+
+searchMatches=
+highlightQuery(
+viewer,
+query
+);
+
+if(!searchMatches.length){
+
+setStatus(
+"Not found: "+
+query
+);
+
+return;
+}
+
+if(!keepIndex){
+
+searchIndex=0;
+
+}else{
+
+searchIndex=
+Math.min(
+Math.max(
+searchIndex,
+0
+),
+searchMatches.length-1
+);
+}
+
+for(
+const mark of
+searchMatches
+){
+mark.classList.remove(
+"current"
+);
+}
+
+const current=
+searchMatches[
+searchIndex
+];
+
+current.classList.add(
+"current"
+);
+
+current.scrollIntoView({
 behavior:"smooth",
-block:"center"
+block:"center",
+inline:"nearest"
 });
-break;
-}
-}
 
 setStatus(
 "Found "+
 (searchIndex+1)+
 "/"+
-searchHits.length+
+searchMatches.length+
 ": "+
 query
 );
 }
 
+function nextSearch(){
+
+if(!searchQuery){
+return;
+}
+
+if(!searchMatches.length){
+searchText(
+searchQuery
+);
+return;
+}
+
+searchMatches.forEach(
+x=>
+x.classList.remove(
+"current"
+)
+);
+
+searchIndex=
+(
+searchIndex+1
+)%
+searchMatches.length;
+
+const current=
+searchMatches[
+searchIndex
+];
+
+current.classList.add(
+"current"
+);
+
+current.scrollIntoView({
+behavior:"smooth",
+block:"center",
+inline:"nearest"
+});
+
+setStatus(
+"Found "+
+(searchIndex+1)+
+"/"+
+searchMatches.length+
+": "+
+searchQuery
+);
+}
+
+stage.addEventListener(
+"wheel",
+e=>{
+
+if(
+e.ctrlKey||
+e.metaKey
+){
+
+e.preventDefault();
+
+const amount=
+e.deltaY>0
+?-0.1
+:0.1;
+
+zoom+=
+amount;
+
+applyZoom();
+
+return;
+}
+
+},
+{
+passive:false
+}
+);
+
+function distance(a,b){
+
+const dx=
+a.clientX-b.clientX;
+
+const dy=
+a.clientY-b.clientY;
+
+return Math.hypot(
+dx,
+dy
+);
+}
+
+stage.addEventListener(
+"pointerdown",
+e=>{
+
+if(
+e.pointerType==="touch"
+){
+
+const touches=
+stage
+.setPointerCapture
+?null
+:null;
+}
+
+if(e.pointerType==="mouse"){
+
+pointerState={
+x:e.clientX,
+y:e.clientY,
+scrollLeft:stage.scrollLeft,
+scrollTop:stage.scrollTop,
+moved:false
+};
+
+stage.setPointerCapture?.(
+e.pointerId
+);
+}
+
+if(e.pointerType==="touch"){
+
+if(
+!stage._pointers
+){
+stage._pointers=
+new Map();
+}
+
+stage._pointers.set(
+e.pointerId,
+{
+x:e.clientX,
+y:e.clientY
+}
+);
+
+if(
+stage._pointers.size===2
+){
+
+const values=
+[
+...stage._pointers.values()
+];
+
+pinchState={
+startDistance:
+distance(
+values[0],
+values[1]
+),
+startZoom:
+zoom
+};
+
+}
+}
+
+},
+{
+passive:false
+}
+);
+
+stage.addEventListener(
+"pointermove",
+e=>{
+
+if(
+e.pointerType==="mouse"&&
+pointerState
+){
+
+const dx=
+e.clientX-
+pointerState.x;
+
+const dy=
+e.clientY-
+pointerState.y;
+
+if(
+Math.abs(dx)>3||
+Math.abs(dy)>3
+){
+pointerState.moved=true;
+}
+
+stage.scrollLeft=
+pointerState.scrollLeft-
+dx;
+
+stage.scrollTop=
+pointerState.scrollTop-
+dy;
+}
+
+if(e.pointerType==="touch"){
+
+if(
+!stage._pointers
+){
+return;
+}
+
+if(
+stage._pointers.has(
+e.pointerId
+)
+){
+
+stage._pointers.set(
+e.pointerId,
+{
+x:e.clientX,
+y:e.clientY
+}
+);
+}
+
+if(
+stage._pointers.size===2&&
+pinchState
+){
+
+const values=
+[
+...stage._pointers.values()
+];
+
+const currentDistance=
+distance(
+values[0],
+values[1]
+);
+
+if(
+pinchState.startDistance>0
+){
+
+const ratio=
+currentDistance/
+pinchState.startDistance;
+
+zoom=
+pinchState.startZoom*
+ratio;
+
+applyZoom();
+
+}
+
+}
+}
+
+},
+{
+passive:false
+}
+);
+
+function clearPointer(
+e
+){
+
+if(
+e.pointerType==="mouse"
+){
+
+pointerState=null;
+
+try{
+stage.releasePointerCapture?.(
+e.pointerId
+);
+}catch(_){}
+
+}
+
+if(
+e.pointerType==="touch"&&
+stage._pointers
+){
+
+stage._pointers.delete(
+e.pointerId
+);
+
+if(
+stage._pointers.size<2
+){
+
+pinchState=null;
+}
+}
+}
+
+stage.addEventListener(
+"pointerup",
+clearPointer
+);
+
+stage.addEventListener(
+"pointercancel",
+clearPointer
+);
+
+stage.addEventListener(
+"pointerleave",
+e=>{
+if(
+e.pointerType==="mouse"
+){
+pointerState=null;
+}
+}
+);
+
 const DocumentAPI={
 action:async actions=>{
+
 if(
 !actions||
 typeof actions!=="object"||
 Array.isArray(actions)
 ){
+
 return{
 ok:false,
-error:"Document action must be an object."
+error:
+"Document action must be an object."
 };
 }
 
 const results={};
 
 try{
-for(const key of Object.keys(actions)){
-const value=actions[key];
 
-switch(key.toLowerCase()){
+for(
+const key of
+Object.keys(actions)
+){
+
+const value=
+actions[key];
+
+switch(
+key.toLowerCase()
+){
 
 case"open":
-await openDocument(value);
+
+await openDocument(
+value
+);
+
 results.open={
 ok:true,
 path:String(value)
 };
+
 break;
 
 case"close":
+
 cleanup();
 empty();
-results.close={ok:true};
+
+results.close={
+ok:true
+};
+
 break;
 
 case"next":
 case"nextpage":
+
 next();
+
 results[key]={
 ok:true,
 page,
 total
 };
+
 break;
 
 case"previous":
 case"prev":
 case"previouspage":
+
 prev();
+
 results[key]={
 ok:true,
 page,
 total
 };
+
 break;
 
 case"page":
 case"goto":
+
 results[key]={
-ok:gotoPage(value),
+ok:
+gotoPage(value),
 page,
 total
 };
+
 break;
 
 case"zoom":
+
 setZoom(value);
+
 results.zoom={
 ok:true,
 value:zoom
 };
+
 break;
 
 case"find":
 case"search":
-findText(value);
+
+searchText(
+value
+);
+
 results[key]={
-ok:searchHits.length>0,
-matches:searchHits.length,
-query:String(value||"")
+ok:
+searchMatches.length>0,
+matches:
+searchMatches.length,
+query:
+String(value||"")
 };
+
 break;
 
 case"state":
+
 results.state={
 ok:true,
 path,
@@ -1679,12 +4235,16 @@ mime:mime(path),
 loaded:!!kind,
 nativePDF
 };
+
 break;
 
 default:
+
 results[key]={
 ok:false,
-error:"Unknown document action: "+key
+error:
+"Unknown document action: "+
+key
 };
 }
 }
@@ -1706,66 +4266,110 @@ results
 };
 
 try{
-if(window.parent&&window.parent!==window){
-window.parent.DocumentAPI=DocumentAPI;
+
+if(
+window.parent&&
+window.parent!==window
+){
+
+window.parent.DocumentAPI=
+DocumentAPI;
+
 }
+
 }catch(_){}
 
-window.DocumentAPI=DocumentAPI;
+window.DocumentAPI=
+DocumentAPI;
 
 $("load").onclick=()=>{
-const source=srcBox.value.trim();
-if(source)openDocument(source);
+
+const source=
+srcBox.value.trim();
+
+if(source){
+openDocument(
+source
+);
+}
 };
 
 srcBox.onkeydown=e=>{
+
 if(e.key==="Enter"){
-const source=srcBox.value.trim();
-if(source)openDocument(source);
+
+const source=
+srcBox.value.trim();
+
+if(source){
+openDocument(
+source
+);
+}
 }
 };
 
-$("prev").onclick=prev;
-$("next").onclick=next;
+$("prev").onclick=
+prev;
 
-$("goto").onclick=()=>{
-gotoPage(pageBox.value);
+$("next").onclick=
+next;
+
+$("goto").onclick=
+()=>{
+gotoPage(
+pageBox.value
+);
 };
 
 pageBox.onkeydown=e=>{
+
 if(e.key==="Enter"){
-gotoPage(pageBox.value);
+gotoPage(
+pageBox.value
+);
 }
 };
 
 $("zoomOut").onclick=()=>{
-setZoom(zoom-.1);
+zoom-=0.1;
+applyZoom();
 };
 
 $("zoomIn").onclick=()=>{
-setZoom(zoom+.1);
+zoom+=0.1;
+applyZoom();
 };
 
 $("fit").onclick=()=>{
-setZoom(1);
+zoom=1;
+applyZoom();
 };
 
 $("findBtn").onclick=()=>{
-findText($("find").value);
+searchText(
+$("find").value
+);
 };
 
 $("find").onkeydown=e=>{
+
 if(e.key==="Enter"){
-findText($("find").value);
+nextSearch();
 }
 };
 
 window.addEventListener(
 "resize",
 ()=>{
-if(kind==="pdf"&&!nativePDF){
+
+if(
+kind==="pdf"&&
+!nativePDF
+){
 renderPDF();
 }
+
 }
 );
 
@@ -1777,8 +4381,13 @@ cleanup
 updateTools();
 
 if(initial){
-srcBox.value=initial;
-openDocument(initial);
+
+srcBox.value=
+initial;
+
+openDocument(
+initial
+);
 }
 
 </script>
