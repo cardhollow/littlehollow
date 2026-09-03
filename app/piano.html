@@ -1,0 +1,3450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Little Hollow Piano</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:monospace;
+    -webkit-tap-highlight-color:transparent;
+}
+
+html,
+body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#000;
+    color:#00ffff;
+}
+
+body{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    padding:10px;
+}
+
+button,
+select,
+input{
+    font:inherit;
+    color:#00ffff;
+    background:#000;
+    border:1px solid #00ffff;
+}
+
+button{
+    height:34px;
+    padding:0 10px;
+    cursor:pointer;
+}
+
+button:active,
+button.active{
+    background:#00ffff;
+    color:#000;
+}
+
+select{
+    height:34px;
+    padding:0 7px;
+}
+
+.top{
+    flex:0 0 auto;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:6px;
+}
+
+.volume{
+    height:34px;
+    display:flex;
+    align-items:center;
+    gap:5px;
+    border:1px solid #004d4d;
+    padding:0 7px;
+    font-size:10px;
+}
+
+.volume input{
+    width:100px;
+    border:0;
+    accent-color:#00ffff;
+}
+
+.info{
+    flex:0 0 auto;
+    min-height:30px;
+    border:1px solid #005555;
+    padding:6px 8px;
+    font-size:10px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.pianoArea{
+    flex:1 1 auto;
+    min-height:0;
+    overflow:auto;
+    border:1px solid #00ffff;
+    background:#000;
+    padding:12px;
+    touch-action:none;
+}
+
+.piano{
+    position:relative;
+    height:100%;
+    min-height:260px;
+    width:max-content;
+    min-width:100%;
+    display:flex;
+    align-items:stretch;
+    justify-content:center;
+    user-select:none;
+}
+
+.whiteKeys{
+    display:flex;
+    height:100%;
+    min-height:240px;
+    gap:2px;
+}
+
+.whiteKey{
+    position:relative;
+    flex:0 0 64px;
+    height:100%;
+    min-height:240px;
+    background:#001818;
+    border:1px solid #008888;
+    border-top:3px solid #00ffff;
+    border-radius:0 0 7px 7px;
+    color:#00ffff;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+    padding-bottom:13px;
+    cursor:pointer;
+    box-shadow:
+        inset 0 -5px 0 #000,
+        inset 0 0 0 1px #002e2e;
+    z-index:1;
+}
+
+.whiteKey::after{
+    content:"";
+    position:absolute;
+    left:7px;
+    right:7px;
+    bottom:7px;
+    height:2px;
+    background:#003f3f;
+}
+
+.whiteKey.pressed{
+    background:#00ffff;
+    color:#000;
+    border-color:#00ffff;
+    transform:translateY(3px);
+    box-shadow:
+        0 0 13px #00ffff,
+        inset 0 -4px 0 #008888;
+}
+
+.whiteKey .note{
+    font-size:11px;
+    font-weight:bold;
+}
+
+.whiteKey .computer{
+    margin-top:5px;
+    font-size:10px;
+    opacity:.7;
+}
+
+.whiteKey.pressed .computer{
+    opacity:1;
+}
+
+.blackKeys{
+    position:absolute;
+    left:0;
+    top:0;
+    height:72%;
+    min-height:165px;
+    pointer-events:none;
+    z-index:5;
+}
+
+.blackKey{
+    position:absolute;
+    top:0;
+    width:39px;
+    height:100%;
+    min-height:165px;
+    background:#001010;
+    border:1px solid #00ffff;
+    border-top:4px solid #00ffff;
+    border-radius:0 0 6px 6px;
+    color:#00ffff;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+    padding-bottom:10px;
+    pointer-events:auto;
+    cursor:pointer;
+    box-shadow:
+        0 5px 0 #000,
+        inset 0 -5px 0 #003a3a,
+        inset 0 0 0 1px #003131;
+}
+
+.blackKey.pressed{
+    background:#00ffff;
+    color:#000;
+    transform:translateY(3px);
+    box-shadow:
+        0 0 13px #00ffff,
+        0 2px 0 #008888;
+}
+
+.blackKey .note{
+    font-size:9px;
+    font-weight:bold;
+}
+
+.blackKey .computer{
+    margin-top:4px;
+    font-size:9px;
+    opacity:.7;
+}
+
+.blackKey.pressed .computer{
+    opacity:1;
+}
+
+.bottom{
+    flex:0 0 auto;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:6px;
+}
+
+.recordState{
+    height:34px;
+    display:flex;
+    align-items:center;
+    padding:0 8px;
+    border:1px solid #004d4d;
+    font-size:10px;
+    min-width:170px;
+}
+
+.recordState.recording{
+    background:#001919;
+    border-color:#00ffff;
+}
+
+@media(max-width:700px){
+    .whiteKey{
+        flex-basis:54px;
+    }
+
+    .blackKey{
+        width:33px;
+    }
+}
+
+@media(max-width:450px){
+    .whiteKey{
+        flex-basis:46px;
+    }
+
+    .blackKey{
+        width:28px;
+    }
+
+    .whiteKey .note{
+        font-size:9px;
+    }
+
+    .whiteKey .computer{
+        font-size:8px;
+    }
+
+    .blackKey .note,
+    .blackKey .computer{
+        font-size:8px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="top">
+    <button id="octDown">OCT −</button>
+    <button id="octUp">OCT +</button>
+    <button id="sustain">SUSTAIN</button>
+
+    <select id="instrument">
+        <option value="piano">PIANO</option>
+        <option value="synth">SYNTH</option>
+        <option value="organ">ORGAN</option>
+        <option value="strings">STRINGS</option>
+        <option value="brass">BRASS</option>
+        <option value="choir">CHOIR</option>
+        <option value="pluck">PLUCK</option>
+        <option value="bell">BELL</option>
+        <option value="harpsichord">HARPSICHORD</option>
+        <option value="guitar">GUITAR</option>
+        <option value="bass">BASS</option>
+        <option value="pad">PAD</option>
+        <option value="lead">LEAD</option>
+    </select>
+
+    <select id="wave">
+        <option value="triangle">TRIANGLE</option>
+        <option value="sine">SINE</option>
+        <option value="sawtooth">SAW</option>
+        <option value="square">SQUARE</option>
+    </select>
+
+    <label class="volume">
+        VOL
+        <input
+            id="volume"
+            type="range"
+            min="0"
+            max="1"
+            step=".01"
+            value=".75"
+        >
+    </label>
+</div>
+
+<div class="info" id="info">
+    A S D F G H J K L Z X C V B N M = WHITE · Q W E R T Y U I O P = BLACK · [ ] = OCTAVE · SPACE = SUSTAIN
+</div>
+
+<div class="pianoArea" id="pianoArea">
+    <div class="piano" id="piano">
+        <div class="whiteKeys" id="whiteKeys"></div>
+        <div class="blackKeys" id="blackKeys"></div>
+    </div>
+</div>
+
+<div class="bottom">
+    <select id="recordType">
+        <option value="audio">AUDIO</option>
+        <option value="pkp">PKP</option>
+    </select>
+
+    <button id="record">● RECORD</button>
+    <button id="play">▶ PLAY</button>
+    <button id="clear">CLEAR</button>
+    <button id="importPKP">IMPORT PKP</button>
+
+    <div class="recordState" id="recordState">
+        No recording
+    </div>
+</div>
+
+<script>
+(function(){
+    "use strict";
+
+    let audioContext=null;
+    let masterGain=null;
+    let recordingDestination=null;
+    let mediaRecorder=null;
+    let audioChunks=[];
+    let audioRecordingData=null;
+    let audioRecordingMime="";
+
+    let octave=4;
+    let waveform="triangle";
+    let volume=.75;
+    let sustain=false;
+    let instrument="piano";
+
+    const activeVoices=new Map();
+    const sustained=new Set();
+    const pressedPhysical=new Set();
+
+    let recording=false;
+    let recordingType="audio";
+    let recordingStart=0;
+
+    let recordingEvents=[];
+    let pkpRecordingEvents=[];
+    let pkpInitialSettings=null;
+    let pkpRecording="";
+
+    let playbackTimers=[];
+
+    const piano=document.getElementById("piano");
+    const whiteKeys=document.getElementById("whiteKeys");
+    const blackKeys=document.getElementById("blackKeys");
+    const info=document.getElementById("info");
+    const recordState=document.getElementById("recordState");
+
+    const octDown=document.getElementById("octDown");
+    const octUp=document.getElementById("octUp");
+    const sustainButton=document.getElementById("sustain");
+    const instrumentControl=document.getElementById("instrument");
+    const wave=document.getElementById("wave");
+    const volumeControl=document.getElementById("volume");
+    const recordTypeControl=document.getElementById("recordType");
+    const recordButton=document.getElementById("record");
+    const playButton=document.getElementById("play");
+    const clearButton=document.getElementById("clear");
+    const importPKPButton=document.getElementById("importPKP");
+
+    const whiteMapping=[
+        ["a",0],
+        ["s",2],
+        ["d",4],
+        ["f",5],
+        ["g",7],
+        ["h",9],
+        ["j",11],
+        ["k",12],
+        ["l",14],
+        ["z",16],
+        ["x",17],
+        ["c",19],
+        ["v",21],
+        ["b",23],
+        ["n",24],
+        ["m",26]
+    ];
+
+    const blackMapping=[
+        ["q",1],
+        ["w",3],
+        ["e",6],
+        ["r",8],
+        ["t",10],
+        ["y",13],
+        ["u",15],
+        ["i",18],
+        ["o",20],
+        ["p",22]
+    ];
+
+    const whiteByBlack=[
+        0,
+        1,
+        3,
+        4,
+        5,
+        7,
+        8,
+        10,
+        11,
+        12
+    ];
+
+    const BASE_MIDI=60;
+
+    const computerNotes=new Map();
+
+    for(const [key,semitone] of whiteMapping)
+        computerNotes.set(key,semitone);
+
+    for(const [key,semitone] of blackMapping)
+        computerNotes.set(key,semitone);
+
+    const instrumentDefinitions={
+        piano:{
+            parts:[
+                {type:"triangle",mult:1,gain:.8,detune:0},
+                {type:"sine",mult:2,gain:.18,detune:0},
+                {type:"sine",mult:3,gain:.08,detune:0}
+            ],
+            attack:.006,
+            peak:.8,
+            release:.22,
+            decay:.7
+        },
+
+        synth:{
+            parts:[
+                {type:"sawtooth",mult:1,gain:.55,detune:-4},
+                {type:"square",mult:1,gain:.22,detune:4},
+                {type:"triangle",mult:2,gain:.12,detune:0}
+            ],
+            attack:.01,
+            peak:.7,
+            release:.12,
+            decay:.45
+        },
+
+        organ:{
+            parts:[
+                {type:"sine",mult:1,gain:.65,detune:0},
+                {type:"sine",mult:2,gain:.35,detune:0},
+                {type:"sine",mult:3,gain:.19,detune:0},
+                {type:"sine",mult:4,gain:.1,detune:0}
+            ],
+            attack:.015,
+            peak:.7,
+            release:.2,
+            decay:1
+        },
+
+        strings:{
+            parts:[
+                {type:"sawtooth",mult:1,gain:.48,detune:-7},
+                {type:"sawtooth",mult:1,gain:.48,detune:7},
+                {type:"triangle",mult:2,gain:.2,detune:0}
+            ],
+            attack:.08,
+            peak:.62,
+            release:.35,
+            decay:1
+        },
+
+        brass:{
+            parts:[
+                {type:"sawtooth",mult:1,gain:.65,detune:0},
+                {type:"square",mult:1,gain:.2,detune:5},
+                {type:"sawtooth",mult:2,gain:.13,detune:0}
+            ],
+            attack:.045,
+            peak:.68,
+            release:.22,
+            decay:1
+        },
+
+        choir:{
+            parts:[
+                {type:"sine",mult:1,gain:.7,detune:-4},
+                {type:"sine",mult:1.01,gain:.45,detune:4},
+                {type:"triangle",mult:2,gain:.12,detune:0}
+            ],
+            attack:.18,
+            peak:.52,
+            release:.5,
+            decay:1
+        },
+
+        pluck:{
+            parts:[
+                {type:"triangle",mult:1,gain:.7,detune:0},
+                {type:"square",mult:2,gain:.18,detune:0},
+                {type:"sine",mult:3,gain:.08,detune:0}
+            ],
+            attack:.002,
+            peak:.78,
+            release:.12,
+            decay:.18
+        },
+
+        bell:{
+            parts:[
+                {type:"sine",mult:1,gain:.55,detune:0},
+                {type:"sine",mult:2.01,gain:.38,detune:0},
+                {type:"sine",mult:3.96,gain:.24,detune:0},
+                {type:"sine",mult:5.02,gain:.12,detune:0}
+            ],
+            attack:.001,
+            peak:.62,
+            release:1.05,
+            decay:1.8
+        },
+
+        harpsichord:{
+            parts:[
+                {type:"square",mult:1,gain:.45,detune:0},
+                {type:"triangle",mult:2,gain:.3,detune:0},
+                {type:"sine",mult:3,gain:.12,detune:0}
+            ],
+            attack:.003,
+            peak:.65,
+            release:.18,
+            decay:.55
+        },
+
+        guitar:{
+            parts:[
+                {type:"triangle",mult:1,gain:.62,detune:0},
+                {type:"square",mult:2,gain:.14,detune:0},
+                {type:"sine",mult:3,gain:.08,detune:0}
+            ],
+            attack:.006,
+            peak:.63,
+            release:.25,
+            decay:.55
+        },
+
+        bass:{
+            parts:[
+                {type:"triangle",mult:1,gain:.85,detune:0},
+                {type:"sine",mult:.5,gain:.3,detune:0},
+                {type:"sine",mult:2,gain:.1,detune:0}
+            ],
+            attack:.015,
+            peak:.72,
+            release:.25,
+            decay:.75
+        },
+
+        pad:{
+            parts:[
+                {type:"sawtooth",mult:1,gain:.3,detune:-10},
+                {type:"sawtooth",mult:1,gain:.3,detune:10},
+                {type:"triangle",mult:2,gain:.18,detune:0},
+                {type:"sine",mult:1,gain:.24,detune:0}
+            ],
+            attack:.3,
+            peak:.5,
+            release:.7,
+            decay:1
+        },
+
+        lead:{
+            parts:[
+                {type:"sawtooth",mult:1,gain:.65,detune:0},
+                {type:"square",mult:1,gain:.2,detune:4},
+                {type:"triangle",mult:2,gain:.12,detune:0}
+            ],
+            attack:.008,
+            peak:.7,
+            release:.16,
+            decay:.5
+        }
+    };
+
+    const RECORDINGS_ROOT=
+        "chxd:/local/PianoGame/Recordings";
+
+    const AUDIO_RECORDINGS_PATH=
+        RECORDINGS_ROOT+"/Audio/";
+
+    const PKP_RECORDINGS_PATH=
+        RECORDINGS_ROOT+"/PKP/";
+
+    let fileManagerPickerOpen=false;
+
+    function getHost(){
+        return window.parent &&
+            window.parent!==window
+            ?window.parent
+            :window;
+    }
+
+    function getFilesystem(){
+        const host=getHost();
+
+        if(
+            host.FS &&
+            typeof host.FS.read==="function" &&
+            typeof host.FS.write==="function"
+        ){
+            return host.FS;
+        }
+
+        return null;
+    }
+
+    function getApps(){
+        const host=getHost();
+
+        if(
+            host.Apps &&
+            typeof host.Apps.openApp==="function"
+        ){
+            return host.Apps;
+        }
+
+        return null;
+    }
+
+    function makeTimestamp(extension){
+        const d=new Date();
+
+        const pad=n=>
+            String(n).padStart(2,"0");
+
+        return (
+            d.getFullYear()+
+            "-"+
+            pad(d.getMonth()+1)+
+            "-"+
+            pad(d.getDate())+
+            "_"+
+            pad(d.getHours())+
+            "-"+
+            pad(d.getMinutes())+
+            "-"+
+            pad(d.getSeconds())+
+            "-"+
+            String(
+                d.getMilliseconds()
+            ).padStart(3,"0")+
+            extension
+        );
+    }
+
+    async function saveToCHXD(
+        path,
+        content,
+        allowBinary=false
+    ){
+        const fs=getFilesystem();
+
+        if(!fs){
+            return {
+                ok:false,
+                error:
+                    "CHXD filesystem is unavailable."
+            };
+        }
+
+        try{
+            return await fs.write(
+                path,
+                content,
+                true,
+                allowBinary
+            );
+        }catch(error){
+            return {
+                ok:false,
+                error:
+                    error &&
+                    error.message
+                        ?error.message
+                        :"Filesystem write failed."
+            };
+        }
+    }
+
+    function startAudioRecorder(){
+        if(!initAudio())
+            return false;
+
+        if(!recordingDestination){
+            recordingDestination=
+                audioContext.createMediaStreamDestination();
+
+            masterGain.connect(
+                recordingDestination
+            );
+        }
+
+        if(
+            !window.MediaRecorder
+        ){
+            return false;
+        }
+
+        const supportedTypes=[
+            "audio/webm;codecs=opus",
+            "audio/webm",
+            "audio/ogg;codecs=opus",
+            "audio/ogg"
+        ];
+
+        let selectedType="";
+
+        for(
+            const type of supportedTypes
+        ){
+            try{
+                if(
+                    MediaRecorder.isTypeSupported(
+                        type
+                    )
+                ){
+                    selectedType=type;
+                    break;
+                }
+            }catch(_){}
+        }
+
+        try{
+            mediaRecorder=
+                selectedType
+                    ?new MediaRecorder(
+                        recordingDestination.stream,
+                        {
+                            mimeType:selectedType
+                        }
+                    )
+                    :new MediaRecorder(
+                        recordingDestination.stream
+                    );
+        }catch(_){
+            mediaRecorder=null;
+            return false;
+        }
+
+        audioChunks=[];
+        audioRecordingMime=
+            mediaRecorder.mimeType||
+            selectedType||
+            "audio/webm";
+
+        mediaRecorder.ondataavailable=
+            event=>{
+                if(
+                    event.data &&
+                    event.data.size>0
+                ){
+                    audioChunks.push(
+                        event.data
+                    );
+                }
+            };
+
+        mediaRecorder.start(
+            100
+        );
+
+        return true;
+    }
+
+    function stopAudioRecorder(){
+        return new Promise(
+            resolve=>{
+                if(
+                    !mediaRecorder
+                ){
+                    resolve(
+                        audioRecordingData
+                    );
+                    return;
+                }
+
+                const recorder=
+                    mediaRecorder;
+
+                const finish=
+                    ()=>{
+                        try{
+                            const blob=
+                                new Blob(
+                                    audioChunks,
+                                    {
+                                        type:
+                                            audioRecordingMime||
+                                            recorder.mimeType||
+                                            "audio/webm"
+                                    }
+                                );
+
+                            const reader=
+                                new FileReader();
+
+                            reader.onload=
+                                ()=>{
+                                    audioRecordingData=
+                                        String(
+                                            reader.result||""
+                                        );
+
+                                    audioRecordingMime=
+                                        blob.type||
+                                        audioRecordingMime;
+
+                                    resolve(
+                                        audioRecordingData
+                                    );
+                                };
+
+                            reader.onerror=
+                                ()=>{
+                                    resolve(null);
+                                };
+
+                            reader.readAsDataURL(
+                                blob
+                            );
+                        }catch(_){
+                            resolve(null);
+                        }
+
+                        audioChunks=[];
+                        mediaRecorder=null;
+                    };
+
+                recorder.onstop=
+                    finish;
+
+                try{
+                    if(
+                        recorder.state!=="inactive"
+                    ){
+                        recorder.stop();
+                    }else{
+                        finish();
+                    }
+                }catch(_){
+                    finish();
+                }
+            }
+        );
+    }
+
+    async function savePKPRecordingToCHXD(){
+        if(!pkpRecording){
+            return {
+                ok:false,
+                error:
+                    "No PKP recording."
+            };
+        }
+
+        const filename=
+            makeTimestamp(".pkp");
+
+        const path=
+            PKP_RECORDINGS_PATH+
+            filename;
+
+        const result=
+            await saveToCHXD(
+                path,
+                pkpRecording,
+                false
+            );
+
+        if(
+            result &&
+            result.ok
+        ){
+            recordState.textContent=
+                "PKP saved · "+
+                filename;
+
+            return {
+                ok:true,
+                path,
+                filename
+            };
+        }
+
+        recordState.textContent=
+            result &&
+            result.error
+                ?result.error
+                :"Could not save PKP.";
+
+        return result;
+    }
+
+    async function saveAudioRecordingToCHXD(){
+        if(!audioRecordingData){
+            return {
+                ok:false,
+                error:
+                    "No audio recording."
+            };
+        }
+
+        const extension=
+            audioRecordingMime.includes("ogg")
+                ?".ogg"
+                :".webm";
+
+        const filename=
+            makeTimestamp(
+                extension
+            );
+
+        const path=
+            AUDIO_RECORDINGS_PATH+
+            filename;
+
+        const result=
+            await saveToCHXD(
+                path,
+                audioRecordingData,
+                false
+            );
+
+        if(
+            result &&
+            result.ok
+        ){
+            recordState.textContent=
+                "Audio saved · "+
+                filename;
+
+            return {
+                ok:true,
+                path,
+                filename,
+                mime:
+                    audioRecordingMime
+            };
+        }
+
+        recordState.textContent=
+            result &&
+            result.error
+                ?result.error
+                :"Could not save audio.";
+
+        return result;
+    }
+
+    function initAudio(){
+        if(audioContext)
+            return true;
+
+        const AC=
+            window.AudioContext||
+            window.webkitAudioContext;
+
+        if(!AC){
+            info.textContent=
+                "Web Audio is unavailable.";
+            return false;
+        }
+
+        try{
+            audioContext=new AC();
+
+            masterGain=
+                audioContext.createGain();
+
+            masterGain.gain.value=
+                volume;
+
+            masterGain.connect(
+                audioContext.destination
+            );
+
+            return true;
+        }catch(e){
+            info.textContent=
+                "Could not initialize audio.";
+            return false;
+        }
+    }
+
+    function midiToFrequency(midi){
+        return 440*Math.pow(
+            2,
+            (midi-69)/12
+        );
+    }
+
+    function midiToName(midi){
+        const names=[
+            "C","C#","D","D#","E","F",
+            "F#","G","G#","A","A#","B"
+        ];
+
+        return (
+            names[
+                ((midi%12)+12)%12
+            ]+
+            (
+                Math.floor(midi/12)-1
+            )
+        );
+    }
+
+    function currentMidi(semitone){
+        return (
+            BASE_MIDI+
+            (octave-4)*12+
+            semitone
+        );
+    }
+
+    function getCurrentSettings(){
+        return {
+            instrument,
+            waveform,
+            volume,
+            sustain,
+            octave
+        };
+    }
+
+    function applySettings(
+        settings,
+        recordChange
+    ){
+        if(
+            !settings ||
+            typeof settings!=="object"
+        ){
+            return;
+        }
+
+        let changed=false;
+
+        if(
+            Object.prototype.hasOwnProperty.call(
+                settings,
+                "octave"
+            )
+        ){
+            const value=
+                Number(settings.octave);
+
+            if(Number.isFinite(value)){
+                const next=
+                    Math.max(
+                        1,
+                        Math.min(
+                            7,
+                            Math.round(value)
+                        )
+                    );
+
+                if(next!==octave){
+                    stopAllNotes();
+                    octave=next;
+                    buildPiano();
+                    changed=true;
+                }
+            }
+        }
+
+        if(
+            Object.prototype.hasOwnProperty.call(
+                settings,
+                "instrument"
+            )
+        ){
+            const value=
+                String(settings.instrument);
+
+            if(
+                Object.prototype.hasOwnProperty.call(
+                    instrumentDefinitions,
+                    value
+                ) &&
+                value!==instrument
+            ){
+                instrument=value;
+                instrumentControl.value=
+                    value;
+                changed=true;
+            }
+        }
+
+        if(
+            Object.prototype.hasOwnProperty.call(
+                settings,
+                "waveform"
+            )
+        ){
+            const value=
+                String(settings.waveform);
+
+            if(
+                [
+                    "sine",
+                    "triangle",
+                    "square",
+                    "sawtooth"
+                ].includes(value) &&
+                value!==waveform
+            ){
+                waveform=value;
+                wave.value=value;
+                changed=true;
+            }
+        }
+
+        if(
+            Object.prototype.hasOwnProperty.call(
+                settings,
+                "volume"
+            )
+        ){
+            const value=
+                Number(settings.volume);
+
+            if(Number.isFinite(value)){
+                const next=
+                    Math.max(
+                        0,
+                        Math.min(1,value)
+                    );
+
+                if(next!==volume){
+                    volume=next;
+                    volumeControl.value=
+                        String(volume);
+
+                    if(masterGain)
+                        masterGain.gain.value=
+                            volume;
+
+                    changed=true;
+                }
+            }
+        }
+
+        if(
+            Object.prototype.hasOwnProperty.call(
+                settings,
+                "sustain"
+            )
+        ){
+            const next=
+                !!settings.sustain;
+
+            if(next!==sustain){
+                sustain=next;
+
+                sustainButton.classList.toggle(
+                    "active",
+                    sustain
+                );
+
+                if(!sustain)
+                    releaseSustain();
+
+                changed=true;
+            }
+        }
+
+        if(
+            recordChange &&
+            recording &&
+            recordingType==="pkp" &&
+            changed
+        ){
+            recordPKPSetting();
+        }
+    }
+
+    function createVoice(midi){
+        if(!initAudio())
+            return null;
+
+        if(
+            audioContext.state==="suspended"
+        ){
+            audioContext.resume().catch(
+                ()=>{}
+            );
+        }
+
+        const definition=
+            instrumentDefinitions[instrument]||
+            instrumentDefinitions.piano;
+
+        const voiceGain=
+            audioContext.createGain();
+
+        const now=
+            audioContext.currentTime;
+
+        voiceGain.gain.setValueAtTime(
+            .0001,
+            now
+        );
+
+        const attack=
+            Math.max(
+                .001,
+                definition.attack
+            );
+
+        voiceGain.gain.exponentialRampToValueAtTime(
+            Math.max(
+                .001,
+                definition.peak
+            ),
+            now+attack
+        );
+
+        if(definition.decay<1){
+            voiceGain.gain.setTargetAtTime(
+                Math.max(
+                    .001,
+                    definition.peak*.55
+                ),
+                now+attack,
+                Math.max(
+                    .02,
+                    definition.decay
+                )
+            );
+        }
+
+        voiceGain.connect(
+            masterGain
+        );
+
+        const oscillators=[];
+
+        for(
+            const part of definition.parts
+        ){
+            const oscillator=
+                audioContext.createOscillator();
+
+            const partGain=
+                audioContext.createGain();
+
+            let type=part.type;
+
+            if(
+                (
+                    instrument==="synth"||
+                    instrument==="lead"
+                ) &&
+                oscillators.length===0
+            ){
+                type=waveform;
+            }
+
+            oscillator.type=type;
+
+            oscillator.frequency.setValueAtTime(
+                midiToFrequency(midi)*
+                part.mult,
+                now
+            );
+
+            oscillator.detune.setValueAtTime(
+                part.detune||0,
+                now
+            );
+
+            partGain.gain.value=
+                Math.max(
+                    .001,
+                    part.gain
+                );
+
+            oscillator.connect(
+                partGain
+            );
+
+            partGain.connect(
+                voiceGain
+            );
+
+            oscillator.start();
+
+            oscillators.push(
+                oscillator
+            );
+        }
+
+        let lfo=null;
+        let lfoGain=null;
+
+        if(
+            instrument==="strings"||
+            instrument==="choir"||
+            instrument==="pad"||
+            instrument==="lead"
+        ){
+            lfo=
+                audioContext.createOscillator();
+
+            lfoGain=
+                audioContext.createGain();
+
+            lfo.type="sine";
+
+            lfo.frequency.value=
+                instrument==="lead"
+                    ?5.2
+                    :instrument==="pad"
+                        ?.7
+                        :5;
+
+            lfoGain.gain.value=
+                instrument==="pad"
+                    ?7
+                    :4;
+
+            lfo.connect(
+                lfoGain
+            );
+
+            for(
+                const oscillator of oscillators
+            ){
+                lfoGain.connect(
+                    oscillator.detune
+                );
+            }
+
+            lfo.start();
+        }
+
+        return {
+            voiceGain,
+            oscillators,
+            lfo
+        };
+    }
+
+    function stopVoice(voice){
+        if(
+            !voice||
+            !audioContext
+        ){
+            return;
+        }
+
+        const now=
+            audioContext.currentTime;
+
+        try{
+            voice.voiceGain.gain.cancelScheduledValues(
+                now
+            );
+
+            voice.voiceGain.gain.setTargetAtTime(
+                .0001,
+                now,
+                .06
+            );
+
+            for(
+                const oscillator of voice.oscillators
+            ){
+                try{
+                    oscillator.stop(
+                        now+.35
+                    );
+                }catch(_){}
+            }
+
+            if(voice.lfo){
+                try{
+                    voice.lfo.stop(
+                        now+.35
+                    );
+                }catch(_){}
+            }
+        }catch(_){}
+    }
+
+    function getRecordingTime(){
+        return (
+            performance.now()-
+            recordingStart
+        );
+    }
+
+    function recordEvent(
+        type,
+        midi,
+        key
+    ){
+        if(
+            !recording||
+            recordingType!=="audio"
+        ){
+            return;
+        }
+
+        recordingEvents.push({
+            type,
+            midi,
+            key:key||null,
+            time:getRecordingTime()
+        });
+    }
+
+    function recordPKPNote(
+        type,
+        key,
+        midi
+    ){
+        if(
+            !recording||
+            recordingType!=="pkp"||
+            !key
+        ){
+            return;
+        }
+
+        pkpRecordingEvents.push({
+            type,
+            key,
+            midi,
+            time:getRecordingTime()
+        });
+    }
+
+    function recordPKPSetting(){
+        if(
+            !recording||
+            recordingType!=="pkp"
+        ){
+            return;
+        }
+
+        pkpRecordingEvents.push({
+            type:"settings",
+            settings:
+                getCurrentSettings(),
+            time:
+                getRecordingTime()
+        });
+    }
+
+    async function startRecording(){
+        stopPlayback();
+
+        recordingType=
+            recordTypeControl.value;
+
+        recording=true;
+
+        recordingStart=
+            performance.now();
+
+        recordingEvents=[];
+        pkpRecordingEvents=[];
+        pkpRecording="";
+        pkpInitialSettings=
+            getCurrentSettings();
+
+        if(
+            recordingType==="audio"
+        ){
+            audioRecordingData=null;
+            audioChunks=[];
+            audioRecordingMime="";
+
+            if(
+                !startAudioRecorder()
+            ){
+                recording=false;
+                recordState.classList.remove(
+                    "recording"
+                );
+                recordButton.textContent=
+                    "● RECORD";
+                info.textContent=
+                    "Audio recording is unavailable.";
+                return;
+            }
+        }
+
+        if(
+            recordingType==="pkp"
+        ){
+            pkpRecordingEvents.push({
+                type:"settings",
+                settings:{
+                    ...pkpInitialSettings
+                },
+                time:0
+            });
+        }
+
+        recordButton.textContent=
+            "■ STOP";
+
+        recordButton.classList.add(
+            "active"
+        );
+
+        recordState.classList.add(
+            "recording"
+        );
+
+        recordState.textContent=
+            recordingType==="pkp"
+                ?"Recording PKP..."
+                :"Recording Audio...";
+    }
+
+    function buildPKPRecording(){
+        const events=
+            pkpRecordingEvents
+            .filter(
+                event=>
+                    event &&
+                    (
+                        event.type==="on"||
+                        event.type==="settings"
+                    )
+            )
+            .sort(
+                (a,b)=>a.time-b.time
+            );
+
+        let result=
+            JSON.stringify(
+                pkpInitialSettings||
+                getCurrentSettings()
+            );
+
+        if(!events.length)
+            return result;
+
+        let lastTime=0;
+        let firstSettingsSkipped=false;
+        let i=0;
+
+        while(i<events.length){
+            const event=
+                events[i];
+
+            if(
+                event.type==="settings" &&
+                !firstSettingsSkipped &&
+                Math.abs(event.time)<=5
+            ){
+                firstSettingsSkipped=true;
+                i++;
+                continue;
+            }
+
+            if(
+                event.type==="on"
+            ){
+                const eventTime=
+                    Math.max(
+                        0,
+                        event.time
+                    );
+
+                const keys=[];
+                let j=i;
+
+                while(
+                    j<events.length &&
+                    events[j].type==="on" &&
+                    Math.abs(
+                        events[j].time-
+                        eventTime
+                    )<=12
+                ){
+                    if(
+                        events[j].key &&
+                        !keys.includes(
+                            events[j].key
+                        )
+                    ){
+                        keys.push(
+                            events[j].key
+                        );
+                    }
+
+                    j++;
+                }
+
+                if(keys.length){
+                    const nextTime=
+                        j<events.length
+                            ?Math.max(
+                                eventTime,
+                                events[j].time
+                            )
+                            :eventTime+250;
+
+                    const delay=
+                        Math.max(
+                            50,
+                            Math.round(
+                                nextTime-
+                                eventTime
+                            )
+                        );
+
+                    result+=
+                        "["+
+                        keys.join("")+
+                        "]("+
+                        delay+
+                        ")";
+
+                    lastTime=
+                        nextTime;
+
+                    i=j;
+                    continue;
+                }
+            }
+
+            if(
+                event.type==="settings"
+            ){
+                const delay=
+                    Math.max(
+                        0,
+                        Math.round(
+                            event.time-
+                            lastTime
+                        )
+                    );
+
+                if(delay>0){
+                    if(
+                        result.endsWith("}")||
+                        result.endsWith("]")
+                    ){
+                        result+="("+delay+")";
+                    }
+                }
+
+                result+=
+                    JSON.stringify(
+                        event.settings
+                    );
+
+                lastTime=
+                    Math.max(
+                        lastTime,
+                        event.time
+                    );
+
+                i++;
+                continue;
+            }
+
+            i++;
+        }
+
+        return result;
+    }
+
+    async function stopRecording(){
+        if(!recording)
+            return;
+
+        const now=
+            getRecordingTime();
+
+        if(
+            recordingType==="audio"
+        ){
+            for(
+                const [midi] of activeVoices
+            ){
+                recordingEvents.push({
+                    type:"off",
+                    midi,
+                    time:now
+                });
+            }
+
+            const data=
+                await stopAudioRecorder();
+
+            audioRecordingData=
+                data;
+
+            recording=false;
+
+            recordButton.textContent=
+                "● RECORD";
+
+            recordButton.classList.remove(
+                "active"
+            );
+
+            recordState.classList.remove(
+                "recording"
+            );
+
+            if(!audioRecordingData){
+                recordState.textContent=
+                    "Audio recording failed.";
+                return;
+            }
+
+            const duration=
+                Math.max(
+                    0,
+                    now
+                );
+
+            recordState.textContent=
+                "Audio recorded · "+
+                Math.round(duration)+
+                " ms";
+
+            await saveAudioRecordingToCHXD();
+
+            return;
+        }
+
+        pkpRecording=
+            buildPKPRecording();
+
+        recording=false;
+
+        recordButton.textContent=
+            "● RECORD";
+
+        recordButton.classList.remove(
+            "active"
+        );
+
+        recordState.classList.remove(
+            "recording"
+        );
+
+        if(!pkpRecording){
+            recordState.textContent=
+                "No PKP recording";
+            return;
+        }
+
+        recordState.textContent=
+            "PKP recorded · "+
+            pkpRecording.length+
+            " chars";
+
+        await savePKPRecordingToCHXD();
+    }
+
+    function toggleRecording(){
+        if(recording)
+            stopRecording();
+        else
+            startRecording();
+    }
+
+    function clearRecording(){
+        stopPlayback();
+
+        recordingEvents=[];
+        pkpRecordingEvents=[];
+        pkpRecording="";
+        pkpInitialSettings=null;
+
+        audioRecordingData=null;
+        audioChunks=[];
+        audioRecordingMime="";
+
+        recordState.classList.remove(
+            "recording"
+        );
+
+        recordState.textContent=
+            "No recording";
+
+        info.textContent=
+            "Recording cleared.";
+    }
+
+    function getKeyElement(midi){
+        return document.querySelector(
+            '[data-midi="'+midi+'"]'
+        );
+    }
+
+    function setPressed(
+        midi,
+        value
+    ){
+        const element=
+            getKeyElement(midi);
+
+        if(element){
+            element.classList.toggle(
+                "pressed",
+                value
+            );
+        }
+    }
+
+    function startNote(
+        midi,
+        shouldRecord=true,
+        key=null
+    ){
+        if(activeVoices.has(midi))
+            return;
+
+        const voice=
+            createVoice(midi);
+
+        if(!voice)
+            return;
+
+        activeVoices.set(
+            midi,
+            voice
+        );
+
+        setPressed(
+            midi,
+            true
+        );
+
+        info.textContent=
+            instrument.toUpperCase()+
+            " · "+
+            midiToName(midi)+
+            " · MIDI "+
+            midi+
+            " · "+
+            midiToFrequency(midi).toFixed(2)+
+            " Hz";
+
+        if(shouldRecord){
+            if(
+                recordingType==="audio"
+            ){
+                recordEvent(
+                    "on",
+                    midi,
+                    key
+                );
+            }else{
+                recordPKPNote(
+                    "on",
+                    key,
+                    midi
+                );
+            }
+        }
+    }
+
+    function stopNote(
+        midi,
+        shouldRecord=true,
+        key=null
+    ){
+        const voice=
+            activeVoices.get(midi);
+
+        if(!voice)
+            return;
+
+        if(sustain){
+            sustained.add(midi);
+            return;
+        }
+
+        stopVoice(voice);
+
+        activeVoices.delete(
+            midi
+        );
+
+        setPressed(
+            midi,
+            false
+        );
+
+        if(shouldRecord){
+            if(
+                recordingType==="audio"
+            ){
+                recordEvent(
+                    "off",
+                    midi,
+                    key
+                );
+            }else{
+                recordPKPNote(
+                    "off",
+                    key,
+                    midi
+                );
+            }
+        }
+    }
+
+    function releaseSustain(){
+        for(
+            const midi of sustained
+        ){
+            const voice=
+                activeVoices.get(
+                    midi
+                );
+
+            if(!voice)
+                continue;
+
+            stopVoice(
+                voice
+            );
+
+            activeVoices.delete(
+                midi
+            );
+
+            setPressed(
+                midi,
+                false
+            );
+
+            if(
+                recording &&
+                recordingType==="audio"
+            ){
+                recordingEvents.push({
+                    type:"off",
+                    midi,
+                    time:getRecordingTime()
+                });
+            }
+        }
+
+        sustained.clear();
+    }
+
+    function toggleSustain(
+        fromUser=true
+    ){
+        sustain=!sustain;
+
+        sustainButton.classList.toggle(
+            "active",
+            sustain
+        );
+
+        if(!sustain)
+            releaseSustain();
+
+        if(fromUser)
+            recordPKPSetting();
+
+        info.textContent=
+            sustain
+                ?"SUSTAIN ON"
+                :"SUSTAIN OFF";
+    }
+
+    function stopAllNotes(){
+        for(
+            const voice of activeVoices.values()
+        ){
+            stopVoice(
+                voice
+            );
+        }
+
+        activeVoices.clear();
+        sustained.clear();
+
+        document
+            .querySelectorAll(".pressed")
+            .forEach(
+                element=>{
+                    element.classList.remove(
+                        "pressed"
+                    );
+                }
+            );
+    }
+
+    function buildPiano(){
+        whiteKeys.innerHTML="";
+        blackKeys.innerHTML="";
+
+        for(
+            const [
+                computerKey,
+                semitone
+            ] of whiteMapping
+        ){
+            const midi=
+                currentMidi(
+                    semitone
+                );
+
+            const key=
+                document.createElement(
+                    "div"
+                );
+
+            key.className=
+                "whiteKey";
+
+            key.dataset.midi=
+                String(midi);
+
+            key.dataset.key=
+                computerKey;
+
+            key.innerHTML=
+                '<div class="note">'+
+                midiToName(midi)+
+                '</div>'+
+                '<div class="computer">'+
+                computerKey.toUpperCase()+
+                '</div>';
+
+            attachPointer(
+                key
+            );
+
+            whiteKeys.appendChild(
+                key
+            );
+        }
+
+        requestAnimationFrame(
+            positionBlackKeys
+        );
+    }
+
+    function positionBlackKeys(){
+        blackKeys.innerHTML="";
+
+        const whiteElements=[
+            ...whiteKeys.querySelectorAll(
+                ".whiteKey"
+            )
+        ];
+
+        if(!whiteElements.length)
+            return;
+
+        const first=
+            whiteElements[0];
+
+        const pianoRect=
+            piano.getBoundingClientRect();
+
+        const firstRect=
+            first.getBoundingClientRect();
+
+        const whiteWidth=
+            firstRect.width;
+
+        for(
+            let i=0;
+            i<blackMapping.length;
+            i++
+        ){
+            const [
+                computerKey,
+                semitone
+            ]=
+                blackMapping[i];
+
+            const leftWhiteIndex=
+                whiteByBlack[i];
+
+            if(
+                leftWhiteIndex>=
+                whiteElements.length-1
+            ){
+                continue;
+            }
+
+            const leftRect=
+                whiteElements[
+                    leftWhiteIndex
+                ].getBoundingClientRect();
+
+            const midi=
+                currentMidi(
+                    semitone
+                );
+
+            const key=
+                document.createElement(
+                    "div"
+                );
+
+            key.className=
+                "blackKey";
+
+            key.dataset.midi=
+                String(midi);
+
+            key.dataset.key=
+                computerKey;
+
+            key.innerHTML=
+                '<div class="note">'+
+                midiToName(midi)+
+                '</div>'+
+                '<div class="computer">'+
+                computerKey.toUpperCase()+
+                '</div>';
+
+            const centerX=
+                leftRect.right-
+                pianoRect.left;
+
+            key.style.left=
+                (
+                    centerX-
+                    whiteWidth*.305
+                )+
+                "px";
+
+            attachPointer(
+                key
+            );
+
+            blackKeys.appendChild(
+                key
+            );
+        }
+    }
+
+    function attachPointer(element){
+        let pointerDown=false;
+
+        element.addEventListener(
+            "pointerdown",
+            event=>{
+                event.preventDefault();
+
+                pointerDown=true;
+
+                try{
+                    element.setPointerCapture(
+                        event.pointerId
+                    );
+                }catch(_){}
+
+                startNote(
+                    Number(
+                        element.dataset.midi
+                    ),
+                    true,
+                    element.dataset.key
+                );
+            }
+        );
+
+        element.addEventListener(
+            "pointerup",
+            event=>{
+                event.preventDefault();
+
+                if(!pointerDown)
+                    return;
+
+                pointerDown=false;
+
+                stopNote(
+                    Number(
+                        element.dataset.midi
+                    ),
+                    true,
+                    element.dataset.key
+                );
+            }
+        );
+
+        element.addEventListener(
+            "pointercancel",
+            ()=>{
+                if(!pointerDown)
+                    return;
+
+                pointerDown=false;
+
+                stopNote(
+                    Number(
+                        element.dataset.midi
+                    ),
+                    true,
+                    element.dataset.key
+                );
+            }
+        );
+
+        element.addEventListener(
+            "pointerleave",
+            event=>{
+                if(
+                    pointerDown &&
+                    event.buttons===0
+                ){
+                    pointerDown=false;
+
+                    stopNote(
+                        Number(
+                            element.dataset.midi
+                        ),
+                        true,
+                        element.dataset.key
+                    );
+                }
+            }
+        );
+    }
+
+    function changeOctave(
+        amount,
+        recordChange=true
+    ){
+        const next=
+            Math.max(
+                1,
+                Math.min(
+                    7,
+                    octave+amount
+                )
+            );
+
+        if(next===octave)
+            return;
+
+        stopAllNotes();
+
+        octave=next;
+
+        buildPiano();
+
+        if(
+            recordChange &&
+            recording &&
+            recordingType==="pkp"
+        ){
+            recordPKPSetting();
+        }
+
+        info.textContent=
+            "OCTAVE "+
+            octave;
+    }
+
+    window.addEventListener(
+        "keydown",
+        event=>{
+            const key=
+                String(
+                    event.key||""
+                ).toLowerCase();
+
+            if(
+                event.repeat||
+                pressedPhysical.has(key)
+            ){
+                return;
+            }
+
+            if(key==="["){
+                event.preventDefault();
+                changeOctave(-1);
+                return;
+            }
+
+            if(key==="]"){
+                event.preventDefault();
+                changeOctave(1);
+                return;
+            }
+
+            if(key===" "){
+                event.preventDefault();
+                toggleSustain(true);
+                return;
+            }
+
+            if(!computerNotes.has(key))
+                return;
+
+            event.preventDefault();
+
+            pressedPhysical.add(
+                key
+            );
+
+            startNote(
+                currentMidi(
+                    computerNotes.get(key)
+                ),
+                true,
+                key
+            );
+        }
+    );
+
+    window.addEventListener(
+        "keyup",
+        event=>{
+            const key=
+                String(
+                    event.key||""
+                ).toLowerCase();
+
+            if(
+                !computerNotes.has(key)
+            ){
+                return;
+            }
+
+            pressedPhysical.delete(
+                key
+            );
+
+            stopNote(
+                currentMidi(
+                    computerNotes.get(key)
+                ),
+                true,
+                key
+            );
+        }
+    );
+
+    window.addEventListener(
+        "blur",
+        ()=>{
+            pressedPhysical.clear();
+            stopAllNotes();
+        }
+    );
+
+    function stopPlayback(){
+        for(
+            const timer of playbackTimers
+        ){
+            clearTimeout(
+                timer
+            );
+        }
+
+        playbackTimers=[];
+
+        stopAllNotes();
+    }
+
+    function playAudioRecording(){
+        if(!audioRecordingData){
+            info.textContent=
+                "Nothing recorded.";
+            return;
+        }
+
+        stopPlayback();
+
+        try{
+            const audio=
+                new Audio(
+                    audioRecordingData
+                );
+
+            audio.onplay=
+                ()=>{
+                    recordState.textContent=
+                        "Playing Audio...";
+                };
+
+            audio.onended=
+                ()=>{
+                    recordState.textContent=
+                        "Audio playback complete.";
+                };
+
+            audio.onerror=
+                ()=>{
+                    recordState.textContent=
+                        "Audio playback failed.";
+                };
+
+            audio.play().catch(
+                ()=>{
+                    recordState.textContent=
+                        "Audio playback failed.";
+                }
+            );
+
+        }catch(_){
+            recordState.textContent=
+                "Audio playback failed.";
+        }
+    }
+
+    function parsePKPSettings(
+        block
+    ){
+        try{
+            const value=
+                JSON.parse(block);
+
+            if(
+                value &&
+                typeof value==="object" &&
+                !Array.isArray(value)
+            ){
+                return value;
+            }
+        }catch(_){}
+
+        return null;
+    }
+
+    function playPKP(notes){
+        if(
+            typeof notes!=="string"
+        ){
+            return;
+        }
+
+        notes=notes.trim();
+
+        if(!notes)
+            return;
+
+        stopPlayback();
+
+        const tokens=[];
+        let i=0;
+
+        while(i<notes.length){
+            if(/\s/.test(notes[i])){
+                i++;
+                continue;
+            }
+
+            if(notes[i]==="{"){
+                let depth=0;
+                let end=-1;
+                let inString=false;
+                let escaped=false;
+
+                for(
+                    let j=i;
+                    j<notes.length;
+                    j++
+                ){
+                    const char=
+                        notes[j];
+
+                    if(inString){
+                        if(escaped){
+                            escaped=false;
+                        }else if(
+                            char==="\\"
+                        ){
+                            escaped=true;
+                        }else if(
+                            char==='"'
+                        ){
+                            inString=false;
+                        }
+
+                        continue;
+                    }
+
+                    if(char==='"'){
+                        inString=true;
+                        continue;
+                    }
+
+                    if(char==="{"){
+                        depth++;
+                    }else if(
+                        char==="}"
+                    ){
+                        depth--;
+
+                        if(depth===0){
+                            end=j;
+                            break;
+                        }
+                    }
+                }
+
+                if(end===-1)
+                    break;
+
+                const block=
+                    notes.slice(
+                        i,
+                        end+1
+                    );
+
+                const settings=
+                    parsePKPSettings(
+                        block
+                    );
+
+                if(settings){
+                    tokens.push({
+                        type:"settings",
+                        settings
+                    });
+                }
+
+                i=end+1;
+                continue;
+            }
+
+            if(notes[i]==="["){
+                const end=
+                    notes.indexOf(
+                        "]",
+                        i+1
+                    );
+
+                if(end===-1)
+                    break;
+
+                const content=
+                    notes.slice(
+                        i+1,
+                        end
+                    );
+
+                const parts=
+                    content.split("|");
+
+                const keys=
+                    (parts[0]||"")
+                    .toLowerCase()
+                    .replace(
+                        /[^a-z]/g,
+                        ""
+                    );
+
+                const groupSustain=
+                    parts.length>1 &&
+                    (
+                        parts[1]
+                            .trim()==="1"||
+                        parts[1]
+                            .trim()
+                            .toLowerCase()==="true"||
+                        parts[1]
+                            .trim()
+                            .toLowerCase()==="sustain"
+                    );
+
+                let delay=0;
+                let next=end+1;
+
+                if(notes[next]==="("){
+                    const close=
+                        notes.indexOf(
+                            ")",
+                            next+1
+                        );
+
+                    if(close!==-1){
+                        const value=
+                            Number(
+                                notes.slice(
+                                    next+1,
+                                    close
+                                )
+                            );
+
+                        if(
+                            Number.isFinite(
+                                value
+                            )
+                        ){
+                            delay=
+                                Math.max(
+                                    0,
+                                    value
+                                );
+                        }
+
+                        next=close+1;
+                    }
+                }
+
+                tokens.push({
+                    type:"group",
+                    keys,
+                    sustain:
+                        groupSustain,
+                    delay
+                });
+
+                i=next;
+                continue;
+            }
+
+            i++;
+        }
+
+        let time=0;
+
+        for(
+            const token of tokens
+        ){
+            if(
+                token.type==="settings"
+            ){
+                const scheduledTime=
+                    time;
+
+                playbackTimers.push(
+                    setTimeout(
+                        ()=>{
+                            applySettings(
+                                token.settings,
+                                false
+                            );
+                        },
+                        scheduledTime
+                    )
+                );
+
+                continue;
+            }
+
+            const scheduledTime=
+                time;
+
+            playbackTimers.push(
+                setTimeout(
+                    ()=>{
+                        const played=[];
+
+                        for(
+                            const key of token.keys
+                        ){
+                            if(
+                                !computerNotes.has(
+                                    key
+                                )
+                            ){
+                                continue;
+                            }
+
+                            const midi=
+                                currentMidi(
+                                    computerNotes.get(
+                                        key
+                                    )
+                                );
+
+                            startNote(
+                                midi,
+                                false,
+                                key
+                            );
+
+                            played.push(
+                                midi
+                            );
+                        }
+
+                        if(
+                            !token.sustain
+                        ){
+                            playbackTimers.push(
+                                setTimeout(
+                                    ()=>{
+                                        for(
+                                            const midi
+                                            of played
+                                        ){
+                                            const voice=
+                                                activeVoices.get(
+                                                    midi
+                                                );
+
+                                            if(!voice)
+                                                continue;
+
+                                            stopVoice(
+                                                voice
+                                            );
+
+                                            activeVoices.delete(
+                                                midi
+                                            );
+
+                                            setPressed(
+                                                midi,
+                                                false
+                                            );
+                                        }
+                                    },
+                                    Math.max(
+                                        50,
+                                        token.delay
+                                    )
+                                )
+                            );
+                        }
+                    },
+                    scheduledTime
+                )
+            );
+
+            time+=token.delay;
+        }
+
+        playbackTimers.push(
+            setTimeout(
+                ()=>{
+                    stopAllNotes();
+
+                    recordState.textContent=
+                        "PKP playback complete.";
+                },
+                Math.max(
+                    100,
+                    time+500
+                )
+            )
+        );
+    }
+
+    function playRecording(){
+        if(recording){
+            stopRecording();
+            return;
+        }
+
+        if(
+            recordingType==="pkp"
+        ){
+            if(!pkpRecording){
+                info.textContent=
+                    "Nothing recorded.";
+                return;
+            }
+
+            playPKP(
+                pkpRecording
+            );
+
+            recordState.textContent=
+                "Playing PKP...";
+        }else{
+            playAudioRecording();
+        }
+    }
+
+    async function save(){
+        if(recording){
+            await stopRecording();
+        }
+
+        if(
+            recordingType==="pkp"
+        ){
+            return await savePKPRecordingToCHXD();
+        }
+
+        return await saveAudioRecordingToCHXD();
+    }
+
+    async function load(){
+        const fs=getFilesystem();
+
+        if(!fs){
+            info.textContent=
+                "CHXD filesystem is unavailable.";
+            return null;
+        }
+
+        try{
+            const files=
+                await fs.list(
+                    PKP_RECORDINGS_PATH
+                );
+
+            if(
+                !Array.isArray(files)
+            ){
+                info.textContent=
+                    "No saved PKP recordings.";
+                return null;
+            }
+
+            const pkps=
+                files
+                .map(
+                    p=>String(p)
+                )
+                .filter(
+                    p=>
+                        /\.pkp$/i.test(
+                            p
+                        )
+                )
+                .sort();
+
+            if(!pkps.length){
+                info.textContent=
+                    "No saved PKP recordings.";
+                return null;
+            }
+
+            const path=
+                pkps[pkps.length-1];
+
+            const result=
+                await fs.read(path);
+
+            if(
+                !result||
+                !result.ok
+            ){
+                info.textContent=
+                    "Could not load saved PKP.";
+                return result;
+            }
+
+            const value=
+                String(
+                    result.content||""
+                ).trim();
+
+            if(!value){
+                info.textContent=
+                    "Saved PKP file is empty.";
+                return null;
+            }
+
+            pkpRecording=value;
+            recordingType="pkp";
+            recordTypeControl.value="pkp";
+
+            recordState.textContent=
+                "Loaded PKP · "+
+                path.split("/").pop();
+
+            info.textContent=
+                "PKP loaded from CHXD.";
+
+            return {
+                ok:true,
+                path,
+                value
+            };
+
+        }catch(error){
+            info.textContent=
+                "Could not load PKP.";
+
+            return {
+                ok:false,
+                error:
+                    error &&
+                    error.message
+                        ?error.message
+                        :"Load failed."
+            };
+        }
+    }
+
+    async function openPKPFileManager(){
+        const apps=getApps();
+
+        if(!apps){
+            info.textContent=
+                "Little Hollow App system is unavailable.";
+            return null;
+        }
+
+        fileManagerPickerOpen=true;
+
+        try{
+            return await apps.openApp(
+                "filemanager",
+                {
+                    selectMode:true,
+                    allowMultiple:false,
+                    path:PKP_RECORDINGS_PATH,
+                    title:"IMPORT PKP",
+                    width:520,
+                    height:600
+                }
+            );
+        }catch(error){
+            fileManagerPickerOpen=false;
+
+            info.textContent=
+                "Could not open File Manager.";
+
+            return {
+                ok:false,
+                error:
+                    error &&
+                    error.message
+                        ?error.message
+                        :"Could not open File Manager."
+            };
+        }
+    }
+
+    async function importPKPFromCHXD(
+        path
+    ){
+        path=String(
+            path||""
+        ).trim();
+
+        if(
+            !path ||
+            !/\.pkp$/i.test(path)
+        ){
+            info.textContent=
+                "Select a .pkp file.";
+            return;
+        }
+
+        const fs=getFilesystem();
+
+        if(!fs){
+            info.textContent=
+                "CHXD filesystem is unavailable.";
+            return;
+        }
+
+        try{
+            const result=
+                await fs.read(path);
+
+            if(
+                !result||
+                !result.ok
+            ){
+                info.textContent=
+                    result&&result.error
+                        ?result.error
+                        :"Could not read PKP file.";
+                return;
+            }
+
+            const value=
+                String(
+                    result.content||""
+                ).trim();
+
+            if(!value){
+                info.textContent=
+                    "PKP file is empty.";
+                return;
+            }
+
+            pkpRecording=value;
+            recordingType="pkp";
+            recordTypeControl.value="pkp";
+
+            pkpRecordingEvents=[];
+            pkpInitialSettings=null;
+            recordingEvents=[];
+
+            const filename=
+                path.split("/").pop();
+
+            recordState.textContent=
+                "PKP imported · "+
+                filename;
+
+            info.textContent=
+                "Imported "+
+                filename;
+
+        }catch(error){
+            info.textContent=
+                "Could not import PKP.";
+        }
+    }
+
+    octDown.onclick=()=>{
+        changeOctave(-1);
+    };
+
+    octUp.onclick=()=>{
+        changeOctave(1);
+    };
+
+    sustainButton.onclick=()=>{
+        toggleSustain(true);
+    };
+
+    instrumentControl.onchange=()=>{
+        instrument=
+            instrumentControl.value;
+
+        if(
+            recording &&
+            recordingType==="pkp"
+        ){
+            recordPKPSetting();
+        }
+
+        info.textContent=
+            "INSTRUMENT · "+
+            instrument.toUpperCase();
+    };
+
+    wave.onchange=()=>{
+        waveform=
+            wave.value;
+
+        if(
+            recording &&
+            recordingType==="pkp"
+        ){
+            recordPKPSetting();
+        }
+
+        info.textContent=
+            "WAVE · "+
+            waveform.toUpperCase();
+    };
+
+    volumeControl.oninput=()=>{
+        volume=
+            Number(
+                volumeControl.value
+            );
+
+        if(masterGain){
+            masterGain.gain.value=
+                volume;
+        }
+
+        if(
+            recording &&
+            recordingType==="pkp"
+        ){
+            recordPKPSetting();
+        }
+    };
+
+    recordTypeControl.onchange=()=>{
+        if(recording)
+            stopRecording();
+
+        recordingType=
+            recordTypeControl.value;
+
+        recordState.textContent=
+            "Ready · "+
+            recordingType.toUpperCase();
+    };
+
+    recordButton.onclick=()=>{
+        toggleRecording();
+    };
+
+    playButton.onclick=()=>{
+        playRecording();
+    };
+
+    clearButton.onclick=()=>{
+        clearRecording();
+    };
+
+    importPKPButton.onclick=()=>{
+        openPKPFileManager();
+    };
+
+    window.addEventListener(
+        "message",
+        event=>{
+            const data=
+                event.data;
+
+            if(
+                !data||
+                typeof data!=="object"
+            ){
+                return;
+            }
+
+            if(
+                data.type==="LH_FILE_SELECTED" &&
+                fileManagerPickerOpen
+            ){
+                fileManagerPickerOpen=false;
+
+                const path=
+                    data.path||
+                    (
+                        Array.isArray(data.paths)
+                            ?data.paths[0]
+                            :""
+                    );
+
+                importPKPFromCHXD(
+                    path
+                );
+
+                return;
+            }
+
+            if(
+                data.type==="pkp" &&
+                typeof data.value==="string"
+            ){
+                playPKP(
+                    data.value
+                );
+
+                return;
+            }
+
+            if(
+                typeof data==="string"
+            ){
+                playPKP(data);
+            }
+        }
+    );
+
+    window.addEventListener(
+        "resize",
+        ()=>{
+            requestAnimationFrame(
+                positionBlackKeys
+            );
+        }
+    );
+
+    window.PianoAPI={
+
+        playMidi:function(midi){
+            midi=Number(midi);
+
+            if(
+                Number.isFinite(midi)
+            ){
+                startNote(
+                    midi,
+                    false
+                );
+            }
+        },
+
+        stopMidi:function(midi){
+            midi=Number(midi);
+
+            if(
+                Number.isFinite(midi)
+            ){
+                stopNote(
+                    midi,
+                    false
+                );
+            }
+        },
+
+        setOctave:function(value){
+            const next=
+                Number(value);
+
+            if(
+                !Number.isFinite(next)
+            ){
+                return;
+            }
+
+            stopAllNotes();
+
+            octave=
+                Math.max(
+                    1,
+                    Math.min(
+                        7,
+                        Math.round(next)
+                    )
+                );
+
+            buildPiano();
+        },
+
+        getOctave:function(){
+            return octave;
+        },
+
+        setVolume:function(value){
+            volume=
+                Math.max(
+                    0,
+                    Math.min(
+                        1,
+                        Number(value)||0
+                    )
+                );
+
+            volumeControl.value=
+                String(volume);
+
+            if(masterGain){
+                masterGain.gain.value=
+                    volume;
+            }
+        },
+
+        setWaveform:function(value){
+            if(
+                ![
+                    "sine",
+                    "triangle",
+                    "square",
+                    "sawtooth"
+                ].includes(value)
+            ){
+                return;
+            }
+
+            waveform=value;
+            wave.value=value;
+        },
+
+        setInstrument:function(value){
+            value=String(value);
+
+            if(
+                !Object.prototype.hasOwnProperty.call(
+                    instrumentDefinitions,
+                    value
+                )
+            ){
+                return;
+            }
+
+            instrument=value;
+            instrumentControl.value=
+                value;
+        },
+
+        getInstrument:function(){
+            return instrument;
+        },
+
+        setSustain:function(value){
+            const next=!!value;
+
+            if(next===sustain)
+                return;
+
+            sustain=next;
+
+            sustainButton.classList.toggle(
+                "active",
+                sustain
+            );
+
+            if(!sustain)
+                releaseSustain();
+        },
+
+        startRecording:function(){
+            return startRecording();
+        },
+
+        stopRecording:function(){
+            return stopRecording();
+        },
+
+        toggleRecording:function(){
+            return toggleRecording();
+        },
+
+        playRecording:function(){
+            playRecording();
+        },
+
+        clearRecording:function(){
+            clearRecording();
+        },
+
+        getRecordingType:function(){
+            return recordingType;
+        },
+
+        getRecording:function(){
+            if(
+                recordingType==="pkp"
+            ){
+                return pkpRecording;
+            }
+
+            return {
+                events:
+                    recordingEvents.map(
+                        event=>({
+                            ...event
+                        })
+                    ),
+                audio:
+                    audioRecordingData
+            };
+        },
+
+        getPKP:function(){
+            return pkpRecording;
+        },
+
+        getAudio:function(){
+            return audioRecordingData;
+        },
+
+        playPKP:function(value){
+            playPKP(value);
+        },
+
+        importPKP:function(value){
+            if(
+                typeof value!=="string"
+            ){
+                return false;
+            }
+
+            const text=
+                value.trim();
+
+            if(!text)
+                return false;
+
+            pkpRecording=text;
+            recordingType="pkp";
+            recordTypeControl.value=
+                "pkp";
+
+            recordState.textContent=
+                "PKP imported.";
+
+            return true;
+        },
+
+        openPKPFileManager:function(){
+            return openPKPFileManager();
+        },
+
+        save:function(){
+            return save();
+        },
+
+        load:function(){
+            return load();
+        },
+
+        savePKP:function(){
+            return savePKPRecordingToCHXD();
+        },
+
+        saveAudio:function(){
+            return saveAudioRecordingToCHXD();
+        }
+    };
+
+    window.playPKP=
+        playPKP;
+
+    buildPiano();
+
+})();
+</script>
+
+</body>
+</html>
