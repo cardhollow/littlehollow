@@ -19,7 +19,7 @@
         sos:{title:"SOS",src:"app/sos.html",w:430,h:600},
         tetris:{title:"TETRIS",src:"app/tetris.html",w:400,h:620},
         wordle:{title:"WORDLE",src:"app/wordle.html",w:430,h:650},
-        documentviewer:{title:"DOCUMENT VIEWER",src:"app/DocumentViewer.html",w:480,h:380},
+        documentViewer:{title:"DOCUMENT VIEWER",src:"app/DocumentViewer.html",w:480,h:380},
         imageviewer:{title:"IMAGE VIEWER",src:"app/imageviewer.html",w:480,h:380},
         videoplayer:{title:"VIDEO PLAYER",src:"app/videoplayer.html",w:480,h:360},
         audioplayer:{title:"AUDIO PLAYER",src:"app/audioplayer.html",w:420,h:260},
