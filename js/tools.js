@@ -638,7 +638,6 @@
           actions:
           {
             type: "object",
-            additionalProperties: true,
             description: "CameraAPI action object. Examples: {\"open\":true}, {\"photo\":true}, {\"recording\":\"start\"}, {\"record\":5000}, {\"facing\":\"front\"}, {\"switch\":true}, {\"state\":true}. Multiple actions can be supplied in one call."
           }
         },
@@ -660,7 +659,7 @@
           actions:
           {
             type: "object",
-            additionalProperties: true,
+            
             description: "DocumentAPI action object. Examples: {\"open\":\"chxd:/local/file.pdf\"}, {\"next\":true}, {\"goto\":3}, {\"zoom\":1.5}, {\"search\":\"hello\"}, {\"state\":true}. Multiple actions can be supplied in one call."
           }
         },
