@@ -32,6 +32,7 @@ FILE REFERENCES
 Use [file:<path>] when referencing a known file.
 Example: [file:chxd:/device/music/song.mid]
 Little Hollow's UI renders these as clickable file references that open the appropriate file/application.
+Can't access chxd:/device or mounted files? Write the reference so that the user can click it directly and grant permisions.
 Never invent file paths.
 
 You can draw in .svg and open it wit Image Viewer app to draw Images
