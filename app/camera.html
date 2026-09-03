@@ -64,9 +64,7 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     chunks: [],
     recording: false,
     facing: "environment",
-    mime: "",
-    hasAudio: false,
-    objectUrls: []
+    mime: ""
   };
 
   function status(text){ $("msg").textContent = text; }
@@ -84,12 +82,9 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
   function supportedMime(){
     if(typeof MediaRecorder === "undefined") return "";
     const candidates = [
-      "video/webm;codecs=vp8,opus",
-      "video/webm;codecs=vp9,opus",
       "video/webm;codecs=vp8",
       "video/webm;codecs=vp9",
       "video/webm",
-      "video/mp4;codecs=avc1,mp4a.40.2",
       "video/mp4;codecs=avc1",
       "video/mp4"
     ];
@@ -114,24 +109,16 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     $("preview").srcObject = null;
     showPlaceholder("Opening camera…");
 
-    const videoConstraints = {
-      facingMode:{ideal:state.facing},
-      width:{ideal:1280},
-      height:{ideal:720},
-      frameRate:{ideal:30}
-    };
-
     try{
-      let stream;
-      try{
-        // Ask for mic access up front so video recordings can include audio.
-        stream = await navigator.mediaDevices.getUserMedia({video:videoConstraints, audio:true});
-        state.hasAudio = stream.getAudioTracks().length > 0;
-      }catch(audioError){
-        // Camera still works even if the mic is denied/unavailable — just no audio track.
-        stream = await navigator.mediaDevices.getUserMedia({video:videoConstraints, audio:false});
-        state.hasAudio = false;
-      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video:{
+          facingMode:{ideal:state.facing},
+          width:{ideal:1280},
+          height:{ideal:720},
+          frameRate:{ideal:30}
+        },
+        audio:false
+      });
       state.cameraStream = stream;
       $("preview").srcObject = stream;
       updateMirror();
@@ -140,7 +127,7 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
       const track = stream.getVideoTracks()[0];
       const settings = track && track.getSettings ? track.getSettings() : {};
       const label = settings.facingMode || state.facing;
-      status("Camera ready — " + label + (state.hasAudio ? " (mic on)." : " (no mic)."));
+      status("Camera ready — " + label + ".");
       return true;
     }catch(error){
       showPlaceholder("Camera unavailable. Allow camera permission, then reopen the app.");
@@ -151,47 +138,6 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
   function updateMirror(){
     $("previewWrap").classList.toggle("front", state.facing === "user");
-  }
-
-  function canvasToBlob(canvas,type,quality){
-    return new Promise((resolve,reject)=>{
-      canvas.toBlob(b => b ? resolve(b) : reject(new Error("Could not encode image")), type, quality);
-    });
-  }
-
-  // --- Binary helpers -------------------------------------------------
-  // Storage format is a plain ArrayBuffer: a real, persistent binary value
-  // (not a Blob, and not an object URL, which is just a temporary in-tab
-  // reference). ArrayBuffers are what actually gets written to disk/DB.
-
-  function toArrayBuffer(content){
-    if(content instanceof ArrayBuffer) return content;
-    if(ArrayBuffer.isView(content)){
-      return content.buffer.slice(content.byteOffset, content.byteOffset + content.byteLength);
-    }
-    return null;
-  }
-
-  function hasData(content){
-    if(!content) return false;
-    if(content instanceof ArrayBuffer) return content.byteLength > 0;
-    if(ArrayBuffer.isView(content)) return content.byteLength > 0;
-    if(typeof content === "string") return content.length > 0;
-    return false;
-  }
-
-  // Build a short-lived Blob/object URL purely so <video>/<img> can render
-  // the bytes on screen. This is never what gets written to storage.
-  function toPlaybackURL(content,mimeType){
-    const buf = toArrayBuffer(content);
-    if(buf){
-      const blob = new Blob([buf],{type:mimeType || ""});
-      const url = URL.createObjectURL(blob);
-      state.objectUrls.push(url);
-      return url;
-    }
-    if(typeof content === "string" && content.startsWith("data:")) return content; // legacy items
-    return null;
   }
 
   async function takePhoto(){
@@ -226,10 +172,9 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     setTimeout(() => $("flash").style.opacity = "0", 90);
 
     try{
-      const blob = await canvasToBlob(canvas,"image/jpeg",0.92);
-      const buffer = await blob.arrayBuffer();
+      const data = canvas.toDataURL("image/jpeg",0.92);
       const path = PREFIX + "photo-" + stamp() + ".jpg";
-      await saveMedia(path,buffer,{kind:"photo",mimeType:"image/jpeg",size:buffer.byteLength});
+      await saveString(path,data,{kind:"photo",mimeType:"image/jpeg"});
       status("Photo saved — " + path);
       await loadLibrary();
     }catch(error){
@@ -237,15 +182,22 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     }
   }
 
-  async function saveMedia(path,arrayBuffer,meta){
+  function blobToDataURL(blob){
+    return new Promise((resolve,reject)=>{
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error || new Error("Could not encode video"));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function saveString(path,data,meta){
     if(typeof parent === "undefined" || !parent.FS || typeof parent.FS.write !== "function"){
       throw new Error("Little Hollow filesystem is unavailable.");
     }
-    // Persist the raw ArrayBuffer via FS.write's allowBinary flag — a real
-    // binary value on disk, not a Blob and not a temporary object URL.
-    const result = await parent.FS.write(path,arrayBuffer,true,true);
+    const result = await parent.FS.write(path,String(data),true);
     if(!result || result.ok !== true) throw new Error(result && result.error ? result.error : "Filesystem write failed");
-    const metaResult = await parent.FS.write(path + ".json",JSON.stringify({app:"Camera",createdAt:new Date().toISOString(),storage:"arraybuffer",...meta}),true,false);
+    const metaResult = await parent.FS.write(path + ".json",JSON.stringify({app:"Camera",createdAt:new Date().toISOString(),storage:"data-url",...meta}),true);
     if(!metaResult || metaResult.ok !== true) throw new Error(metaResult && metaResult.error ? metaResult.error : "Metadata write failed");
   }
 
@@ -259,11 +211,8 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
     const videoTrack = state.cameraStream.getVideoTracks()[0];
     if(!videoTrack){ status("No camera video track is available."); return; }
-    const audioTrack = state.cameraStream.getAudioTracks()[0];
 
-    // Include the audio track alongside video so recordings capture sound too.
-    const tracks = audioTrack ? [videoTrack, audioTrack] : [videoTrack];
-    const stream = new MediaStream(tracks);
+    const stream = new MediaStream([videoTrack]);
     state.chunks = [];
     state.mime = supportedMime();
 
@@ -284,8 +233,8 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     $("photo").disabled = true;
     $("switch").disabled = true;
     $("facing").disabled = true;
-    $("format").textContent = "video: " + (recorder.mimeType || "browser default") + (audioTrack ? " +audio" : " (no audio)");
-    status("Recording video" + (audioTrack ? " with audio…" : " (no mic available)…"));
+    $("format").textContent = "video: " + (recorder.mimeType || "browser default");
+    status("Recording video…");
 
     recorder.ondataavailable = e => {
       if(e.data && e.data.size) state.chunks.push(e.data);
@@ -328,20 +277,19 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     if(!blob.size){ status("Video recording is empty. Try again."); return; }
 
     try{
-      // Convert the recorded chunks to a plain ArrayBuffer once, here, and
-      // persist that — this is the only binary form that gets written.
-      const buffer = await blob.arrayBuffer();
+      const data = await blobToDataURL(blob);
+      // IMPORTANT: the string is written exactly as FileReader returned it.
+      // No MIME parsing, regex, or atob() check can reject a valid recording.
       const baseType = String(type).split(";",1)[0].toLowerCase();
       const ext = baseType === "video/mp4" ? "mp4" : "webm";
       const path = PREFIX + "video-" + stamp() + "." + ext;
-      await saveMedia(path,buffer,{kind:"video",mimeType:type,size:buffer.byteLength});
-
-      // Read back to confirm the write actually persisted usable bytes.
+      await saveString(path,data,{kind:"video",mimeType:type,size:blob.size});
+      // Read back the exact string from Little Hollow to ensure the database write succeeded.
       const verify = await parent.FS.read(path);
-      if(!verify || verify.ok !== true || !hasData(verify.content)){
+      if(!verify || verify.ok !== true || typeof verify.content !== "string" || !verify.content.startsWith("data:")){
         throw new Error("saved video could not be read back");
       }
-      status("Video saved — " + path + " (" + Math.round(buffer.byteLength/1024) + " KB)");
+      status("Video saved — " + path + " (" + Math.round(blob.size/1024) + " KB)");
       await loadLibrary();
     }catch(error){
       status("Video save failed — " + errText(error));
@@ -358,10 +306,6 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
   async function loadLibrary(){
     const box = $("list");
-    // Revoke playback object URLs from the previous render — those are
-    // purely transient rendering aids, never the stored data itself.
-    for(const url of state.objectUrls){ try{ URL.revokeObjectURL(url); }catch(_){} }
-    state.objectUrls = [];
     box.innerHTML = "";
     try{
       const files = await parent.FS.list(PREFIX);
@@ -373,20 +317,7 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
       for(const path of paths){
         const read = await parent.FS.read(path);
-        if(!read || read.ok !== true || !hasData(read.content)) continue;
-
-        let mimeType = "";
-        try{
-          const metaRead = await parent.FS.read(path + ".json");
-          if(metaRead && metaRead.ok === true && typeof metaRead.content === "string"){
-            const meta = JSON.parse(metaRead.content);
-            mimeType = meta && meta.mimeType ? meta.mimeType : "";
-          }
-        }catch(_){}
-
-        const src = toPlaybackURL(read.content,mimeType);
-        if(!src) continue;
-
+        if(!read || read.ok !== true || typeof read.content !== "string") continue;
         const card = document.createElement("div");
         card.className = "card";
         const isPhoto = /\.(jpg|jpeg|png)$/i.test(path);
@@ -412,7 +343,7 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
           };
         }
         media.className = "thumb";
-        media.src = src;
+        media.src = read.content;
 
         const name = document.createElement("div");
         name.className = "name";
@@ -423,7 +354,7 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
         const save = document.createElement("button");
         save.className = "btn";
         save.textContent = "SAVE";
-        save.onclick = () => downloadData(src,path.split("/").pop());
+        save.onclick = () => downloadData(read.content,path.split("/").pop());
         const del = document.createElement("button");
         del.className = "btn";
         del.textContent = "DEL";
@@ -442,9 +373,9 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     }
   }
 
-  function downloadData(src,name){
+  function downloadData(data,name){
     const a = document.createElement("a");
-    a.href = src;
+    a.href = data;
     a.download = name;
     document.body.appendChild(a);
     a.click();
@@ -473,7 +404,6 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
       if(state.recorder && state.recorder.state !== "inactive") state.recorder.stop();
     }catch(_){}
     stopTracks(state.cameraStream);
-    for(const url of state.objectUrls){ try{ URL.revokeObjectURL(url); }catch(_){} }
   });
 
   (async()=>{
