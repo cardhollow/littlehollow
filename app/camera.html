@@ -1,4 +1,5 @@
 <!doctype html>
+
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -28,29 +29,20 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 <div class="bar">
   <button class="btn" id="photo">📷 PHOTO</button>
   <button class="btn" id="record">● START VIDEO</button>
-  <button class="btn" id="stop" disabled>■ STOP VIDEO</button>
   <button class="btn" id="switch">↔ SWITCH</button>
   <select id="facing" aria-label="Camera">
     <option value="environment">Back camera</option>
     <option value="user">Front camera</option>
   </select>
   <span class="badge" id="format">video: checking</span>
-</div>
-
-<div class="preview" id="previewWrap">
+</div><div class="preview" id="previewWrap">
   <div class="placeholder" id="placeholder">Starting camera…</div>
   <video id="preview" autoplay muted playsinline></video>
   <div id="flash" class="flash"></div>
-</div>
-
-<div class="msg" id="msg">Starting camera…</div>
-
-<div class="section">
+</div><div class="msg" id="msg">Starting camera…</div><div class="section">
   <div class="title">Saved media — chxd:/indexdb/Camera/</div>
   <div id="list" class="list"><div class="small">Loading…</div></div>
-</div>
-
-<canvas id="canvas" hidden></canvas>
+</div><canvas id="canvas" hidden></canvas>
 
 <script>
 (() => {
@@ -58,6 +50,7 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
   const PREFIX = "chxd:/indexdb/Camera/";
   const $ = id => document.getElementById(id);
+
   const state = {
     cameraStream: null,
     recorder: null,
@@ -73,31 +66,53 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
   }
 
   function showPlaceholder(text){
-    $("placeholder").textContent = text || "";
-    $("placeholder").style.display = text ? "flex" : "none";
+    $("placeholder").textContent =
+      text || "";
+
+    $("placeholder").style.display =
+      text ? "flex" : "none";
   }
 
   function stopTracks(stream){
-    if(!stream) return;
-    stream.getTracks().forEach(track => {
-      try{
-        track.stop();
-      }catch(_){}
-    });
+    if(!stream){
+      return;
+    }
+
+    stream.getTracks().forEach(
+      track => {
+        try{
+          track.stop();
+        }catch(_){}
+      }
+    );
   }
 
   function stamp(){
-    return new Date().toISOString().replace(/[:.]/g,"-");
+    return new Date()
+      .toISOString()
+      .replace(/[:.]/g,"-");
   }
 
   function errText(error){
-    return error && (error.message || error.name)
-      ? (error.message || error.name)
-      : String(error || "Unknown error");
+    return error &&
+      (error.message || error.name)
+      ? (
+          error.message ||
+          error.name
+        )
+      : String(
+          error ||
+          "Unknown error"
+        );
   }
 
   function supportedMime(){
-    if(typeof MediaRecorder === "undefined") return "";
+    if(
+      typeof MediaRecorder ===
+      "undefined"
+    ){
+      return "";
+    }
 
     const candidates = [
       "video/webm;codecs=vp9,opus",
@@ -110,143 +125,21 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
       "video/mp4"
     ];
 
-    for(const type of candidates){
+    for(
+      const type of candidates
+    ){
       try{
-        if(MediaRecorder.isTypeSupported(type)){
+        if(
+          MediaRecorder.isTypeSupported(
+            type
+          )
+        ){
           return type;
         }
       }catch(_){}
     }
 
     return "";
-  }
-
-  function binarySize(value){
-    if(value instanceof ArrayBuffer){
-      return value.byteLength;
-    }
-
-    if(
-      typeof ArrayBuffer !== "undefined" &&
-      ArrayBuffer.isView &&
-      ArrayBuffer.isView(value)
-    ){
-      return value.byteLength;
-    }
-
-    if(value instanceof Blob){
-      return value.size;
-    }
-
-    return 0;
-  }
-
-  function binaryToBlob(value,type){
-    if(value instanceof Blob){
-      return value;
-    }
-
-    if(value instanceof ArrayBuffer){
-      return new Blob(
-        [value],
-        {
-          type
-        }
-      );
-    }
-
-    if(
-      typeof ArrayBuffer !== "undefined" &&
-      ArrayBuffer.isView &&
-      ArrayBuffer.isView(value)
-    ){
-      return new Blob(
-        [value],
-        {
-          type
-        }
-      );
-    }
-
-    return null;
-  }
-
-  async function contentToBlob(
-    content,
-    type
-  ){
-    const binary =
-      binaryToBlob(
-        content,
-        type
-      );
-
-    if(binary){
-      return binary;
-    }
-
-    if(
-      typeof content === "string" &&
-      content.indexOf("data:") === 0
-    ){
-      const response =
-        await fetch(
-          content
-        );
-
-      return response.blob();
-    }
-
-    throw new Error(
-      "Saved media is not binary data."
-    );
-  }
-
-  function canvasToBlob(
-    canvas,
-    type,
-    quality
-  ){
-    return new Promise(
-      (resolve,reject) => {
-        if(
-          typeof canvas.toBlob !==
-          "function"
-        ){
-          reject(
-            new Error(
-              "Canvas binary export is unavailable."
-            )
-          );
-
-          return;
-        }
-
-        canvas.toBlob(
-          blob => {
-            if(!blob){
-              reject(
-                new Error(
-                  "Could not encode image."
-                )
-              );
-
-              return;
-            }
-
-            resolve(blob);
-          },
-          type,
-          quality
-        );
-      }
-    );
-  }
-
-  async function blobToArrayBuffer(
-    blob
-  ){
-    return blob.arrayBuffer();
   }
 
   async function openCamera(){
@@ -267,7 +160,7 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
     if(state.recording){
       status(
-        "Stop the current recording before changing the camera."
+        "Stop video recording before changing the camera."
       );
 
       return false;
@@ -278,7 +171,9 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     );
 
     state.cameraStream = null;
-    $("preview").srcObject = null;
+
+    $("preview").srcObject =
+      null;
 
     showPlaceholder(
       "Opening camera…"
@@ -343,25 +238,29 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
         settings.facingMode ||
         state.facing;
 
-      if(audioTrack){
-        status(
-          "Camera ready — " +
-          label +
-          " — microphone enabled."
-        );
-      }else{
-        status(
-          "Camera ready — " +
-          label +
-          " — microphone unavailable."
-        );
-      }
+      $("format").textContent =
+        audioTrack
+          ? "camera: video + audio"
+          : "camera: video only";
+
+      status(
+        audioTrack
+          ? "Camera ready — " +
+            label +
+            " — microphone enabled."
+          : "Camera ready — " +
+            label +
+            " — microphone unavailable."
+      );
 
       return true;
     }catch(error){
       showPlaceholder(
         "Camera unavailable. Allow camera and microphone permission, then reopen the app."
       );
+
+      $("format").textContent =
+        "camera: unavailable";
 
       status(
         "Camera error — " +
@@ -377,8 +276,50 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
       .classList
       .toggle(
         "front",
-        state.facing === "user"
+        state.facing ===
+          "user"
       );
+  }
+
+  function canvasToBlob(
+    canvas,
+    type,
+    quality
+  ){
+    return new Promise(
+      (resolve,reject) => {
+        if(
+          typeof canvas.toBlob !==
+          "function"
+        ){
+          reject(
+            new Error(
+              "Canvas binary export is unavailable."
+            )
+          );
+
+          return;
+        }
+
+        canvas.toBlob(
+          blob => {
+            if(!blob){
+              reject(
+                new Error(
+                  "Could not encode image."
+                )
+              );
+
+              return;
+            }
+
+            resolve(blob);
+          },
+          type,
+          quality
+        );
+      }
+    );
   }
 
   async function takePhoto(){
@@ -435,17 +376,21 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
       );
 
     if(
-      state.facing === "user"
+      state.facing ===
+      "user"
     ){
       ctx.save();
+
       ctx.translate(
         w,
         0
       );
+
       ctx.scale(
         -1,
         1
       );
+
       ctx.drawImage(
         video,
         0,
@@ -453,6 +398,7 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
         w,
         h
       );
+
       ctx.restore();
     }else{
       ctx.drawImage(
@@ -483,11 +429,6 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
           0.92
         );
 
-      const buffer =
-        await blobToArrayBuffer(
-          blob
-        );
-
       const path =
         PREFIX +
         "photo-" +
@@ -496,12 +437,14 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
       await saveBinary(
         path,
-        buffer,
+        blob,
         {
           kind:"photo",
-          mimeType:"image/jpeg",
+          mimeType:
+            blob.type ||
+            "image/jpeg",
           size:
-            buffer.byteLength
+            blob.size
         }
       );
 
@@ -521,11 +464,12 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
   async function saveBinary(
     path,
-    binary,
+    blob,
     meta
   ){
     if(
-      typeof parent === "undefined" ||
+      typeof parent ===
+      "undefined" ||
       !parent.FS ||
       typeof parent.FS.write !==
         "function"
@@ -535,10 +479,18 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
       );
     }
 
+    if(
+      !(blob instanceof Blob)
+    ){
+      throw new Error(
+        "Media data is not a Blob."
+      );
+    }
+
     const result =
       await parent.FS.write(
         path,
-        binary,
+        blob,
         true,
         true
       );
@@ -562,9 +514,10 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
           {
             app:"Camera",
             createdAt:
-              new Date().toISOString(),
-            storage:"binary",
-            encoding:"ArrayBuffer",
+              new Date()
+                .toISOString(),
+            storage:"blob",
+            binary:true,
             ...meta
           }
         ),
@@ -583,6 +536,13 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
           : "Metadata write failed"
       );
     }
+  }
+
+  function updateRecordButton(){
+    $("record").textContent =
+      state.recording
+        ? "■ STOP VIDEO"
+        : "● START VIDEO";
   }
 
   async function startRecording(){
@@ -608,18 +568,6 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
       return;
     }
 
-    const videoTrack =
-      state.cameraStream
-        .getVideoTracks()[0];
-
-    if(!videoTrack){
-      status(
-        "No camera video track is available."
-      );
-
-      return;
-    }
-
     const tracks =
       state.cameraStream
         .getTracks()
@@ -629,6 +577,13 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
             "ended"
         );
 
+    const videoTrack =
+      tracks.find(
+        track =>
+          track.kind ===
+          "video"
+      );
+
     const audioTrack =
       tracks.find(
         track =>
@@ -636,12 +591,21 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
           "audio"
       );
 
+    if(!videoTrack){
+      status(
+        "No camera video track is available."
+      );
+
+      return;
+    }
+
     const stream =
       new MediaStream(
         tracks
       );
 
     state.chunks = [];
+
     state.mime =
       supportedMime();
 
@@ -682,12 +646,6 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     state.recording =
       true;
 
-    $("record").disabled =
-      true;
-
-    $("stop").disabled =
-      false;
-
     $("photo").disabled =
       true;
 
@@ -698,7 +656,7 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
       true;
 
     $("format").textContent =
-      "video: " +
+      "recording: " +
       (
         recorder.mimeType ||
         "browser default"
@@ -709,6 +667,8 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
           : " + no audio"
       );
 
+    updateRecordButton();
+
     status(
       audioTrack
         ? "Recording video + audio…"
@@ -716,26 +676,26 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     );
 
     recorder.ondataavailable =
-      e => {
+      event => {
         if(
-          e.data &&
-          e.data.size
+          event.data &&
+          event.data.size > 0
         ){
           state.chunks.push(
-            e.data
+            event.data
           );
         }
       };
 
     recorder.onerror =
-      e => {
+      event => {
         status(
           "Video recorder error — " +
           errText(
-            e &&
-            e.error
-              ? e.error
-              : e
+            event &&
+            event.error
+              ? event.error
+              : event
           )
         );
       };
@@ -858,14 +818,15 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     }
 
     try{
-      const buffer =
-        await blobToArrayBuffer(
-          blob
-        );
-
       const baseType =
-        String(type)
-          .split(";",1)[0]
+        (
+          blob.type ||
+          "video/webm"
+        )
+          .split(
+            ";",
+            1
+          )[0]
           .toLowerCase();
 
       const ext =
@@ -881,20 +842,24 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
         "." +
         ext;
 
+      const audio =
+        state.cameraStream
+          ? state.cameraStream
+              .getAudioTracks()
+          : [];
+
       await saveBinary(
         path,
-        buffer,
+        blob,
         {
           kind:"video",
-          mimeType:type,
+          mimeType:
+            blob.type ||
+            baseType,
           size:
-            buffer.byteLength,
+            blob.size,
           hasAudio:
-            state.cameraStream
-              ? state.cameraStream
-                  .getAudioTracks()
-                  .length > 0
-              : false
+            audio.length > 0
         }
       );
 
@@ -905,21 +870,17 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
       if(
         !verify ||
-        verify.ok !== true
+        verify.ok !== true ||
+        !(verify.content instanceof Blob)
       ){
         throw new Error(
-          "Saved video could not be read back."
+          "Saved video was not returned as a Blob."
         );
       }
 
-      const verifiedSize =
-        binarySize(
-          verify.content
-        );
-
       if(
-        verifiedSize !==
-        buffer.byteLength
+        verify.content.size !==
+        blob.size
       ){
         throw new Error(
           "Saved video size does not match the original."
@@ -931,7 +892,7 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
         path +
         " (" +
         Math.round(
-          buffer.byteLength /
+          blob.size /
           1024
         ) +
         " KB)"
@@ -947,12 +908,6 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
   }
 
   function restoreButtons(){
-    $("record").disabled =
-      false;
-
-    $("stop").disabled =
-      true;
-
     $("photo").disabled =
       false;
 
@@ -961,11 +916,21 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
     $("facing").disabled =
       false;
+
+    updateRecordButton();
+
+    $("format").textContent =
+      "video: " +
+      (
+        supportedMime() ||
+        "browser default"
+      );
   }
 
   function clearLibraryUrls(){
     for(
-      const url of state.libraryUrls
+      const url of
+      state.libraryUrls
     ){
       try{
         URL.revokeObjectURL(
@@ -976,6 +941,67 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
     state.libraryUrls =
       [];
+  }
+
+  async function mediaBlobFromContent(
+    content,
+    mime
+  ){
+    if(
+      content instanceof Blob
+    ){
+      return content;
+    }
+
+    if(
+      typeof content ===
+      "string" &&
+      content.indexOf(
+        "data:"
+      ) === 0
+    ){
+      const response =
+        await fetch(
+          content
+        );
+
+      return response.blob();
+    }
+
+    if(
+      content instanceof ArrayBuffer
+    ){
+      return new Blob(
+        [
+          content
+        ],
+        {
+          type:mime
+        }
+      );
+    }
+
+    if(
+      typeof ArrayBuffer !==
+        "undefined" &&
+      ArrayBuffer.isView &&
+      ArrayBuffer.isView(
+        content
+      )
+    ){
+      return new Blob(
+        [
+          content
+        ],
+        {
+          type:mime
+        }
+      );
+    }
+
+    throw new Error(
+      "Saved media is not a supported binary value."
+    );
   }
 
   async function loadLibrary(){
@@ -1000,11 +1026,11 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
             : []
         )
           .filter(
-            p =>
-              typeof p ===
+            path =>
+              typeof path ===
                 "string" &&
               /\.(jpg|jpeg|png|webm|mp4)$/i.test(
-                p
+                path
               )
           )
           .sort()
@@ -1037,7 +1063,7 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
             path
           );
 
-        const mime =
+        const fallbackMime =
           isPhoto
             ? (
                 /\.png$/i.test(path)
@@ -1050,21 +1076,25 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
                   : "video/webm"
               );
 
-        let mediaBlob;
+        let blob;
 
         try{
-          mediaBlob =
-            await contentToBlob(
+          blob =
+            await mediaBlobFromContent(
               read.content,
-              mime
+              fallbackMime
             );
-        }catch(error){
+        }catch(_){
           continue;
         }
 
+        const mime =
+          blob.type ||
+          fallbackMime;
+
         const url =
           URL.createObjectURL(
-            mediaBlob
+            blob
           );
 
         state.libraryUrls.push(
@@ -1104,13 +1134,17 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
           media.preload =
             "metadata";
 
-          media.setAttribute(
-            "controlsList",
-            "nodownload"
-          );
-
           media.onerror =
             () => {
+              const existing =
+                card.querySelector(
+                  ".decode-note"
+                );
+
+              if(existing){
+                return;
+              }
+
               const note =
                 document.createElement(
                   "div"
@@ -1122,15 +1156,9 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
               note.textContent =
                 "Saved recording cannot be decoded by this browser.";
 
-              if(
-                !card.querySelector(
-                  ".decode-note"
-                )
-              ){
-                card.appendChild(
-                  note
-                );
-              }
+              card.appendChild(
+                note
+              );
             };
         }
 
@@ -1171,19 +1199,11 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
           "SAVE";
 
         save.onclick =
-          async () => {
-            try{
-              await downloadMedia(
-                read.content,
-                mime,
-                path.split("/").pop()
-              );
-            }catch(error){
-              status(
-                "Save failed — " +
-                errText(error)
-              );
-            }
+          () => {
+            downloadBlob(
+              blob,
+              path.split("/").pop()
+            );
           };
 
         const del =
@@ -1199,29 +1219,36 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
         del.onclick =
           async () => {
-            const r =
+            try{
+              const result =
+                await parent.FS.remove(
+                  path
+                );
+
               await parent.FS.remove(
-                path
+                path + ".json"
               );
 
-            await parent.FS.remove(
-              path + ".json"
-            );
+              if(
+                result &&
+                result.ok === false
+              ){
+                status(
+                  "Delete failed — " +
+                  (
+                    result.error ||
+                    "unknown error"
+                  )
+                );
+              }
 
-            if(
-              r &&
-              r.ok === false
-            ){
+              await loadLibrary();
+            }catch(error){
               status(
                 "Delete failed — " +
-                (
-                  r.error ||
-                  "unknown error"
-                )
+                errText(error)
               );
             }
-
-            await loadLibrary();
           };
 
         actions.append(
@@ -1249,17 +1276,10 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     }
   }
 
-  async function downloadMedia(
-    content,
-    mime,
+  function downloadBlob(
+    blob,
     name
   ){
-    const blob =
-      await contentToBlob(
-        content,
-        mime
-      );
-
     const url =
       URL.createObjectURL(
         blob
@@ -1293,7 +1313,7 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
             );
           }catch(_){}
         },
-        1000
+        5000
       );
     }
   }
@@ -1318,10 +1338,13 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     takePhoto;
 
   $("record").onclick =
-    startRecording;
-
-  $("stop").onclick =
-    stopRecording;
+    async () => {
+      if(state.recording){
+        await stopRecording();
+      }else{
+        await startRecording();
+      }
+    };
 
   $("switch").onclick =
     async () => {
@@ -1346,16 +1369,16 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     };
 
   $("facing").onchange =
-    async e => {
+    async event => {
       if(state.recording){
-        e.target.value =
+        event.target.value =
           state.facing;
 
         return;
       }
 
       state.facing =
-        e.target.value;
+        event.target.value;
 
       await openCamera();
     };
@@ -1389,10 +1412,11 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
         "browser default"
       );
 
+    updateRecordButton();
+
     await openCamera();
     await loadLibrary();
   })();
 })();
-</script>
-</body>
+</script></body>
 </html>
