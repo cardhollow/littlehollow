@@ -239,6 +239,8 @@ Example:
 <[a:500](500)[s:500][d:500]>
 <[k:1500]>
 
+You can save the pkp in a file named .pkp and the User can directly load it into the Piano App
+
 AGENT BEHAVIOR
 You may perform multiple tool calls before producing a final response.
 After a tool call, use its result to decide what to do next.
