@@ -2,145 +2,5413 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"
+>
 <title>Document Viewer</title>
+
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:monospace}
-html,body{width:100%;height:100%;background:#000;color:#00FFFF}
-body{overflow:hidden}
-.wrap{display:flex;flex-direction:column;width:100%;height:100%}
-.bar{flex:0 0 auto;display:flex;gap:6px;padding:8px;border-bottom:1px solid #00FFFF;flex-wrap:wrap}
-.bar input{flex:1;min-width:0;background:#001010;border:1px solid #00FFFF;color:#00FFFF;padding:6px 8px;outline:none;font:11px monospace}
-.bar button,.tools button{border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:6px 9px;cursor:pointer;font:10px monospace}
-.bar button:active,.tools button:active{background:#00FFFF;color:#000}
-.tools{display:flex;gap:5px;align-items:center;padding:6px 8px;border-bottom:1px solid rgba(0,255,255,.25);overflow:auto;flex:0 0 auto}
-.tools input{width:90px;flex:0 0 90px;background:#001010;border:1px solid #00FFFF;color:#00FFFF;padding:5px;outline:none;font:10px monospace}
-.tools .info{font-size:10px;opacity:.7;white-space:nowrap}
-.stage{flex:1;min-height:0;overflow:auto;background:#000}
-.viewer{min-width:100%;min-height:100%;display:flex;justify-content:center;align-items:flex-start;padding:14px}
-.empty{min-height:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;opacity:.55;font-size:12px;white-space:pre-wrap}
-.error{max-width:900px;margin:auto;padding:20px;color:#ff6666;font-size:11px;line-height:1.5;white-space:pre-wrap}
-.status{position:absolute;left:10px;right:10px;bottom:10px;padding:7px 9px;border:1px solid #064A4C;background:#001113;color:#00FFFF;font-size:10px;display:none;z-index:20}
-.status.show{display:block}
-.doc{width:min(900px,100%);background:#fff;color:#111;padding:44px;line-height:1.55;box-shadow:0 0 0 1px #333}
-.doc img{max-width:100%;height:auto}.doc table{border-collapse:collapse;width:100%;margin:12px 0}.doc th,.doc td{border:1px solid #777;padding:5px 7px;vertical-align:top}.doc pre{white-space:pre-wrap;word-break:break-word;background:#eee;padding:10px;overflow:auto}
-.md{width:min(900px,100%);background:#fff;color:#111;padding:44px;line-height:1.6;box-shadow:0 0 0 1px #333}.md h1,.md h2,.md h3,.md h4,.md h5,.md h6{margin:1em 0 .5em}.md p,.md ul,.md ol,.md blockquote,.md pre{margin:.7em 0}.md blockquote{border-left:4px solid #888;padding-left:12px;color:#444}.md code{background:#eee;padding:2px 4px}.md pre{padding:10px;background:#eee;overflow:auto}.md img{max-width:100%}
-.text{width:min(1000px,100%);padding:25px;white-space:pre-wrap;word-break:break-word;line-height:1.5;font:13px monospace}
-.sheet{border-collapse:collapse;background:#fff;color:#000;width:max-content;min-width:100%}.sheet th,.sheet td{border:1px solid #888;padding:5px 8px;vertical-align:top;white-space:pre-wrap}.sheet th{font-weight:bold}
-.pdf{width:min(100%,1100px);display:flex;flex-direction:column;align-items:center;gap:12px}.pdf canvas{display:block;background:#fff;box-shadow:0 0 0 1px #444;max-width:100%;height:auto}.page-label{font-size:10px;opacity:.7}
-.pptx{width:min(1200px,100%);display:flex;justify-content:center}.ppt-slide{width:100%;background:#fff;color:#000;box-shadow:0 0 0 1px #333;overflow:hidden}
-.compat{width:min(900px,100%);border:1px solid #064A4C;padding:15px;font-size:11px;line-height:1.55}.compat strong{color:#FFFF00}
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  font-family:monospace
+}
+
+html,
+body{
+  width:100%;
+  height:100%;
+  background:#000;
+  color:#00FFFF
+}
+
+body{
+  overflow:hidden
+}
+
+button,
+input{
+  font-family:monospace
+}
+
+.wrap{
+  display:flex;
+  flex-direction:column;
+  width:100%;
+  height:100%
+}
+
+/* =========================================================
+   TOP BAR
+========================================================= */
+
+.bar{
+  flex:0 0 auto;
+  display:flex;
+  gap:6px;
+  padding:8px;
+  border-bottom:1px solid #00FFFF;
+  flex-wrap:wrap
+}
+
+.bar input{
+  flex:1;
+  min-width:0;
+  background:#001010;
+  border:1px solid #00FFFF;
+  color:#00FFFF;
+  padding:7px 8px;
+  outline:none;
+  font:11px monospace
+}
+
+.bar button,
+.tools button{
+  border:1px solid #00FFFF;
+  background:transparent;
+  color:#00FFFF;
+  padding:6px 9px;
+  cursor:pointer;
+  font:10px monospace
+}
+
+.bar button:active,
+.tools button:active{
+  background:#00FFFF;
+  color:#000
+}
+
+.bar button:disabled,
+.tools button:disabled{
+  opacity:.35;
+  cursor:not-allowed
+}
+
+/* =========================================================
+   TOOL BAR
+========================================================= */
+
+.tools{
+  display:flex;
+  gap:5px;
+  align-items:center;
+  padding:6px 8px;
+  border-bottom:1px solid rgba(0,255,255,.25);
+  overflow:auto;
+  flex:0 0 auto
+}
+
+.tools input{
+  width:100px;
+  flex:0 0 100px;
+  background:#001010;
+  border:1px solid #00FFFF;
+  color:#00FFFF;
+  padding:5px 6px;
+  outline:none;
+  font:10px monospace
+}
+
+.tools .info{
+  font-size:10px;
+  opacity:.7;
+  white-space:nowrap
+}
+
+/* =========================================================
+   VIEWER
+========================================================= */
+
+.stage{
+  position:relative;
+  flex:1;
+  min-height:0;
+  overflow:auto;
+  background:#000
+}
+
+.viewer{
+  min-width:100%;
+  min-height:100%;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  padding:14px;
+}
+
+.empty{
+  min-height:100%;
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:20px;
+  opacity:.55;
+  font-size:12px;
+  white-space:pre-wrap
+}
+
+.error{
+  width:min(950px,100%);
+  margin:auto;
+  padding:20px;
+  color:#ff6666;
+  font-size:11px;
+  line-height:1.55;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere
+}
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.status{
+  position:fixed;
+  left:10px;
+  right:10px;
+  bottom:10px;
+
+  padding:8px 10px;
+
+  border:1px solid #064A4C;
+  background:#001113;
+
+  color:#00FFFF;
+
+  font-size:10px;
+  line-height:1.4;
+
+  display:none;
+
+  z-index:999999;
+
+  white-space:pre-wrap;
+  pointer-events:none
+}
+
+.status.show{
+  display:block
+}
+
+/* =========================================================
+   DOCX / HTML DOCUMENT
+========================================================= */
+
+.doc{
+  width:min(900px,100%);
+  background:#fff;
+  color:#111;
+  padding:44px;
+  line-height:1.55;
+  box-shadow:0 0 0 1px #333
+}
+
+.doc img{
+  max-width:100%;
+  height:auto
+}
+
+.doc table{
+  border-collapse:collapse;
+  width:100%;
+  margin:12px 0
+}
+
+.doc th,
+.doc td{
+  border:1px solid #777;
+  padding:5px 7px;
+  vertical-align:top
+}
+
+.doc pre{
+  white-space:pre-wrap;
+  word-break:break-word;
+  background:#eee;
+  padding:10px;
+  overflow:auto
+}
+
+/* =========================================================
+   MARKDOWN
+========================================================= */
+
+.md{
+  width:min(900px,100%);
+  background:#fff;
+  color:#111;
+  padding:44px;
+  line-height:1.6;
+  box-shadow:0 0 0 1px #333
+}
+
+.md h1,
+.md h2,
+.md h3,
+.md h4,
+.md h5,
+.md h6{
+  margin:1em 0 .5em
+}
+
+.md p,
+.md ul,
+.md ol,
+.md blockquote,
+.md pre{
+  margin:.7em 0
+}
+
+.md blockquote{
+  border-left:4px solid #888;
+  padding-left:12px;
+  color:#444
+}
+
+.md code{
+  background:#eee;
+  padding:2px 4px
+}
+
+.md pre{
+  padding:10px;
+  background:#eee;
+  overflow:auto
+}
+
+.md img{
+  max-width:100%
+}
+
+/* =========================================================
+   PLAIN TEXT
+========================================================= */
+
+.text{
+  width:min(1000px,100%);
+  padding:25px;
+  white-space:pre-wrap;
+  word-break:break-word;
+  line-height:1.5;
+  font:13px monospace;
+  color:#00FFFF
+}
+
+/* =========================================================
+   SPREADSHEETS
+========================================================= */
+
+.sheet-wrap{
+  width:100%;
+  overflow:auto;
+  background:#fff
+}
+
+.sheet{
+  border-collapse:collapse;
+  background:#fff;
+  color:#000;
+  width:max-content;
+  min-width:100%
+}
+
+.sheet th,
+.sheet td{
+  border:1px solid #888;
+  padding:5px 8px;
+  vertical-align:top;
+  white-space:pre-wrap;
+  min-width:70px
+}
+
+.sheet th{
+  font-weight:bold;
+  background:#e8e8e8;
+  position:sticky;
+  top:0;
+  z-index:2
+}
+
+/* =========================================================
+   PDF
+========================================================= */
+
+.pdf{
+  width:min(100%,1100px);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px
+}
+
+.pdf canvas{
+  display:block;
+  background:#fff;
+  box-shadow:0 0 0 1px #444;
+  height:auto
+}
+
+.page-label{
+  font-size:10px;
+  opacity:.7
+}
+
+/* =========================================================
+   PRESENTATION
+========================================================= */
+
+.pptx{
+  width:min(1200px,100%);
+  display:flex;
+  justify-content:center
+}
+
+.ppt-slide{
+  position:relative;
+  width:100%;
+  aspect-ratio:16/9;
+  background:#fff;
+  color:#000;
+  box-shadow:0 0 0 1px #333;
+  overflow:hidden
+}
+
+.ppt-text{
+  position:absolute;
+  white-space:pre-wrap;
+  overflow:hidden;
+  font-family:Arial,sans-serif;
+  color:#000
+}
+
+.ppt-image{
+  position:absolute;
+  object-fit:contain
+}
+
+/* =========================================================
+   IMAGE
+========================================================= */
+
+.image-view{
+  width:100%;
+  display:flex;
+  justify-content:center
+}
+
+.image-view img{
+  max-width:100%;
+  height:auto;
+  background:#fff;
+  box-shadow:0 0 0 1px #444
+}
+
+/* =========================================================
+   GENERIC BINARY / UNSUPPORTED
+========================================================= */
+
+.compat{
+  width:min(900px,100%);
+  border:1px solid #064A4C;
+  padding:16px;
+  font-size:11px;
+  line-height:1.6
+}
+
+.compat strong{
+  color:#FFFF00
+}
+
+/* =========================================================
+   IFRAME HTML
+========================================================= */
+
+.html-frame{
+  width:min(1100px,100%);
+  height:calc(100vh - 120px);
+  border:0;
+  background:#fff
+}
+
+/* =========================================================
+   SEARCH HIGHLIGHT
+========================================================= */
+
+.search-hit{
+  outline:2px solid #00FFFF;
+  background:#00FFFF22
+}
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+.loader{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  width:100%;
+  min-height:50vh;
+  font-size:11px
+}
+
+.loader-ring{
+  width:28px;
+  height:28px;
+  border:2px solid #064A4C;
+  border-top-color:#00FFFF;
+  border-radius:50%;
+  animation:spin .8s linear infinite
+}
+
+@keyframes spin{
+  to{
+    transform:rotate(360deg)
+  }
+}
 </style>
 </head>
+
 <body>
+
 <div class="wrap">
-<div class="bar">
-<input id="src" placeholder="Document URL or chxd:/ path..." autocomplete="off" spellcheck="false">
-<button id="load">LOAD</button>
+
+  <!-- =====================================================
+       SOURCE BAR
+  ====================================================== -->
+
+  <div class="bar">
+
+    <input
+      id="src"
+      placeholder="Document URL or chxd:/ path..."
+      autocomplete="off"
+      spellcheck="false"
+    >
+
+    <button id="load">
+      LOAD
+    </button>
+
+  </div>
+
+  <!-- =====================================================
+       TOOLS
+  ====================================================== -->
+
+  <div class="tools">
+
+    <button id="prev">
+      ◀ PREV
+    </button>
+
+    <button id="next">
+      NEXT ▶
+    </button>
+
+    <input
+      id="page"
+      type="number"
+      min="1"
+      step="1"
+      placeholder="PAGE"
+      hidden
+    >
+
+    <button
+      id="goto"
+      hidden
+    >
+      GO
+    </button>
+
+    <button id="zoomOut">
+      −
+    </button>
+
+    <span
+      class="info"
+      id="zoom"
+    >
+      100%
+    </span>
+
+    <button id="zoomIn">
+      +
+    </button>
+
+    <button id="fit">
+      FIT
+    </button>
+
+    <input
+      id="find"
+      type="text"
+      placeholder="find text"
+      autocomplete="off"
+      spellcheck="false"
+    >
+
+    <button id="findBtn">
+      FIND
+    </button>
+
+    <span
+      class="info"
+      id="pageInfo"
+    ></span>
+
+  </div>
+
+  <!-- =====================================================
+       STAGE
+  ====================================================== -->
+
+  <div
+    class="stage"
+    id="stage"
+  >
+
+    <div
+      class="viewer"
+      id="viewer"
+    >
+
+      <div class="empty">
+        No document loaded.
+      </div>
+
+    </div>
+
+  </div>
+
 </div>
-<div class="tools">
-<button id="prev">◀ PREV</button>
-<button id="next">NEXT ▶</button>
-<input id="page" type="number" min="1" step="1" placeholder="PAGE" hidden>
-<button id="goto" hidden>GO</button>
-<button id="zoomOut">−</button>
-<span class="info" id="zoom">100%</span>
-<button id="zoomIn">+</button>
-<button id="fit">FIT</button>
-<input id="find" type="text" placeholder="find text" autocomplete="off" spellcheck="false">
-<button id="findBtn">FIND</button>
-<span class="info" id="pageInfo"></span>
-</div>
-<div class="stage" id="stage"><div class="viewer" id="viewer"><div class="empty">No document loaded.</div></div><div class="status" id="status"></div></div>
-</div>
+
+<div
+  class="status"
+  id="status"
+></div>
+
+
 <script type="module">
+
 "use strict";
-const $=id=>document.getElementById(id);
-const viewer=$("viewer"),stage=$("stage"),statusBox=$("status"),srcBox=$("src"),pageBox=$("page"),goBtn=$("goto"),pageInfo=$("pageInfo"),zoomInfo=$("zoom");
-const initial=new URLSearchParams(location.search).get("src");
-const LIB={pdf:"https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/build/pdf.mjs",pdfWorker:"https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/build/pdf.worker.mjs",mammoth:"https://cdn.jsdelivr.net/npm/mammoth@1.11.0/mammoth.browser.min.js",marked:"https://cdn.jsdelivr.net/npm/marked@16.3.0/lib/marked.esm.js",xlsx:"https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs",pptx:"https://esm.sh/pptx-viewer@latest",jszip:"https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm"};
-let pdfjs=null,pptxLib=null,loaded=null,kind="",path="",zoom=1,page=1,total=0,searchText="",searchIndex=-1,searchHits=[];
-let urls=[];
-function text(e){return e&&(e.message||e.name)?e.message||e.name:String(e||"Unknown error")}
-function setStatus(s,on=true){statusBox.textContent=String(s||"");statusBox.classList.toggle("show",!!on)}
-function clearStatus(){setStatus("",false)}
-function clearUrls(){for(const u of urls){try{URL.revokeObjectURL(u)}catch(_){}}urls=[]}
-function ext(p){const s=String(p||"").split("?")[0].split("#")[0];const i=s.lastIndexOf(".");return i<0?"":s.slice(i+1).toLowerCase()}
-function mime(p){switch(ext(p)){case"pdf":return"application/pdf";case"docx":return"application/vnd.openxmlformats-officedocument.wordprocessingml.document";case"doc":return"application/msword";case"pptx":return"application/vnd.openxmlformats-officedocument.presentationml.presentation";case"ppt":return"application/vnd.ms-powerpoint";case"xlsx":return"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";case"xls":return"application/vnd.ms-excel";case"ods":return"application/vnd.oasis.opendocument.spreadsheet";case"md":case"markdown":return"text/markdown";case"csv":return"text/csv";case"rtf":return"application/rtf";case"html":case"htm":return"text/html";case"txt":return"text/plain";case"xml":return"application/xml";case"json":return"application/json";case"epub":return"application/epub+zip";case"odt":return"application/vnd.oasis.opendocument.text";case"odp":return"application/vnd.oasis.opendocument.presentation";default:return"application/octet-stream"}}
-function virtual(s){return /^(chxd|local|session|indexdb|puter):\//i.test(String(s||""))}
-async function readSource(s){
- s=String(s||"").trim();if(!s)throw Error("No document source specified.");
- if(virtual(s)){
-  const fs=window.parent!==window?window.parent.FS:window.FS;
-  if(!fs||typeof fs.read!=="function")throw Error("Little Hollow filesystem bridge is unavailable.");
-  let p=s;try{if(typeof fs.normalize==="function")p=fs.normalize(p)}catch(_){ }
-  const r=await fs.read(p);
-  if(r&&typeof r==="object"&&"ok" in r&&!r.ok)throw Error(r.error||"Could not read document.");
-  const c=r&&typeof r==="object"&&"content" in r?r.content:r;
-  if(c instanceof Blob)return {buffer:await c.arrayBuffer(),mime:c.type||mime(p),path:p};
-  if(c instanceof ArrayBuffer)return {buffer:c,mime:mime(p),path:p};
-  if(ArrayBuffer.isView(c))return {buffer:c.buffer.slice(c.byteOffset,c.byteOffset+c.byteLength),mime:mime(p),path:p};
-  if(typeof c==="string"&&/^data:/i.test(c)){const q=await fetch(c);return {buffer:await q.arrayBuffer(),mime:q.headers.get("content-type")||mime(p),path:p}}
-  if(typeof c==="string")return {text:c,mime:mime(p),path:p};
-  throw Error("Unsupported filesystem data type.");
- }
- if(/^https?:\/\//i.test(s)||/^blob:/i.test(s)||/^file:/i.test(s)||/^data:/i.test(s)){
-  const r=await fetch(s);if(!r.ok)throw Error("HTTP "+r.status+" while loading document.");
-  return {buffer:await r.arrayBuffer(),mime:r.headers.get("content-type")||mime(s),path:s};
- }
- throw Error("Unsupported document source:\n"+s);
+
+/* =========================================================
+   DOM
+========================================================= */
+
+const $ = id =>
+  document.getElementById(id);
+
+const viewer =
+  $("viewer");
+
+const stage =
+  $("stage");
+
+const statusBox =
+  $("status");
+
+const srcBox =
+  $("src");
+
+const pageBox =
+  $("page");
+
+const goBtn =
+  $("goto");
+
+const pageInfo =
+  $("pageInfo");
+
+const zoomInfo =
+  $("zoom");
+
+const initial =
+  new URLSearchParams(
+    location.search
+  ).get("src");
+
+
+/* =========================================================
+   EXTERNAL LIBRARIES
+========================================================= */
+
+const LIB = {
+
+  pdf:
+    "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/build/pdf.mjs",
+
+  pdfWorker:
+    "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/build/pdf.worker.mjs",
+
+  mammoth:
+    "https://cdn.jsdelivr.net/npm/mammoth@1.11.0/mammoth.browser.min.js",
+
+  marked:
+    "https://cdn.jsdelivr.net/npm/marked@16.3.0/lib/marked.esm.js",
+
+  xlsx:
+    "https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs",
+
+  jszip:
+    "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm"
+};
+
+
+/* =========================================================
+   STATE
+========================================================= */
+
+let pdfjs = null;
+let mammoth = null;
+let marked = null;
+let XLSX = null;
+let JSZip = null;
+
+let loaded = null;
+
+let kind = "";
+let path = "";
+
+let zoom = 1;
+
+let page = 1;
+let total = 0;
+
+let textContent = "";
+
+let searchText = "";
+let searchIndex = -1;
+let searchHits = [];
+
+let urls = [];
+
+let currentSheets = [];
+let currentSheetIndex = 0;
+
+
+/* =========================================================
+   GENERAL
+========================================================= */
+
+function errorText(e){
+
+  if(
+    e &&
+    typeof e === "object"
+  ){
+    return String(
+      e.message ||
+      e.name ||
+      e
+    );
+  }
+
+  return String(
+    e ??
+    "Unknown error"
+  );
 }
-function textFromBuffer(b){try{return new TextDecoder("utf-8").decode(b)}catch(_){return ""}}
-function empty(msg="No document loaded."){clearViewer();const e=document.createElement("div");e.className="empty";e.textContent=msg;viewer.appendChild(e)}
-function error(msg){clearViewer();const e=document.createElement("div");e.className="error";e.textContent=String(msg||"Failed to load document.");viewer.appendChild(e)}
-function clearViewer(){viewer.innerHTML="";viewer.style.zoom="1"}
-function updateTools(){const paged=kind==="pdf"||kind==="pptx";$("prev").disabled=!paged;$("next").disabled=!paged;pageBox.hidden=!paged;goBtn.hidden=!paged;pageInfo.textContent=paged?`${page} / ${total}`:"";zoomInfo.textContent=Math.round(zoom*100)+"%"}
-async function loadScript(src){return new Promise((resolve,reject)=>{const old=document.querySelector(`script[data-dv-src="${src}"]`);if(old){if(old.dataset.ready==="1")return resolve();old.addEventListener("load",()=>resolve(),{once:true});old.addEventListener("error",()=>reject(Error("Could not load "+src)),{once:true});return}const s=document.createElement("script");s.src=src;s.dataset.dvSrc=src;s.onload=()=>{s.dataset.ready="1";resolve()};s.onerror=()=>reject(Error("Could not load "+src));document.head.appendChild(s)})}
-async function lib(name){
- if(name==="pdf"){if(pdfjs)return pdfjs;pdfjs=await import(LIB.pdf);pdfjs.GlobalWorkerOptions.workerSrc=LIB.pdfWorker;return pdfjs}
- if(name==="mammoth"){if(window.mammoth)return window.mammoth;if(window.Mammoth)return window.Mammoth;await loadScript(LIB.mammoth);return window.mammoth||window.Mammoth}
- if(name==="marked")return import(LIB.marked)
- if(name==="xlsx")return import(LIB.xlsx)
- if(name==="pptx"){if(pptxLib)return pptxLib;pptxLib=await import(LIB.pptx);return pptxLib}
- if(name==="jszip"){const m=await import(LIB.jszip);return m.default||m}
- throw Error("Unknown library: "+name)
+
+
+function setStatus(
+  message,
+  show = true
+){
+
+  statusBox.textContent =
+    String(message || "");
+
+  statusBox.classList.toggle(
+    "show",
+    !!show
+  );
 }
-async function openPDF(buffer){
- const p=await lib("pdf");const task=p.getDocument({data:new Uint8Array(buffer)});loaded=await task.promise;kind="pdf";total=loaded.numPages;page=1;await renderPDF();setStatus("PDF loaded.")
+
+
+function clearStatus(){
+
+  setStatus(
+    "",
+    false
+  );
 }
+
+
+function clearUrls(){
+
+  for(
+    const u of urls
+  ){
+
+    try{
+      URL.revokeObjectURL(u);
+    }catch(_){}
+
+  }
+
+  urls = [];
+}
+
+
+function clearViewer(){
+
+  viewer.innerHTML = "";
+
+  viewer.style.zoom =
+    "1";
+
+}
+
+
+function empty(
+  message = "No document loaded."
+){
+
+  clearViewer();
+
+  const d =
+    document.createElement(
+      "div"
+    );
+
+  d.className =
+    "empty";
+
+  d.textContent =
+    message;
+
+  viewer.appendChild(d);
+}
+
+
+function showError(
+  message
+){
+
+  clearViewer();
+
+  const d =
+    document.createElement(
+      "div"
+    );
+
+  d.className =
+    "error";
+
+  d.textContent =
+    String(message);
+
+  viewer.appendChild(d);
+}
+
+
+/* =========================================================
+   FILE EXTENSION
+========================================================= */
+
+function ext(value){
+
+  const s =
+    String(value || "")
+      .split("?")[0]
+      .split("#")[0];
+
+  const i =
+    s.lastIndexOf(".");
+
+  if(i < 0){
+    return "";
+  }
+
+  return s
+    .slice(i + 1)
+    .toLowerCase();
+}
+
+
+/* =========================================================
+   MIME
+========================================================= */
+
+function mime(value){
+
+  switch(ext(value)){
+
+    case "pdf":
+      return "application/pdf";
+
+    case "docx":
+      return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+    case "doc":
+      return "application/msword";
+
+    case "pptx":
+      return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+
+    case "ppt":
+      return "application/vnd.ms-powerpoint";
+
+    case "xlsx":
+      return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+    case "xls":
+      return "application/vnd.ms-excel";
+
+    case "ods":
+      return "application/vnd.oasis.opendocument.spreadsheet";
+
+    case "odp":
+      return "application/vnd.oasis.opendocument.presentation";
+
+    case "odt":
+      return "application/vnd.oasis.opendocument.text";
+
+    case "md":
+    case "markdown":
+      return "text/markdown";
+
+    case "csv":
+      return "text/csv";
+
+    case "rtf":
+      return "application/rtf";
+
+    case "html":
+    case "htm":
+      return "text/html";
+
+    case "txt":
+      return "text/plain";
+
+    case "xml":
+      return "application/xml";
+
+    case "json":
+      return "application/json";
+
+    case "yaml":
+    case "yml":
+      return "text/yaml";
+
+    case "epub":
+      return "application/epub+zip";
+
+    case "svg":
+      return "image/svg+xml";
+
+    case "png":
+      return "image/png";
+
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+
+    case "gif":
+      return "image/gif";
+
+    case "webp":
+      return "image/webp";
+
+    default:
+      return "application/octet-stream";
+  }
+}
+
+
+/* =========================================================
+   VIRTUAL PATH
+========================================================= */
+
+function virtual(
+  source
+){
+
+  return /^(chxd|local|session|indexdb|puter):\//i
+    .test(
+      String(source || "")
+    );
+}
+
+
+/* =========================================================
+   LIB LOADERS
+========================================================= */
+
+async function loadScript(
+  src
+){
+
+  return new Promise(
+    (resolve,reject)=>{
+
+      const old =
+        document.querySelector(
+          `script[data-dv-src="${src}"]`
+        );
+
+      if(old){
+
+        if(
+          old.dataset.ready === "1"
+        ){
+          resolve();
+          return;
+        }
+
+        old.addEventListener(
+          "load",
+          resolve,
+          {
+            once:true
+          }
+        );
+
+        old.addEventListener(
+          "error",
+          ()=>{
+            reject(
+              Error(
+                "Could not load " +
+                src
+              )
+            )
+          },
+          {
+            once:true
+          }
+        );
+
+        return;
+      }
+
+      const s =
+        document.createElement(
+          "script"
+        );
+
+      s.src =
+        src;
+
+      s.dataset.dvSrc =
+        src;
+
+      s.onload =
+        ()=>{
+          s.dataset.ready =
+            "1";
+
+          resolve();
+        };
+
+      s.onerror =
+        ()=>{
+          reject(
+            Error(
+              "Could not load " +
+              src
+            )
+          );
+        };
+
+      document.head.appendChild(
+        s
+      );
+    }
+  );
+}
+
+
+async function lib(
+  name
+){
+
+  if(
+    name === "pdf"
+  ){
+
+    if(pdfjs){
+      return pdfjs;
+    }
+
+    pdfjs =
+      await import(
+        LIB.pdf
+      );
+
+    pdfjs
+      .GlobalWorkerOptions
+      .workerSrc =
+      LIB.pdfWorker;
+
+    return pdfjs;
+  }
+
+
+  if(
+    name === "mammoth"
+  ){
+
+    if(mammoth){
+      return mammoth;
+    }
+
+    if(
+      window.mammoth
+    ){
+      mammoth =
+        window.mammoth;
+
+      return mammoth;
+    }
+
+    await loadScript(
+      LIB.mammoth
+    );
+
+    mammoth =
+      window.mammoth ||
+      window.Mammoth;
+
+    if(!mammoth){
+
+      throw Error(
+        "Mammoth.js loaded but was not exposed."
+      );
+    }
+
+    return mammoth;
+  }
+
+
+  if(
+    name === "marked"
+  ){
+
+    if(marked){
+      return marked;
+    }
+
+    marked =
+      await import(
+        LIB.marked
+      );
+
+    return marked;
+  }
+
+
+  if(
+    name === "xlsx"
+  ){
+
+    if(XLSX){
+      return XLSX;
+    }
+
+    XLSX =
+      await import(
+        LIB.xlsx
+      );
+
+    return XLSX;
+  }
+
+
+  if(
+    name === "jszip"
+  ){
+
+    if(JSZip){
+      return JSZip;
+    }
+
+    const m =
+      await import(
+        LIB.jszip
+      );
+
+    JSZip =
+      m.default ||
+      m;
+
+    return JSZip;
+  }
+
+
+  throw Error(
+    "Unknown library: " +
+    name
+  );
+}
+
+
+/* =========================================================
+   BINARY NORMALIZATION
+========================================================= */
+
+function typedArrayToArrayBuffer(
+  value
+){
+
+  if(
+    value instanceof ArrayBuffer
+  ){
+    return value;
+  }
+
+  if(
+    ArrayBuffer.isView(value)
+  ){
+
+    return value
+      .buffer
+      .slice(
+        value.byteOffset,
+        value.byteOffset +
+        value.byteLength
+      );
+  }
+
+  return null;
+}
+
+
+async function normalizeBinary(
+  value,
+  source
+){
+
+  if(value == null){
+
+    throw Error(
+      "Filesystem returned no data for:\n" +
+      source
+    );
+  }
+
+
+  if(
+    value instanceof Blob
+  ){
+
+    return {
+      buffer:
+        await value.arrayBuffer(),
+      mime:
+        value.type ||
+        mime(source),
+      path:
+        source
+    };
+  }
+
+
+  const ab =
+    typedArrayToArrayBuffer(
+      value
+    );
+
+  if(ab){
+
+    return {
+      buffer:
+        ab,
+      mime:
+        mime(source),
+      path:
+        source
+    };
+  }
+
+
+  if(
+    typeof value === "string"
+  ){
+
+    if(
+      /^data:/i.test(value)
+    ){
+
+      const r =
+        await fetch(value);
+
+      return {
+        buffer:
+          await r.arrayBuffer(),
+        mime:
+          r.headers.get(
+            "content-type"
+          ) ||
+          mime(source),
+        path:
+          source
+      };
+    }
+
+    return {
+      text:
+        value,
+      mime:
+        mime(source),
+      path:
+        source
+    };
+  }
+
+
+  if(
+    typeof value === "object"
+  ){
+
+    if(
+      value.buffer != null
+    ){
+
+      return normalizeBinary(
+        value.buffer,
+        source
+      );
+    }
+
+    if(
+      value.bytes != null
+    ){
+
+      return normalizeBinary(
+        value.bytes,
+        source
+      );
+    }
+
+    if(
+      value.data != null
+    ){
+
+      return normalizeBinary(
+        value.data,
+        source
+      );
+    }
+
+    if(
+      value.content != null
+    ){
+
+      return normalizeBinary(
+        value.content,
+        source
+      );
+    }
+
+    if(
+      value.base64 != null
+    ){
+
+      const bin =
+        atob(
+          String(
+            value.base64
+          )
+            .replace(
+              /^data:.*?;base64,/i,
+              ""
+            )
+            .replace(
+              /\s+/g,
+              ""
+            )
+        );
+
+      const bytes =
+        new Uint8Array(
+          bin.length
+        );
+
+      for(
+        let i=0;
+        i<bin.length;
+        i++
+      ){
+        bytes[i] =
+          bin.charCodeAt(i);
+      }
+
+      return {
+        buffer:
+          bytes.buffer,
+        mime:
+          value.mime ||
+          mime(source),
+        path:
+          source
+      };
+    }
+  }
+
+
+  throw Error(
+    "Unsupported binary data returned for:\n" +
+    source
+  );
+}
+
+
+/* =========================================================
+   LITTLE HOLLOW PUBLIC FS
+========================================================= */
+
+function getPublicFS(){
+
+  let fs = null;
+
+  try{
+
+    fs =
+      window.parent !== window
+        ? window.parent.FS
+        : window.FS;
+
+  }catch(_){
+
+    fs = null;
+  }
+
+  if(!fs){
+
+    throw Error(
+      "Little Hollow public FS API is unavailable."
+    );
+  }
+
+  return fs;
+}
+
+
+/* =========================================================
+   DIRECT MOUNTED DEVICE BINARY READ
+========================================================= */
+
+async function readDeviceBinary(
+  source
+){
+
+  const fs =
+    getPublicFS();
+
+
+  if(
+    typeof fs.getDeviceMounts !==
+    "function"
+  ){
+
+    throw Error(
+      "Little Hollow FS.getDeviceMounts() is unavailable."
+    );
+  }
+
+
+  let normalized =
+    source;
+
+  if(
+    typeof fs.normalize ===
+    "function"
+  ){
+
+    try{
+      normalized =
+        await fs.normalize(
+          source
+        );
+    }catch(_){}
+  }
+
+
+  /*
+    Expected:
+    chxd:/device/MOUNT/path/file.docx
+  */
+
+  const prefix =
+    "chxd:/device/";
+
+  if(
+    !normalized
+      .toLowerCase()
+      .startsWith(
+        prefix
+      )
+  ){
+
+    return null;
+  }
+
+
+  const relative =
+    normalized.slice(
+      prefix.length
+    );
+
+
+  const pieces =
+    relative
+      .split("/")
+      .filter(Boolean);
+
+
+  if(
+    pieces.length < 2
+  ){
+
+    throw Error(
+      "Invalid device file path:\n" +
+      normalized
+    );
+  }
+
+
+  const mountName =
+    pieces.shift();
+
+
+  const mounts =
+    await fs.getDeviceMounts();
+
+
+  const mount =
+    mounts.find(
+      x =>
+        String(x.name)
+          .toLowerCase() ===
+        String(mountName)
+          .toLowerCase()
+    );
+
+
+  if(!mount){
+
+    throw Error(
+      "Device folder is not mounted:\n" +
+      mountName
+    );
+  }
+
+
+  if(!mount.handle){
+
+    throw Error(
+      "Mounted device folder has no file handle:\n" +
+      mountName
+    );
+  }
+
+
+  if(
+    typeof fs.ensurePermission ===
+    "function"
+  ){
+
+    const allowed =
+      await fs.ensurePermission(
+        mount.handle,
+        "read"
+      );
+
+    if(!allowed){
+
+      throw Error(
+        "Permission was not granted for:\n" +
+        mountName
+      );
+    }
+  }
+
+
+  let current =
+    mount.handle;
+
+
+  for(
+    let i=0;
+    i<pieces.length-1;
+    i++
+  ){
+
+    current =
+      await current.getDirectoryHandle(
+        pieces[i]
+      );
+  }
+
+
+  const fileName =
+    pieces[
+      pieces.length - 1
+    ];
+
+
+  const fileHandle =
+    await current.getFileHandle(
+      fileName
+    );
+
+
+  const file =
+    await fileHandle.getFile();
+
+
+  /*
+    IMPORTANT:
+    arrayBuffer(), NOT text().
+    This preserves PDF/DOCX/PPTX/XLSX bytes.
+  */
+
+  return {
+    buffer:
+      await file.arrayBuffer(),
+    mime:
+      file.type ||
+      mime(normalized),
+    path:
+      normalized,
+    size:
+      file.size,
+    name:
+      file.name
+  };
+}
+
+
+/* =========================================================
+   GENERAL SOURCE READER
+========================================================= */
+
+async function readSource(
+  source
+){
+
+  source =
+    String(
+      source || ""
+    ).trim();
+
+
+  if(!source){
+
+    throw Error(
+      "No document source specified."
+    );
+  }
+
+
+  /* -------------------------------------------------------
+     LITTLE HOLLOW DEVICE
+  ------------------------------------------------------- */
+
+  if(
+    /^chxd:\/device\//i.test(
+      source
+    )
+  ){
+
+    return readDeviceBinary(
+      source
+    );
+  }
+
+
+  /* -------------------------------------------------------
+     OTHER LITTLE HOLLOW VIRTUAL FS
+  ------------------------------------------------------- */
+
+  if(
+    virtual(source)
+  ){
+
+    const fs =
+      getPublicFS();
+
+    let normalized =
+      source;
+
+    if(
+      typeof fs.normalize ===
+      "function"
+    ){
+
+      try{
+        normalized =
+          await fs.normalize(
+            source
+          );
+      }catch(_){}
+    }
+
+
+    if(
+      typeof fs.read !==
+      "function"
+    ){
+
+      throw Error(
+        "Little Hollow FS.read() is unavailable."
+      );
+    }
+
+
+    const result =
+      await fs.read(
+        normalized
+      );
+
+
+    if(
+      result &&
+      typeof result ===
+      "object" &&
+      "ok" in result &&
+      !result.ok
+    ){
+
+      throw Error(
+        result.error ||
+        "Could not read document."
+      );
+    }
+
+
+    const content =
+      result &&
+      typeof result === "object" &&
+      "content" in result
+        ? result.content
+        : result;
+
+
+    return normalizeBinary(
+      content,
+      normalized
+    );
+  }
+
+
+  /* -------------------------------------------------------
+     NORMAL WEB URL
+  ------------------------------------------------------- */
+
+  if(
+    /^https?:\/\//i.test(source) ||
+    /^blob:/i.test(source) ||
+    /^data:/i.test(source)
+  ){
+
+    const response =
+      await fetch(
+        source
+      );
+
+
+    if(!response.ok){
+
+      throw Error(
+        "HTTP " +
+        response.status +
+        " while loading document."
+      );
+    }
+
+
+    return {
+      buffer:
+        await response.arrayBuffer(),
+
+      mime:
+        response.headers.get(
+          "content-type"
+        ) ||
+        mime(source),
+
+      path:
+        source
+    };
+  }
+
+
+  throw Error(
+    "Unsupported document source:\n" +
+    source
+  );
+}
+
+
+/* =========================================================
+   TEXT DECODER
+========================================================= */
+
+function textFromBuffer(
+  buffer
+){
+
+  try{
+
+    return new TextDecoder(
+      "utf-8",
+      {
+        fatal:false
+      }
+    ).decode(
+      buffer
+    );
+
+  }catch(_){
+
+    return "";
+  }
+}
+
+
+/* =========================================================
+   FILE SIGNATURE DETECTION
+   Used when server MIME is wrong or extension is missing.
+========================================================= */
+
+function detectSignature(
+  buffer
+){
+
+  if(!buffer){
+    return "";
+  }
+
+  const bytes =
+    new Uint8Array(
+      buffer
+    );
+
+
+  if(
+    bytes.length >= 4 &&
+    bytes[0] === 0x25 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x44 &&
+    bytes[3] === 0x46
+  ){
+    return "pdf";
+  }
+
+
+  if(
+    bytes.length >= 4 &&
+    bytes[0] === 0x50 &&
+    bytes[1] === 0x4B &&
+    bytes[2] === 0x03 &&
+    bytes[3] === 0x04
+  ){
+
+    /*
+      DOCX/XLSX/PPTX/ODT/etc are ZIP containers.
+      The actual type still comes from the extension/path.
+    */
+
+    return "zip";
+  }
+
+
+  if(
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4E &&
+    bytes[3] === 0x47
+  ){
+    return "png";
+  }
+
+
+  if(
+    bytes.length >= 3 &&
+    bytes[0] === 0xFF &&
+    bytes[1] === 0xD8 &&
+    bytes[2] === 0xFF
+  ){
+    return "jpg";
+  }
+
+
+  if(
+    bytes.length >= 6
+  ){
+
+    const s =
+      String.fromCharCode(
+        ...bytes.slice(
+          0,
+          6
+        )
+      );
+
+    if(
+      s === "GIF87a" ||
+      s === "GIF89a"
+    ){
+      return "gif";
+    }
+  }
+
+
+  return "";
+}
+
+
+/* =========================================================
+   UPDATE UI
+========================================================= */
+
+function updateTools(){
+
+  const paged =
+    kind === "pdf" ||
+    kind === "pptx";
+
+
+  $("prev").disabled =
+    !paged;
+
+  $("next").disabled =
+    !paged;
+
+
+  pageBox.hidden =
+    !paged;
+
+  goBtn.hidden =
+    !paged;
+
+
+  pageInfo.textContent =
+    paged
+      ? `${page} / ${total}`
+      : "";
+
+
+  zoomInfo.textContent =
+    Math.round(
+      zoom * 100
+    ) +
+    "%";
+}
+
+
+/* =========================================================
+   PDF
+========================================================= */
+
+async function openPDF(
+  buffer
+){
+
+  const p =
+    await lib(
+      "pdf"
+    );
+
+
+  const task =
+    p.getDocument({
+      data:
+        new Uint8Array(
+          buffer
+        )
+    });
+
+
+  loaded =
+    await task.promise;
+
+
+  kind =
+    "pdf";
+
+
+  total =
+    loaded.numPages;
+
+
+  page =
+    1;
+
+
+  await renderPDF();
+
+  setStatus(
+    "PDF loaded."
+  );
+}
+
+
 async function renderPDF(){
- if(!loaded)return;clearViewer();const p=await loaded.getPage(page);const base=p.getViewport({scale:1});const available=Math.max(280,stage.clientWidth-44);const scale=(available/base.width)*zoom;const vp=p.getViewport({scale});const wrap=document.createElement("div");wrap.className="pdf";const label=document.createElement("div");label.className="page-label";label.textContent=`PAGE ${page}`;const canvas=document.createElement("canvas");const dpr=devicePixelRatio||1;canvas.width=Math.floor(vp.width*dpr);canvas.height=Math.floor(vp.height*dpr);canvas.style.width=vp.width+"px";canvas.style.height=vp.height+"px";wrap.append(label,canvas);viewer.appendChild(wrap);await p.render({canvasContext:canvas.getContext("2d"),viewport:vp,transform:dpr!==1?[dpr,0,0,dpr,0,0]:null}).promise;updateTools()
+
+  if(!loaded){
+    return;
+  }
+
+
+  clearViewer();
+
+
+  const pdfPage =
+    await loaded.getPage(
+      page
+    );
+
+
+  const base =
+    pdfPage.getViewport({
+      scale:1
+    });
+
+
+  const available =
+    Math.max(
+      280,
+      stage.clientWidth - 44
+    );
+
+
+  const scale =
+    (
+      available /
+      base.width
+    ) *
+    zoom;
+
+
+  const viewport =
+    pdfPage.getViewport({
+      scale
+    });
+
+
+  const wrap =
+    document.createElement(
+      "div"
+    );
+
+  wrap.className =
+    "pdf";
+
+
+  const label =
+    document.createElement(
+      "div"
+    );
+
+  label.className =
+    "page-label";
+
+  label.textContent =
+    `PAGE ${page}`;
+
+
+  const canvas =
+    document.createElement(
+      "canvas"
+    );
+
+
+  const dpr =
+    window.devicePixelRatio ||
+    1;
+
+
+  canvas.width =
+    Math.floor(
+      viewport.width *
+      dpr
+    );
+
+  canvas.height =
+    Math.floor(
+      viewport.height *
+      dpr
+    );
+
+
+  canvas.style.width =
+    viewport.width +
+    "px";
+
+
+  canvas.style.height =
+    viewport.height +
+    "px";
+
+
+  wrap.append(
+    label,
+    canvas
+  );
+
+
+  viewer.appendChild(
+    wrap
+  );
+
+
+  await pdfPage.render({
+    canvasContext:
+      canvas.getContext(
+        "2d"
+      ),
+    viewport,
+    transform:
+      dpr !== 1
+        ? [
+            dpr,
+            0,
+            0,
+            dpr,
+            0,
+            0
+          ]
+        : null
+  }).promise;
+
+
+  /*
+    Extract page text for FIND.
+  */
+
+  try{
+
+    const tc =
+      await pdfPage.getTextContent();
+
+    const pageText =
+      tc.items
+        .map(
+          x =>
+            x.str ||
+            ""
+        )
+        .join(" ");
+
+    textContent =
+      [
+        textContent,
+        pageText
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+  }catch(_){}
+
+
+  updateTools();
 }
-async function openDOCX(buffer){
- const m=await lib("mammoth");const r=await m.convertToHtml({arrayBuffer:buffer});clearViewer();const d=document.createElement("div");d.className="doc";d.innerHTML=r.value||"<p>No document content.</p>";viewer.appendChild(d);kind="docx";loaded=d;textContent=d.innerText||"";setStatus(r.messages&&r.messages.length?`DOCX loaded with ${r.messages.length} conversion note(s).`:"DOCX loaded.");updateTools()
+
+
+/* =========================================================
+   DOCX
+========================================================= */
+
+async function openDOCX(
+  buffer
+){
+
+  const m =
+    await lib(
+      "mammoth"
+    );
+
+
+  const result =
+    await m.convertToHtml({
+      arrayBuffer:
+        buffer
+    });
+
+
+  clearViewer();
+
+
+  const d =
+    document.createElement(
+      "div"
+    );
+
+  d.className =
+    "doc";
+
+
+  d.innerHTML =
+    result.value ||
+    "<p>No document content.</p>";
+
+
+  viewer.appendChild(
+    d
+  );
+
+
+  kind =
+    "docx";
+
+
+  loaded =
+    d;
+
+
+  textContent =
+    d.innerText ||
+    "";
+
+
+  if(
+    result.messages &&
+    result.messages.length
+  ){
+
+    setStatus(
+      "DOCX loaded with " +
+      result.messages.length +
+      " conversion note(s)."
+    );
+
+  }else{
+
+    setStatus(
+      "DOCX loaded."
+    );
+  }
+
+
+  updateTools();
 }
-async function openPPTX(buffer){
- const libp=await lib("pptx");if(typeof libp.loadPresentation!=="function")throw Error("PPTX viewer library did not expose loadPresentation().");loaded=await libp.loadPresentation(new Uint8Array(buffer));kind="pptx";const slides=typeof libp.getSlides==="function"?libp.getSlides(loaded):(loaded.slides||[]);total=slides.length;page=1;await renderPPTX();setStatus("PPTX loaded.")
+
+
+/* =========================================================
+   BASIC PPTX XML RENDERER
+========================================================= */
+
+function decodeXML(
+  value
+){
+
+  const t =
+    document.createElement(
+      "textarea"
+    );
+
+  t.innerHTML =
+    value;
+
+  return t.value;
 }
+
+
+function parseLength(
+  value
+){
+
+  const n =
+    Number(value || 0);
+
+  if(
+    !Number.isFinite(n)
+  ){
+    return 0;
+  }
+
+  /*
+    PPTX EMU -> px-ish screen scale.
+    We map later to slide dimensions.
+  */
+
+  return n;
+}
+
+
+function getTextFromShape(
+  shape
+){
+
+  const texts =
+    [...shape.querySelectorAll("a\\:t,a\\:t")];
+
+  return texts
+    .map(
+      x =>
+        x.textContent ||
+        ""
+    )
+    .join("");
+}
+
+
+async function openPPTX(
+  buffer
+){
+
+  const zip =
+    await lib(
+      "jszip"
+    );
+
+
+  const archive =
+    await zip.loadAsync(
+      buffer
+    );
+
+
+  const presentationFile =
+    archive.file(
+      "ppt/presentation.xml"
+    );
+
+
+  if(!presentationFile){
+
+    throw Error(
+      "Invalid PPTX: presentation.xml not found."
+    );
+  }
+
+
+  const presentationXml =
+    await presentationFile.async(
+      "string"
+    );
+
+
+  const parser =
+    new DOMParser();
+
+
+  const presentation =
+    parser.parseFromString(
+      presentationXml,
+      "application/xml"
+    );
+
+
+  const slideIds =
+    [
+      ...presentation.querySelectorAll(
+        "p\\:sldIdLst p\\:sldId,sldId"
+      )
+    ];
+
+
+  /*
+    Relationships tell us which slide XML
+    each slide ID points to.
+  */
+
+  const relFile =
+    archive.file(
+      "ppt/_rels/presentation.xml.rels"
+    );
+
+
+  if(!relFile){
+
+    throw Error(
+      "PPTX relationships file not found."
+    );
+  }
+
+
+  const relXml =
+    await relFile.async(
+      "string"
+    );
+
+
+  const relDoc =
+    parser.parseFromString(
+      relXml,
+      "application/xml"
+    );
+
+
+  const relMap =
+    new Map();
+
+
+  for(
+    const rel of [
+      ...relDoc.querySelectorAll(
+        "Relationship"
+      )
+    ]
+  ){
+
+    relMap.set(
+      rel.getAttribute("Id"),
+      rel.getAttribute("Target")
+    );
+  }
+
+
+  const slides =
+    [];
+
+
+  for(
+    const sid of slideIds
+  ){
+
+    const rid =
+      sid.getAttribute(
+        "r:id"
+      ) ||
+      sid.getAttribute(
+        "id"
+      );
+
+
+    const target =
+      relMap.get(
+        rid
+      );
+
+
+    if(!target){
+      continue;
+    }
+
+
+    const cleanTarget =
+      String(target)
+        .replace(
+          /^\.\//,
+          ""
+        );
+
+
+    const slidePath =
+      cleanTarget.startsWith(
+        "ppt/"
+      )
+        ? cleanTarget
+        : "ppt/" +
+          cleanTarget;
+
+
+    const file =
+      archive.file(
+        slidePath
+      );
+
+
+    if(!file){
+      continue;
+    }
+
+
+    slides.push(
+      await file.async(
+        "string"
+      )
+    );
+  }
+
+
+  if(!slides.length){
+
+    /*
+      Fallback for package layouts where
+      the relationship traversal differs.
+    */
+
+    const slideFiles =
+      Object.keys(
+        archive.files
+      )
+      .filter(
+        name =>
+          /^ppt\/slides\/slide\d+\.xml$/i
+            .test(name)
+      )
+      .sort(
+        (a,b)=>{
+
+          const na =
+            Number(
+              a.match(
+                /slide(\d+)/i
+              )?.[1] ||
+              0
+            );
+
+          const nb =
+            Number(
+              b.match(
+                /slide(\d+)/i
+              )?.[1] ||
+              0
+            );
+
+          return na - nb;
+        }
+      );
+
+
+    for(
+      const slidePath of
+      slideFiles
+    ){
+
+      slides.push(
+        await archive
+          .file(slidePath)
+          .async("string")
+      );
+    }
+  }
+
+
+  if(!slides.length){
+
+    throw Error(
+      "No readable slides were found in the PPTX."
+    );
+  }
+
+
+  loaded = {
+    slides,
+    archive
+  };
+
+
+  kind =
+    "pptx";
+
+
+  total =
+    slides.length;
+
+
+  page =
+    1;
+
+
+  textContent =
+    slides
+      .join("\n");
+
+
+  await renderPPTX();
+
+
+  setStatus(
+    "PPTX loaded."
+  );
+}
+
+
 async function renderPPTX(){
- if(!loaded||!pptxLib)return;clearViewer();const slides=typeof pptxLib.getSlides==="function"?pptxLib.getSlides(loaded):(loaded.slides||[]);const slide=slides[page-1];if(!slide)throw Error("Could not find slide "+page+".");const wrap=document.createElement("div");wrap.className="pptx";const host=document.createElement("div");host.className="ppt-slide";if(typeof pptxLib.renderSlideToElement==="function"){await pptxLib.renderSlideToElement(slide,host)}else{throw Error("PPTX renderer API is unavailable.")}wrap.appendChild(host);viewer.appendChild(wrap);updateTools()
+
+  if(
+    !loaded ||
+    !loaded.slides
+  ){
+    return;
+  }
+
+
+  clearViewer();
+
+
+  const xml =
+    loaded.slides[
+      page - 1
+    ];
+
+
+  const parser =
+    new DOMParser();
+
+
+  const doc =
+    parser.parseFromString(
+      xml,
+      "application/xml"
+    );
+
+
+  const wrap =
+    document.createElement(
+      "div"
+    );
+
+  wrap.className =
+    "pptx";
+
+
+  const slide =
+    document.createElement(
+      "div"
+    );
+
+  slide.className =
+    "ppt-slide";
+
+
+  /*
+    This renderer intentionally prioritizes
+    text and basic slide content rather than
+    pretending to support every Office effect.
+  */
+
+  const shapes =
+    [
+      ...doc.querySelectorAll(
+        "p\\:sp,p\\:graphicFrame,p\\:pic,sp,graphicFrame,pic"
+      )
+    ];
+
+
+  let textParts = [];
+
+
+  for(
+    const shape of shapes
+  ){
+
+    const txBody =
+      shape.querySelector(
+        "p\\:txBody,txBody"
+      );
+
+
+    if(
+      txBody
+    ){
+
+      const value =
+        [
+          ...txBody.querySelectorAll(
+            "a\\:t,t"
+          )
+        ]
+          .map(
+            x =>
+              x.textContent ||
+              ""
+          )
+          .join("");
+
+
+      if(value){
+
+        textParts.push(
+          value
+        );
+
+        const p =
+          document.createElement(
+            "div"
+          );
+
+        p.className =
+          "ppt-text";
+
+        p.textContent =
+          value;
+
+
+        /*
+          Basic automatic placement.
+          Full Office geometry is much more complex,
+          so readable content is prioritized.
+        */
+
+        const index =
+          textParts.length - 1;
+
+
+        p.style.left =
+          "6%";
+
+        p.style.right =
+          "6%";
+
+        p.style.top =
+          (8 + index * 10) +
+          "%";
+
+        p.style.fontSize =
+          Math.max(
+            14,
+            30 - index * 2
+          ) +
+          "px";
+
+
+        slide.appendChild(
+          p
+        );
+      }
+    }
+  }
+
+
+  if(!textParts.length){
+
+    const fallback =
+      document.createElement(
+        "div"
+      );
+
+    fallback.className =
+      "ppt-text";
+
+    fallback.style.left =
+      "5%";
+
+    fallback.style.top =
+      "5%";
+
+    fallback.style.right =
+      "5%";
+
+    fallback.style.fontSize =
+      "20px";
+
+    fallback.textContent =
+      doc.documentElement.textContent ||
+      "Slide contains graphics or formatting that this browser renderer cannot reproduce.";
+
+    slide.appendChild(
+      fallback
+    );
+  }
+
+
+  wrap.appendChild(
+    slide
+  );
+
+  viewer.appendChild(
+    wrap
+  );
+
+
+  updateTools();
 }
-async function openXLSX(buffer){const x=await lib("xlsx");const wb=x.read(buffer);loaded=wb;const ws=wb.Sheets[wb.SheetNames[0]];const rows=x.utils.sheet_to_json(ws,{header:1,raw:false,defval:""});renderTable(rows);kind="xlsx";setStatus("Spreadsheet loaded: "+wb.SheetNames[0]);pageInfo.textContent=wb.SheetNames.join(" | ")}
-function renderTable(rows){clearViewer();const t=document.createElement("table");t.className="sheet";for(let i=0;i<rows.length;i++){const tr=document.createElement("tr");for(const v of rows[i]){const c=document.createElement(i===0?"th":"td");c.textContent=v==null?"":String(v);tr.appendChild(c)}t.appendChild(tr)}viewer.appendChild(t);textContent=t.innerText||""}
-async function openMarkdown(t){const m=await lib("marked");clearViewer();const d=document.createElement("div");d.className="md";d.innerHTML=m.parse(t);viewer.appendChild(d);kind="markdown";textContent=d.innerText||t;setStatus("Markdown loaded.");updateTools()}
-function openText(t,k="text"){clearViewer();const d=document.createElement("div");d.className="text";d.textContent=t;viewer.appendChild(d);kind=k;textContent=t;updateTools()}
-function openHTML(t){clearViewer();const f=document.createElement("iframe");f.sandbox="";f.style.width="min(1000px,100%)";f.style.minHeight="calc(100vh - 120px)";f.style.border="0";f.srcdoc=t;viewer.appendChild(f);kind="html";textContent=t;updateTools()}
-async function openEPUB(buffer){
- const JSZip=await lib("jszip");const zip=await JSZip.loadAsync(buffer);const cf=zip.file("META-INF/container.xml");if(!cf)throw Error("Invalid EPUB: container.xml not found.");const cx=await cf.async("string");const root=cx.match(/<rootfile[^>]+full-path=["']([^"']+)["']/i);if(!root)throw Error("EPUB package path could not be found.");const opfPath=root[1],opfFile=zip.file(opfPath);if(!opfFile)throw Error("EPUB package file not found.");const opf=await opfFile.async("string");const base=opfPath.includes("/")?opfPath.slice(0,opfPath.lastIndexOf("/")+1):"";const manifest={};let m;const ir=/<item\b[^>]*\bid=["']([^"']+)["'][^>]*\bhref=["']([^"']+)["'][^>]*>/gi;while(m=ir.exec(opf))manifest[m[1]]=m[2];const spine=[];const sr=/<itemref\b[^>]*\bidref=["']([^"']+)["'][^>]*>/gi;while(m=sr.exec(opf))if(manifest[m[1]])spine.push(manifest[m[1]]);let out="";for(const href of spine){const f=zip.file(base+href.replace(/^\.\//,""));if(f)out+=await f.async("string")+"<hr>"}clearViewer();const d=document.createElement("div");d.className="doc";d.innerHTML=out||"<p>No readable EPUB content.</p>";viewer.appendChild(d);kind="epub";textContent=d.innerText||"";updateTools()
+
+
+/* =========================================================
+   XLSX / XLS
+========================================================= */
+
+async function openXLSX(
+  buffer
+){
+
+  const x =
+    await lib(
+      "xlsx"
+    );
+
+
+  const wb =
+    x.read(
+      buffer,
+      {
+        type:
+          "array"
+      }
+    );
+
+
+  loaded =
+    wb;
+
+
+  currentSheets =
+    wb.SheetNames || [];
+
+
+  currentSheetIndex =
+    0;
+
+
+  kind =
+    "xlsx";
+
+
+  renderCurrentSheet();
+
+
+  textContent =
+    viewer.innerText ||
+    "";
+
+
+  setStatus(
+    "Spreadsheet loaded: " +
+    (
+      currentSheets[0] ||
+      ""
+    )
+  );
+
+
+  updateTools();
 }
-function stripRTF(t){return String(t).replace(/\\'[0-9a-fA-F]{2}/g,m=>String.fromCharCode(parseInt(m.slice(2),16))).replace(/\\par[d]?/g,"\n").replace(/\\line/g,"\n").replace(/\\tab/g,"\t").replace(/\\[a-zA-Z]+-?\d* ?/g,"").replace(/[{}]/g,"")}
-async function openDocument(s){
- cleanup();path=String(s);srcBox.value=path;empty("Loading document...");setStatus("Reading document...");try{const d=await readSource(path);const e=ext(path);const buffer=d.buffer;const t=d.text!=null?String(d.text):buffer?textFromBuffer(buffer):"";if(e==="pdf")await openPDF(buffer);else if(e==="docx")await openDOCX(buffer);else if(e==="pptx")await openPPTX(buffer);else if(["xlsx","xls","ods"].includes(e))await openXLSX(buffer);else if(["md","markdown"].includes(e))await openMarkdown(t);else if(e==="csv")renderTable(parseCSV(t));else if(["txt","log","json","xml","yaml","yml","ini","cfg","conf"].includes(e))openText(t);else if(["html","htm"].includes(e))openHTML(t);else if(e==="rtf")openText(stripRTF(t),"rtf");else if(e==="epub")await openEPUB(buffer);else if(e==="odt")openText(t,"odt");else if(e==="doc"||e==="ppt"||e==="odp")legacy(e);else openText(t);clearStatus();updateTools()}catch(e){error("Failed to load document.\n\n"+text(e));setStatus("Error: "+text(e))}}
-function cleanup(){clearUrls();loaded=null;kind="";page=1;total=0;textContent="";zoom=1;searchHits=[];searchIndex=-1;zoomInfo.textContent="100%";pageInfo.textContent=""}
-function parseCSV(t){const rows=[];let row=[],cell="",q=false;for(let i=0;i<t.length;i++){const c=t[i];if(c==='"'){if(q&&t[i+1]==='"'){cell+='"';i++}else q=!q}else if(c===","&&!q){row.push(cell);cell=""}else if((c==="\n"||c==="\r")&&!q){if(c==="\r"&&t[i+1]==="\n")i++;row.push(cell);rows.push(row);row=[];cell=""}else cell+=c}row.push(cell);if(row.length>1||row[0]!=="")rows.push(row);return rows}
-function legacy(e){clearViewer();const d=document.createElement("div");d.className="compat";d.innerHTML="<strong>Legacy Office format: ."+e+"</strong><br><br>This browser-side viewer does not have a reliable parser for the old binary Office format. The file can still be opened by another Little Hollow application or downloaded.";viewer.appendChild(d);kind="legacy";updateTools()}
-function setZoom(z){zoom=Math.max(.25,Math.min(3,Number(z)||1));zoomInfo.textContent=Math.round(zoom*100)+"%";if(kind==="pdf")renderPDF();else if(kind==="pptx")renderPPTX();else viewer.style.zoom=String(zoom)}
-function next(){if(page>=total)return;page++;if(kind==="pdf")renderPDF();else if(kind==="pptx")renderPPTX()}
-function prev(){if(page<=1)return;page--;if(kind==="pdf")renderPDF();else if(kind==="pptx")renderPPTX()}
-function gotoPage(v){const n=Math.floor(Number(v));if(!Number.isFinite(n)||n<1||n>total)return false;page=n;if(kind==="pdf")renderPDF();else if(kind==="pptx")renderPPTX();return true}
-function find(q){q=String(q||"").trim().toLowerCase();searchText=q;if(!q){searchHits=[];searchIndex=-1;setStatus("Search cleared.");return}const text=(textContent||viewer.innerText||"").toLowerCase();searchHits=[];let p=0;while((p=text.indexOf(q,p))>=0){searchHits.push(p);p+=q.length}if(!searchHits.length){setStatus("Not found: "+q);return}searchIndex=(searchIndex+1)%searchHits.length;const w=document.createTreeWalker(viewer,NodeFilter.SHOW_TEXT);while(w.nextNode()){const n=w.currentNode,at=(n.textContent||"").toLowerCase().indexOf(q);if(at>=0){n.parentElement?.scrollIntoView({behavior:"smooth",block:"center"});break}}setStatus(`Found ${searchIndex+1}/${searchHits.length}: ${q}`)}
-window.parent.DocumentAPI={action:async actions=>{if(!actions||typeof actions!=="object"||Array.isArray(actions))return{ok:false,error:"Document action must be an object."};const results={};try{for(const key of Object.keys(actions)){const v=actions[key];switch(key.toLowerCase()){case"open":await openDocument(v);results.open={ok:true,path:String(v)};break;case"close":cleanup();empty();results.close={ok:true};break;case"next":case"nextpage":next();results[key]={ok:true,page,total};break;case"previous":case"prev":case"previouspage":prev();results[key]={ok:true,page,total};break;case"page":case"goto":results[key]={ok:gotoPage(v),page,total};break;case"zoom":setZoom(String(v).toLowerCase()==="fit"?1:String(v).endsWith("%")?Number(String(v).slice(0,-1))/100:Number(v));results.zoom={ok:true,value:zoom};break;case"find":case"search":find(v);results[key]={ok:searchHits.length>0,matches:searchHits.length,query:String(v||"")};break;case"state":results.state={ok:true,path,type:kind,page,totalPages:total,zoom,mime:mime(path),loaded:!!kind};break;default:results[key]={ok:false,error:"Unknown document action: "+key}}}return{ok:true,results}}catch(e){return{ok:false,error:text(e),results}}}};window.DocumentAPI=window.parent.DocumentAPI;
-$("load").onclick=()=>{const s=srcBox.value.trim();if(s)openDocument(s)};srcBox.onkeydown=e=>{if(e.key==="Enter"){const s=srcBox.value.trim();if(s)openDocument(s)}};$("prev").onclick=prev;$("next").onclick=next;$("goto").onclick=()=>gotoPage(pageBox.value);pageBox.onkeydown=e=>{if(e.key==="Enter")gotoPage(pageBox.value)};$("zoomOut").onclick=()=>setZoom(zoom-.1);$("zoomIn").onclick=()=>setZoom(zoom+.1);$("fit").onclick=()=>setZoom(1);$("findBtn").onclick=()=>find($("find").value);$("find").onkeydown=e=>{if(e.key==="Enter")find($("find").value)};window.addEventListener("resize",()=>{if(kind==="pdf")renderPDF()});window.addEventListener("beforeunload",cleanup);updateTools();if(initial){srcBox.value=initial;openDocument(initial)}
+
+
+function renderCurrentSheet(){
+
+  if(
+    !loaded ||
+    !currentSheets.length
+  ){
+    return;
+  }
+
+
+  const x =
+    XLSX;
+
+
+  const sheetName =
+    currentSheets[
+      currentSheetIndex
+    ];
+
+
+  const ws =
+    loaded.Sheets[
+      sheetName
+    ];
+
+
+  const rows =
+    x.utils.sheet_to_json(
+      ws,
+      {
+        header:1,
+        raw:false,
+        defval:""
+      }
+    );
+
+
+  clearViewer();
+
+
+  const wrap =
+    document.createElement(
+      "div"
+    );
+
+  wrap.className =
+    "sheet-wrap";
+
+
+  const title =
+    document.createElement(
+      "div"
+    );
+
+  title.className =
+    "office-sheet-title";
+
+
+  title.textContent =
+    sheetName;
+
+
+  wrap.appendChild(
+    title
+  );
+
+
+  const table =
+    document.createElement(
+      "table"
+    );
+
+  table.className =
+    "sheet";
+
+
+  for(
+    let r=0;
+    r<rows.length;
+    r++
+  ){
+
+    const tr =
+      document.createElement(
+        "tr"
+      );
+
+
+    for(
+      const value of
+      rows[r]
+    ){
+
+      const cell =
+        document.createElement(
+          r === 0
+            ? "th"
+            : "td"
+        );
+
+
+      cell.textContent =
+        value == null
+          ? ""
+          : String(value);
+
+
+      tr.appendChild(
+        cell
+      );
+    }
+
+
+    table.appendChild(
+      tr
+    );
+  }
+
+
+  wrap.appendChild(
+    table
+  );
+
+
+  viewer.appendChild(
+    wrap
+  );
+
+
+  /*
+    Sheet tab names.
+  */
+
+  pageInfo.textContent =
+    currentSheets
+      .join(" | ");
+
+
+  textContent =
+    table.innerText ||
+    "";
+}
+
+
+/* =========================================================
+   CSV
+========================================================= */
+
+function parseCSV(
+  input
+){
+
+  const rows =
+    [];
+
+  let row =
+    [];
+
+  let cell =
+    "";
+
+  let quoted =
+    false;
+
+
+  for(
+    let i=0;
+    i<input.length;
+    i++
+  ){
+
+    const c =
+      input[i];
+
+
+    if(
+      c === '"'
+    ){
+
+      if(
+        quoted &&
+        input[i+1] === '"'
+      ){
+
+        cell +=
+          '"';
+
+        i++;
+
+      }else{
+
+        quoted =
+          !quoted;
+      }
+
+      continue;
+    }
+
+
+    if(
+      c === "," &&
+      !quoted
+    ){
+
+      row.push(
+        cell
+      );
+
+      cell =
+        "";
+
+      continue;
+    }
+
+
+    if(
+      (c === "\n" ||
+       c === "\r") &&
+      !quoted
+    ){
+
+      if(
+        c === "\r" &&
+        input[i+1] === "\n"
+      ){
+        i++;
+      }
+
+
+      row.push(
+        cell
+      );
+
+      rows.push(
+        row
+      );
+
+      row =
+        [];
+
+      cell =
+        "";
+
+      continue;
+    }
+
+
+    cell +=
+      c;
+  }
+
+
+  row.push(
+    cell
+  );
+
+
+  if(
+    row.length > 1 ||
+    row[0] !== ""
+  ){
+
+    rows.push(
+      row
+    );
+  }
+
+
+  return rows;
+}
+
+
+function renderTableRows(
+  rows
+){
+
+  clearViewer();
+
+
+  const wrap =
+    document.createElement(
+      "div"
+    );
+
+  wrap.className =
+    "sheet-wrap";
+
+
+  const table =
+    document.createElement(
+      "table"
+    );
+
+  table.className =
+    "sheet";
+
+
+  for(
+    let i=0;
+    i<rows.length;
+    i++
+  ){
+
+    const tr =
+      document.createElement(
+        "tr"
+      );
+
+
+    for(
+      const value of
+      rows[i]
+    ){
+
+      const c =
+        document.createElement(
+          i === 0
+            ? "th"
+            : "td"
+        );
+
+
+      c.textContent =
+        value == null
+          ? ""
+          : String(value);
+
+
+      tr.appendChild(
+        c
+      );
+    }
+
+
+    table.appendChild(
+      tr
+    );
+  }
+
+
+  wrap.appendChild(
+    table
+  );
+
+
+  viewer.appendChild(
+    wrap
+  );
+
+
+  textContent =
+    table.innerText ||
+    "";
+}
+
+
+/* =========================================================
+   MARKDOWN
+========================================================= */
+
+async function openMarkdown(
+  value
+){
+
+  const m =
+    await lib(
+      "marked"
+    );
+
+
+  clearViewer();
+
+
+  const d =
+    document.createElement(
+      "div"
+    );
+
+  d.className =
+    "md";
+
+
+  d.innerHTML =
+    m.parse(
+      String(value || "")
+    );
+
+
+  viewer.appendChild(
+    d
+  );
+
+
+  kind =
+    "markdown";
+
+
+  textContent =
+    d.innerText ||
+    String(value || "");
+
+
+  setStatus(
+    "Markdown loaded."
+  );
+
+
+  updateTools();
+}
+
+
+/* =========================================================
+   HTML
+========================================================= */
+
+function openHTML(
+  value
+){
+
+  clearViewer();
+
+
+  const frame =
+    document.createElement(
+      "iframe"
+    );
+
+
+  frame.className =
+    "html-frame";
+
+
+  /*
+    Sandboxed for safety.
+  */
+
+  frame.sandbox =
+    "";
+
+
+  frame.srcdoc =
+    String(value || "");
+
+
+  viewer.appendChild(
+    frame
+  );
+
+
+  kind =
+    "html";
+
+
+  textContent =
+    String(value || "");
+
+
+  updateTools();
+}
+
+
+/* =========================================================
+   TEXT
+========================================================= */
+
+function openText(
+  value,
+  type = "text"
+){
+
+  clearViewer();
+
+
+  const d =
+    document.createElement(
+      "div"
+    );
+
+  d.className =
+    "text";
+
+
+  d.textContent =
+    String(value || "");
+
+
+  viewer.appendChild(
+    d
+  );
+
+
+  kind =
+    type;
+
+
+  textContent =
+    String(value || "");
+
+
+  updateTools();
+}
+
+
+/* =========================================================
+   RTF
+========================================================= */
+
+function stripRTF(
+  value
+){
+
+  return String(
+    value || ""
+  )
+    .replace(
+      /\\'[0-9a-fA-F]{2}/g,
+      m =>
+        String.fromCharCode(
+          parseInt(
+            m.slice(2),
+            16
+          )
+        )
+    )
+    .replace(
+      /\\par[d]?/g,
+      "\n"
+    )
+    .replace(
+      /\\line/g,
+      "\n"
+    )
+    .replace(
+      /\\tab/g,
+      "\t"
+    )
+    .replace(
+      /\\[a-zA-Z]+-?\d* ?/g,
+      ""
+    )
+    .replace(
+      /[{}]/g,
+      ""
+    );
+}
+
+
+/* =========================================================
+   EPUB
+========================================================= */
+
+async function openEPUB(
+  buffer
+){
+
+  const Zip =
+    await lib(
+      "jszip"
+    );
+
+
+  const zip =
+    await Zip.loadAsync(
+      buffer
+    );
+
+
+  const container =
+    zip.file(
+      "META-INF/container.xml"
+    );
+
+
+  if(!container){
+
+    throw Error(
+      "Invalid EPUB: container.xml not found."
+    );
+  }
+
+
+  const containerXml =
+    await container.async(
+      "string"
+    );
+
+
+  const match =
+    containerXml.match(
+      /<rootfile[^>]+full-path=["']([^"']+)["']/i
+    );
+
+
+  if(!match){
+
+    throw Error(
+      "EPUB package path could not be found."
+    );
+  }
+
+
+  const opfPath =
+    match[1];
+
+
+  const opfFile =
+    zip.file(
+      opfPath
+    );
+
+
+  if(!opfFile){
+
+    throw Error(
+      "EPUB package file not found."
+    );
+  }
+
+
+  const opfXml =
+    await opfFile.async(
+      "string"
+    );
+
+
+  const parser =
+    new DOMParser();
+
+
+  const opf =
+    parser.parseFromString(
+      opfXml,
+      "application/xml"
+    );
+
+
+  const base =
+    opfPath.includes("/")
+      ? opfPath.slice(
+          0,
+          opfPath.lastIndexOf("/") + 1
+        )
+      : "";
+
+
+  const manifest =
+    new Map();
+
+
+  for(
+    const item of
+    [
+      ...opf.querySelectorAll(
+        "item"
+      )
+    ]
+  ){
+
+    const id =
+      item.getAttribute(
+        "id"
+      );
+
+    const href =
+      item.getAttribute(
+        "href"
+      );
+
+
+    if(
+      id &&
+      href
+    ){
+
+      manifest.set(
+        id,
+        href
+      );
+    }
+  }
+
+
+  const spine =
+    [];
+
+
+  for(
+    const itemref of
+    [
+      ...opf.querySelectorAll(
+        "itemref"
+      )
+    ]
+  ){
+
+    const idref =
+      itemref.getAttribute(
+        "idref"
+      );
+
+
+    if(
+      idref &&
+      manifest.has(idref)
+    ){
+
+      spine.push(
+        manifest.get(
+          idref
+        )
+      );
+    }
+  }
+
+
+  let out =
+    "";
+
+
+  for(
+    const href of
+    spine
+  ){
+
+    const full =
+      base +
+      decodeURIComponent(
+        href
+      )
+        .replace(
+          /^\.\//,
+          ""
+        );
+
+
+    const file =
+      zip.file(
+        full
+      );
+
+
+    if(
+      !file
+    ){
+      continue;
+    }
+
+
+    let html =
+      await file.async(
+        "string"
+      );
+
+
+    /*
+      Strip scripts from EPUB HTML.
+    */
+
+    html =
+      html.replace(
+        /<script[\s\S]*?<\/script>/gi,
+        ""
+      );
+
+
+    out +=
+      html +
+      "<hr>";
+  }
+
+
+  clearViewer();
+
+
+  const d =
+    document.createElement(
+      "div"
+    );
+
+  d.className =
+    "doc";
+
+
+  d.innerHTML =
+    out ||
+    "<p>No readable EPUB content.</p>";
+
+
+  viewer.appendChild(
+    d
+  );
+
+
+  kind =
+    "epub";
+
+
+  textContent =
+    d.innerText ||
+    "";
+
+
+  updateTools();
+}
+
+
+/* =========================================================
+   ODT
+========================================================= */
+
+async function openODT(
+  buffer
+){
+
+  const Zip =
+    await lib(
+      "jszip"
+    );
+
+
+  const zip =
+    await Zip.loadAsync(
+      buffer
+    );
+
+
+  const contentFile =
+    zip.file(
+      "content.xml"
+    );
+
+
+  if(!contentFile){
+
+    throw Error(
+      "Invalid ODT: content.xml not found."
+    );
+  }
+
+
+  const xml =
+    await contentFile.async(
+      "string"
+    );
+
+
+  const parser =
+    new DOMParser();
+
+
+  const doc =
+    parser.parseFromString(
+      xml,
+      "application/xml"
+    );
+
+
+  /*
+    Convert text:p and text:h to HTML.
+  */
+
+  const parts =
+    [];
+
+
+  const nodes =
+    [
+      ...doc.querySelectorAll(
+        "text\\:h,text\\:p,h,p"
+      )
+    ];
+
+
+  for(
+    const node of
+    nodes
+  ){
+
+    const value =
+      node.textContent ||
+      "";
+
+
+    const tag =
+      (
+        node.localName === "h" ||
+        node.nodeName.endsWith(":h")
+      )
+        ? "h2"
+        : "p";
+
+
+    parts.push(
+      `<${tag}>${escapeHTML(value)}</${tag}>`
+    );
+  }
+
+
+  clearViewer();
+
+
+  const d =
+    document.createElement(
+      "div"
+    );
+
+  d.className =
+    "doc";
+
+
+  d.innerHTML =
+    parts.join("") ||
+    "<p>No readable ODT content.</p>";
+
+
+  viewer.appendChild(
+    d
+  );
+
+
+  kind =
+    "odt";
+
+
+  textContent =
+    d.innerText ||
+    "";
+
+
+  updateTools();
+}
+
+
+/* =========================================================
+   ODS
+========================================================= */
+
+async function openODS(
+  buffer
+){
+
+  const Zip =
+    await lib(
+      "jszip"
+    );
+
+
+  const zip =
+    await Zip.loadAsync(
+      buffer
+    );
+
+
+  const contentFile =
+    zip.file(
+      "content.xml"
+    );
+
+
+  if(!contentFile){
+
+    throw Error(
+      "Invalid ODS: content.xml not found."
+    );
+  }
+
+
+  const xml =
+    await contentFile.async(
+      "string"
+    );
+
+
+  const parser =
+    new DOMParser();
+
+
+  const doc =
+    parser.parseFromString(
+      xml,
+      "application/xml"
+    );
+
+
+  const rows =
+    [];
+
+
+  const rowNodes =
+    [
+      ...doc.querySelectorAll(
+        "table\\:table-row,table-row"
+      )
+    ];
+
+
+  for(
+    const rowNode of
+    rowNodes
+  ){
+
+    const row =
+      [];
+
+
+    const cellNodes =
+      [
+        ...rowNode.querySelectorAll(
+          ":scope > table\\:table-cell,:scope > table-cell"
+        )
+      ];
+
+
+    for(
+      const cell of
+      cellNodes
+    ){
+
+      const repeat =
+        Number(
+          cell.getAttribute(
+            "table:number-columns-repeated"
+          ) ||
+          1
+        );
+
+
+      const value =
+        cell.textContent ||
+        "";
+
+
+      for(
+        let i=0;
+        i<Math.max(
+          1,
+          repeat
+        );
+        i++
+      ){
+
+        row.push(
+          value.trim()
+        );
+      }
+    }
+
+
+    if(row.length){
+      rows.push(
+        row
+      );
+    }
+  }
+
+
+  renderTableRows(
+    rows
+  );
+
+
+  kind =
+    "ods";
+
+
+  updateTools();
+}
+
+
+/* =========================================================
+   ODP BASIC
+========================================================= */
+
+async function openODP(
+  buffer
+){
+
+  const Zip =
+    await lib(
+      "jszip"
+    );
+
+
+  const zip =
+    await Zip.loadAsync(
+      buffer
+    );
+
+
+  const contentFile =
+    zip.file(
+      "content.xml"
+    );
+
+
+  if(!contentFile){
+
+    throw Error(
+      "Invalid ODP: content.xml not found."
+    );
+  }
+
+
+  const xml =
+    await contentFile.async(
+      "string"
+    );
+
+
+  const parser =
+    new DOMParser();
+
+
+  const doc =
+    parser.parseFromString(
+      xml,
+      "application/xml"
+    );
+
+
+  const pages =
+    [
+      ...doc.querySelectorAll(
+        "draw\\:page,draw-page"
+      )
+    ];
+
+
+  clearViewer();
+
+
+  const container =
+    document.createElement(
+      "div"
+    );
+
+
+  container.className =
+    "pptx";
+
+
+  for(
+    const pageNode of
+    pages
+  ){
+
+    const slide =
+      document.createElement(
+        "div"
+      );
+
+
+    slide.className =
+      "ppt-slide";
+
+
+    const text =
+      pageNode.textContent ||
+      "";
+
+
+    const p =
+      document.createElement(
+        "div"
+      );
+
+
+    p.className =
+      "ppt-text";
+
+
+    p.style.left =
+      "6%";
+
+    p.style.right =
+      "6%";
+
+    p.style.top =
+      "6%";
+
+    p.style.fontSize =
+      "18px";
+
+
+    p.textContent =
+      text.trim();
+
+
+    slide.appendChild(
+      p
+    );
+
+
+    container.appendChild(
+      slide
+    );
+  }
+
+
+  viewer.appendChild(
+    container
+  );
+
+
+  kind =
+    "odp";
+
+
+  textContent =
+    viewer.innerText ||
+    "";
+
+
+  updateTools();
+}
+
+
+/* =========================================================
+   IMAGE
+========================================================= */
+
+async function openImage(
+  buffer,
+  source
+){
+
+  const blob =
+    new Blob(
+      [
+        buffer
+      ],
+      {
+        type:
+          mime(source)
+      }
+    );
+
+
+  const url =
+    URL.createObjectURL(
+      blob
+    );
+
+
+  urls.push(
+    url
+  );
+
+
+  clearViewer();
+
+
+  const wrap =
+    document.createElement(
+      "div"
+    );
+
+  wrap.className =
+    "image-view";
+
+
+  const img =
+    document.createElement(
+      "img"
+    );
+
+
+  img.src =
+    url;
+
+
+  img.alt =
+    source;
+
+
+  wrap.appendChild(
+    img
+  );
+
+
+  viewer.appendChild(
+    wrap
+  );
+
+
+  kind =
+    "image";
+
+
+  updateTools();
+}
+
+
+/* =========================================================
+   HTML ESCAPE
+========================================================= */
+
+function escapeHTML(
+  value
+){
+
+  return String(
+    value || ""
+  )
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    );
+}
+
+
+/* =========================================================
+   UNSUPPORTED LEGACY
+========================================================= */
+
+function legacyOffice(
+  extension
+){
+
+  clearViewer();
+
+
+  const d =
+    document.createElement(
+      "div"
+    );
+
+  d.className =
+    "compat";
+
+
+  d.innerHTML =
+    "<strong>LEGACY OFFICE FORMAT: ." +
+    escapeHTML(
+      extension
+    ) +
+    "</strong>" +
+
+    "<br><br>" +
+
+    "This is the old binary Office format. " +
+
+    "The browser viewer does not have a reliable " +
+
+    "pure-JavaScript parser for that format." +
+
+    "<br><br>" +
+
+    "Modern Office Open XML formats are supported: " +
+
+    ".docx, .xlsx and .pptx.";
+
+
+  viewer.appendChild(
+    d
+  );
+
+
+  kind =
+    "legacy";
+
+
+  updateTools();
+}
+
+
+/* =========================================================
+   GENERIC BINARY FALLBACK
+========================================================= */
+
+function binaryFallback(
+  source,
+  buffer
+){
+
+  clearViewer();
+
+
+  const d =
+    document.createElement(
+      "div"
+    );
+
+  d.className =
+    "compat";
+
+
+  const size =
+    buffer
+      ? buffer.byteLength
+      : 0;
+
+
+  d.innerHTML =
+    "<strong>DOCUMENT FORMAT</strong>" +
+    "<br><br>" +
+
+    escapeHTML(
+      ext(source).toUpperCase() ||
+      "UNKNOWN"
+    ) +
+
+    "<br><br>" +
+
+    "The file was successfully read from the source, " +
+    "but there is no safe browser renderer for this format." +
+
+    "<br><br>" +
+
+    "Size: " +
+    size.toLocaleString() +
+    " bytes";
+
+
+  viewer.appendChild(
+    d
+  );
+
+
+  kind =
+    "binary";
+
+
+  updateTools();
+}
+
+
+/* =========================================================
+   MAIN DOCUMENT OPENER
+========================================================= */
+
+async function openDocument(
+  source
+){
+
+  cleanup();
+
+
+  path =
+    String(
+      source
+    );
+
+
+  srcBox.value =
+    path;
+
+
+  empty(
+    "Loading document..."
+  );
+
+
+  setStatus(
+    "Reading document..."
+  );
+
+
+  try{
+
+    const data =
+      await readSource(
+        path
+      );
+
+
+    let extension =
+      ext(
+        data.path ||
+        path
+      );
+
+
+    /*
+      If there is no extension,
+      attempt signature detection.
+    */
+
+    if(!extension){
+
+      const signature =
+        detectSignature(
+          data.buffer
+        );
+
+
+      if(signature){
+        extension =
+          signature;
+      }
+    }
+
+
+    /*
+      For an actual binary document,
+      data.buffer must be preserved.
+    */
+
+    const buffer =
+      data.buffer;
+
+
+    const content =
+      data.text != null
+        ? String(
+            data.text
+          )
+        : buffer
+          ? textFromBuffer(
+              buffer
+            )
+          : "";
+
+
+    switch(
+      extension
+    ){
+
+      /* PDF */
+
+      case "pdf":
+
+        if(!buffer){
+
+          throw Error(
+            "PDF requires binary file data."
+          );
+        }
+
+        await openPDF(
+          buffer
+        );
+
+        break;
+
+
+      /* DOCX */
+
+      case "docx":
+
+        if(!buffer){
+
+          throw Error(
+            "DOCX requires binary file data."
+          );
+        }
+
+        await openDOCX(
+          buffer
+        );
+
+        break;
+
+
+      /* PPTX */
+
+      case "pptx":
+
+        if(!buffer){
+
+          throw Error(
+            "PPTX requires binary file data."
+          );
+        }
+
+        await openPPTX(
+          buffer
+        );
+
+        break;
+
+
+      /* XLSX */
+
+      case "xlsx":
+
+        if(!buffer){
+
+          throw Error(
+            "XLSX requires binary file data."
+          );
+        }
+
+        await openXLSX(
+          buffer
+        );
+
+        break;
+
+
+      /* XLS */
+
+      case "xls":
+
+        if(!buffer){
+
+          throw Error(
+            "XLS requires binary file data."
+          );
+        }
+
+        await openXLSX(
+          buffer
+        );
+
+        break;
+
+
+      /* ODS */
+
+      case "ods":
+
+        if(!buffer){
+
+          throw Error(
+            "ODS requires binary file data."
+          );
+        }
+
+        await openODS(
+          buffer
+        );
+
+        break;
+
+
+      /* ODP */
+
+      case "odp":
+
+        if(!buffer){
+
+          throw Error(
+            "ODP requires binary file data."
+          );
+        }
+
+        await openODP(
+          buffer
+        );
+
+        break;
+
+
+      /* ODT */
+
+      case "odt":
+
+        if(!buffer){
+
+          throw Error(
+            "ODT requires binary file data."
+          );
+        }
+
+        await openODT(
+          buffer
+        );
+
+        break;
+
+
+      /* EPUB */
+
+      case "epub":
+
+        if(!buffer){
+
+          throw Error(
+            "EPUB requires binary file data."
+          );
+        }
+
+        await openEPUB(
+          buffer
+        );
+
+        break;
+
+
+      /* Markdown */
+
+      case "md":
+      case "markdown":
+
+        await openMarkdown(
+          content
+        );
+
+        break;
+
+
+      /* CSV */
+
+      case "csv":
+
+        renderTableRows(
+          parseCSV(
+            content
+          )
+        );
+
+        kind =
+          "csv";
+
+        updateTools();
+
+        break;
+
+
+      /* HTML */
+
+      case "html":
+      case "htm":
+
+        openHTML(
+          content
+        );
+
+        break;
+
+
+      /* RTF */
+
+      case "rtf":
+
+        openText(
+          stripRTF(
+            content
+          ),
+          "rtf"
+        );
+
+        break;
+
+
+      /* Plain text */
+
+      case "txt":
+      case "log":
+      case "json":
+      case "xml":
+      case "yaml":
+      case "yml":
+      case "ini":
+      case "cfg":
+      case "conf":
+
+        openText(
+          content,
+          "text"
+        );
+
+        break;
+
+
+      /* Images */
+
+      case "png":
+      case "jpg":
+      case "jpeg":
+      case "gif":
+      case "webp":
+      case "svg":
+
+        if(
+          extension ===
+          "svg"
+        ){
+
+          openHTML(
+            content
+          );
+
+        }else{
+
+          await openImage(
+            buffer,
+            path
+          );
+        }
+
+        break;
+
+
+      /* Legacy Office */
+
+      case "doc":
+      case "ppt":
+
+        legacyOffice(
+          extension
+        );
+
+        break;
+
+
+      /* Unknown */
+
+      default:
+
+        if(
+          data.text != null
+        ){
+
+          openText(
+            content,
+            "text"
+          );
+
+        }else if(
+          buffer
+        ){
+
+          binaryFallback(
+            path,
+            buffer
+          );
+
+        }else{
+
+          throw Error(
+            "Could not determine document type."
+          );
+        }
+
+        break;
+    }
+
+
+    clearStatus();
+
+    updateTools();
+
+  }catch(e){
+
+    const message =
+      errorText(e);
+
+
+    showError(
+      "Failed to load document.\n\n" +
+      message
+    );
+
+
+    setStatus(
+      "ERROR: " +
+      message
+    );
+  }
+}
+
+
+/* =========================================================
+   CLEANUP
+========================================================= */
+
+function cleanup(){
+
+  clearUrls();
+
+
+  loaded =
+    null;
+
+
+  kind =
+    "";
+
+
+  page =
+    1;
+
+
+  total =
+    0;
+
+
+  textContent =
+    "";
+
+
+  zoom =
+    1;
+
+
+  searchText =
+    "";
+
+
+  searchIndex =
+    -1;
+
+
+  searchHits =
+    [];
+
+
+  currentSheets =
+    [];
+
+
+  currentSheetIndex =
+    0;
+
+
+  zoomInfo.textContent =
+    "100%";
+
+
+  pageInfo.textContent =
+    "";
+}
+
+
+/* =========================================================
+   ZOOM
+========================================================= */
+
+function setZoom(
+  value
+){
+
+  let z =
+    Number(
+      value
+    );
+
+
+  if(
+    typeof value === "string" &&
+    value.endsWith("%")
+  ){
+
+    z =
+      Number(
+        value.slice(
+          0,
+          -1
+        )
+      ) /
+      100;
+  }
+
+
+  if(
+    !Number.isFinite(z)
+  ){
+
+    z =
+      1;
+  }
+
+
+  zoom =
+    Math.max(
+      .25,
+      Math.min(
+        3,
+        z
+      )
+    );
+
+
+  zoomInfo.textContent =
+    Math.round(
+      zoom * 100
+    ) +
+    "%";
+
+
+  if(
+    kind === "pdf"
+  ){
+
+    renderPDF();
+
+  }else{
+
+    viewer.style.zoom =
+      String(
+        zoom
+      );
+  }
+}
+
+
+/* =========================================================
+   PAGE NAVIGATION
+========================================================= */
+
+function next(){
+
+  if(
+    page >= total
+  ){
+    return;
+  }
+
+
+  page++;
+
+
+  if(
+    kind === "pdf"
+  ){
+
+    renderPDF();
+
+  }else if(
+    kind === "pptx"
+  ){
+
+    renderPPTX();
+  }
+}
+
+
+function prev(){
+
+  if(
+    page <= 1
+  ){
+    return;
+  }
+
+
+  page--;
+
+
+  if(
+    kind === "pdf"
+  ){
+
+    renderPDF();
+
+  }else if(
+    kind === "pptx"
+  ){
+
+    renderPPTX();
+  }
+}
+
+
+function gotoPage(
+  value
+){
+
+  const n =
+    Math.floor(
+      Number(
+        value
+      )
+    );
+
+
+  if(
+    !Number.isFinite(n) ||
+    n < 1 ||
+    n > total
+  ){
+
+    return false;
+  }
+
+
+  page =
+    n;
+
+
+  if(
+    kind === "pdf"
+  ){
+
+    renderPDF();
+
+  }else if(
+    kind === "pptx"
+  ){
+
+    renderPPTX();
+  }
+
+
+  return true;
+}
+
+
+/* =========================================================
+   FIND
+========================================================= */
+
+function findText(
+  value
+){
+
+  const query =
+    String(
+      value || ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  searchText =
+    query;
+
+
+  if(!query){
+
+    searchHits =
+      [];
+
+    searchIndex =
+      -1;
+
+    setStatus(
+      "Search cleared."
+    );
+
+    return;
+  }
+
+
+  const fullText =
+    (
+      textContent ||
+      viewer.innerText ||
+      ""
+    )
+      .toLowerCase();
+
+
+  searchHits =
+    [];
+
+
+  let p =
+    0;
+
+
+  while(
+    (p =
+      fullText.indexOf(
+        query,
+        p
+      )) >= 0
+  ){
+
+    searchHits.push(
+      p
+    );
+
+    p +=
+      Math.max(
+        1,
+        query.length
+      );
+  }
+
+
+  if(
+    !searchHits.length
+  ){
+
+    setStatus(
+      "Not found: " +
+      query
+    );
+
+    return;
+  }
+
+
+  searchIndex =
+    (
+      searchIndex + 1
+    ) %
+    searchHits.length;
+
+
+  /*
+    Find a visible text node.
+  */
+
+  const walker =
+    document.createTreeWalker(
+      viewer,
+      NodeFilter.SHOW_TEXT
+    );
+
+
+  while(
+    walker.nextNode()
+  ){
+
+    const node =
+      walker.currentNode;
+
+
+    const value =
+      (
+        node.textContent ||
+        ""
+      ).toLowerCase();
+
+
+    if(
+      value.includes(
+        query
+      )
+    ){
+
+      node.parentElement?.scrollIntoView({
+        behavior:
+          "smooth",
+        block:
+          "center"
+      });
+
+      break;
+    }
+  }
+
+
+  setStatus(
+    "Found " +
+    (searchIndex + 1) +
+    "/" +
+    searchHits.length +
+    ": " +
+    query
+  );
+}
+
+
+/* =========================================================
+   RESIZE
+========================================================= */
+
+window.addEventListener(
+  "resize",
+  ()=>{
+    if(
+      kind === "pdf"
+    ){
+      renderPDF();
+    }
+  }
+);
+
+
+/* =========================================================
+   PUBLIC DOCUMENT API
+========================================================= */
+
+const DocumentAPI = {
+
+  action:
+    async function(
+      actions
+    ){
+
+      if(
+        !actions ||
+        typeof actions !== "object" ||
+        Array.isArray(actions)
+      ){
+
+        return {
+          ok:false,
+          error:
+            "Document action must be an object."
+        };
+      }
+
+
+      const results =
+        {};
+
+
+      try{
+
+        for(
+          const key of
+          Object.keys(actions)
+        ){
+
+          const value =
+            actions[key];
+
+
+          switch(
+            key.toLowerCase()
+          ){
+
+            case "open":
+
+              await openDocument(
+                value
+              );
+
+              results.open = {
+                ok:true,
+                path:
+                  String(
+                    value
+                  )
+              };
+
+              break;
+
+
+            case "close":
+
+              cleanup();
+              empty();
+
+
+              results.close = {
+                ok:true
+              };
+
+              break;
+
+
+            case "next":
+            case "nextpage":
+
+              next();
+
+
+              results[key] = {
+                ok:true,
+                page,
+                total
+              };
+
+              break;
+
+
+            case "previous":
+            case "prev":
+            case "previouspage":
+
+              prev();
+
+
+              results[key] = {
+                ok:true,
+                page,
+                total
+              };
+
+              break;
+
+
+            case "page":
+            case "goto":
+
+              results[key] = {
+                ok:
+                  gotoPage(
+                    value
+                  ),
+                page,
+                total
+              };
+
+              break;
+
+
+            case "zoom":
+
+              setZoom(
+                value
+              );
+
+
+              results.zoom = {
+                ok:true,
+                value:zoom
+              };
+
+              break;
+
+
+            case "find":
+            case "search":
+
+              findText(
+                value
+              );
+
+
+              results[key] = {
+                ok:
+                  searchHits.length > 0,
+                matches:
+                  searchHits.length,
+                query:
+                  String(
+                    value || ""
+                  )
+              };
+
+              break;
+
+
+            case "state":
+
+              results.state = {
+                ok:true,
+                path,
+                type:kind,
+                page,
+                totalPages:total,
+                zoom,
+                mime:
+                  mime(path),
+                loaded:
+                  !!kind
+              };
+
+              break;
+
+
+            default:
+
+              results[key] = {
+                ok:false,
+                error:
+                  "Unknown document action: " +
+                  key
+              };
+          }
+        }
+
+
+        return {
+          ok:true,
+          results
+        };
+
+      }catch(e){
+
+        return {
+          ok:false,
+          error:
+            errorText(e),
+          results
+        };
+      }
+    }
+};
+
+
+/* =========================================================
+   EXPOSE API TO LITTLE HOLLOW
+========================================================= */
+
+try{
+
+  if(
+    window.parent &&
+    window.parent !== window
+  ){
+
+    window.parent.DocumentAPI =
+      DocumentAPI;
+  }
+
+}catch(_){}
+
+window.DocumentAPI =
+  DocumentAPI;
+
+
+/* =========================================================
+   UI EVENTS
+========================================================= */
+
+$("load").onclick =
+  ()=>{
+
+    const s =
+      srcBox.value.trim();
+
+    if(s){
+
+      openDocument(
+        s
+      );
+    }
+  };
+
+
+srcBox.onkeydown =
+  e=>{
+
+    if(
+      e.key === "Enter"
+    ){
+
+      const s =
+        srcBox.value.trim();
+
+      if(s){
+
+        openDocument(
+          s
+        );
+      }
+    }
+  };
+
+
+$("prev").onclick =
+  prev;
+
+
+$("next").onclick =
+  next;
+
+
+$("goto").onclick =
+  ()=>{
+    gotoPage(
+      pageBox.value
+    );
+  };
+
+
+pageBox.onkeydown =
+  e=>{
+
+    if(
+      e.key === "Enter"
+    ){
+
+      gotoPage(
+        pageBox.value
+      );
+    }
+  };
+
+
+$("zoomOut").onclick =
+  ()=>{
+    setZoom(
+      zoom - .1
+    );
+  };
+
+
+$("zoomIn").onclick =
+  ()=>{
+    setZoom(
+      zoom + .1
+    );
+  };
+
+
+$("fit").onclick =
+  ()=>{
+    setZoom(
+      1
+    );
+  };
+
+
+$("findBtn").onclick =
+  ()=>{
+    findText(
+      $("find").value
+    );
+  };
+
+
+$("find").onkeydown =
+  e=>{
+
+    if(
+      e.key === "Enter"
+    ){
+
+      findText(
+        $("find").value
+      );
+    }
+  };
+
+
+window.addEventListener(
+  "beforeunload",
+  cleanup
+);
+
+
+/* =========================================================
+   INITIAL
+========================================================= */
+
+updateTools();
+
+
+if(initial){
+
+  srcBox.value =
+    initial;
+
+
+  openDocument(
+    initial
+  );
+}
+
 </script>
+
 </body>
 </html>
