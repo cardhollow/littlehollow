@@ -1,0 +1,1994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Notepad IDE</title>
+
+<style>
+*{
+box-sizing:border-box;
+margin:0;
+padding:0;
+font-family:monospace
+}
+
+html,
+body{
+width:100%;
+height:100%;
+background:#000;
+color:#B8C7C7
+}
+
+body{
+overflow:hidden
+}
+
+button,
+input,
+select{
+font-family:monospace
+}
+
+.wrap{
+display:flex;
+flex-direction:column;
+width:100%;
+height:100%;
+background:#000
+}
+
+.toolbar{
+display:flex;
+align-items:center;
+gap:6px;
+padding:7px;
+border-bottom:1px solid rgba(0,255,255,.65);
+background:rgba(0,15,15,.94);
+flex-wrap:wrap
+}
+
+.toolbar input,
+.toolbar select{
+height:28px;
+background:#001010;
+border:1px solid rgba(0,255,255,.48);
+color:#B8C7C7;
+outline:none;
+padding:4px 7px;
+font-size:11px
+}
+
+.toolbar input:focus,
+.toolbar select:focus{
+border-color:#00FFFF;
+box-shadow:0 0 7px rgba(0,255,255,.12)
+}
+
+#path{
+flex:1 1 190px;
+min-width:120px
+}
+
+#language{
+flex:0 1 125px
+}
+
+.toolbar button{
+height:28px;
+padding:0 9px;
+border:1px solid rgba(0,255,255,.58);
+background:transparent;
+color:#9FD7D7;
+font-size:10px;
+cursor:pointer;
+white-space:nowrap
+}
+
+.toolbar button:hover{
+background:rgba(0,255,255,.065);
+border-color:#00FFFF;
+color:#00FFFF
+}
+
+.toolbar button:active{
+background:#00FFFF;
+color:#000
+}
+
+#saveBtn.dirty{
+font-weight:bold;
+color:#FFD166;
+border-color:#B89B43
+}
+
+#runWindowBtn{
+display:none
+}
+
+#runWindowBtn.visible{
+display:block
+}
+
+.editorWrap{
+position:relative;
+flex:1;
+min-height:0;
+background:#000
+}
+
+#editor{
+position:absolute;
+inset:0
+}
+
+.status{
+display:flex;
+align-items:center;
+gap:12px;
+height:23px;
+padding:0 8px;
+border-top:1px solid rgba(0,255,255,.55);
+background:rgba(0,15,15,.94);
+color:#6F9595;
+font-size:10px;
+white-space:nowrap;
+overflow:hidden
+}
+
+#status{
+overflow:hidden;
+text-overflow:ellipsis
+}
+
+#position{
+margin-left:auto;
+flex:none;
+color:#6EA4A4
+}
+
+.ace_editor{
+font-size:13px !important;
+background:#000 !important
+}
+
+.ace_scroller{
+background:#000 !important
+}
+
+.ace_text-layer{
+color:#B7C4C4 !important
+}
+
+.ace_line{
+color:#B7C4C4 !important
+}
+
+.ace_gutter{
+background:#000B0B !important;
+color:#3D6666 !important;
+border-right:1px solid rgba(0,255,255,.07) !important
+}
+
+.ace_gutter-active-line{
+background:rgba(0,255,255,.045) !important;
+color:#82BABA !important
+}
+
+.ace_active-line{
+background:rgba(0,255,255,.025) !important
+}
+
+.ace_selection{
+background:rgba(0,210,210,.18) !important
+}
+
+.ace_cursor{
+color:#00FFFF !important
+}
+
+.ace_indent-guide{
+background:linear-gradient(
+to right,
+transparent 49%,
+rgba(0,255,255,.065) 50%,
+transparent 51%
+) right repeat-y !important
+}
+
+.ace_fold-widget{
+color:#61D7D7 !important
+}
+
+.ace_comment{
+color:#4F7D69 !important;
+font-style:italic !important
+}
+
+.ace_comment.ace_doc{
+color:#619783 !important
+}
+
+.ace_keyword,
+.ace_storage{
+color:#34C9BE !important
+}
+
+.ace_keyword.ace_operator{
+color:#74BBBB !important
+}
+
+.ace_storage.ace_type,
+.ace_storage.ace_modifier{
+color:#49B5C7 !important
+}
+
+.ace_support.ace_type,
+.ace_support.ace_class,
+.ace_entity.ace_name.ace_type{
+color:#74BFFF !important
+}
+
+.ace_entity.ace_name.ace_function,
+.ace_support.ace_function{
+color:#5FA9E8 !important
+}
+
+.ace_function{
+color:#5FA9E8 !important
+}
+
+.ace_string{
+color:#D5A85F !important
+}
+
+.ace_string.ace_regexp{
+color:#C9896E !important
+}
+
+.ace_constant{
+color:#AA91E8 !important
+}
+
+.ace_constant.ace_numeric{
+color:#9D83D6 !important
+}
+
+.ace_constant.ace_language,
+.ace_constant.ace_character{
+color:#B497EC !important
+}
+
+.ace_variable{
+color:#A5BFC0 !important
+}
+
+.ace_variable.ace_language{
+color:#82C2D1 !important
+}
+
+.ace_variable.ace_parameter{
+color:#B3C4C4 !important
+}
+
+.ace_meta{
+color:#58B9B9 !important
+}
+
+.ace_tag{
+color:#42C7CE !important
+}
+
+.ace_tag-name{
+color:#41BFD0 !important
+}
+
+.ace_attribute-name{
+color:#C9A45F !important
+}
+
+.ace_punctuation{
+color:#7E9696 !important
+}
+
+.ace_paren{
+color:#829999 !important
+}
+
+.ace_operator{
+color:#68AEAE !important
+}
+
+.ace_entity.ace_name.ace_tag{
+color:#42C7CE !important
+}
+
+.ace_invalid{
+color:#FF687A !important;
+background:rgba(255,60,80,.10) !important
+}
+
+.ace_invalid.ace_illegal{
+color:#FF5368 !important;
+background:rgba(255,45,65,.14) !important
+}
+
+.ace_bracket{
+color:#8FBABA !important
+}
+
+.ace_marker-layer .ace_bracket{
+border:1px solid rgba(0,255,255,.26) !important;
+background:rgba(0,255,255,.035) !important
+}
+
+.ace_search{
+font-family:monospace !important;
+background:#001414 !important;
+border:1px solid rgba(0,255,255,.72) !important;
+box-shadow:
+0 0 9px rgba(0,255,255,.14),
+0 7px 20px rgba(0,0,0,.65) !important;
+color:#B8C7C7 !important
+}
+
+.ace_search_options{
+font-family:monospace !important;
+color:#86AAAA !important
+}
+
+.ace_search_field,
+.ace_replace_field{
+background:#000909 !important;
+color:#D0DEDE !important;
+border:1px solid #176767 !important
+}
+
+.ace_search_field:focus,
+.ace_replace_field:focus{
+border-color:#00FFFF !important;
+box-shadow:0 0 6px rgba(0,255,255,.11) !important
+}
+
+.ace_button{
+font-family:monospace !important;
+color:#82BABA !important
+}
+
+.ace_searchbtn,
+.ace_replacebtn{
+color:#82BABA !important
+}
+
+.ace_searchbtn:hover,
+.ace_replacebtn:hover{
+color:#00FFFF !important;
+background:rgba(0,255,255,.07) !important
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<div class="toolbar">
+
+<input
+id="path"
+value="chxd:/local/notes.txt"
+spellcheck="false"
+autocomplete="off"
+>
+
+<select id="language">
+<option value="javascript">JavaScript</option>
+<option value="typescript">TypeScript</option>
+<option value="html">HTML</option>
+<option value="css">CSS</option>
+<option value="python">Python</option>
+<option value="java">Java</option>
+<option value="c_cpp">C / C++</option>
+<option value="csharp">C#</option>
+<option value="php">PHP</option>
+<option value="json">JSON</option>
+<option value="xml">XML</option>
+<option value="markdown">Markdown</option>
+<option value="text">Plain Text</option>
+</select>
+
+<button id="openBtn">OPEN</button>
+<button id="pickBtn">FILE…</button>
+<button id="saveBtn">SAVE</button>
+<button id="newBtn">NEW</button>
+<button id="runBtn">RUN IN ONECOMPILER</button>
+<button id="runWindowBtn">RUN WINDOW</button>
+
+</div>
+
+<div class="editorWrap">
+<div id="editor"></div>
+</div>
+
+<div class="status">
+<div id="status">Ready.</div>
+<div id="position">Ln 1, Col 1</div>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/ace-builds@1.43.3/src-min-noconflict/ace.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ace-builds@1.43.3/src-min-noconflict/ext-searchbox.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ace-builds@1.43.3/src-min-noconflict/ext-language_tools.js"></script>
+
+<script>
+const pathInput=document.getElementById("path");
+const language=document.getElementById("language");
+const saveBtn=document.getElementById("saveBtn");
+const status=document.getElementById("status");
+const position=document.getElementById("position");
+const runWindowBtn=document.getElementById("runWindowBtn");
+
+const params=new URLSearchParams(location.search);
+
+let dirty=false;
+let lastSavedValue="";
+let suppressChange=false;
+
+let runWindow=null;
+let runPreview=null;
+let runName=null;
+let runLanguage=null;
+let runState=null;
+let runUpdateTimer=0;
+let runUpdateSerial=0;
+
+const editor=ace.edit("editor");
+
+editor.setOptions({
+fontSize:"13px",
+showPrintMargin:false,
+highlightActiveLine:true,
+highlightSelectedWord:true,
+enableBasicAutocompletion:true,
+enableLiveAutocompletion:true,
+enableSnippets:true,
+tabSize:4,
+useSoftTabs:true,
+wrap:false,
+showGutter:true,
+scrollPastEnd:false,
+behavioursEnabled:true,
+autoScrollEditorIntoView:true
+});
+
+editor.setTheme("ace/theme/tomorrow_night");
+
+const extensionMap={
+js:"javascript",
+mjs:"javascript",
+cjs:"javascript",
+jsx:"javascript",
+
+ts:"typescript",
+tsx:"typescript",
+
+html:"html",
+htm:"html",
+xhtml:"html",
+
+css:"css",
+
+py:"python",
+pyw:"python",
+
+java:"java",
+
+c:"c_cpp",
+h:"c_cpp",
+cc:"c_cpp",
+cpp:"c_cpp",
+cxx:"c_cpp",
+hpp:"c_cpp",
+
+cs:"csharp",
+
+php:"php",
+
+json:"json",
+
+xml:"xml",
+svg:"xml",
+
+md:"markdown",
+markdown:"markdown",
+
+txt:"text"
+};
+
+function setStatus(value){
+status.textContent=
+String(value||"");
+}
+
+function updatePosition(){
+const pos=
+editor.getCursorPosition();
+
+position.textContent=
+"Ln "+
+(pos.row+1)+
+", Col "+
+(pos.column+1);
+}
+
+function setDirty(value){
+dirty=!!value;
+
+saveBtn.textContent=
+dirty
+?"*SAVE"
+:"SAVE";
+
+saveBtn.classList.toggle(
+"dirty",
+dirty
+);
+
+document.title=
+dirty
+?"* Notepad IDE"
+:"Notepad IDE";
+}
+
+function updateDirty(){
+if(suppressChange){
+return;
+}
+
+setDirty(
+editor.getValue()!==lastSavedValue
+);
+}
+
+function normalizePath(path){
+return String(path||"")
+.trim()
+.split("?")[0]
+.split("#")[0];
+}
+
+function getExtension(path){
+const clean=
+normalizePath(path);
+
+const file=
+clean.split("/").pop()||"";
+
+const dot=
+file.lastIndexOf(".");
+
+if(dot<0){
+return"";
+}
+
+return file
+.slice(dot+1)
+.toLowerCase();
+}
+
+function languageFromPath(path){
+return extensionMap[
+getExtension(path)
+]||null;
+}
+
+function languageFromContent(text){
+const s=
+String(text||"")
+.trimStart();
+
+if(
+/^<!doctype\s+html/i.test(s)||
+/<html[\s>]/i.test(s)
+){
+return"html";
+}
+
+if(
+/^\s*[{[]/.test(s)
+){
+
+try{
+JSON.parse(s);
+return"json";
+}catch(e){}
+
+}
+
+if(
+/<\/?[a-z][^>]*>/i.test(s)
+){
+return"html";
+}
+
+if(
+/(^|\s)[.#][\w-]+\s*\{/m.test(s)||
+/@media\b/.test(s)||
+/@keyframes\b/.test(s)
+){
+return"css";
+}
+
+if(
+/\b(const|let|var|function|=>|console\.log|document\.|window\.)\b/.test(s)
+){
+return"javascript";
+}
+
+if(
+/\b(def|async\s+def|from\s+\w+\s+import|print\(|elif)\b/.test(s)
+){
+return"python";
+}
+
+if(
+/\b(public|private|protected)\b/.test(s)&&
+/\b(class|interface|namespace)\b/.test(s)
+){
+return"java";
+}
+
+return null;
+}
+
+function isHTML(){
+return(
+language.value==="html"||
+languageFromPath(
+pathInput.value
+)==="html"
+);
+}
+
+function updateRunWindowVisibility(){
+runWindowBtn.classList.toggle(
+"visible",
+isHTML()
+);
+}
+
+function detectLanguage(path,text){
+const detected=
+languageFromPath(path)||
+languageFromContent(text)||
+"text";
+
+if(
+[...language.options].some(
+o=>o.value===detected
+)
+){
+language.value=detected;
+}else{
+language.value="text";
+}
+
+editor.session.setMode(
+"ace/mode/"+language.value
+);
+
+updateRunWindowVisibility();
+queueRunWindowUpdate();
+
+return language.value;
+}
+
+function setEditorValue(value){
+suppressChange=true;
+
+editor.setValue(
+String(value??""),
+-1
+);
+
+editor.clearSelection();
+
+editor.gotoLine(
+1,
+0,
+true
+);
+
+suppressChange=false;
+
+updatePosition();
+updateDirty();
+
+detectLanguage(
+pathInput.value,
+editor.getValue()
+);
+}
+
+async function load(){
+const p=
+pathInput.value.trim();
+
+if(!p){
+setStatus("No file path.");
+return;
+}
+
+try{
+
+const r=
+await parent.FS.read(p);
+
+if(!r||!r.ok){
+
+setStatus(
+r&&r.error
+?r.error
+:"Could not load file."
+);
+
+return;
+}
+
+setEditorValue(
+r.content
+);
+
+lastSavedValue=
+editor.getValue();
+
+setDirty(false);
+
+detectLanguage(
+p,
+editor.getValue()
+);
+
+setStatus(
+"Loaded "+
+p+
+" · "+
+language.value
+);
+
+editor.focus();
+
+}catch(err){
+
+setStatus(
+err.message||
+String(err)
+);
+
+}
+}
+
+async function save(){
+const p=
+pathInput.value.trim();
+
+if(!p){
+setStatus("No file path.");
+return;
+}
+
+try{
+
+const value=
+editor.getValue();
+
+const r=
+await parent.FS.write(
+p,
+value,
+true
+);
+
+if(!r||!r.ok){
+
+setStatus(
+r&&r.error
+?r.error
+:"Could not save file."
+);
+
+return;
+}
+
+lastSavedValue=
+value;
+
+setDirty(false);
+
+detectLanguage(
+p,
+value
+);
+
+setStatus(
+"Saved "+
+p+"."
+);
+
+}catch(err){
+
+setStatus(
+err.message||
+String(err)
+);
+
+}
+}
+
+async function newNotepad(){
+try{
+
+const result=
+await parent.Apps.openApp(
+"notepad",
+{
+title:"NOTEPAD IDE",
+width:720,
+height:520,
+allowMultiple:true
+}
+);
+
+if(
+!result||
+!result.ok
+){
+
+setStatus(
+result&&result.error
+?result.error
+:"Could not open new Notepad IDE."
+);
+
+return;
+}
+
+setStatus(
+"Opened new Notepad IDE."
+);
+
+}catch(err){
+
+setStatus(
+err.message||
+String(err)
+);
+
+}
+}
+
+async function pickFile(){
+try{
+
+await parent.Apps.openApp(
+"File Manager",
+{
+selectMode:true,
+allowMultiple:false
+}
+);
+
+}catch(err){
+
+setStatus(
+err.message||
+String(err)
+);
+
+}
+}
+
+function run(){
+const detected=
+languageFromPath(
+pathInput.value
+)||
+languageFromContent(
+editor.getValue()
+)||
+language.value||
+"javascript";
+
+language.value=
+detected;
+
+editor.session.setMode(
+"ace/mode/"+detected
+);
+
+const name=
+pathInput.value
+.split("/")
+.pop()||
+"main.js";
+
+try{
+
+parent.Apps.openOneCompiler({
+language:detected,
+files:[
+{
+name:name,
+content:editor.getValue()
+}
+],
+run:true
+});
+
+setStatus(
+"Opened OneCompiler · "+
+detected
+);
+
+}catch(err){
+
+setStatus(
+err.message||
+String(err)
+);
+
+}
+}
+
+function getRunRelativePath(ref){
+const current=
+normalizePath(
+pathInput.value
+);
+
+const match=
+current.match(
+/^(.*\/)[^/]+$/
+);
+
+const base=
+match
+?match[1]
+:"chxd:/local/";
+
+if(
+/^[a-zA-Z]+:\/\//.test(ref)||
+ref.startsWith("data:")||
+ref.startsWith("blob:")||
+ref.startsWith("#")||
+ref.startsWith("javascript:")
+){
+return ref;
+}
+
+if(
+ref.startsWith("chxd:")
+){
+return normalizePath(ref);
+}
+
+const clean=
+ref
+.split("?")[0]
+.split("#")[0];
+
+if(
+clean.startsWith("/")
+){
+return"chxd:"+clean;
+}
+
+const parts=
+(base+clean)
+.split("/");
+
+const result=[];
+
+for(
+const part of parts
+){
+
+if(
+!part||
+part==="."){
+continue;
+}
+
+if(
+part===".."
+){
+result.pop();
+}else{
+result.push(part);
+}
+
+}
+
+return result.join("/");
+}
+
+async function readFSFile(path){
+try{
+
+const r=
+await parent.FS.read(path);
+
+if(!r||!r.ok){
+return null;
+}
+
+return String(
+r.content??""
+);
+
+}catch(e){
+
+return null;
+
+}
+}
+
+async function collectHTMLResources(html){
+const resources=
+new Map();
+
+const regex=
+/\b(?:src|href)\s*=\s*(['"])([^'"]+)\1/gi;
+
+let match;
+
+const requests=[];
+
+while(
+(match=regex.exec(html))!==null
+){
+
+const url=
+match[2];
+
+if(
+url.startsWith("http://")||
+url.startsWith("https://")||
+url.startsWith("//")||
+url.startsWith("data:")||
+url.startsWith("blob:")||
+url.startsWith("#")||
+url.startsWith("javascript:")
+){
+continue;
+}
+
+const fsPath=
+getRunRelativePath(url);
+
+if(
+resources.has(fsPath)
+){
+continue;
+}
+
+resources.set(
+fsPath,
+null
+);
+
+requests.push(
+(async()=>{
+
+const content=
+await readFSFile(fsPath);
+
+resources.set(
+fsPath,
+content
+);
+
+})()
+);
+
+}
+
+await Promise.all(
+requests
+);
+
+return resources;
+}
+
+function inlineHTMLResources(
+html,
+resources
+){
+
+let output=
+String(html||"");
+
+output=
+output.replace(
+/<link\b[^>]*\bhref\s*=\s*(['"])([^'"]+)\1[^>]*>/gi,
+(match,quote,url)=>{
+
+const fsPath=
+getRunRelativePath(url);
+
+const content=
+resources.get(fsPath);
+
+if(
+content==null
+){
+return match;
+}
+
+if(
+/\.css$/i.test(fsPath)
+){
+
+return(
+"<style>\n"+
+content+
+"\n</style>"
+);
+
+}
+
+return match;
+
+}
+);
+
+output=
+output.replace(
+/<script\b([^>]*)\bsrc\s*=\s*(['"])([^'"]+)\2([^>]*)>\s*<\/script>/gi,
+(match,before,url,after)=>{
+
+const fsPath=
+getRunRelativePath(url);
+
+const content=
+resources.get(fsPath);
+
+if(
+content==null
+){
+return match;
+}
+
+if(
+/\.(js|mjs|cjs)$/i.test(fsPath)
+){
+
+return(
+"<script"+
+before+
+after+
+">\n"+
+content+
+"\n<\/script>"
+);
+
+}
+
+return match;
+
+}
+);
+
+return output;
+}
+
+async function buildRenderedHTML(){
+const source=
+editor.getValue();
+
+const resources=
+await collectHTMLResources(
+source
+);
+
+return inlineHTMLResources(
+source,
+resources
+);
+}
+
+function createRunWindow(){
+
+if(!isHTML()){
+return;
+}
+
+if(
+runWindow&&
+!runWindow.closed&&
+runWindow.el
+){
+
+queueRunWindowUpdate();
+
+return;
+}
+
+const name=
+pathInput.value
+.split("/")
+.pop()||
+"index.html";
+
+try{
+
+runWindow=
+parent.WM.openWindow({
+title:"RUN — "+name,
+html:"",
+width:"760px",
+height:"560px",
+noPad:true,
+draggable:true,
+resizable:true,
+maximizable:true,
+closable:true
+});
+
+if(
+!runWindow||
+!runWindow.el
+){
+
+runWindow=null;
+
+setStatus(
+"Could not open Run Window."
+);
+
+return;
+}
+
+const content=
+runWindow.el.querySelector(
+".cyan-window-content"
+);
+
+if(!content){
+
+setStatus(
+"Could not create Run Window content."
+);
+
+return;
+}
+
+content.style.padding="0";
+content.style.overflow="hidden";
+
+content.innerHTML=
+`
+<div
+style="
+width:100%;
+height:100%;
+display:flex;
+flex-direction:column;
+background:#000;
+font-family:monospace;
+"
+>
+
+<div
+style="
+height:30px;
+min-height:30px;
+display:flex;
+align-items:center;
+gap:7px;
+padding:3px 7px;
+background:#000D0D;
+border-bottom:1px solid rgba(0,255,255,.65);
+"
+>
+
+<div
+id="runName"
+style="
+flex:1;
+min-width:0;
+color:#9FD7D7;
+font-size:10px;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+"
+></div>
+
+<select
+id="runLanguage"
+style="
+height:23px;
+background:#001010;
+border:1px solid #176767;
+color:#9FD7D7;
+font-family:monospace;
+font-size:10px;
+"
+>
+<option value="html">HTML</option>
+<option value="javascript">JavaScript</option>
+<option value="css">CSS</option>
+<option value="typescript">TypeScript</option>
+<option value="c_cpp">C / C++</option>
+<option value="python">Python</option>
+<option value="java">Java</option>
+<option value="csharp">C#</option>
+<option value="php">PHP</option>
+<option value="json">JSON</option>
+<option value="xml">XML</option>
+<option value="markdown">Markdown</option>
+<option value="text">Plain Text</option>
+</select>
+
+<div
+id="runState"
+style="
+font-size:9px;
+color:#598C79;
+"
+>
+LIVE
+</div>
+
+</div>
+
+<iframe
+id="runPreview"
+sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
+style="
+display:block;
+width:100%;
+height:calc(100% - 30px);
+border:0;
+background:white;
+"
+></iframe>
+
+</div>
+`;
+
+runPreview=
+runWindow.el.querySelector(
+"#runPreview"
+);
+
+runName=
+runWindow.el.querySelector(
+"#runName"
+);
+
+runLanguage=
+runWindow.el.querySelector(
+"#runLanguage"
+);
+
+runState=
+runWindow.el.querySelector(
+"#runState"
+);
+
+runWindow.onClose=
+()=>{
+runWindow=null;
+runPreview=null;
+runName=null;
+runLanguage=null;
+runState=null;
+};
+
+runLanguage.addEventListener(
+"change",
+()=>{
+queueRunWindowUpdate();
+}
+);
+
+queueRunWindowUpdate();
+
+setStatus(
+"Opened Run Window."
+);
+
+}catch(err){
+
+runWindow=null;
+
+setStatus(
+err.message||
+String(err)
+);
+
+}
+}
+
+function queueRunWindowUpdate(){
+
+if(
+!runWindow||
+runWindow.closed||
+!runWindow.el||
+!isHTML()
+){
+return;
+}
+
+clearTimeout(
+runUpdateTimer
+);
+
+const serial=
+++runUpdateSerial;
+
+runUpdateTimer=
+setTimeout(
+()=>{
+updateRunWindow(serial);
+},
+50
+);
+}
+
+async function updateRunWindow(serial){
+
+if(
+serial!==runUpdateSerial
+){
+return;
+}
+
+if(
+!runWindow||
+runWindow.closed||
+!runWindow.el||
+!isHTML()
+){
+return;
+}
+
+const preview=
+runPreview;
+
+if(!preview){
+return;
+}
+
+if(runName){
+
+runName.textContent=
+pathInput.value
+.split("/")
+.pop()||
+"index.html";
+}
+
+if(runLanguage){
+
+runLanguage.value=
+"html";
+}
+
+if(runState){
+
+runState.textContent=
+dirty
+?"LIVE · UNSAVED"
+:"LIVE";
+}
+
+try{
+
+const html=
+await buildRenderedHTML();
+
+if(
+serial!==runUpdateSerial||
+!runWindow||
+!runPreview
+){
+return;
+}
+
+runPreview.srcdoc=
+html;
+
+}catch(err){
+
+if(
+serial!==runUpdateSerial||
+!runPreview
+){
+return;
+}
+
+runPreview.srcdoc=
+`
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8">
+</head>
+<body
+style="
+margin:0;
+padding:16px;
+background:#000;
+color:#FF687A;
+font-family:monospace;
+white-space:pre-wrap;
+"
+>
+Run Window Error
+
+${String(
+err.message||
+err
+)}
+</body>
+</html>
+`;
+
+setStatus(
+"Run Window: "+
+(err.message||String(err))
+);
+
+}
+}
+
+function openFind(){
+
+const selected=
+editor.getSelectedText();
+
+editor.execCommand(
+"find"
+);
+
+if(!selected){
+return;
+}
+
+setTimeout(
+()=>{
+const input=
+document.querySelector(
+".ace_search_field"
+);
+
+if(!input){
+return;
+}
+
+input.value=
+selected;
+
+input.dispatchEvent(
+new Event(
+"input",
+{
+bubbles:true
+}
+)
+);
+
+input.focus();
+input.select();
+
+},
+0
+);
+
+}
+
+function openReplace(){
+editor.execCommand(
+"replace"
+);
+}
+
+editor.on(
+"change",
+()=>{
+updateDirty();
+updatePosition();
+
+if(
+!languageFromPath(
+pathInput.value
+)
+){
+
+const contentLanguage=
+languageFromContent(
+editor.getValue()
+);
+
+if(contentLanguage){
+language.value=
+contentLanguage;
+
+editor.session.setMode(
+"ace/mode/"+
+contentLanguage
+);
+}
+
+}
+
+updateRunWindowVisibility();
+queueRunWindowUpdate();
+}
+);
+
+editor.selection.on(
+"changeCursor",
+updatePosition
+);
+
+editor.selection.on(
+"changeSelection",
+updatePosition
+);
+
+language.addEventListener(
+"change",
+()=>{
+editor.session.setMode(
+"ace/mode/"+
+language.value
+);
+
+updateRunWindowVisibility();
+queueRunWindowUpdate();
+}
+);
+
+pathInput.addEventListener(
+"input",
+()=>{
+const detected=
+languageFromPath(
+pathInput.value
+);
+
+if(detected){
+
+language.value=
+detected;
+
+editor.session.setMode(
+"ace/mode/"+
+detected
+);
+
+}else{
+
+const contentLanguage=
+languageFromContent(
+editor.getValue()
+);
+
+if(contentLanguage){
+
+language.value=
+contentLanguage;
+
+editor.session.setMode(
+"ace/mode/"+
+contentLanguage
+);
+
+}else{
+
+language.value="text";
+
+editor.session.setMode(
+"ace/mode/text"
+);
+
+}
+
+}
+
+updateRunWindowVisibility();
+queueRunWindowUpdate();
+}
+);
+
+document.getElementById(
+"openBtn"
+).onclick=
+load;
+
+saveBtn.onclick=
+save;
+
+document.getElementById(
+"pickBtn"
+).onclick=
+pickFile;
+
+document.getElementById(
+"newBtn"
+).onclick=
+newNotepad;
+
+document.getElementById(
+"runBtn"
+).onclick=
+run;
+
+runWindowBtn.onclick=
+createRunWindow;
+
+editor.commands.addCommand({
+name:"saveFile",
+bindKey:{
+win:"Ctrl-S",
+mac:"Command-S"
+},
+exec:function(){
+save();
+}
+});
+
+editor.commands.addCommand({
+name:"findFile",
+bindKey:{
+win:"Ctrl-F",
+mac:"Command-F"
+},
+exec:function(){
+openFind();
+}
+});
+
+editor.commands.addCommand({
+name:"replaceFile",
+bindKey:{
+win:"Ctrl-R",
+mac:"Command-R"
+},
+exec:function(){
+openReplace();
+}
+});
+
+editor.commands.addCommand({
+name:"replaceFileAlt",
+bindKey:{
+win:"Ctrl-H",
+mac:"Command-H"
+},
+exec:function(){
+openReplace();
+}
+});
+
+document.addEventListener(
+"keydown",
+e=>{
+
+const key=
+e.key.toLowerCase();
+
+if(
+(e.ctrlKey||e.metaKey)&&
+key==="s"
+){
+
+e.preventDefault();
+e.stopPropagation();
+
+save();
+
+return;
+}
+
+if(
+(e.ctrlKey||e.metaKey)&&
+key==="f"
+){
+
+if(
+document.activeElement!==pathInput&&
+document.activeElement!==language
+){
+
+e.preventDefault();
+e.stopPropagation();
+
+openFind();
+
+return;
+}
+
+}
+
+if(
+(e.ctrlKey||e.metaKey)&&
+key==="r"
+){
+
+if(
+document.activeElement!==pathInput&&
+document.activeElement!==language
+){
+
+e.preventDefault();
+e.stopPropagation();
+
+openReplace();
+
+return;
+}
+
+}
+
+if(
+findInput.matches(":focus")&&
+e.key==="ArrowDown"
+){
+
+e.preventDefault();
+
+const button=
+document.querySelector(
+".ace_searchbtn.next"
+);
+
+if(button){
+button.click();
+}
+
+return;
+}
+
+if(
+findInput.matches(":focus")&&
+e.key==="ArrowUp"
+){
+
+e.preventDefault();
+
+const button=
+document.querySelector(
+".ace_searchbtn.prev"
+);
+
+if(button){
+button.click();
+}
+
+return;
+}
+
+},
+true
+);
+
+window.addEventListener(
+"message",
+e=>{
+
+const d=
+e.data||{};
+
+if(
+d.type!=="LH_FILE_SELECTED"||
+!d.path
+){
+return;
+}
+
+pathInput.value=
+d.path;
+
+detectLanguage(
+d.path,
+""
+);
+
+load();
+
+}
+);
+
+async function initialize(){
+
+const pathParam=
+params.get("path");
+
+const textParam=
+params.get("text");
+
+if(
+pathParam
+){
+
+pathInput.value=
+pathParam;
+
+if(
+textParam===null
+){
+
+detectLanguage(
+pathInput.value,
+""
+);
+
+await load();
+
+}else{
+
+setEditorValue(
+textParam
+);
+
+lastSavedValue=
+editor.getValue();
+
+setDirty(false);
+
+detectLanguage(
+pathInput.value,
+editor.getValue()
+);
+
+}
+
+editor.focus();
+
+return;
+}
+
+if(
+textParam!==null
+){
+
+setEditorValue(
+textParam
+);
+
+lastSavedValue=
+editor.getValue();
+
+setDirty(false);
+
+detectLanguage(
+pathInput.value,
+editor.getValue()
+);
+
+editor.focus();
+
+return;
+}
+
+detectLanguage(
+pathInput.value,
+editor.getValue()
+);
+
+editor.focus();
+}
+
+initialize();
+</script>
+
+</body>
+</html>
