@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recorder</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;font-family:monospace;background:#001113;color:#00ffff}body{display:flex;flex-direction:column;gap:10px;padding:12px;overflow:auto}.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.btn,select,input{font:inherit;background:#001113;color:#00ffff;border:1px solid #00ffff;padding:7px 9px}.btn{cursor:pointer}.btn:disabled{opacity:.45;cursor:not-allowed}.status{border:1px solid #064a4c;padding:7px;min-height:32px}.timer{font-size:28px;text-align:center;padding:8px;border:1px solid #064a4c}.meter{height:8px;border:1px solid #064a4c}.meter>div{height:100%;width:0;background:#00ffff}.list{display:flex;flex-direction:column;gap:6px}.item{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border:1px solid #064a4c;padding:7px}.meta{min-width:0}.name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dim{opacity:.72;font-size:11px}.actions{display:flex;gap:5px;flex-wrap:wrap}audio{width:100%}.section{border:1px solid #064a4c;padding:9px}.title{font-weight:bold;margin-bottom:7px}
+</style>
+</head>
+<body>
+<div class="bar"><button class="btn" id="start">● START</button><button class="btn" id="stop" disabled>■ STOP</button><select id="mime"><option value="">AUTO FORMAT</option><option value="audio/webm;codecs=opus">WEBM/OPUS</option><option value="audio/mp4">MP4/AAC</option><option value="audio/ogg;codecs=opus">OGG/OPUS</option></select></div>
+<div class="timer" id="timer">00:00</div><div class="meter"><div id="meterFill"></div></div><div class="status" id="status">Ready. Microphone access is required.</div>
+<div class="section"><div class="title">Saved recordings — chxd:/indexdb/Recorder/</div><div id="list" class="list"><div class="dim">Loading…</div></div></div>
+<script>
+(() => {
+  const PREFIX='chxd:/indexdb/Recorder/';
+  const $=id=>document.getElementById(id);
+  let stream=null,recorder=null,chunks=[],startedAt=0,timerId=null,analyser=null,rafId=null;
+  const fmt=(ms)=>{const s=Math.floor(ms/1000),m=Math.floor(s/60),ss=s%60;return String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0')};
+  function setStatus(s){$('status').textContent=s}
+  function stopTracks(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}}
+  function updateTimer(){ $('timer').textContent=fmt(Date.now()-startedAt) }
+  async function saveBlob(blob){
+    const stamp=new Date(), id=stamp.toISOString().replace(/[:.]/g,'-');
+    const ext=blob.type.includes('ogg')?'ogg':blob.type.includes('mp4')?'m4a':'webm';
+    const base=PREFIX+`recording-${id}.${ext}`;
+    const fr=new FileReader();
+    const data=await new Promise((res,rej)=>{fr.onload=()=>res(fr.result);fr.onerror=()=>rej(fr.error);fr.readAsDataURL(blob)});
+    const r=await parent.FS.write(base,data,true); if(!r.ok)throw new Error(r.error||'Could not save recording');
+    await parent.FS.write(base+'.json',JSON.stringify({app:'Recorder',name:base.split('/').pop(),createdAt:stamp.toISOString(),mimeType:blob.type,size:blob.size,durationMs:Date.now()-startedAt}),true);
+    return base;
+  }
+  async function loadList(){
+    const box=$('list'); box.innerHTML='';
+    const files=await parent.FS.list(PREFIX); const items=(Array.isArray(files)?files:[]).filter(p=>/\.(webm|ogg|m4a)$/i.test(p)).sort().reverse();
+    if(!items.length){box.innerHTML='<div class="dim">No recordings yet.</div>';return}
+    for(const p of items){
+      const row=document.createElement('div');row.className='item';
+      const meta=document.createElement('div');meta.className='meta';meta.innerHTML=`<div class="name"></div><div class="dim">${p}</div>`;meta.querySelector('.name').textContent=p.split('/').pop();
+      const actions=document.createElement('div');actions.className='actions';
+      const play=document.createElement('button');play.className='btn';play.textContent='PLAY';
+      play.onclick=async()=>{const r=await parent.FS.read(p);if(!r.ok)return;const a=new Audio(r.content);a.controls=true;const wrap=document.createElement('div');wrap.style.gridColumn='1/-1';wrap.appendChild(a);row.appendChild(wrap);await a.play().catch(()=>{})};
+      const dl=document.createElement('button');dl.className='btn';dl.textContent='SAVE';dl.onclick=async()=>{const r=await parent.FS.read(p);if(!r.ok)return;const a=document.createElement('a');a.href=r.content;a.download=p.split('/').pop();a.click()};
+      const del=document.createElement('button');del.className='btn';del.textContent='DEL';del.onclick=async()=>{await parent.FS.remove(p);await parent.FS.remove(p+'.json');loadList()};
+      actions.append(play,dl,del);row.append(meta,actions);box.appendChild(row);
+    }
+  }
+  function meterLoop(){ if(!analyser)return; const arr=new Uint8Array(analyser.fftSize); analyser.getByteTimeDomainData(arr); let peak=0; for(const v of arr)peak=Math.max(peak,Math.abs(v-128)); $('meterFill').style.width=Math.min(100,peak*0.9)+'%'; rafId=requestAnimationFrame(meterLoop) }
+  $('start').onclick=async()=>{
+    try{
+      const audio=await navigator.mediaDevices.getUserMedia({audio:true}); stream=audio; chunks=[];
+      const requested=$('mime').value; const mime=requested&&MediaRecorder.isTypeSupported(requested)?requested:'';
+      recorder=new MediaRecorder(stream,mime?{mimeType:mime}:{ }); recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+      recorder.onstop=async()=>{try{const blob=new Blob(chunks,{type:recorder.mimeType||chunks[0]?.type||'audio/webm'});setStatus('Saving '+(blob.size/1024/1024).toFixed(2)+' MiB…');const p=await saveBlob(blob);setStatus('Saved: '+p);await loadList()}catch(e){setStatus('Save failed: '+e.message)}finally{stopTracks();$('start').disabled=false;$('stop').disabled=true;cancelAnimationFrame(rafId);analyser=null;$('meterFill').style.width='0%';clearInterval(timerId)}};
+      recorder.start(250); startedAt=Date.now(); timerId=setInterval(updateTimer,250); $('start').disabled=true;$('stop').disabled=false; setStatus('Recording…');
+      const ac=new AudioContext();const src=ac.createMediaStreamSource(stream);analyser=ac.createAnalyser();analyser.fftSize=256;src.connect(analyser);meterLoop();
+    }catch(e){setStatus('Microphone error: '+e.message)}
+  };
+  $('stop').onclick=()=>{if(recorder&&recorder.state!=='inactive'){recorder.stop();setStatus('Finalizing…')}};
+  loadList().catch(e=>setStatus('Storage error: '+e.message));
+})();
+</script>
+</body>
+</html>
