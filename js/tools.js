@@ -91,10 +91,19 @@
   function:
   {
     name: "piano_action",
-    description: "Control the Little Hollow Piano. Use play_pkp as the primary way to play music and control piano settings. PKP supports JSON settings {}, independent layers <>, simultaneous note groups [], individual note durations such as [c:1000,e:200], sustain such as [c:1000|sustain], and timing waits (). Recording can be started for a specified duration in milliseconds using value. Recording and file-management actions are also supported.",
+
+    description:
+      "Control the Little Hollow Piano. " +
+      "Use play_pkp as the primary way to play music and control piano settings. " +
+      "PKP supports JSON settings {}, independent layers <>, simultaneous note groups [], " +
+      "individual note durations such as [c:1000,e:200], sustain such as [c:1000|sustain], " +
+      "and timing waits (). Recording can be started for a specified duration in milliseconds using value. " +
+      "Recording and file-management actions are also supported.",
+
     parameters:
     {
       type: "object",
+
       properties:
       {
         action:
@@ -123,12 +132,28 @@
             "save_audio"
           ]
         },
+
         value:
         {
           type: "string",
-          description: "Value for the selected piano action. For play_pkp and import_pkp, this contains PKP text or, for import_pkp, a CHXD path to a .pkp file such as chxd:/local/PianoGame/Recordings/PKP/song.pkp. For start_recording, value may contain the recording duration in milliseconds, such as \"5000\" to record for 5 seconds. Use \"0\" or omit the duration for recording until stop_recording is called. For toggle_recording, value may similarly specify the duration when starting a recording. PKP supports JSON settings blocks {}, independent layers <>, simultaneous note groups [], individual note durations such as [c:1000,e:200], sustain such as [c:1000|sustain], and timing waits (). Example: {\"instrument\":\"piano\",\"octave\":4}<[c:1000,e:200](300)[g:500]><[a:200](100)[b:800]>."
+
+          description:
+            "Value for the selected piano action. " +
+            "For play_pkp and import_pkp, this contains PKP text or, for import_pkp, " +
+            "a CHXD path to a .pkp file such as " +
+            "chxd:/local/PianoGame/Recordings/PKP/song.pkp. " +
+            "For start_recording, value may contain the recording duration in milliseconds, " +
+            "such as \"5000\" to record for 5 seconds. " +
+            "Use \"0\" or omit the duration for recording until stop_recording is called. " +
+            "For toggle_recording, value may similarly specify the duration when starting a recording. " +
+            "PKP supports JSON settings blocks {}, independent layers <>, simultaneous note groups [], " +
+            "individual note durations such as [c:1000,e:200], sustain such as [c:1000|sustain], " +
+            "and timing waits (). " +
+            "Example: {\"instrument\":\"piano\",\"octave\":4}<[c:1000,e:200](300)[g:500]>" +
+            "<[a:200](100)[b:800]>."
         }
       },
+
       required:
       [
         "action"
