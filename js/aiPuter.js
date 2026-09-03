@@ -458,7 +458,7 @@
                     {
                         model:
                             settings?.puter?.model ||
-                            "claude-sonnet-5",
+                            "mistralai/ministral-3b-2512",
                         normalize:
                             true,
                         tools:
