@@ -11,6 +11,7 @@
 			padding: 0;
 			font-family: monospace;
 		}
+
 		html,
 		body {
 			width: 100%;
@@ -19,10 +20,12 @@
 			background: #000d0d;
 			color: #00FFFF;
 		}
+
 		body {
 			display: flex;
 			justify-content: center;
 		}
+
 		button {
 			font-family: monospace;
 			color: #00FFFF;
@@ -31,10 +34,12 @@
 			cursor: pointer;
 			touch-action: manipulation;
 		}
+
 		button:active {
 			background: #00FFFF;
 			color: #000;
 		}
+
 		.app {
 			width: 100%;
 			max-width: 430px;
@@ -45,12 +50,16 @@
 			gap: clamp(3px,1svh,7px);
 			overflow: hidden;
 		}
+
 		.tabs {
 			width: 100%;
 			display: flex;
 			border-bottom: 1px solid #00FFFF;
 			flex-shrink: 0;
+			position: relative;
+			z-index: 10;
 		}
+
 		.tab {
 			flex: 1;
 			min-height: clamp(28px,5svh,34px);
@@ -58,13 +67,16 @@
 			border-right: 1px solid #00FFFF;
 			font-size: clamp(10px,2.5vw,12px);
 		}
+
 		.tab:last-child {
 			border-right: none;
 		}
+
 		.tab.active {
 			background: #00FFFF;
 			color: #000;
 		}
+
 		.page {
 			display: none;
 			flex: 1;
@@ -75,44 +87,57 @@
 			gap: clamp(3px,1svh,7px);
 			overflow: hidden;
 		}
+
 		.page.active {
 			display: flex;
 		}
+
 		.game-page {
 			justify-content: flex-start;
 		}
+
 		.hud {
 			width: 100%;
 			display: grid;
 			grid-template-columns: repeat(4,1fr);
 			gap: clamp(3px,1vw,5px);
 			flex-shrink: 0;
+			position: relative;
+			z-index: 5;
 		}
+
 		.info {
 			border: 1px solid #00FFFF;
 			padding: clamp(3px,1svh,5px);
 			text-align: center;
 			font-size: clamp(8px,2.4vw,10px);
 		}
+
 		.info-value {
 			margin-top: 2px;
 			font-size: clamp(10px,3vw,13px);
 		}
+
 		.difficulty-controls {
 			width: 100%;
 			display: grid;
 			grid-template-columns: 1fr 1fr;
 			gap: clamp(3px,1vw,5px);
 			flex-shrink: 0;
+			position: relative;
+			z-index: 5;
 		}
+
 		.difficulty-button {
 			min-height: clamp(27px,5svh,34px);
 			font-size: clamp(9px,2.5vw,11px);
 		}
+
 		.difficulty-button.active {
 			background: #00FFFF;
 			color: #000;
 		}
+
 		.loading {
 			width: 100%;
 			border: 1px solid #00FFFF;
@@ -120,33 +145,37 @@
 			font-size: clamp(8px,2.3vw,10px);
 			text-align: center;
 			flex-shrink: 0;
+			position: relative;
+			z-index: 5;
 		}
+
 		.loading.hidden {
 			display: none;
 		}
+
 		.board-wrap {
-			flex: 1;
+			flex: 1 1 0;
 			min-height: 0;
 			width: 100%;
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			overflow: auto;
+			overflow: hidden;
+			position: relative;
+			z-index: 1;
 		}
+
 		.board {
-			width: min(
-				92vw,
-				350px,
-				58svh
-			);
+			width: 100px;
 			max-width: 350px;
 			display: grid;
 			grid-template-columns: repeat(5,1fr);
 			grid-template-rows: repeat(6,1fr);
 			gap: clamp(3px,1vw,5px);
-			flex-shrink: 0;
+			flex: 0 0 auto;
 			perspective: 700px;
 		}
+
 		.tile {
 			width: 100%;
 			aspect-ratio: 1;
@@ -160,80 +189,103 @@
 			font-weight: bold;
 			user-select: none;
 			transform-style: preserve-3d;
+			overflow: hidden;
 		}
+
 		.tile.filled {
 			border-color: #00FFFF;
 		}
+
 		.tile.correct {
 			background: #006666;
 			color: #FFFFFF;
 			border-color: #00FFFF;
 		}
+
 		.tile.present {
 			background: #665500;
 			color: #FFFF00;
 			border-color: #FFFF00;
 		}
+
 		.tile.absent {
 			background: #151515;
 			color: #555555;
 			border-color: #333333;
 		}
+
 		.tile.pop {
 			animation: pop .12s ease-out;
 		}
+
 		.tile.flip {
 			animation: flip .38s ease-out;
 		}
+
 		.tile.shake {
 			animation: shake .25s ease-in-out;
 		}
+
 		@keyframes pop {
 			0% {
 				transform: scale(.85);
 			}
+
 			70% {
 				transform: scale(1.08);
 			}
+
 			100% {
 				transform: scale(1);
 			}
 		}
+
 		@keyframes flip {
 			0% {
 				transform: rotateX(0deg);
 			}
+
 			50% {
 				transform: rotateX(90deg);
 			}
+
 			100% {
 				transform: rotateX(0deg);
 			}
 		}
+
 		@keyframes shake {
 			0%,
 			100% {
 				transform: translateX(0);
 			}
+
 			20% {
 				transform: translateX(-5px);
 			}
+
 			40% {
 				transform: translateX(5px);
 			}
+
 			60% {
 				transform: translateX(-4px);
 			}
+
 			80% {
 				transform: translateX(4px);
 			}
 		}
+
 		.status {
 			min-height: clamp(14px,2.5svh,17px);
 			font-size: clamp(9px,2.5vw,11px);
 			text-align: center;
 			flex-shrink: 0;
+			position: relative;
+			z-index: 5;
 		}
+
 		.keyboard {
 			width: 100%;
 			max-width: 420px;
@@ -241,15 +293,20 @@
 			flex-direction: column;
 			gap: clamp(2px,.7svh,4px);
 			flex-shrink: 0;
+			position: relative;
+			z-index: 5;
 		}
+
 		.keyboard.hidden {
 			display: none;
 		}
+
 		.key-row {
 			display: flex;
 			justify-content: center;
 			gap: clamp(2px,.8vw,4px);
 		}
+
 		.key {
 			flex: 1;
 			max-width: 38px;
@@ -258,36 +315,45 @@
 			font-size: clamp(9px,2.8vw,12px);
 			padding: 0;
 		}
+
 		.key.wide {
 			max-width: 58px;
 			font-size: clamp(8px,2.5vw,10px);
 		}
+
 		.key.correct {
 			background: #006666;
 			color: #FFFFFF;
 			border-color: #00FFFF;
 		}
+
 		.key.present {
 			background: #665500;
 			color: #FFFF00;
 			border-color: #FFFF00;
 		}
+
 		.key.absent {
 			background: #151515;
 			color: #555555;
 			border-color: #333333;
 		}
+
 		.actions {
 			width: 100%;
 			display: grid;
 			grid-template-columns: repeat(3,1fr);
 			gap: clamp(3px,1vw,5px);
 			flex-shrink: 0;
+			position: relative;
+			z-index: 5;
 		}
+
 		.action {
 			min-height: clamp(29px,5svh,36px);
 			font-size: clamp(9px,2.5vw,11px);
 		}
+
 		.info-page {
 			width: 100%;
 			display: flex;
@@ -296,6 +362,7 @@
 			overflow-y: auto;
 			padding-bottom: 8px;
 		}
+
 		.info-box {
 			border: 1px solid #00FFFF;
 			padding: 10px;
@@ -303,20 +370,24 @@
 			line-height: 1.7;
 			flex-shrink: 0;
 		}
+
 		.info-title {
 			font-size: 14px;
 			margin-bottom: 5px;
 		}
+
 		.key-grid {
 			display: grid;
 			grid-template-columns: 1fr 1fr;
 			gap: 5px;
 		}
+
 		.key-help {
 			border: 1px solid #00FFFF;
 			padding: 7px;
 			text-align: center;
 		}
+
 		.setting-row {
 			display: flex;
 			align-items: center;
@@ -325,20 +396,24 @@
 			border: 1px solid #00FFFF;
 			padding: 8px;
 		}
+
 		.setting-text {
 			font-size: 11px;
 			line-height: 1.5;
 		}
+
 		.setting-button {
 			min-width: 82px;
 			min-height: 34px;
 			font-size: 10px;
 			flex-shrink: 0;
 		}
+
 		.setting-button.active {
 			background: #00FFFF;
 			color: #000;
 		}
+
 		.overlay {
 			position: fixed;
 			inset: 0;
@@ -349,9 +424,11 @@
 			padding: 20px;
 			z-index: 100;
 		}
+
 		.overlay.show {
 			display: flex;
 		}
+
 		.overlay-box {
 			width: min(92vw,350px);
 			border: 1px solid #00FFFF;
@@ -359,44 +436,51 @@
 			padding: 18px;
 			text-align: center;
 		}
+
 		.overlay-title {
 			font-size: 22px;
 			margin-bottom: 10px;
 		}
+
 		.overlay-text {
 			font-size: 12px;
 			line-height: 1.7;
 			margin-bottom: 14px;
 			word-break: break-word;
 		}
+
 		.overlay-buttons {
 			display: grid;
 			grid-template-columns: 1fr 1fr;
 			gap: 6px;
 		}
+
 		.overlay-buttons button {
 			min-height: 38px;
 		}
+
 		@media(max-height:600px) {
 			.app {
 				padding: 3px;
 				gap: 3px;
 			}
-			.board {
-				width: min(44svh,260px);
-			}
+
 			.key {
 				min-height: 27px;
 			}
+
 			.action {
 				min-height: 27px;
 			}
+
 			.difficulty-button {
 				min-height: 27px;
 			}
+
 			.info {
 				padding: 2px;
 			}
+
 			.info-value {
 				margin-top: 1px;
 			}
@@ -410,6 +494,7 @@
 			<button class="tab" data-page="controlsPage">CONTROLS</button>
 			<button class="tab" data-page="infoPage">INFO</button>
 		</div>
+
 		<div class="page active game-page" id="gamePage">
 			<div class="hud">
 				<div class="info">
@@ -429,19 +514,24 @@
 					<div class="info-value" id="wins">0</div>
 				</div>
 			</div>
+
 			<div class="difficulty-controls">
 				<button class="difficulty-button" id="easyDifficulty">EASY</button>
 				<button class="difficulty-button" id="hardDifficulty">HARD</button>
 			</div>
+
 			<div class="loading" id="loading">
 				LOADING WORDS...
 			</div>
-			<div class="board-wrap">
+
+			<div class="board-wrap" id="boardWrap">
 				<div class="board" id="board"></div>
 			</div>
+
 			<div class="status" id="status">
 				LOADING WORD LIST
 			</div>
+
 			<div class="keyboard" id="keyboard">
 				<div class="key-row">
 					<button class="key" data-key="Q">Q</button>
@@ -455,6 +545,7 @@
 					<button class="key" data-key="O">O</button>
 					<button class="key" data-key="P">P</button>
 				</div>
+
 				<div class="key-row">
 					<button class="key" data-key="A">A</button>
 					<button class="key" data-key="S">S</button>
@@ -466,6 +557,7 @@
 					<button class="key" data-key="K">K</button>
 					<button class="key" data-key="L">L</button>
 				</div>
+
 				<div class="key-row">
 					<button class="key wide" data-key="ENTER">ENTER</button>
 					<button class="key" data-key="Z">Z</button>
@@ -478,12 +570,14 @@
 					<button class="key wide" data-key="BACKSPACE">⌫</button>
 				</div>
 			</div>
+
 			<div class="actions">
 				<button class="action" id="newGame">NEW GAME</button>
 				<button class="action" id="restart">RESTART</button>
 				<button class="action" id="help">HELP</button>
 			</div>
 		</div>
+
 		<div class="page" id="controlsPage">
 			<div class="info-page">
 				<div class="info-box">
@@ -494,76 +588,72 @@
 							<br>
 							Show or hide the keyboard HUD during gameplay.
 						</div>
-						<button
-							class="setting-button"
-							id="keyboardToggle"
-						>
-							ON
-						</button>
+						<button class="setting-button" id="keyboardToggle">ON</button>
 					</div>
 				</div>
+
 				<div class="info-box">
 					<div class="info-title">DIFFICULTY</div>
+
 					<div class="setting-row">
 						<div class="setting-text">
 							EASY
 							<br>
 							Uses words2.txt
 						</div>
-						<button
-							class="setting-button"
-							id="controlsEasy"
-						>
-							EASY
-						</button>
+						<button class="setting-button" id="controlsEasy">EASY</button>
 					</div>
+
 					<div class="setting-row">
 						<div class="setting-text">
 							HARD
 							<br>
 							Uses words.txt
 						</div>
-						<button
-							class="setting-button"
-							id="controlsHard"
-						>
-							HARD
-						</button>
+						<button class="setting-button" id="controlsHard">HARD</button>
 					</div>
 				</div>
+
 				<div class="info-box">
 					<div class="info-title">KEYBOARD CONTROLS</div>
+
 					<div class="key-grid">
 						<div class="key-help">
 							A-Z
 							<br>
 							TYPE LETTER
 						</div>
+
 						<div class="key-help">
 							ENTER
 							<br>
 							SUBMIT GUESS
 						</div>
+
 						<div class="key-help">
 							BACKSPACE
 							<br>
 							DELETE
 						</div>
+
 						<div class="key-help">
 							R
 							<br>
 							RESTART
 						</div>
+
 						<div class="key-help">
 							N
 							<br>
 							NEW GAME
 						</div>
+
 						<div class="key-help">
 							1
 							<br>
 							EASY
 						</div>
+
 						<div class="key-help">
 							2
 							<br>
@@ -571,6 +661,7 @@
 						</div>
 					</div>
 				</div>
+
 				<div class="info-box">
 					<div class="info-title">GAME RULES</div>
 					Guess the hidden five-letter word in six attempts.
@@ -585,6 +676,7 @@
 				</div>
 			</div>
 		</div>
+
 		<div class="page" id="infoPage">
 			<div class="info-page">
 				<div class="info-box">
@@ -599,18 +691,21 @@
 					<br><br>
 					Both files must be beside wordle.html.
 				</div>
+
 				<div class="info-box">
 					<div class="info-title">DIFFICULTY</div>
 					EASY uses the API-generated common-word list saved as words2.txt.
 					<br><br>
 					HARD uses the larger and more unusual words.txt list.
 				</div>
+
 				<div class="info-box">
 					<div class="info-title">SIX ATTEMPTS</div>
 					You get exactly six guesses.
 					<br><br>
 					If all six guesses are used without finding the answer, the hidden word is revealed.
 				</div>
+
 				<div class="info-box">
 					<div class="info-title">REPEATED LETTERS</div>
 					Repeated letters are evaluated correctly.
@@ -620,6 +715,7 @@
 			</div>
 		</div>
 	</div>
+
 	<div class="overlay" id="overlay">
 		<div class="overlay-box">
 			<div class="overlay-title" id="overlayTitle">WORDLE</div>
@@ -630,53 +726,34 @@
 			</div>
 		</div>
 	</div>
+
 	<script>
 		const ROWS = 6;
 		const WORD_LENGTH = 5;
-		const boardElement =
-			document.getElementById("board");
-		const loadingElement =
-			document.getElementById("loading");
-		const statusElement =
-			document.getElementById("status");
-		const scoreElement =
-			document.getElementById("score");
-		const streakElement =
-			document.getElementById("streak");
-		const playedElement =
-			document.getElementById("played");
-		const winsElement =
-			document.getElementById("wins");
-		const overlay =
-			document.getElementById("overlay");
-		const overlayTitle =
-			document.getElementById("overlayTitle");
-		const overlayText =
-			document.getElementById("overlayText");
-		const easyDifficulty =
-			document.getElementById("easyDifficulty");
-		const hardDifficulty =
-			document.getElementById("hardDifficulty");
-		const controlsEasy =
-			document.getElementById("controlsEasy");
-		const controlsHard =
-			document.getElementById("controlsHard");
-		const keyboardElement =
-			document.getElementById("keyboard");
-		const keyboardToggle =
-			document.getElementById("keyboardToggle");
+
+		const boardElement = document.getElementById("board");
+		const boardWrap = document.getElementById("boardWrap");
+		const loadingElement = document.getElementById("loading");
+		const statusElement = document.getElementById("status");
+		const scoreElement = document.getElementById("score");
+		const streakElement = document.getElementById("streak");
+		const playedElement = document.getElementById("played");
+		const winsElement = document.getElementById("wins");
+		const overlay = document.getElementById("overlay");
+		const overlayTitle = document.getElementById("overlayTitle");
+		const overlayText = document.getElementById("overlayText");
+		const easyDifficulty = document.getElementById("easyDifficulty");
+		const hardDifficulty = document.getElementById("hardDifficulty");
+		const controlsEasy = document.getElementById("controlsEasy");
+		const controlsHard = document.getElementById("controlsHard");
+		const keyboardElement = document.getElementById("keyboard");
+		const keyboardToggle = document.getElementById("keyboardToggle");
 
 		let easyWords = [];
 		let hardWords = [];
 		let activeWords = [];
-		let difficulty =
-			localStorage.getItem(
-				"little_hollow_wordle_difficulty"
-			) || "easy";
-		let keyboardVisible =
-			localStorage.getItem(
-				"little_hollow_wordle_keyboard"
-			) !== "off";
+		let difficulty = localStorage.getItem("little_hollow_wordle_difficulty") || "easy";
+		let keyboardVisible = localStorage.getItem("little_hollow_wordle_keyboard") !== "off";
 		let answer = "";
 		let guesses = [];
 		let currentGuess = "";
@@ -685,53 +762,78 @@
 		let gameStarted = false;
 		let isRevealing = false;
 		let startTime = 0;
+
 		let score = Number(
-			localStorage.getItem(
-				"little_hollow_wordle_score"
-			) || 0
+			localStorage.getItem("little_hollow_wordle_score") || 0
 		);
+
 		let streak = Number(
-			localStorage.getItem(
-				"little_hollow_wordle_streak"
-			) || 0
+			localStorage.getItem("little_hollow_wordle_streak") || 0
 		);
+
 		let played = Number(
-			localStorage.getItem(
-				"little_hollow_wordle_played"
-			) || 0
+			localStorage.getItem("little_hollow_wordle_played") || 0
 		);
+
 		let wins = Number(
-			localStorage.getItem(
-				"little_hollow_wordle_wins"
-			) || 0
+			localStorage.getItem("little_hollow_wordle_wins") || 0
 		);
+
 		const keyStates = {};
 
+		function fitBoard() {
+			if (!boardWrap) {
+				return;
+			}
+
+			const rect = boardWrap.getBoundingClientRect();
+
+			if (rect.width <= 0 || rect.height <= 0) {
+				return;
+			}
+
+			const gapValue = Math.max(
+				3,
+				Math.min(
+					window.innerWidth * 0.01,
+					5
+				)
+			);
+
+			const maxWidthByHeight =
+				(rect.height - gapValue * 5) * 5 / 6;
+
+			const size = Math.max(
+				0,
+				Math.floor(
+					Math.min(
+						350,
+						rect.width,
+						maxWidthByHeight
+					)
+				)
+			);
+
+			if (size > 0) {
+				boardElement.style.width = size + "px";
+			}
+		}
+
 		function updateHUD() {
-			scoreElement.textContent =
-				score;
-			streakElement.textContent =
-				streak;
-			playedElement.textContent =
-				played;
-			winsElement.textContent =
-				wins;
+			scoreElement.textContent = score;
+			streakElement.textContent = streak;
+			playedElement.textContent = played;
+			winsElement.textContent = wins;
 		}
 
 		function normalizeWord(word) {
-			return word
-				.trim()
-				.toLowerCase();
+			return word.trim().toLowerCase();
 		}
 
 		async function loadWordFile(file) {
-			const response =
-				await fetch(
-					file,
-					{
-						cache: "no-store"
-					}
-				);
+			const response = await fetch(file, {
+				cache: "no-store"
+			});
 
 			if (!response.ok) {
 				throw new Error(
@@ -741,8 +843,7 @@
 				);
 			}
 
-			const text =
-				await response.text();
+			const text = await response.text();
 
 			return [
 				...new Set(
@@ -751,35 +852,23 @@
 						.map(normalizeWord)
 						.filter(
 							word =>
-								/^[a-z]{5}$/.test(
-									word
-								)
+								/^[a-z]{5}$/.test(word)
 						)
 				)
 			];
 		}
 
 		async function loadWords() {
-			loadingElement.classList.remove(
-				"hidden"
-			);
+			loadingElement.classList.remove("hidden");
 
 			try {
-				loadingElement.textContent =
-					"LOADING words2.txt...";
+				loadingElement.textContent = "LOADING words2.txt...";
 
-				easyWords =
-					await loadWordFile(
-						"words2.txt"
-					);
+				easyWords = await loadWordFile("words2.txt");
 
-				loadingElement.textContent =
-					"LOADING words.txt...";
+				loadingElement.textContent = "LOADING words.txt...";
 
-				hardWords =
-					await loadWordFile(
-						"words.txt"
-					);
+				hardWords = await loadWordFile("words.txt");
 
 				if (!easyWords.length) {
 					throw new Error(
@@ -793,57 +882,33 @@
 					);
 				}
 
-				loadingElement.classList.add(
-					"hidden"
-				);
+				loadingElement.classList.add("hidden");
 
-				setDifficulty(
-					difficulty,
-					false
-				);
-
+				setDifficulty(difficulty, false);
+				requestAnimationFrame(fitBoard);
 			} catch (error) {
-				loadingElement.textContent =
-					"FAILED TO LOAD WORD FILE";
-
-				statusElement.textContent =
-					error.message;
-
+				loadingElement.textContent = "FAILED TO LOAD WORD FILE";
+				statusElement.textContent = error.message;
 				console.error(error);
 			}
 		}
 
-		function setDifficulty(
-			value,
-			startNewGame = true
-		) {
-			if (
-				value !== "easy" &&
-				value !== "hard"
-			) {
+		function setDifficulty(value, startNewGame = true) {
+			if (value !== "easy" && value !== "hard") {
 				value = "easy";
 			}
 
-			if (
-				value === "easy" &&
-				!easyWords.length
-			) {
-				statusElement.textContent =
-					"words2.txt NOT LOADED";
+			if (value === "easy" && !easyWords.length) {
+				statusElement.textContent = "words2.txt NOT LOADED";
 				return;
 			}
 
-			if (
-				value === "hard" &&
-				!hardWords.length
-			) {
-				statusElement.textContent =
-					"words.txt NOT LOADED";
+			if (value === "hard" && !hardWords.length) {
+				statusElement.textContent = "words.txt NOT LOADED";
 				return;
 			}
 
-			difficulty =
-				value;
+			difficulty = value;
 
 			activeWords =
 				difficulty === "easy"
@@ -860,6 +925,8 @@
 			if (startNewGame) {
 				newGame();
 			}
+
+			requestAnimationFrame(fitBoard);
 		}
 
 		function updateDifficultyUI() {
@@ -891,25 +958,22 @@
 			);
 
 			keyboardToggle.textContent =
-				keyboardVisible
-					? "ON"
-					: "OFF";
+				keyboardVisible ? "ON" : "OFF";
 
 			keyboardToggle.classList.toggle(
 				"active",
 				keyboardVisible
 			);
+
+			requestAnimationFrame(fitBoard);
 		}
 
 		function toggleKeyboard() {
-			keyboardVisible =
-				!keyboardVisible;
+			keyboardVisible = !keyboardVisible;
 
 			localStorage.setItem(
 				"little_hollow_wordle_keyboard",
-				keyboardVisible
-					? "on"
-					: "off"
+				keyboardVisible ? "on" : "off"
 			);
 
 			updateKeyboardVisibility();
@@ -926,62 +990,32 @@
 		}
 
 		function buildBoard() {
-			boardElement.innerHTML =
-				"";
+			boardElement.innerHTML = "";
 
-			for (
-				let r = 0;
-				r < ROWS;
-				r++
-			) {
-				for (
-					let c = 0;
-					c < WORD_LENGTH;
-					c++
-				) {
-					const tile =
-						document.createElement(
-							"div"
-						);
+			for (let r = 0; r < ROWS; r++) {
+				for (let c = 0; c < WORD_LENGTH; c++) {
+					const tile = document.createElement("div");
 
-					tile.className =
-						"tile";
+					tile.className = "tile";
+					tile.dataset.row = r;
+					tile.dataset.col = c;
 
-					tile.dataset.row =
-						r;
-
-					tile.dataset.col =
-						c;
-
-					boardElement.appendChild(
-						tile
-					);
+					boardElement.appendChild(tile);
 				}
 			}
+
+			requestAnimationFrame(fitBoard);
 		}
 
-		function getTile(
-			rowIndex,
-			colIndex
-		) {
+		function getTile(rowIndex, colIndex) {
 			return boardElement.children[
-				rowIndex *
-				WORD_LENGTH +
-				colIndex
+				rowIndex * WORD_LENGTH + colIndex
 			];
 		}
 
 		function renderCurrentGuess() {
-			for (
-				let c = 0;
-				c < WORD_LENGTH;
-				c++
-			) {
-				const tile =
-					getTile(
-						row,
-						c
-					);
+			for (let c = 0; c < WORD_LENGTH; c++) {
+				const tile = getTile(row, c);
 
 				tile.textContent =
 					currentGuess[c]
@@ -990,67 +1024,33 @@
 
 				tile.classList.toggle(
 					"filled",
-					Boolean(
-						currentGuess[c]
-					)
+					Boolean(currentGuess[c])
 				);
 			}
 		}
 
 		function evaluateGuess(guess) {
-			const result =
-				Array(
-					WORD_LENGTH
-				).fill(
-					"absent"
-				);
-
+			const result = Array(WORD_LENGTH).fill("absent");
 			const remaining = {};
 
-			for (
-				let i = 0;
-				i < WORD_LENGTH;
-				i++
-			) {
-				if (
-					guess[i] ===
-					answer[i]
-				) {
-					result[i] =
-						"correct";
+			for (let i = 0; i < WORD_LENGTH; i++) {
+				if (guess[i] === answer[i]) {
+					result[i] = "correct";
 				} else {
-					remaining[
-						answer[i]
-					] =
-						(
-							remaining[
-								answer[i]
-							] || 0
-						) + 1;
+					remaining[answer[i]] =
+						(remaining[answer[i]] || 0) + 1;
 				}
 			}
 
-			for (
-				let i = 0;
-				i < WORD_LENGTH;
-				i++
-			) {
-				if (
-					result[i] ===
-					"correct"
-				) {
+			for (let i = 0; i < WORD_LENGTH; i++) {
+				if (result[i] === "correct") {
 					continue;
 				}
 
-				const letter =
-					guess[i];
+				const letter = guess[i];
 
-				if (
-					remaining[letter] > 0
-				) {
-					result[i] =
-						"present";
-
+				if (remaining[letter] > 0) {
+					result[i] = "present";
 					remaining[letter]--;
 				}
 			}
@@ -1058,45 +1058,30 @@
 			return result;
 		}
 
-		function updateKeyboard(
-			guess,
-			result
-		) {
+		function updateKeyboard(guess, result) {
 			const priority = {
 				absent: 1,
 				present: 2,
 				correct: 3
 			};
 
-			for (
-				let i = 0;
-				i < WORD_LENGTH;
-				i++
-			) {
-				const letter =
-					guess[i].toUpperCase();
-
-				const state =
-					result[i];
-
-				const oldState =
-					keyStates[letter];
+			for (let i = 0; i < WORD_LENGTH; i++) {
+				const letter = guess[i].toUpperCase();
+				const state = result[i];
+				const oldState = keyStates[letter];
 
 				if (
 					oldState &&
-					priority[oldState] >=
-					priority[state]
+					priority[oldState] >= priority[state]
 				) {
 					continue;
 				}
 
-				keyStates[letter] =
-					state;
+				keyStates[letter] = state;
 
-				const key =
-					document.querySelector(
-						`[data-key="${letter}"]`
-					);
+				const key = document.querySelector(
+					`[data-key="${letter}"]`
+				);
 
 				if (!key) {
 					continue;
@@ -1108,33 +1093,19 @@
 					"absent"
 				);
 
-				key.classList.add(
-					state
-				);
+				key.classList.add(state);
 			}
 		}
 
 		function shakeCurrentRow() {
-			for (
-				let c = 0;
-				c < WORD_LENGTH;
-				c++
-			) {
-				const tile =
-					getTile(
-						row,
-						c
-					);
+			for (let c = 0; c < WORD_LENGTH; c++) {
+				const tile = getTile(row, c);
 
-				tile.classList.remove(
-					"shake"
-				);
+				tile.classList.remove("shake");
 
 				void tile.offsetWidth;
 
-				tile.classList.add(
-					"shake"
-				);
+				tile.classList.add("shake");
 			}
 		}
 
@@ -1147,120 +1118,64 @@
 				return;
 			}
 
-			if (
-				currentGuess.length !==
-				WORD_LENGTH
-			) {
-				statusElement.textContent =
-					"NEED 5 LETTERS";
-
+			if (currentGuess.length !== WORD_LENGTH) {
+				statusElement.textContent = "NEED 5 LETTERS";
 				shakeCurrentRow();
-
 				return;
 			}
 
-			const guess =
-				currentGuess;
+			const guess = currentGuess;
+			const result = evaluateGuess(guess);
 
-			const result =
-				evaluateGuess(
-					guess
-				);
+			guesses.push(guess);
+			isRevealing = true;
 
-			guesses.push(
-				guess
-			);
+			const submittedRow = row;
 
-			isRevealing =
-				true;
+			for (let c = 0; c < WORD_LENGTH; c++) {
+				const tile = getTile(submittedRow, c);
 
-			const submittedRow =
-				row;
+				setTimeout(() => {
+					tile.classList.add("flip");
 
-			for (
-				let c = 0;
-				c < WORD_LENGTH;
-				c++
-			) {
-				const tile =
-					getTile(
-						submittedRow,
-						c
-					);
+					setTimeout(() => {
+						tile.classList.remove("filled");
 
-				setTimeout(
-					() => {
-						tile.classList.add(
-							"flip"
-						);
+						tile.classList.add(result[c]);
 
-						setTimeout(
-							() => {
-								tile.classList.remove(
-									"filled"
-								);
-
-								tile.classList.add(
-									result[c]
-								);
-
-								tile.textContent =
-									guess[c].toUpperCase();
-							},
-							175
-						);
-					},
-					c * 90
-				);
+						tile.textContent =
+							guess[c].toUpperCase();
+					}, 175);
+				}, c * 90);
 			}
 
-			updateKeyboard(
-				guess,
-				result
-			);
+			updateKeyboard(guess, result);
 
 			row++;
+			currentGuess = "";
 
-			currentGuess =
-				"";
+			setTimeout(() => {
+				isRevealing = false;
 
-			setTimeout(
-				() => {
-					isRevealing =
-						false;
+				if (guess === answer) {
+					winGame();
+					return;
+				}
 
-					if (
-						guess ===
-						answer
-					) {
-						winGame();
-						return;
-					}
+				if (submittedRow === ROWS - 1) {
+					loseGame();
+					return;
+				}
 
-					if (
-						submittedRow ===
-						ROWS - 1
-					) {
-						loseGame();
-						return;
-					}
+				statusElement.textContent =
+					(difficulty === "easy" ? "EASY" : "HARD") +
+					" — GUESS " +
+					(row + 1) +
+					"/" +
+					ROWS;
 
-					statusElement.textContent =
-						(
-							difficulty ===
-							"easy"
-								? "EASY"
-								: "HARD"
-						) +
-						" — GUESS " +
-						(row + 1) +
-						"/" +
-						ROWS;
-				},
-				WORD_LENGTH *
-				90 +
-				350
-			);
+				requestAnimationFrame(fitBoard);
+			}, WORD_LENGTH * 90 + 350);
 		}
 
 		function addLetter(letter) {
@@ -1273,35 +1188,20 @@
 				return;
 			}
 
-			if (
-				currentGuess.length >=
-				WORD_LENGTH
-			) {
+			if (currentGuess.length >= WORD_LENGTH) {
 				return;
 			}
 
-			currentGuess +=
-				letter.toLowerCase();
+			currentGuess += letter.toLowerCase();
 
-			const position =
-				currentGuess.length -
-				1;
+			const position = currentGuess.length - 1;
+			const tile = getTile(row, position);
 
-			const tile =
-				getTile(
-					row,
-					position
-				);
-
-			tile.classList.remove(
-				"pop"
-			);
+			tile.classList.remove("pop");
 
 			void tile.offsetWidth;
 
-			tile.classList.add(
-				"pop"
-			);
+			tile.classList.add("pop");
 
 			renderCurrentGuess();
 		}
@@ -1315,9 +1215,7 @@
 				return;
 			}
 
-			if (
-				!currentGuess.length
-			) {
+			if (!currentGuess.length) {
 				return;
 			}
 
@@ -1331,29 +1229,21 @@
 		}
 
 		function resetKeyboard() {
-			for (
-				const key in keyStates
-			) {
+			for (const key in keyStates) {
 				delete keyStates[key];
 			}
 
-			document
-				.querySelectorAll(".key")
-				.forEach(
-					key => {
-						key.classList.remove(
-							"correct",
-							"present",
-							"absent"
-						);
-					}
+			document.querySelectorAll(".key").forEach(key => {
+				key.classList.remove(
+					"correct",
+					"present",
+					"absent"
 				);
+			});
 		}
 
 		function newGame() {
-			if (
-				!activeWords.length
-			) {
+			if (!activeWords.length) {
 				return;
 			}
 
@@ -1362,33 +1252,23 @@
 			chooseAnswer();
 
 			guesses = [];
-			currentGuess =
-				"";
+			currentGuess = "";
 			row = 0;
-			gameFinished =
-				false;
-			gameStarted =
-				true;
-			isRevealing =
-				false;
-			startTime =
-				Date.now();
+			gameFinished = false;
+			gameStarted = true;
+			isRevealing = false;
+			startTime = Date.now();
 
-			overlay.classList.remove(
-				"show"
-			);
+			overlay.classList.remove("show");
 
 			updateDifficultyUI();
 			updateKeyboardVisibility();
 
 			statusElement.textContent =
-				(
-					difficulty ===
-					"easy"
-						? "EASY"
-						: "HARD"
-				) +
+				(difficulty === "easy" ? "EASY" : "HARD") +
 				" — GUESS 1/6";
+
+			requestAnimationFrame(fitBoard);
 		}
 
 		function restartGame() {
@@ -1396,34 +1276,21 @@
 		}
 
 		function calculateScore() {
-			const guessesUsed =
-				guesses.length;
+			const guessesUsed = guesses.length;
 
 			const elapsed =
 				Math.floor(
-					(
-						Date.now() -
-						startTime
-					) / 1000
+					(Date.now() - startTime) / 1000
 				);
 
 			const guessBonus =
-				(
-					ROWS -
-					guessesUsed +
-					1
-				) * 100;
+				(ROWS - guessesUsed + 1) * 100;
 
 			const timeBonus =
-				Math.max(
-					0,
-					300 -
-					elapsed
-				);
+				Math.max(0, 300 - elapsed);
 
 			const difficultyBonus =
-				difficulty ===
-				"hard"
+				difficulty === "hard"
 					? 500
 					: 0;
 
@@ -1436,15 +1303,11 @@
 		}
 
 		function winGame() {
-			gameFinished =
-				true;
+			gameFinished = true;
 
-			const gained =
-				calculateScore();
+			const gained = calculateScore();
 
-			score +=
-				gained;
-
+			score += gained;
 			streak++;
 			played++;
 			wins++;
@@ -1471,41 +1334,34 @@
 
 			updateHUD();
 
-			setTimeout(
-				() => {
-					overlayTitle.textContent =
-						"YOU GOT IT";
+			setTimeout(() => {
+				overlayTitle.textContent = "YOU GOT IT";
 
-					overlayText.innerHTML =
-						"WORD: <b>" +
-						answer.toUpperCase() +
-						"</b>" +
-						"<br><br>" +
-						"MODE: " +
-						difficulty.toUpperCase() +
-						"<br>" +
-						"GUESS: " +
-						guesses.length +
-						"/" +
-						ROWS +
-						"<br>" +
-						"SCORE: +" +
-						gained +
-						"<br>" +
-						"STREAK: " +
-						streak;
+				overlayText.innerHTML =
+					"WORD: <b>" +
+					answer.toUpperCase() +
+					"</b>" +
+					"<br><br>" +
+					"MODE: " +
+					difficulty.toUpperCase() +
+					"<br>" +
+					"GUESS: " +
+					guesses.length +
+					"/" +
+					ROWS +
+					"<br>" +
+					"SCORE: +" +
+					gained +
+					"<br>" +
+					"STREAK: " +
+					streak;
 
-					overlay.classList.add(
-						"show"
-					);
-				},
-				700
-			);
+				overlay.classList.add("show");
+			}, 700);
 		}
 
 		function loseGame() {
-			gameFinished =
-				true;
+			gameFinished = true;
 
 			streak = 0;
 			played++;
@@ -1522,32 +1378,25 @@
 
 			updateHUD();
 
-			setTimeout(
-				() => {
-					overlayTitle.textContent =
-						"GAME OVER";
+			setTimeout(() => {
+				overlayTitle.textContent = "GAME OVER";
 
-					overlayText.innerHTML =
-						"THE WORD WAS <b>" +
-						answer.toUpperCase() +
-						"</b>" +
-						"<br><br>" +
-						"MODE: " +
-						difficulty.toUpperCase() +
-						"<br>" +
-						"YOU USED ALL 6 ATTEMPTS.";
+				overlayText.innerHTML =
+					"THE WORD WAS <b>" +
+					answer.toUpperCase() +
+					"</b>" +
+					"<br><br>" +
+					"MODE: " +
+					difficulty.toUpperCase() +
+					"<br>" +
+					"YOU USED ALL 6 ATTEMPTS.";
 
-					overlay.classList.add(
-						"show"
-					);
-				},
-				700
-			);
+				overlay.classList.add("show");
+			}, 700);
 		}
 
 		function showHelp() {
-			overlayTitle.textContent =
-				"WORDLE";
+			overlayTitle.textContent = "WORDLE";
 
 			overlayText.innerHTML =
 				"GUESS THE 5-LETTER WORD." +
@@ -1564,262 +1413,155 @@
 				"<br>" +
 				"HARD = words.txt";
 
-			overlay.classList.add(
-				"show"
-			);
+			overlay.classList.add("show");
 		}
 
-		document
-			.querySelectorAll(".tab")
-			.forEach(
-				tab => {
-					tab.addEventListener(
-						"click",
-						() => {
-							document
-								.querySelectorAll(
-									".tab"
-								)
-								.forEach(
-									item => {
-										item.classList.remove(
-											"active"
-										);
-									}
-								);
+		document.querySelectorAll(".tab").forEach(tab => {
+			tab.addEventListener("click", () => {
+				document
+					.querySelectorAll(".tab")
+					.forEach(item => {
+						item.classList.remove("active");
+					});
 
-							document
-								.querySelectorAll(
-									".page"
-								)
-								.forEach(
-									page => {
-										page.classList.remove(
-											"active"
-										);
-									}
-								);
+				document
+					.querySelectorAll(".page")
+					.forEach(page => {
+						page.classList.remove("active");
+					});
 
-							tab.classList.add(
-								"active"
-							);
+				tab.classList.add("active");
 
-							document
-								.getElementById(
-									tab.dataset.page
-								)
-								.classList.add(
-									"active"
-								);
-						}
-					);
-				}
-			);
+				document
+					.getElementById(tab.dataset.page)
+					.classList.add("active");
 
-		easyDifficulty.addEventListener(
-			"click",
-			() => {
-				setDifficulty(
-					"easy"
-				);
-			}
-		);
+				requestAnimationFrame(fitBoard);
+			});
+		});
 
-		hardDifficulty.addEventListener(
-			"click",
-			() => {
-				setDifficulty(
-					"hard"
-				);
-			}
-		);
+		easyDifficulty.addEventListener("click", () => {
+			setDifficulty("easy");
+		});
 
-		controlsEasy.addEventListener(
-			"click",
-			() => {
-				setDifficulty(
-					"easy"
-				);
-			}
-		);
+		hardDifficulty.addEventListener("click", () => {
+			setDifficulty("hard");
+		});
 
-		controlsHard.addEventListener(
-			"click",
-			() => {
-				setDifficulty(
-					"hard"
-				);
-			}
-		);
+		controlsEasy.addEventListener("click", () => {
+			setDifficulty("easy");
+		});
+
+		controlsHard.addEventListener("click", () => {
+			setDifficulty("hard");
+		});
 
 		keyboardToggle.addEventListener(
 			"click",
 			toggleKeyboard
 		);
 
-		document
-			.querySelectorAll(
-				"[data-key]"
-			)
-			.forEach(
-				key => {
-					key.addEventListener(
-						"click",
-						() => {
-							const value =
-								key.dataset.key;
+		document.querySelectorAll("[data-key]").forEach(key => {
+			key.addEventListener("click", () => {
+				const value = key.dataset.key;
 
-							if (
-								value ===
-								"ENTER"
-							) {
-								submitGuess();
-								return;
-							}
-
-							if (
-								value ===
-								"BACKSPACE"
-							) {
-								deleteLetter();
-								return;
-							}
-
-							addLetter(
-								value
-							);
-						}
-					);
+				if (value === "ENTER") {
+					submitGuess();
+					return;
 				}
-			);
+
+				if (value === "BACKSPACE") {
+					deleteLetter();
+					return;
+				}
+
+				addLetter(value);
+			});
+		});
 
 		document
 			.getElementById("newGame")
-			.addEventListener(
-				"click",
-				newGame
-			);
+			.addEventListener("click", newGame);
 
 		document
 			.getElementById("restart")
-			.addEventListener(
-				"click",
-				restartGame
-			);
+			.addEventListener("click", restartGame);
 
 		document
 			.getElementById("help")
-			.addEventListener(
-				"click",
-				showHelp
-			);
+			.addEventListener("click", showHelp);
 
 		document
 			.getElementById("overlayNew")
-			.addEventListener(
-				"click",
-				newGame
-			);
+			.addEventListener("click", newGame);
 
 		document
 			.getElementById("overlayClose")
-			.addEventListener(
-				"click",
-				() => {
-					overlay.classList.remove(
-						"show"
-					);
-				}
-			);
+			.addEventListener("click", () => {
+				overlay.classList.remove("show");
+			});
 
-		document.addEventListener(
-			"keydown",
-			event => {
-				const key =
-					event.key;
+		document.addEventListener("keydown", event => {
+			const key = event.key;
 
-				if (
-					key.length === 1 &&
-					/^[a-zA-Z]$/.test(
-						key
-					)
-				) {
-					event.preventDefault();
-
-					addLetter(
-						key.toUpperCase()
-					);
-
-					return;
-				}
-
-				if (
-					key === "Backspace"
-				) {
-					event.preventDefault();
-
-					deleteLetter();
-
-					return;
-				}
-
-				if (
-					key === "Enter"
-				) {
-					event.preventDefault();
-
-					submitGuess();
-
-					return;
-				}
-
-				if (
-					key === "r" ||
-					key === "R"
-				) {
-					event.preventDefault();
-
-					restartGame();
-
-					return;
-				}
-
-				if (
-					key === "n" ||
-					key === "N"
-				) {
-					event.preventDefault();
-
-					newGame();
-
-					return;
-				}
-
-				if (
-					key === "1"
-				) {
-					event.preventDefault();
-
-					setDifficulty(
-						"easy"
-					);
-
-					return;
-				}
-
-				if (
-					key === "2"
-				) {
-					event.preventDefault();
-
-					setDifficulty(
-						"hard"
-					);
-
-					return;
-				}
+			if (
+				key.length === 1 &&
+				/^[a-zA-Z]$/.test(key)
+			) {
+				event.preventDefault();
+				addLetter(key.toUpperCase());
+				return;
 			}
-		);
+
+			if (key === "Backspace") {
+				event.preventDefault();
+				deleteLetter();
+				return;
+			}
+
+			if (key === "Enter") {
+				event.preventDefault();
+				submitGuess();
+				return;
+			}
+
+			if (key === "r" || key === "R") {
+				event.preventDefault();
+				restartGame();
+				return;
+			}
+
+			if (key === "n" || key === "N") {
+				event.preventDefault();
+				newGame();
+				return;
+			}
+
+			if (key === "1") {
+				event.preventDefault();
+				setDifficulty("easy");
+				return;
+			}
+
+			if (key === "2") {
+				event.preventDefault();
+				setDifficulty("hard");
+				return;
+			}
+		});
+
+		const resizeObserver = new ResizeObserver(() => {
+			fitBoard();
+		});
+
+		resizeObserver.observe(boardWrap);
+
+		window.addEventListener("resize", fitBoard);
+		window.addEventListener("orientationchange", () => {
+			requestAnimationFrame(() => {
+				requestAnimationFrame(fitBoard);
+			});
+		});
 
 		updateHUD();
 		updateKeyboardVisibility();
