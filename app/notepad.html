@@ -5,43 +5,309 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Notepad</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:monospace}
-html,body{width:100%;height:100%;background:#000d0d;color:#00FFFF}
-body{overflow:hidden}
-.wrap{display:flex;flex-direction:column;height:100%}
-.toolbar{display:flex;gap:6px;padding:8px;border-bottom:1px solid #00FFFF;flex-wrap:wrap}
-.toolbar input,.toolbar select{flex:1 1 145px;background:#001010;border:1px solid #00FFFF;color:#00FFFF;padding:6px;font-family:monospace}
-.toolbar button{border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:6px 9px;cursor:pointer;font-family:monospace;font-size:11px}
-.toolbar button:active{background:#00FFFF;color:#000}
-textarea{flex:1;border:none;background:transparent;color:#00FFFF;font-family:monospace;font-size:13px;padding:10px;resize:none;outline:none}
-.status{padding:5px 10px;border-top:1px solid #00FFFF;font-size:11px;opacity:.75}
+*{
+box-sizing:border-box;
+margin:0;
+padding:0;
+font-family:monospace
+}
+
+html,
+body{
+width:100%;
+height:100%;
+background:#000d0d;
+color:#00FFFF
+}
+
+body{
+overflow:hidden
+}
+
+button,
+input,
+select,
+textarea{
+font-family:monospace
+}
+
+.wrap{
+display:flex;
+flex-direction:column;
+height:100%;
+position:relative
+}
+
+.toolbar{
+display:flex;
+gap:6px;
+padding:8px;
+border-bottom:1px solid #00FFFF;
+flex-wrap:wrap
+}
+
+.toolbar input,
+.toolbar select{
+flex:1 1 145px;
+background:#001010;
+border:1px solid #00FFFF;
+color:#00FFFF;
+padding:6px;
+outline:none
+}
+
+.toolbar input:focus,
+.toolbar select:focus{
+box-shadow:0 0 0 1px #00FFFF inset
+}
+
+.toolbar button{
+border:1px solid #00FFFF;
+background:transparent;
+color:#00FFFF;
+padding:6px 9px;
+cursor:pointer;
+font-size:11px;
+white-space:nowrap
+}
+
+.toolbar button:active{
+background:#00FFFF;
+color:#000
+}
+
+#saveBtn.dirty{
+font-weight:bold
+}
+
+.editorWrap{
+flex:1;
+position:relative;
+min-height:0
+}
+
+textarea{
+width:100%;
+height:100%;
+border:none;
+background:transparent;
+color:#00FFFF;
+font-size:13px;
+padding:10px;
+resize:none;
+outline:none;
+display:block;
+line-height:1.45;
+tab-size:4
+}
+
+.status{
+padding:5px 10px;
+border-top:1px solid #00FFFF;
+font-size:11px;
+opacity:.75;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis
+}
+
+.findPanel{
+position:absolute;
+top:8px;
+right:8px;
+width:390px;
+max-width:calc(100% - 16px);
+background:#001010;
+border:1px solid #00FFFF;
+box-shadow:0 8px 24px rgba(0,0,0,.65);
+z-index:20;
+display:none;
+padding:7px
+}
+
+.findPanel.open{
+display:block
+}
+
+.findTop{
+display:flex;
+align-items:center;
+gap:6px;
+height:22px;
+margin-bottom:6px
+}
+
+.findTitle{
+font-size:10px;
+font-weight:bold;
+letter-spacing:.4px;
+margin-right:auto
+}
+
+.findClose{
+width:22px;
+height:22px;
+padding:0;
+border:1px solid #008f8f;
+background:transparent;
+color:#00FFFF;
+cursor:pointer;
+font-size:14px;
+line-height:18px
+}
+
+.findRow{
+display:flex;
+align-items:center;
+gap:4px;
+margin-bottom:5px
+}
+
+.findRow input{
+flex:1;
+min-width:0;
+height:25px;
+background:#000909;
+border:1px solid #006f6f;
+color:#00FFFF;
+padding:4px 7px;
+outline:none;
+font-size:11px
+}
+
+.findRow input:focus{
+border-color:#00FFFF
+}
+
+.findRow button{
+height:25px;
+min-width:25px;
+padding:0 7px;
+border:1px solid #006f6f;
+background:transparent;
+color:#00FFFF;
+cursor:pointer;
+font-size:10px
+}
+
+.findRow button:hover{
+border-color:#00FFFF
+}
+
+.findOptions{
+display:flex;
+align-items:center;
+gap:10px;
+flex-wrap:wrap;
+font-size:10px;
+padding-top:1px
+}
+
+.findOptions label{
+display:flex;
+align-items:center;
+gap:4px;
+cursor:pointer
+}
+
+.findOptions input[type="checkbox"]{
+width:12px;
+height:12px;
+accent-color:#00FFFF
+}
+
+.findInfo{
+font-size:9px;
+opacity:.7;
+min-height:11px;
+margin-top:5px;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis
+}
 </style>
 </head>
 <body>
 
 <div class="wrap">
+
 <div class="toolbar">
 <input id="path" value="chxd:/local/notes.txt">
+
 <select id="language">
 <option value="javascript">JavaScript</option>
-<option value="python">Python</option>
+<option value="typescript">TypeScript</option>
 <option value="html">HTML</option>
 <option value="css">CSS</option>
-<option value="typescript">TypeScript</option>
+<option value="python">Python</option>
 <option value="java">Java</option>
 <option value="cpp">C++</option>
 <option value="csharp">C#</option>
 <option value="php">PHP</option>
 <option value="c">C</option>
+<option value="json">JSON</option>
+<option value="xml">XML</option>
+<option value="markdown">Markdown</option>
+<option value="plaintext">Plain Text</option>
 </select>
+
 <button id="openBtn">OPEN</button>
 <button id="pickBtn">FILE…</button>
 <button id="saveBtn">SAVE</button>
 <button id="newBtn">NEW</button>
 <button id="runBtn">RUN IN ONECOMPILER</button>
 </div>
+
+<div class="editorWrap">
+
 <textarea id="editor" placeholder="Start typing..."></textarea>
+
+<div class="findPanel" id="findPanel">
+
+<div class="findTop">
+<div class="findTitle">FIND / REPLACE</div>
+<button class="findClose" id="findClose">×</button>
+</div>
+
+<div class="findRow">
+<input id="findInput" type="text" placeholder="Find">
+<button id="findPrev" title="Previous match">↑</button>
+<button id="findNext" title="Next match">↓</button>
+</div>
+
+<div class="findRow">
+<input id="replaceInput" type="text" placeholder="Replace">
+<button id="replaceOne">Replace</button>
+<button id="replaceAll">All</button>
+</div>
+
+<div class="findOptions">
+
+<label>
+<input id="caseSensitive" type="checkbox">
+Case
+</label>
+
+<label>
+<input id="useRegex" type="checkbox">
+Regex
+</label>
+
+<label>
+<input id="wholeWord" type="checkbox">
+Word
+</label>
+
+</div>
+
+<div class="findInfo" id="findInfo"></div>
+
+</div>
+
+</div>
+
 <div class="status" id="status">Ready.</div>
+
 </div>
 
 <script>
@@ -49,24 +315,148 @@ const pathInput=document.getElementById("path");
 const editor=document.getElementById("editor");
 const status=document.getElementById("status");
 const language=document.getElementById("language");
+const saveBtn=document.getElementById("saveBtn");
+
+const findPanel=document.getElementById("findPanel");
+const findInput=document.getElementById("findInput");
+const replaceInput=document.getElementById("replaceInput");
+const findInfo=document.getElementById("findInfo");
+const caseSensitive=document.getElementById("caseSensitive");
+const useRegex=document.getElementById("useRegex");
+const wholeWord=document.getElementById("wholeWord");
 
 const params=new URLSearchParams(location.search);
 
-if(params.get("path"))pathInput.value=params.get("path");
-if(params.get("text")!==null)editor.value=params.get("text");
+let dirty=false;
+let lastSavedValue="";
+let currentMatches=[];
+let currentMatchIndex=-1;
+
+const extensionMap={
+js:"javascript",
+mjs:"javascript",
+cjs:"javascript",
+jsx:"javascript",
+ts:"typescript",
+tsx:"typescript",
+html:"html",
+htm:"html",
+xhtml:"html",
+css:"css",
+py:"python",
+pyw:"python",
+java:"java",
+cpp:"cpp",
+cc:"cpp",
+cxx:"cpp",
+hpp:"cpp",
+h:"c",
+c:"c",
+cs:"csharp",
+php:"php",
+json:"json",
+xml:"xml",
+svg:"xml",
+md:"markdown",
+markdown:"markdown",
+txt:"plaintext"
+};
 
 function setStatus(s){
-status.textContent=String(s||"");
+status.textContent=String(s||"")
+}
+
+function setDirty(value){
+dirty=!!value;
+saveBtn.textContent=dirty?"*SAVE":"SAVE";
+saveBtn.classList.toggle("dirty",dirty)
+}
+
+function markEdited(){
+setDirty(editor.value!==lastSavedValue)
+}
+
+function normalizePath(path){
+return String(path||"")
+.trim()
+.split("?")[0]
+.split("#")[0]
+}
+
+function languageFromPath(path){
+const clean=normalizePath(path);
+const file=clean.split("/").pop()||"";
+const dot=file.lastIndexOf(".");
+
+if(dot<0)return null;
+
+const ext=file.slice(dot+1).toLowerCase();
+
+return extensionMap[ext]||null
+}
+
+function languageFromContent(text){
+const s=String(text||"").trimStart();
+
+if(/^<!doctype\s+html/i.test(s)||/<html[\s>]/i.test(s)){
+return"html"
+}
+
+if(/^\s*[{[]/.test(s)){
+try{
+JSON.parse(s);
+return"json"
+}catch(e){}
+}
+
+if(/<\/?[a-z][^>]*>/i.test(s)&&/<\/[a-z][^>]*>/i.test(s)){
+return"html"
+}
+
+if(/\b(function|const|let|var|=>|console\.log|document\.|window\.)\b/.test(s)){
+return"javascript"
+}
+
+if(/\b(def|from\s+\w+\s+import|print\(|elif|async\s+def)\b/.test(s)){
+return"python"
+}
+
+if(/(^|\s)(class|interface|namespace)\s+\w+/.test(s)&&/\b(public|private|protected)\b/.test(s)){
+return"java"
+}
+
+if(/^[.#][\w-]+\s*\{/m.test(s)||/@media\b|@keyframes\b/.test(s)){
+return"css"
+}
+
+return null
+}
+
+function detectLanguage(path,text){
+const byPath=languageFromPath(path);
+const detected=byPath||languageFromContent(text);
+
+if(
+detected&&
+[...language.options].some(o=>o.value===detected)
+){
+language.value=detected
+}
+
+return detected
 }
 
 async function newNotepad(){
 try{
-const result=await parent.Apps.openApp("notepad",{
+const result=await parent.Apps.openApp(
+"notepad",
+{
 title:"NOTEPAD",
 width:540,
 height:430,
 allowMultiple:true
-});
+}
+);
 
 if(!result||!result.ok){
 setStatus(
@@ -74,12 +464,12 @@ result&&result.error
 ?result.error
 :"Could not open new Notepad."
 );
-return;
+return
 }
 
-setStatus("Opened new Notepad.");
+setStatus("Opened new Notepad.")
 }catch(err){
-setStatus(err.message||String(err));
+setStatus(err.message||String(err))
 }
 }
 
@@ -93,25 +483,29 @@ const r=await parent.FS.read(p);
 
 if(r.ok){
 editor.value=r.content;
+lastSavedValue=editor.value;
+setDirty(false);
+detectLanguage(p,editor.value);
 setStatus("Loaded "+p+".");
+closeFind()
 }else{
 setStatus(
 r.error||
 "Could not load file."
-);
+)
 }
 }catch(err){
-setStatus(
-err.message||
-String(err)
-);
+setStatus(err.message||String(err))
 }
 }
 
 async function save(){
 const p=pathInput.value.trim();
 
-if(!p)return;
+if(!p){
+setStatus("No file path.");
+return
+}
 
 try{
 const r=await parent.FS.write(
@@ -120,25 +514,326 @@ editor.value,
 true
 );
 
+if(r.ok){
+lastSavedValue=editor.value;
+setDirty(false);
+detectLanguage(p,editor.value);
+setStatus("Saved "+p+".")
+}else{
 setStatus(
-r.ok
-?"Saved "+p+"."
-:r.error||
+r.error||
 "Could not save file."
-);
+)
+}
 }catch(err){
-setStatus(
-err.message||
-String(err)
+setStatus(err.message||String(err))
+}
+}
+
+function getSelectedText(){
+const start=editor.selectionStart;
+const end=editor.selectionEnd;
+
+if(start===end)return"";
+
+return editor.value.slice(start,end)
+}
+
+function openFind(useSelection=true){
+const selected=getSelectedText();
+
+if(useSelection&&selected){
+findInput.value=selected;
+currentMatchIndex=-1
+}
+
+findPanel.classList.add("open");
+
+findInput.focus();
+
+if(findInput.value){
+findInput.select()
+}
+
+updateFindMatches()
+}
+
+function closeFind(){
+findPanel.classList.remove("open");
+currentMatches=[];
+currentMatchIndex=-1;
+findInfo.textContent=""
+}
+
+function escapeRegex(s){
+return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")
+}
+
+function buildRegex(){
+const value=findInput.value;
+
+if(!value){
+findInfo.textContent="";
+return null
+}
+
+let source=value;
+
+if(!useRegex.checked){
+source=escapeRegex(source)
+}
+
+if(wholeWord.checked){
+source="\\b"+source+"\\b"
+}
+
+let flags="g";
+
+if(!caseSensitive.checked){
+flags+="i"
+}
+
+try{
+return new RegExp(source,flags)
+}catch(err){
+findInfo.textContent="Invalid regex: "+err.message;
+return null
+}
+}
+
+function getMatches(){
+const regex=buildRegex();
+
+if(!regex)return[];
+
+const text=editor.value;
+const matches=[];
+
+let m;
+
+while((m=regex.exec(text))!==null){
+
+matches.push({
+index:m.index,
+length:m[0].length,
+text:m[0]
+});
+
+if(m[0]===""){
+regex.lastIndex++
+}
+}
+
+return matches
+}
+
+function updateFindMatches(selectCurrent=true){
+const matches=getMatches();
+
+currentMatches=matches;
+
+if(!matches.length){
+currentMatchIndex=-1;
+
+if(findInput.value){
+findInfo.textContent="No matches"
+}else{
+findInfo.textContent=""
+}
+
+return
+}
+
+if(
+currentMatchIndex<0||
+currentMatchIndex>=matches.length
+){
+currentMatchIndex=0
+}
+
+findInfo.textContent=
+matches.length+
+(matches.length===1?" match":" matches")+
+" · "+
+(currentMatchIndex+1);
+
+if(selectCurrent){
+selectCurrentMatch()
+}
+}
+
+function selectCurrentMatch(){
+if(
+currentMatchIndex<0||
+!currentMatches[currentMatchIndex]
+){
+return
+}
+
+const m=currentMatches[currentMatchIndex];
+
+editor.focus();
+
+editor.setSelectionRange(
+m.index,
+m.index+m.length
+)
+}
+
+function findNext(){
+if(!findInput.value)return;
+
+const oldSelectionStart=editor.selectionStart;
+
+updateFindMatches(false);
+
+if(!currentMatches.length)return;
+
+let nextIndex=-1;
+
+for(
+let i=0;
+i<currentMatches.length;
+i++
+){
+if(
+currentMatches[i].index>=oldSelectionStart+1
+){
+nextIndex=i;
+break
+}
+}
+
+if(nextIndex<0){
+nextIndex=0
+}
+
+currentMatchIndex=nextIndex;
+
+findInfo.textContent=
+currentMatches.length+
+" matches · "+
+(currentMatchIndex+1);
+
+selectCurrentMatch()
+}
+
+function findPrevious(){
+if(!findInput.value)return;
+
+const oldSelectionStart=editor.selectionStart;
+
+updateFindMatches(false);
+
+if(!currentMatches.length)return;
+
+let previousIndex=-1;
+
+for(
+let i=currentMatches.length-1;
+i>=0;
+i--
+){
+if(
+currentMatches[i].index<oldSelectionStart
+){
+previousIndex=i;
+break
+}
+}
+
+if(previousIndex<0){
+previousIndex=currentMatches.length-1
+}
+
+currentMatchIndex=previousIndex;
+
+findInfo.textContent=
+currentMatches.length+
+" matches · "+
+(currentMatchIndex+1);
+
+selectCurrentMatch()
+}
+
+function replaceCurrent(){
+const regex=buildRegex();
+
+if(!regex)return;
+
+const start=editor.selectionStart;
+const end=editor.selectionEnd;
+const selected=editor.value.slice(start,end);
+
+const testRegex=new RegExp(
+regex.source,
+regex.flags.replace("g","")
 );
-}
+
+if(!testRegex.test(selected)){
+findNext();
+return
 }
 
-document.getElementById("openBtn").onclick=
-load;
+const replacement=replaceInput.value;
 
-document.getElementById("saveBtn").onclick=
-save;
+const replaced=selected.replace(
+testRegex,
+replacement
+);
+
+editor.setRangeText(
+replaced,
+start,
+end,
+"select"
+);
+
+markEdited();
+
+currentMatchIndex=-1;
+
+updateFindMatches(false);
+
+setStatus("Replaced match.")
+}
+
+function replaceAllMatches(){
+const regex=buildRegex();
+
+if(!regex){
+return
+}
+
+const matches=getMatches();
+
+if(!matches.length){
+findInfo.textContent="No matches";
+return
+}
+
+editor.value=
+editor.value.replace(
+regex,
+replaceInput.value
+);
+
+markEdited();
+
+currentMatchIndex=-1;
+
+updateFindMatches(false);
+
+setStatus(
+matches.length+
+(matches.length===1?" match":" matches")+
+" replaced."
+)
+}
+
+document.getElementById("openBtn").onclick=load;
+
+saveBtn.onclick=save;
 
 document.getElementById("newBtn").onclick=
 newNotepad;
@@ -154,21 +849,26 @@ allowMultiple:false
 }
 );
 }catch(err){
-setStatus(
-err.message||
-String(err)
-);
+setStatus(err.message||String(err))
 }
 };
 
 document.getElementById("runBtn").onclick=
 ()=>{
+const detected=
+languageFromPath(pathInput.value)||
+languageFromContent(editor.value)||
+language.value||
+"javascript";
+
+language.value=detected;
+
 const name=
 pathInput.value.split("/").pop()||
 "main.js";
 
 parent.Apps.openOneCompiler({
-language:language.value,
+language:detected,
 files:[
 {
 name,
@@ -179,9 +879,158 @@ run:true
 });
 
 setStatus(
-"Opened OneCompiler."
-);
+"Opened OneCompiler as "+detected+"."
+)
 };
+
+document.getElementById("findClose").onclick=
+closeFind;
+
+document.getElementById("findNext").onclick=
+findNext;
+
+document.getElementById("findPrev").onclick=
+findPrevious;
+
+document.getElementById("replaceOne").onclick=
+replaceCurrent;
+
+document.getElementById("replaceAll").onclick=
+replaceAllMatches;
+
+findInput.addEventListener(
+"input",
+()=>{
+currentMatchIndex=-1;
+updateFindMatches()
+}
+);
+
+replaceInput.addEventListener(
+"keydown",
+e=>{
+if(e.key==="Enter"){
+e.preventDefault();
+replaceCurrent()
+}
+}
+);
+
+[
+caseSensitive,
+useRegex,
+wholeWord
+].forEach(el=>{
+el.addEventListener(
+"change",
+()=>{
+currentMatchIndex=-1;
+updateFindMatches()
+}
+)
+});
+
+editor.addEventListener(
+"input",
+()=>{
+markEdited();
+
+if(!languageFromPath(pathInput.value)){
+detectLanguage(
+pathInput.value,
+editor.value
+)
+}
+}
+);
+
+pathInput.addEventListener(
+"input",
+()=>{
+const detected=
+languageFromPath(pathInput.value);
+
+if(detected){
+language.value=detected
+}else{
+detectLanguage(
+pathInput.value,
+editor.value
+)
+}
+}
+);
+
+document.addEventListener(
+"keydown",
+e=>{
+const key=e.key.toLowerCase();
+
+if(
+(e.ctrlKey||e.metaKey)&&
+key==="s"
+){
+e.preventDefault();
+save();
+return
+}
+
+if(
+(e.ctrlKey||e.metaKey)&&
+(key==="f"||key==="r")
+){
+e.preventDefault();
+openFind(true);
+return
+}
+
+if(
+(e.ctrlKey||e.metaKey)&&
+key==="h"
+){
+e.preventDefault();
+openFind(false);
+return
+}
+
+if(
+findPanel.classList.contains("open")&&
+e.key==="Escape"
+){
+e.preventDefault();
+closeFind();
+return
+}
+
+if(
+findPanel.classList.contains("open")&&
+document.activeElement===findInput
+){
+if(e.key==="ArrowDown"){
+e.preventDefault();
+findNext();
+return
+}
+
+if(e.key==="ArrowUp"){
+e.preventDefault();
+findPrevious();
+return
+}
+
+if(e.key==="Enter"){
+e.preventDefault();
+
+if(e.shiftKey){
+findPrevious()
+}else{
+findNext()
+}
+
+return
+}
+}
+});
 
 window.addEventListener(
 "message",
@@ -192,15 +1041,46 @@ if(d.type!=="LH_FILE_SELECTED")return;
 if(!d.path)return;
 
 pathInput.value=d.path;
-load();
-}
+
+detectLanguage(
+d.path,
+editor.value
 );
 
+load()
+});
+
 if(params.get("path")){
-load();
+pathInput.value=params.get("path");
+detectLanguage(
+pathInput.value,
+editor.value
+)
+}
+
+if(params.get("text")!==null){
+editor.value=params.get("text");
+lastSavedValue=editor.value;
+setDirty(false);
+
+detectLanguage(
+pathInput.value,
+editor.value
+)
+}
+
+if(
+!params.get("path")&&
+params.get("text")===null
+){
+detectLanguage(
+pathInput.value,
+editor.value
+)
 }
 
 editor.focus();
 </script>
+
 </body>
 </html>
