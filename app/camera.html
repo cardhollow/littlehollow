@@ -31,24 +31,29 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
   <button class="btn" id="record">● START VIDEO</button>
   <button class="btn" id="stop" disabled>■ STOP VIDEO</button>
   <button class="btn" id="switch">↔ SWITCH</button>
-  <select id="facing" aria-label="Camera">
+
+  <select id="facing">
     <option value="environment">Back camera</option>
     <option value="user">Front camera</option>
   </select>
+
   <span class="badge" id="format">video: checking</span>
+  <span class="badge" id="mic">mic: checking</span>
 </div>
 
 <div class="preview" id="previewWrap">
-  <div class="placeholder" id="placeholder">Starting camera…</div>
+  <div class="placeholder" id="placeholder">Starting…</div>
   <video id="preview" autoplay muted playsinline></video>
   <div id="flash" class="flash"></div>
 </div>
 
-<div class="msg" id="msg">Starting camera…</div>
+<div class="msg" id="msg">Starting…</div>
 
 <div class="section">
   <div class="title">Saved media — chxd:/indexdb/Camera/</div>
-  <div id="list" class="list"><div class="small">Loading…</div></div>
+  <div id="list" class="list">
+    <div class="small">Loading…</div>
+  </div>
 </div>
 
 <canvas id="canvas" hidden></canvas>
@@ -57,32 +62,33 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 (() => {
 "use strict";
 
-const PREFIX = "chxd:/indexdb/Camera/";
-const $ = id => document.getElementById(id);
+const PREFIX="chxd:/indexdb/Camera/";
+const $=id=>document.getElementById(id);
 
-const state = {
-  cameraStream:null,
-  recorder:null,
+const state={
+  videoStream:null,
+  audioStream:null,
   recordingStream:null,
+  recorder:null,
   chunks:[],
   recording:false,
   facing:"environment",
   mime:""
 };
 
-function status(text){
-  $("msg").textContent = text;
+function status(t){
+  $("msg").textContent=t;
 }
 
-function showPlaceholder(text){
-  $("placeholder").textContent = text || "";
-  $("placeholder").style.display = text ? "flex" : "none";
+function placeholder(t){
+  $("placeholder").textContent=t||"";
+  $("placeholder").style.display=t?"flex":"none";
 }
 
 function stopTracks(stream){
-  if(!stream) return;
-  stream.getTracks().forEach(track => {
-    try{ track.stop(); }catch(_){}
+  if(!stream)return;
+  stream.getTracks().forEach(t=>{
+    try{t.stop()}catch(_){}
   });
 }
 
@@ -90,38 +96,135 @@ function stamp(){
   return new Date().toISOString().replace(/[:.]/g,"-");
 }
 
-function errText(error){
-  return error && (error.message || error.name)
-    ? (error.message || error.name)
-    : String(error || "Unknown error");
+function errText(e){
+  return e && (e.message||e.name)
+    ? (e.message||e.name)
+    : String(e||"Unknown error");
 }
 
-function supportedMime(){
-  if(typeof MediaRecorder === "undefined") return "";
+function getMime(){
+  if(typeof MediaRecorder==="undefined")return"";
 
-  const candidates = [
+  const list=[
     "video/webm;codecs=vp8,opus",
     "video/webm;codecs=vp9,opus",
-    "video/webm;codecs=vp8",
-    "video/webm;codecs=vp9",
     "video/webm",
-    "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+    "video/mp4;codecs=avc1,mp4a",
     "video/mp4"
   ];
 
-  for(const type of candidates){
+  for(const t of list){
     try{
-      if(MediaRecorder.isTypeSupported(type)) return type;
+      if(MediaRecorder.isTypeSupported(t))return t;
     }catch(_){}
   }
 
-  return "";
+  return"";
+}
+
+async function requestCamera(){
+
+  stopTracks(state.videoStream);
+  state.videoStream=null;
+
+  placeholder("Requesting camera permission…");
+
+  try{
+
+    const stream=await navigator.mediaDevices.getUserMedia({
+      video:{
+        facingMode:{ideal:state.facing},
+        width:{ideal:1280},
+        height:{ideal:720},
+        frameRate:{ideal:30}
+      },
+      audio:false
+    });
+
+    state.videoStream=stream;
+
+    $("preview").srcObject=stream;
+
+    $("previewWrap").classList.toggle(
+      "front",
+      state.facing==="user"
+    );
+
+    await $("preview").play().catch(()=>{});
+
+    return true;
+
+  }catch(e){
+
+    status("Camera permission/error — "+errText(e));
+    placeholder("Camera permission was not granted.");
+    return false;
+  }
+}
+
+async function requestMicrophone(){
+
+  stopTracks(state.audioStream);
+  state.audioStream=null;
+
+  $("mic").textContent="mic: requesting";
+
+  status("Requesting microphone permission…");
+
+  try{
+
+    const stream=await navigator.mediaDevices.getUserMedia({
+      audio:{
+        echoCancellation:true,
+        noiseSuppression:true,
+        autoGainControl:true
+      },
+      video:false
+    });
+
+    const tracks=stream.getAudioTracks();
+
+    if(!tracks.length){
+
+      stopTracks(stream);
+
+      $("mic").textContent="mic: missing";
+
+      status("Microphone permission succeeded but no microphone track was returned.");
+
+      return false;
+    }
+
+    state.audioStream=stream;
+
+    $("mic").textContent="mic: ready";
+
+    status("Microphone ready.");
+
+    return true;
+
+  }catch(e){
+
+    $("mic").textContent="mic: denied";
+
+    status(
+      "Microphone permission/error — "+
+      errText(e)
+    );
+
+    return false;
+  }
 }
 
 async function openCamera(){
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-    showPlaceholder("Camera API is unavailable here.");
-    status("Camera API is unavailable.");
+
+  if(
+    !navigator.mediaDevices ||
+    !navigator.mediaDevices.getUserMedia
+  ){
+
+    placeholder("getUserMedia is unavailable.");
+    status("Camera/microphone API is unavailable.");
     return false;
   }
 
@@ -129,87 +232,66 @@ async function openCamera(){
     await stopRecording();
   }
 
-  stopTracks(state.cameraStream);
+  const cameraOK=await requestCamera();
 
-  state.cameraStream = null;
-  $("preview").srcObject = null;
+  if(!cameraOK)return false;
 
-  showPlaceholder("Opening camera…");
+  const micOK=await requestMicrophone();
 
-  try{
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video:{
-        facingMode:{ideal:state.facing},
-        width:{ideal:1280},
-        height:{ideal:720},
-        frameRate:{ideal:30}
-      },
-      audio:{
-        echoCancellation:true,
-        noiseSuppression:true,
-        autoGainControl:true
-      }
-    });
+  if(!micOK){
 
-    state.cameraStream = stream;
-    $("preview").srcObject = stream;
+    stopTracks(state.videoStream);
+    state.videoStream=null;
+    $("preview").srcObject=null;
 
-    updateMirror();
-
-    await $("preview").play().catch(()=>{});
-
-    showPlaceholder("");
-
-    const track = stream.getVideoTracks()[0];
-    const audio = stream.getAudioTracks()[0];
-    const settings = track && track.getSettings ? track.getSettings() : {};
-    const label = settings.facingMode || state.facing;
-
-    status(
-      "Camera ready — " +
-      label +
-      (audio ? " — microphone ready." : " — microphone unavailable.")
-    );
-
-    return true;
-
-  }catch(error){
-
-    showPlaceholder("Camera unavailable. Allow camera and microphone permission, then reopen the app.");
-    status("Camera error — " + errText(error));
+    placeholder("Microphone permission is required for video recording.");
+    status("Camera opened, but microphone permission was not granted.");
     return false;
   }
-}
 
-function updateMirror(){
-  $("previewWrap").classList.toggle("front",state.facing === "user");
+  placeholder("");
+
+  status("Camera and microphone ready.");
+
+  return true;
 }
 
 async function takePhoto(){
+
   if(state.recording){
-    status("Stop video recording before taking a photo.");
+    status("Stop video recording first.");
     return;
   }
 
-  if(!state.cameraStream && !(await openCamera())) return;
+  if(
+    !state.videoStream ||
+    !state.videoStream.getVideoTracks().length
+  ){
 
-  const video = $("preview");
+    if(!(await openCamera()))return;
+  }
 
-  if(video.readyState < 2 || !video.videoWidth){
-    status("Camera is not ready yet.");
+  const video=$("preview");
+
+  if(
+    video.readyState<2 ||
+    !video.videoWidth
+  ){
+
+    status("Camera is not ready.");
     return;
   }
 
-  const canvas = $("canvas");
-  const w = video.videoWidth;
-  const h = video.videoHeight;
+  const canvas=$("canvas");
+  const w=video.videoWidth;
+  const h=video.videoHeight;
 
-  canvas.width = w;
-  canvas.height = h;
+  canvas.width=w;
+  canvas.height=h;
 
-  const ctx = canvas.getContext("2d",{alpha:false});
+  const ctx=canvas.getContext("2d",{alpha:false});
 
-  if(state.facing === "user"){
+  if(state.facing==="user"){
     ctx.save();
     ctx.translate(w,0);
     ctx.scale(-1,1);
@@ -219,12 +301,24 @@ async function takePhoto(){
     ctx.drawImage(video,0,0,w,h);
   }
 
-  $("flash").style.opacity = "1";
-  setTimeout(() => $("flash").style.opacity = "0",90);
+  $("flash").style.opacity="1";
+
+  setTimeout(()=>{
+    $("flash").style.opacity="0";
+  },90);
 
   try{
-    const data = canvas.toDataURL("image/jpeg",0.92);
-    const path = PREFIX + "photo-" + stamp() + ".jpg";
+
+    const data=canvas.toDataURL(
+      "image/jpeg",
+      .92
+    );
+
+    const path=
+      PREFIX+
+      "photo-"+
+      stamp()+
+      ".jpg";
 
     await saveString(
       path,
@@ -235,261 +329,355 @@ async function takePhoto(){
       }
     );
 
-    status("Photo saved — " + path);
+    status("Photo saved — "+path);
+
     await loadLibrary();
 
-  }catch(error){
-    status("Photo save failed — " + errText(error));
+  }catch(e){
+
+    status(
+      "Photo save failed — "+
+      errText(e)
+    );
   }
 }
 
 function blobToDataURL(blob){
+
   return new Promise((resolve,reject)=>{
-    const reader = new FileReader();
 
-    reader.onload = () => resolve(String(reader.result));
+    const reader=new FileReader();
 
-    reader.onerror = () =>
+    reader.onload=()=>{
+      resolve(String(reader.result));
+    };
+
+    reader.onerror=()=>{
       reject(
         reader.error ||
         new Error("Could not encode video")
       );
+    };
 
     reader.readAsDataURL(blob);
   });
 }
 
 async function saveString(path,data,meta){
+
   if(
-    typeof parent === "undefined" ||
+    typeof parent==="undefined" ||
     !parent.FS ||
-    typeof parent.FS.write !== "function"
+    typeof parent.FS.write!=="function"
   ){
-    throw new Error("Little Hollow filesystem is unavailable.");
+
+    throw new Error(
+      "Little Hollow filesystem is unavailable."
+    );
   }
 
-  const result = await parent.FS.write(
-    path,
-    String(data),
-    true
-  );
+  const r=
+    await parent.FS.write(
+      path,
+      String(data),
+      true
+    );
 
-  if(!result || result.ok !== true){
+  if(!r||r.ok!==true){
+
     throw new Error(
-      result && result.error
-        ? result.error
+      r&&r.error
+        ? r.error
         : "Filesystem write failed"
     );
   }
 
-  const metaResult = await parent.FS.write(
-    path + ".json",
-    JSON.stringify({
-      app:"Camera",
-      createdAt:new Date().toISOString(),
-      storage:"data-url",
-      ...meta
-    }),
-    true
-  );
+  const mr=
+    await parent.FS.write(
+      path+".json",
+      JSON.stringify({
+        app:"Camera",
+        createdAt:new Date().toISOString(),
+        storage:"data-url",
+        ...meta
+      }),
+      true
+    );
 
-  if(!metaResult || metaResult.ok !== true){
+  if(!mr||mr.ok!==true){
+
     throw new Error(
-      metaResult && metaResult.error
-        ? metaResult.error
+      mr&&mr.error
+        ? mr.error
         : "Metadata write failed"
     );
   }
 }
 
 async function startRecording(){
-  if(state.recording) return;
 
-  if(typeof MediaRecorder === "undefined"){
-    status("Video recording is not supported in this browser.");
+  if(state.recording)return;
+
+  if(typeof MediaRecorder==="undefined"){
+
+    status(
+      "MediaRecorder is unavailable."
+    );
+
     return;
   }
 
-  if(!state.cameraStream && !(await openCamera())) return;
+  if(
+    !state.videoStream ||
+    !state.audioStream
+  ){
 
-  const videoTrack = state.cameraStream.getVideoTracks()[0];
-  const audioTrack = state.cameraStream.getAudioTracks()[0];
+    const ok=await openCamera();
 
-  if(!videoTrack){
-    status("No camera video track is available.");
+    if(!ok)return;
+  }
+
+  const videoTracks=
+    state.videoStream.getVideoTracks();
+
+  const audioTracks=
+    state.audioStream.getAudioTracks();
+
+  if(!videoTracks.length){
+
+    status("No camera video track exists.");
     return;
   }
 
-  const tracks = [videoTrack];
+  if(!audioTracks.length){
 
-  if(audioTrack){
-    tracks.push(audioTrack);
+    status(
+      "No microphone track exists. Recording cancelled."
+    );
+
+    return;
   }
 
-  state.recordingStream = new MediaStream(tracks);
-  state.chunks = [];
-  state.mime = supportedMime();
+  state.recordingStream=
+    new MediaStream([
+      videoTracks[0],
+      audioTracks[0]
+    ]);
+
+  state.chunks=[];
+  state.mime=getMime();
 
   let recorder;
 
   try{
-    recorder = state.mime
-      ? new MediaRecorder(
+
+    if(state.mime){
+
+      recorder=
+        new MediaRecorder(
           state.recordingStream,
           {mimeType:state.mime}
-        )
-      : new MediaRecorder(
+        );
+
+    }else{
+
+      recorder=
+        new MediaRecorder(
           state.recordingStream
         );
-  }catch(error){
-
-    try{
-      recorder = new MediaRecorder(
-        state.recordingStream
-      );
-    }catch(error2){
-
-      stopTracks(state.recordingStream);
-      state.recordingStream = null;
-
-      status(
-        "Video start failed — " +
-        errText(error2)
-      );
-
-      return;
     }
+
+  }catch(e){
+
+    stopTracks(state.recordingStream);
+    state.recordingStream=null;
+
+    status(
+      "Recorder creation failed — "+
+      errText(e)
+    );
+
+    return;
   }
 
-  state.recorder = recorder;
-  state.recording = true;
+  if(
+    !recorder ||
+    !recorder.mimeType &&
+    !state.mime
+  ){
 
-  $("record").disabled = true;
-  $("stop").disabled = false;
-  $("photo").disabled = true;
-  $("switch").disabled = true;
-  $("facing").disabled = true;
+    stopTracks(state.recordingStream);
+    state.recordingStream=null;
 
-  $("format").textContent =
-    "video: " +
-    (recorder.mimeType || "browser default");
+    status("Browser could not create a valid video recorder.");
 
-  status(
-    audioTrack
-      ? "Recording video + audio…"
-      : "Recording video without audio…"
-  );
+    return;
+  }
 
-  recorder.ondataavailable = event => {
-    if(event.data && event.data.size){
-      state.chunks.push(event.data);
+  state.recorder=recorder;
+  state.recording=true;
+
+  $("record").disabled=true;
+  $("stop").disabled=false;
+  $("photo").disabled=true;
+  $("switch").disabled=true;
+  $("facing").disabled=true;
+
+  $("format").textContent=
+    "video: "+
+    (recorder.mimeType||"default");
+
+  $("mic").textContent="mic: RECORDING";
+
+  recorder.ondataavailable=e=>{
+
+    if(e.data&&e.data.size>0){
+
+      state.chunks.push(e.data);
     }
   };
 
-  recorder.onerror = event => {
+  recorder.onerror=e=>{
+
     status(
-      "Video recorder error — " +
-      errText(event && event.error ? event.error : event)
+      "Recorder error — "+
+      errText(
+        e&&e.error
+          ? e.error
+          : e
+      )
     );
   };
 
-  recorder.onstop = () => {
+  recorder.onstop=()=>{
     finishRecording(recorder);
   };
 
   try{
-    recorder.start();
-  }catch(error){
 
-    state.recorder = null;
-    state.recording = false;
+    recorder.start(1000);
 
-    stopTracks(state.recordingStream);
-    state.recordingStream = null;
+    status(
+      "Recording video + microphone audio…"
+    );
+
+  }catch(e){
+
+    state.recorder=null;
+    state.recording=false;
+
+    stopTracks(
+      state.recordingStream
+    );
+
+    state.recordingStream=null;
 
     restoreButtons();
 
+    $("mic").textContent="mic: ready";
+
     status(
-      "Video start failed — " +
-      errText(error)
+      "Recording failed — "+
+      errText(e)
     );
   }
 }
 
 async function stopRecording(){
-  const recorder = state.recorder;
 
-  if(!recorder) return;
+  const recorder=state.recorder;
 
-  if(recorder.state === "inactive") return;
+  if(!recorder)return;
 
-  status("Finishing video…");
+  if(recorder.state==="inactive")return;
+
+  status("Finishing recording…");
 
   try{
     recorder.stop();
-  }catch(error){
+  }catch(e){
+
     status(
-      "Video stop failed — " +
-      errText(error)
+      "Stop failed — "+
+      errText(e)
     );
   }
 }
 
 async function finishRecording(recorder){
-  if(state.recorder === recorder){
-    state.recorder = null;
+
+  if(state.recorder===recorder){
+    state.recorder=null;
   }
 
-  state.recording = false;
+  state.recording=false;
 
-  const recordingStream = state.recordingStream;
-  state.recordingStream = null;
+  const recordingStream=
+    state.recordingStream;
 
-  const chunks = state.chunks.slice();
-  state.chunks = [];
+  state.recordingStream=null;
 
   stopTracks(recordingStream);
 
   restoreButtons();
 
+  $("mic").textContent=
+    state.audioStream &&
+    state.audioStream.getAudioTracks().length
+      ? "mic: ready"
+      : "mic: unavailable";
+
+  const chunks=state.chunks.slice();
+
+  state.chunks=[];
+
   if(!chunks.length){
-    status("Video recording produced no data. Try again.");
+
+    status(
+      "Recorder returned no video data."
+    );
+
     return;
   }
 
-  const type =
-    recorder.mimeType ||
-    (chunks[0] && chunks[0].type) ||
+  const type=
+    recorder.mimeType||
+    chunks[0].type||
     "video/webm";
 
-  const blob = new Blob(
-    chunks,
-    {type}
-  );
+  const blob=
+    new Blob(
+      chunks,
+      {type:type}
+    );
 
   if(!blob.size){
-    status("Video recording is empty. Try again.");
+
+    status(
+      "Created recording is empty."
+    );
+
     return;
   }
 
   try{
-    const data = await blobToDataURL(blob);
 
-    const baseType =
-      String(type)
-        .split(";",1)[0]
-        .toLowerCase();
+    const data=
+      await blobToDataURL(blob);
 
-    const ext =
-      baseType === "video/mp4"
+    const container=
+      type.split(";")[0].toLowerCase();
+
+    const ext=
+      container==="video/mp4"
         ? "mp4"
         : "webm";
 
-    const path =
-      PREFIX +
-      "video-" +
-      stamp() +
-      "." +
+    const path=
+      PREFIX+
+      "video-"+
+      stamp()+
+      "."+
       ext;
 
     await saveString(
@@ -499,199 +687,205 @@ async function finishRecording(recorder){
         kind:"video",
         mimeType:type,
         size:blob.size,
-        hasAudio:!!state.cameraStream &&
-          state.cameraStream.getAudioTracks().length > 0
+        hasAudio:true
       }
     );
 
-    const verify =
+    const verify=
       await parent.FS.read(path);
 
     if(
-      !verify ||
-      verify.ok !== true ||
-      typeof verify.content !== "string" ||
+      !verify||
+      verify.ok!==true||
+      typeof verify.content!=="string"||
       !verify.content.startsWith("data:")
     ){
+
       throw new Error(
-        "saved video could not be read back"
+        "Saved recording could not be verified."
       );
     }
 
     status(
-      "Video saved — " +
-      path +
-      " (" +
-      Math.round(blob.size / 1024) +
+      "Video + audio saved — "+
+      path+
+      " ("+
+      Math.round(blob.size/1024)+
       " KB)"
     );
 
     await loadLibrary();
 
-  }catch(error){
+  }catch(e){
+
     status(
-      "Video save failed — " +
-      errText(error)
+      "Video save failed — "+
+      errText(e)
     );
   }
 }
 
 function restoreButtons(){
-  $("record").disabled = false;
-  $("stop").disabled = true;
-  $("photo").disabled = false;
-  $("switch").disabled = false;
-  $("facing").disabled = false;
+
+  $("record").disabled=false;
+  $("stop").disabled=true;
+  $("photo").disabled=false;
+  $("switch").disabled=false;
+  $("facing").disabled=false;
 }
 
 async function loadLibrary(){
-  const box = $("list");
-  box.innerHTML = "";
+
+  const box=$("list");
+
+  box.innerHTML="";
 
   try{
-    const files = await parent.FS.list(PREFIX);
 
-    const paths =
-      (Array.isArray(files) ? files : [])
-        .filter(
-          p =>
-            typeof p === "string" &&
-            /\.(jpg|jpeg|png|webm|mp4)$/i.test(p)
-        )
-        .sort()
-        .reverse();
+    const files=
+      await parent.FS.list(PREFIX);
+
+    const paths=
+      (Array.isArray(files)?files:[])
+      .filter(
+        p=>
+          typeof p==="string" &&
+          /\.(jpg|jpeg|png|webm|mp4)$/i.test(p)
+      )
+      .sort()
+      .reverse();
 
     if(!paths.length){
-      box.innerHTML =
+
+      box.innerHTML=
         '<div class="small">No media yet.</div>';
+
       return;
     }
 
     for(const path of paths){
 
-      const read =
+      const read=
         await parent.FS.read(path);
 
       if(
-        !read ||
-        read.ok !== true ||
-        typeof read.content !== "string"
+        !read||
+        read.ok!==true||
+        typeof read.content!=="string"
       ){
+
         continue;
       }
 
-      const card =
+      const card=
         document.createElement("div");
 
-      card.className = "card";
+      card.className="card";
 
-      const isPhoto =
+      const photo=
         /\.(jpg|jpeg|png)$/i.test(path);
 
       let media;
 
-      if(isPhoto){
+      if(photo){
 
-        media =
+        media=
           document.createElement("img");
 
-        media.alt =
+        media.alt=
           path.split("/").pop();
 
       }else{
 
-        media =
+        media=
           document.createElement("video");
 
-        media.controls = true;
-        media.playsInline = true;
-        media.preload = "metadata";
-        media.setAttribute("controlsList","nodownload");
+        media.controls=true;
+        media.playsInline=true;
+        media.preload="metadata";
 
-        media.onerror = () => {
+        media.setAttribute(
+          "controlsList",
+          "nodownload"
+        );
 
-          const note =
+        media.onerror=()=>{
+
+          if(
+            card.querySelector(".decode-note")
+          )return;
+
+          const note=
             document.createElement("div");
 
-          note.className =
+          note.className=
             "small decode-note";
 
-          note.textContent =
-            "Saved recording cannot be decoded by this browser.";
+          note.textContent=
+            "Saved video cannot be decoded by this browser.";
 
-          if(!card.querySelector(".decode-note")){
-            card.appendChild(note);
-          }
+          card.appendChild(note);
         };
       }
 
-      media.className = "thumb";
-      media.src = read.content;
+      media.className="thumb";
+      media.src=read.content;
 
-      const name =
+      const name=
         document.createElement("div");
 
-      name.className = "name";
-      name.textContent =
+      name.className="name";
+
+      name.textContent=
         path.split("/").pop();
 
-      const actions =
+      const actions=
         document.createElement("div");
 
-      actions.className = "actions";
+      actions.className="actions";
 
-      const save =
+      const save=
         document.createElement("button");
 
-      save.className = "btn";
-      save.textContent = "SAVE";
+      save.className="btn";
+      save.textContent="SAVE";
 
-      save.onclick = () => {
+      save.onclick=()=>{
+
         downloadData(
           read.content,
           path.split("/").pop()
         );
       };
 
-      const del =
+      const del=
         document.createElement("button");
 
-      del.className = "btn";
-      del.textContent = "DEL";
+      del.className="btn";
+      del.textContent="DEL";
 
-      del.onclick = async () => {
+      del.onclick=async()=>{
 
         try{
 
-          const r =
-            await parent.FS.remove(path);
+          await parent.FS.remove(path);
 
           await parent.FS.remove(
-            path + ".json"
+            path+".json"
           );
 
-          if(r && r.ok === false){
-            status(
-              "Delete failed — " +
-              (r.error || "unknown error")
-            );
-          }
-
-        }catch(error){
+        }catch(e){
 
           status(
-            "Delete failed — " +
-            errText(error)
+            "Delete failed — "+
+            errText(e)
           );
         }
 
         await loadLibrary();
       };
 
-      actions.append(
-        save,
-        del
-      );
+      actions.append(save,del);
 
       card.append(
         media,
@@ -702,80 +896,110 @@ async function loadLibrary(){
       box.appendChild(card);
     }
 
-  }catch(error){
+  }catch(e){
 
-    box.innerHTML =
-      '<div class="small">Library error: ' +
-      escapeHTML(errText(error)) +
+    box.innerHTML=
+      '<div class="small">Library error: '+
+      escapeHTML(errText(e))+
       '</div>';
   }
 }
 
 function downloadData(data,name){
-  const a = document.createElement("a");
 
-  a.href = data;
-  a.download = name;
+  const a=
+    document.createElement("a");
+
+  a.href=data;
+  a.download=name;
 
   document.body.appendChild(a);
+
   a.click();
+
   a.remove();
 }
 
 function escapeHTML(s){
+
   return String(s).replace(
     /[&<>"']/g,
-    c => ({
+    c=>({
       "&":"&amp;",
       "<":"&lt;",
       ">":"&gt;",
       '"':"&quot;",
       "'":"&#39;"
-    }[c])
+    })[c]
   );
 }
 
-$("photo").onclick = takePhoto;
-$("record").onclick = startRecording;
-$("stop").onclick = stopRecording;
+$("photo").onclick=
+  takePhoto;
 
-$("switch").onclick = async () => {
-  state.facing =
-    state.facing === "user"
-      ? "environment"
-      : "user";
+$("record").onclick=
+  startRecording;
 
-  $("facing").value = state.facing;
+$("stop").onclick=
+  stopRecording;
+
+$("switch").onclick=
+  async()=>{
+
+    state.facing=
+      state.facing==="user"
+        ? "environment"
+        : "user";
+
+    $("facing").value=
+      state.facing;
+
+    await openCamera();
+  };
+
+$("facing").onchange=
+  async e=>{
+
+    state.facing=e.target.value;
+
+    await openCamera();
+  };
+
+window.addEventListener(
+  "beforeunload",
+  ()=>{
+
+    try{
+
+      if(
+        state.recorder &&
+        state.recorder.state!=="inactive"
+      ){
+
+        state.recorder.stop();
+      }
+
+    }catch(_){}
+
+    stopTracks(state.recordingStream);
+    stopTracks(state.videoStream);
+    stopTracks(state.audioStream);
+  }
+);
+
+(async()=>{
+
+  $("format").textContent=
+    "video: "+
+    (getMime()||"browser default");
+
+  $("mic").textContent=
+    "mic: requesting";
 
   await openCamera();
-};
 
-$("facing").onchange = async event => {
-  state.facing = event.target.value;
-  await openCamera();
-};
-
-window.addEventListener("beforeunload",() => {
-  try{
-    if(
-      state.recorder &&
-      state.recorder.state !== "inactive"
-    ){
-      state.recorder.stop();
-    }
-  }catch(_){}
-
-  stopTracks(state.recordingStream);
-  stopTracks(state.cameraStream);
-});
-
-(async() => {
-  $("format").textContent =
-    "video: " +
-    (supportedMime() || "browser default");
-
-  await openCamera();
   await loadLibrary();
+
 })();
 
 })();
