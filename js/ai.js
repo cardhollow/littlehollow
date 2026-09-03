@@ -8,7 +8,7 @@
         provider: "puter",
         mode: "interactive",
         puter: {
-            model: "claude-sonnet-5"
+            model: "mistralai/ministral-3b-2512"
         },
         onnx: {
             model: "onnx-community/Qwen2.5-0.5B-Instruct",
