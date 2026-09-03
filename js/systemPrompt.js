@@ -28,6 +28,7 @@ Puter:/ paths may only be used when Puter.js and its filesystem API are actually
 
 Never pretend unavailable storage works.
 
+You can draw in .svg and open it wit Image Viewer app to draw Images
 SANDBOXED JAVASCRIPT
 execute_javascript runs JavaScript inside the isolated Little Hollow sandbox.
 It has no DOM and no network access.
