@@ -8,380 +8,141 @@
 *{box-sizing:border-box;font-family:monospace}
 html,body{margin:0;width:100%;height:100%;background:#000;color:#00ffff}
 body{padding:12px;overflow:auto}
-input,textarea,select{width:100%;margin-bottom:8px;background:#000;border:1px solid #00ffff;color:#fff;padding:7px;font-family:monospace}
-input,select{height:34px}
-textarea{height:220px;resize:vertical;line-height:1.4}
+input{width:100%;height:34px;margin-bottom:8px;background:#000;border:1px solid #00ffff;color:#fff;padding:6px}
 .row{display:flex;gap:8px}
-.row>*{flex:1;min-width:0}
-button{height:34px;background:#001919;color:#00ffff;border:1px solid #00ffff;padding:0 12px;cursor:pointer}
-button:active{background:#00ffff;color:#000}
+.row input{flex:1}
+button{height:34px;background:#001919;color:#00ffff;border:1px solid #00ffff;padding:0 12px}
 .preview{margin-top:10px;border:1px solid #00ffff;height:260px}
 .preview iframe{width:100%;height:100%;border:0;background:#fff}
-#status{margin-top:10px;font-size:11px;white-space:pre-wrap}
-.section{font-size:10px;opacity:.55;margin:4px 0 5px}
+#status{margin-top:10px;font-size:11px}
 </style>
 </head>
 <body>
 
-<div class="section">APPLICATION</div>
+<input id="pkg" placeholder="Package Name">
+
 <div class="row">
-    <input id="pkg" placeholder="Package Name">
-    <input id="name" placeholder="App Name">
+<input id="name" placeholder="App Name (Optional)">
+<input id="icon" placeholder="App Icon">
 </div>
 
 <div class="row">
-    <input id="icon" placeholder="App Icon">
-    <select id="sourceType">
-        <option value="src">SRC — URL</option>
-        <option value="srcDoc">SRCDOC — HTML CODE</option>
-    </select>
-</div>
-
-<div class="section">SOURCE</div>
-<div id="sourceContainer">
-    <input id="sourceInput" placeholder="URL">
-</div>
-
-<div class="row">
-    <button id="load">PREVIEW</button>
-    <button id="clear">CLEAR</button>
+<input id="url" placeholder="URL">
+<button id="load">LOAD</button>
 </div>
 
 <div class="preview">
-    <iframe id="preview"></iframe>
+<iframe id="preview"></iframe>
 </div>
 
-<button id="install" style="margin-top:10px;width:100%">INSTALL / UPDATE</button>
+<button id="install" style="margin-top:10px;width:100%">
+INSTALL
+</button>
 
 <div id="status"></div>
 
 <script>
-(function(){
-    "use strict";
+const CIA_PATH="chxd:/local/Custom Installed Application/CIA.json";
 
-    const ids=[
-        "pkg",
-        "name",
-        "icon",
-        "sourceType",
-        "sourceContainer",
-        "sourceInput",
-        "load",
-        "clear",
-        "preview",
-        "install",
-        "status"
-    ];
+const pkg=document.getElementById("pkg");
+const name=document.getElementById("name");
+const icon=document.getElementById("icon");
+const url=document.getElementById("url");
+const preview=document.getElementById("preview");
+const status=document.getElementById("status");
 
-    const el={};
-    for(const id of ids)
-        el[id]=document.getElementById(id);
+async function readCIA(){
+    try{
+        const r=await parent.FS.read(CIA_PATH);
 
-    const SRC_DOC_DIR=
-        "chxd:/local/Custom Installed Application/SrcDocs";
-
-    function setStatus(text){
-        el.status.textContent=String(text||"");
-    }
-
-    function createSourceControl(type,value){
-        const old=el.sourceInput;
-        if(old)
-            old.remove();
-
-        if(type==="srcDoc"){
-            const textarea=document.createElement("textarea");
-            textarea.id="sourceInput";
-            textarea.placeholder="Paste the complete HTML source here...";
-            textarea.value=value||"";
-            el.sourceContainer.appendChild(textarea);
-            el.sourceInput=textarea;
-        }else{
-            const input=document.createElement("input");
-            input.id="sourceInput";
-            input.placeholder="URL (https://...)";
-            input.value=value||"";
-            el.sourceContainer.appendChild(input);
-            el.sourceInput=input;
-        }
-    }
-
-    function getSource(){
-        return String(
-            el.sourceInput&&el.sourceInput.value||""
-        );
-    }
-
-    function sourceIsSrcDoc(){
-        return el.sourceType.value==="srcDoc";
-    }
-
-    async function readCIA(){
-        if(
-            !parent.FS||
-            typeof parent.FS.read!=="function"
-        )
+        if(!r||!r.ok)
             return [];
 
-        try{
-            const r=await parent.FS.read(
-                "chxd:/local/Custom Installed Application/CIA.json"
-            );
+        const data=JSON.parse(r.content);
 
-            if(!r||!r.ok||!r.content)
-                return [];
+        return Array.isArray(data)?data:[];
+    }catch(e){
+        return [];
+    }
+}
 
-            const data=JSON.parse(r.content);
-            return Array.isArray(data)?data:[];
-        }catch(e){
-            return [];
-        }
+async function writeCIA(data){
+    return await parent.FS.write(
+        CIA_PATH,
+        JSON.stringify(data,null,4),
+        true
+    );
+}
+
+document.getElementById("load").onclick=()=>{
+    const u=url.value.trim();
+
+    if(!u){
+        status.textContent="Enter a URL.";
+        return;
     }
 
-    function previewSource(){
-        const source=getSource().trim();
+    preview.src=u;
+    status.textContent="Preview loaded.";
+};
 
-        if(!source){
-            el.preview.removeAttribute("src");
-            el.preview.removeAttribute("srcdoc");
-            setStatus(
-                sourceIsSrcDoc()
-                    ?"Enter HTML source first."
-                    :"Enter a URL first."
-            );
-            return;
-        }
+document.getElementById("install").onclick=async()=>{
+    const p=pkg.value.trim();
+    const n=name.value.trim();
+    const i=icon.value.trim();
+    const u=url.value.trim();
 
-        if(sourceIsSrcDoc()){
-            el.preview.removeAttribute("src");
-            el.preview.srcdoc=source;
-            setStatus("srcDoc preview loaded.");
-        }else{
-            el.preview.removeAttribute("srcdoc");
-            el.preview.src=source;
-            setStatus("src preview loaded.");
-        }
+    if(!p){
+        status.textContent="Package Name is required.";
+        return;
     }
 
-    async function install(){
-        const p=el.pkg.value.trim();
-        const n=el.name.value.trim();
-        const i=el.icon.value.trim();
-        const sourceType=el.sourceType.value;
-        const source=getSource();
-
-        if(!p){
-            setStatus("Package Name is required.");
-            return;
-        }
-
-        if(!n){
-            setStatus("App Name is required.");
-            return;
-        }
-
-        if(!source.trim()){
-            setStatus(
-                sourceType==="srcDoc"
-                    ?"HTML source is required."
-                    :"URL is required."
-            );
-            return;
-        }
-
-        if(
-            sourceType==="src"&&
-            !/^https?:\/\//i.test(source.trim())
-        ){
-            setStatus("URL must start with http:// or https://.");
-            return;
-        }
-
-        setStatus("Installing...");
-
-        try{
-            /*
-             * Apps.installApp is the same persistence path used by
-             * the rest of Little Hollow. This keeps the UI and the
-             * AI/tool layer using exactly the same application data.
-             */
-            if(
-                parent.Apps&&
-                typeof parent.Apps.installApp==="function"
-            ){
-                const result=await parent.Apps.installApp({
-                    pkg:p,
-                    name:n,
-                    appIcon:i,
-                    sourceType,
-                    src:
-                        sourceType==="src"
-                            ?source.trim()
-                            :undefined,
-                    srcDoc:
-                        sourceType==="srcDoc"
-                            ?source
-                            :undefined
-                });
-
-                if(!result||!result.ok){
-                    setStatus(
-                        "Install failed: "+
-                        (result&&result.error||"Unknown error")
-                    );
-                    return;
-                }
-
-                setStatus(
-                    sourceType==="srcDoc"
-                        ?"Successfully Installed / Updated srcDoc app.\nSaved source: "+
-                            result.app.srcDoc
-                        :"Successfully Installed / Updated src app."
-                );
-
-                try{
-                    parent.postMessage({
-                        type:"LH_INSTALLED_APP",
-                        app:result.app
-                    },"*");
-                }catch(_){ }
-
-                return;
-            }
-
-            /* Fallback for unusual loading situations. */
-            const data=await readCIA();
-            const oldIndex=data.findIndex(x=>x&&x.pkg===p);
-
-            if(sourceType==="srcDoc"){
-                const path=
-                    SRC_DOC_DIR+"/"+
-                    p.replace(/[^a-zA-Z0-9._-]+/g,"_")+".html";
-
-                const wr=await parent.FS.write(
-                    path,
-                    source,
-                    true
-                );
-
-                if(!wr||!wr.ok){
-                    setStatus("Install failed: "+(wr&&wr.error||"Could not save source."));
-                    return;
-                }
-
-                data[oldIndex>=0?oldIndex:data.length]={
-                    pkg:p,
-                    name:n,
-                    srcDoc:path,
-                    appIcon:i||"📦"
-                };
-            }else{
-                data[oldIndex>=0?oldIndex:data.length]={
-                    pkg:p,
-                    name:n,
-                    src:source.trim(),
-                    appIcon:i||"📦"
-                };
-            }
-
-            const result=await parent.FS.write(
-                "chxd:/local/Custom Installed Application/CIA.json",
-                JSON.stringify(data,null,4),
-                true
-            );
-
-            setStatus(
-                result&&result.ok
-                    ?"Successfully Installed / Updated."
-                    :"Install failed: "+(result&&result.error||"Could not write CIA.json")
-            );
-        }catch(e){
-            setStatus(
-                "Install failed: "+
-                (e&&e.message||String(e))
-            );
-        }
+    if(!u){
+        status.textContent="URL is required.";
+        return;
     }
 
-    function clearForm(){
-        el.pkg.value="";
-        el.name.value="";
-        el.icon.value="";
-        el.sourceType.value="src";
-        createSourceControl("src","");
-        el.preview.removeAttribute("src");
-        el.preview.removeAttribute("srcdoc");
-        setStatus("");
-    }
+    status.textContent="Installing...";
 
-    function getState(){
-        return {
-            pkg:el.pkg.value.trim(),
-            name:el.name.value.trim(),
-            appIcon:el.icon.value.trim(),
-            sourceType:el.sourceType.value,
-            source:getSource()
-        };
-    }
+    const data=await readCIA();
 
-    async function apiInstall(options){
-        options=options||{};
-
-        if(options.pkg!=null)el.pkg.value=String(options.pkg);
-        if(options.name!=null)el.name.value=String(options.name);
-        if(options.appIcon!=null)el.icon.value=String(options.appIcon);
-
-        const sourceType=
-            options.sourceType=== "srcDoc"
-                ?"srcDoc"
-                :"src";
-
-        el.sourceType.value=sourceType;
-        createSourceControl(
-            sourceType,
-            sourceType==="srcDoc"
-                ?options.srcDoc
-                :options.src
-        );
-
-        return await install();
-    }
-
-    const AppInstallerAPI={
-        getState,
-        list:async()=>await readCIA(),
-        preview:previewSource,
-        install:apiInstall,
-        uninstall:async pkg=>{
-            if(
-                parent.Apps&&
-                typeof parent.Apps.uninstallApp==="function"
-            )
-                return await parent.Apps.uninstallApp(pkg);
-
-            return {
-                ok:false,
-                error:"Apps.uninstallApp is unavailable."
-            };
-        },
-        sourceFolder:SRC_DOC_DIR,
-        ciaPath:"chxd:/local/Custom Installed Application/CIA.json"
+    const app={
+        pkg:p,
+        name:n,
+        src:u,
+        appIcon:i
     };
 
-    window.AppInstallerAPI=AppInstallerAPI;
+    const index=data.findIndex(
+        x=>x.pkg===p
+    );
 
-    el.sourceType.addEventListener("change",()=>{
-        const previous=getSource();
-        createSourceControl(el.sourceType.value,previous);
-        previewSource();
-    });
+    if(index>=0)
+        data[index]=app;
+    else
+        data.push(app);
 
-    el.load.onclick=previewSource;
-    el.install.onclick=install;
-    el.clear.onclick=clearForm;
+    const result=await writeCIA(data);
 
-    createSourceControl("src","");
-})();
+    if(!result||!result.ok){
+        status.textContent=
+            "Install failed: "+
+            (
+                result&&result.error
+                    ?result.error
+                    :"Could not write CIA.json"
+            );
+        return;
+    }
+
+    status.textContent="Successfully Installed";
+
+    parent.postMessage({
+        type:"LH_INSTALLED_APP",
+        app:app
+    },"*");
+};
 </script>
+
 </body>
 </html>
