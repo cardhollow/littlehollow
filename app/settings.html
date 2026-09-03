@@ -8,19 +8,17 @@
     <style>
         :root {
             color-scheme: dark;
-
             --bg: #071216;
             --panel: #0b1a20;
             --panel-2: #0e232a;
             --panel-3: #07181d;
             --line: #1c6670;
-            --line-soft: rgba(28,102,112,.36);
-
+            --line-soft: rgba(28, 102, 112, .38);
             --text: #d9ffff;
             --muted: #78a9ad;
-
             --accent: #31f4ff;
             --good: #63ffb1;
+            --warn: #ffd166;
             --danger: #ff708c;
         }
 
@@ -34,12 +32,7 @@
             min-height: 100%;
             background: var(--bg);
             color: var(--text);
-            font-family:
-                ui-monospace,
-                SFMono-Regular,
-                Menlo,
-                Consolas,
-                monospace;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         }
 
         body {
@@ -57,49 +50,44 @@
         }
 
         .shell {
-            width: min(940px, calc(100% - 28px));
-            margin: 28px auto;
+            width: 100%;
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 24px;
         }
 
         .header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 18px;
-
+            gap: 20px;
             padding: 20px 22px;
-
             border: 1px solid var(--line);
-
             background:
-                radial-gradient(
-                    circle at top right,
-                    rgba(49,244,255,.07),
-                    transparent 34%
-                ),
-                var(--panel);
-
-            box-shadow:
-                0 18px 45px rgba(0,0,0,.22);
+                linear-gradient(
+                    135deg,
+                    rgba(49, 244, 255, .055),
+                    rgba(11, 26, 32, .94) 42%
+                );
+            box-shadow: 0 10px 40px rgba(0, 0, 0, .2);
         }
 
         .title {
-            font-size: 19px;
+            font-size: 20px;
             font-weight: 700;
-            letter-spacing: .08em;
+            letter-spacing: .07em;
             text-transform: uppercase;
         }
 
         .subtitle {
             margin-top: 6px;
             color: var(--muted);
-            font-size: 9px;
+            font-size: 10px;
             line-height: 1.5;
         }
 
-        .provider-wrap {
-            width: 235px;
-            flex: 0 0 235px;
+        .provider-select-wrap {
+            min-width: 220px;
         }
 
         .provider-label {
@@ -113,41 +101,37 @@
         .provider-select {
             width: 100%;
             min-height: 40px;
-            padding: 10px 11px;
-
+            padding: 10px 12px;
             border: 1px solid var(--accent);
             border-radius: 2px;
-
-            background: #0b232a;
+            background: #0a2228;
             color: var(--accent);
-
             font-size: 10px;
             font-weight: 700;
-
             outline: none;
+        }
+
+        .provider-select:focus {
+            box-shadow: 0 0 0 2px rgba(49, 244, 255, .12);
         }
 
         .layout {
             display: grid;
-            grid-template-columns: 190px minmax(0,1fr);
+            grid-template-columns: 190px minmax(0, 1fr);
             gap: 14px;
             margin-top: 14px;
         }
 
         .sidebar {
             align-self: start;
-
-            border: 1px solid var(--line);
-            background: rgba(11,26,32,.82);
-
             padding: 8px;
+            border: 1px solid var(--line);
+            background: rgba(11, 26, 32, .82);
         }
 
-        .sidebar-title {
-            padding: 8px 9px 9px;
-
+        .side-title {
+            padding: 8px 9px;
             color: var(--muted);
-
             font-size: 8px;
             font-weight: 700;
             letter-spacing: .1em;
@@ -161,34 +145,23 @@
 
         .nav-button {
             width: 100%;
-
-            min-height: 36px;
-            padding: 9px 10px;
-
+            padding: 10px 11px;
             border: 1px solid transparent;
-            border-radius: 2px;
-
             background: transparent;
             color: var(--muted);
-
             text-align: left;
             font-size: 9px;
-
-            transition:
-                border-color .15s ease,
-                background .15s ease,
-                color .15s ease;
         }
 
         .nav-button:hover {
             border-color: var(--line);
-            background: rgba(49,244,255,.035);
+            background: rgba(49, 244, 255, .04);
             color: var(--text);
         }
 
         .nav-button.active {
-            border-color: rgba(49,244,255,.38);
-            background: rgba(49,244,255,.09);
+            border-color: rgba(49, 244, 255, .4);
+            background: rgba(49, 244, 255, .09);
             color: var(--accent);
         }
 
@@ -206,23 +179,21 @@
 
         .section {
             border: 1px solid var(--line);
-            background: rgba(11,26,32,.82);
+            background: rgba(11, 26, 32, .82);
         }
 
         .section-header {
             padding: 17px 18px;
-
             border-bottom: 1px solid var(--line-soft);
-
-            background: rgba(14,35,42,.26);
+            background: rgba(14, 35, 42, .32);
         }
 
         .section-title {
-            color: var(--accent);
             font-size: 12px;
             font-weight: 700;
             letter-spacing: .08em;
             text-transform: uppercase;
+            color: var(--accent);
         }
 
         .section-description {
@@ -241,23 +212,28 @@
             display: block;
         }
 
+        .field {
+            padding: 13px 0;
+            border-top: 1px solid var(--line-soft);
+        }
+
+        .field:first-child {
+            padding-top: 0;
+            border-top: 0;
+        }
+
         .row {
             display: grid;
-            grid-template-columns:
-                minmax(180px,1fr)
-                minmax(220px,1.25fr);
-
-            gap: 14px;
+            grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.3fr);
+            gap: 16px;
             align-items: center;
-
-            padding: 12px 0;
-
+            padding: 13px 0;
             border-top: 1px solid var(--line-soft);
         }
 
         .row:first-child {
-            padding-top: 0;
             border-top: 0;
+            padding-top: 0;
         }
 
         .label {
@@ -275,9 +251,7 @@
 
         .field-grid {
             display: grid;
-            grid-template-columns:
-                repeat(2,minmax(0,1fr));
-
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 10px;
             margin-top: 10px;
         }
@@ -286,12 +260,10 @@
             min-width: 0;
         }
 
-        .field-box label {
+        .field-box > label {
             display: block;
             margin-bottom: 5px;
-
             color: var(--muted);
-
             font-size: 8px;
             letter-spacing: .04em;
             text-transform: uppercase;
@@ -301,42 +273,25 @@
         select {
             width: 100%;
             min-height: 36px;
-
             padding: 9px 10px;
-
             border: 1px solid var(--line);
             border-radius: 2px;
-
             background: var(--panel-3);
             color: var(--text);
-
             font-size: 9px;
-
             outline: none;
-
-            transition:
-                border-color .15s ease,
-                box-shadow .15s ease,
-                background .15s ease;
-        }
-
-        input:hover,
-        select:hover {
-            background: #091b20;
         }
 
         input:focus,
         select:focus {
             border-color: var(--accent);
-            box-shadow:
-                0 0 0 1px rgba(49,244,255,.18);
+            box-shadow: 0 0 0 1px rgba(49, 244, 255, .18);
         }
 
         input[type="checkbox"] {
             width: 18px;
-            height: 18px;
             min-height: 18px;
-            padding: 0;
+            height: 18px;
             accent-color: var(--accent);
         }
 
@@ -350,20 +305,16 @@
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin-top: 14px;
+            margin-top: 15px;
         }
 
         .button {
-            min-height: 34px;
-
-            padding: 9px 12px;
-
+            min-height: 35px;
+            padding: 9px 13px;
             border: 1px solid var(--line);
             border-radius: 2px;
-
             background: var(--panel-2);
             color: var(--text);
-
             font-size: 8px;
             font-weight: 700;
             letter-spacing: .03em;
@@ -371,13 +322,13 @@
 
         .button:hover {
             border-color: var(--accent);
-            background: #102830;
+            background: #10272d;
         }
 
         .button.primary {
             border-color: var(--accent);
-            background: rgba(49,244,255,.06);
             color: var(--accent);
+            background: rgba(49, 244, 255, .06);
         }
 
         .button.danger {
@@ -387,13 +338,10 @@
 
         .runtime {
             display: grid;
-            grid-template-columns: 8px minmax(0,1fr);
-
+            grid-template-columns: 8px minmax(0, 1fr);
             gap: 9px;
-
-            margin-top: 13px;
+            margin-top: 14px;
             padding: 10px;
-
             border: 1px solid var(--line-soft);
             background: #061114;
         }
@@ -401,29 +349,24 @@
         .runtime-dot {
             width: 8px;
             height: 8px;
-
-            margin-top: 3px;
-
+            margin-top: 2px;
             border-radius: 50%;
             background: #61767a;
         }
 
         .runtime-dot.good {
             background: var(--good);
-            box-shadow:
-                0 0 9px rgba(99,255,177,.28);
+            box-shadow: 0 0 8px rgba(99, 255, 177, .3);
         }
 
         .runtime-dot.warn {
-            background: #f0c75f;
-            box-shadow:
-                0 0 9px rgba(240,199,95,.25);
+            background: var(--warn);
+            box-shadow: 0 0 8px rgba(255, 209, 102, .25);
         }
 
         .runtime-dot.bad {
             background: var(--danger);
-            box-shadow:
-                0 0 9px rgba(255,112,140,.25);
+            box-shadow: 0 0 8px rgba(255, 112, 140, .25);
         }
 
         .runtime-title {
@@ -433,30 +376,18 @@
 
         .runtime-detail {
             margin-top: 3px;
-
             color: var(--muted);
-
             font-size: 8px;
             line-height: 1.5;
-
-            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .note {
             margin-top: 12px;
             padding: 10px 11px;
-
-            border:
-                1px solid var(--line-soft);
-
-            border-left:
-                2px solid var(--accent);
-
-            background:
-                rgba(49,244,255,.025);
-
+            border-left: 2px solid var(--accent);
+            background: rgba(49, 244, 255, .025);
             color: var(--muted);
-
             font-size: 8px;
             line-height: 1.55;
         }
@@ -464,11 +395,8 @@
         .progress {
             width: 100%;
             height: 6px;
-
             margin-top: 9px;
-
             overflow: hidden;
-
             border: 1px solid var(--line-soft);
             background: #030a0c;
         }
@@ -482,19 +410,13 @@
 
         .save-bar {
             display: flex;
-            align-items: center;
             justify-content: space-between;
-
+            align-items: center;
             gap: 12px;
-
             margin-top: 14px;
             padding: 11px 13px;
-
-            border:
-                1px solid var(--line);
-
-            background:
-                rgba(11,26,32,.92);
+            border: 1px solid var(--line);
+            background: rgba(11, 26, 32, .9);
         }
 
         .save-status {
@@ -510,27 +432,28 @@
             color: var(--danger);
         }
 
+        .hidden {
+            display: none !important;
+        }
+
+        code {
+            color: var(--accent);
+        }
+
         @media (max-width: 760px) {
-            .header {
-                align-items: stretch;
-                flex-direction: column;
-            }
-
-            .provider-wrap {
-                width: 100%;
-                flex-basis: auto;
-            }
-
             .layout {
                 grid-template-columns: 1fr;
             }
 
-            .nav {
-                grid-template-columns:
-                    repeat(3,minmax(0,1fr));
+            .sidebar {
+                padding: 6px;
             }
 
-            .sidebar-title {
+            .nav {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .side-title {
                 display: none;
             }
 
@@ -541,12 +464,16 @@
 
         @media (max-width: 620px) {
             .shell {
-                width: min(
-                    100%,
-                    calc(100% - 18px)
-                );
+                padding: 10px;
+            }
 
-                margin: 12px auto;
+            .header {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .provider-select-wrap {
+                min-width: 0;
             }
 
             .row {
@@ -571,32 +498,25 @@
             <div>
                 <div class="title">Little Hollow / Settings</div>
                 <div class="subtitle">
-                    AI provider, agent and live-mode configuration
+                    Configure the active AI provider and global AI behavior.
                 </div>
             </div>
 
-            <div class="provider-wrap">
-                <div class="provider-label">
-                    Active Provider
-                </div>
+            <div class="provider-select-wrap">
+                <div class="provider-label">Active Provider</div>
 
-                <select
-                    id="providerSelect"
-                    class="provider-select"
-                >
+                <select id="providerSelect" class="provider-select">
                     <option value="puter">Puter.js</option>
-                    <option value="onnx">ONNX (local)</option>
-                    <option value="gguf">GGUF (local)</option>
-                    <option value="gemini">Google Gemini</option>
+                    <option value="onnx">ONNX</option>
+                    <option value="gguf">GGUF</option>
+                    <option value="gemini">Gemini</option>
                 </select>
             </div>
         </header>
 
         <div class="layout">
             <aside class="sidebar">
-                <div class="sidebar-title">
-                    Settings
-                </div>
+                <div class="side-title">Settings</div>
 
                 <nav class="nav">
                     <button
@@ -637,7 +557,7 @@
                             </div>
 
                             <div class="section-description">
-                                Choose a provider above. Only that provider's settings are shown.
+                                Settings below belong only to the selected provider.
                             </div>
                         </div>
 
@@ -647,12 +567,9 @@
                         >
                             <div class="row">
                                 <div>
-                                    <div class="label">
-                                        Model
-                                    </div>
-
+                                    <div class="label">Model</div>
                                     <div class="desc">
-                                        Model identifier used by Puter.js.
+                                        Model identifier passed to Puter.js.
                                     </div>
                                 </div>
 
@@ -702,10 +619,7 @@
                             class="panel"
                         >
                             <div class="field">
-                                <div class="label">
-                                    Model
-                                </div>
-
+                                <div class="label">Model</div>
                                 <div class="desc">
                                     Hugging Face ONNX model repository.
                                 </div>
@@ -740,13 +654,33 @@
                                     </label>
 
                                     <select id="onnxDtype">
-                                        <option value="q4">Q4</option>
-                                        <option value="q4f16">Q4F16</option>
-                                        <option value="q8">Q8</option>
-                                        <option value="int8">INT8</option>
-                                        <option value="uint8">UINT8</option>
-                                        <option value="fp16">FP16</option>
-                                        <option value="fp32">FP32</option>
+                                        <option value="q4">
+                                            Q4
+                                        </option>
+
+                                        <option value="q4f16">
+                                            Q4F16
+                                        </option>
+
+                                        <option value="q8">
+                                            Q8
+                                        </option>
+
+                                        <option value="int8">
+                                            INT8
+                                        </option>
+
+                                        <option value="uint8">
+                                            UINT8
+                                        </option>
+
+                                        <option value="fp16">
+                                            FP16
+                                        </option>
+
+                                        <option value="fp32">
+                                            FP32
+                                        </option>
                                     </select>
                                 </div>
                             </div>
@@ -848,10 +782,7 @@
                             class="panel"
                         >
                             <div class="field">
-                                <div class="label">
-                                    Model
-                                </div>
-
+                                <div class="label">Model</div>
                                 <div class="desc">
                                     GGUF model path, URL, or runtime identifier.
                                 </div>
@@ -962,12 +893,9 @@
                         >
                             <div class="row">
                                 <div>
-                                    <div class="label">
-                                        API Key
-                                    </div>
-
+                                    <div class="label">API Key</div>
                                     <div class="desc">
-                                        Stored locally in Little Hollow AI settings.
+                                        Stored in Little Hollow's local AI settings.
                                     </div>
                                 </div>
 
@@ -982,10 +910,7 @@
 
                             <div class="row">
                                 <div>
-                                    <div class="label">
-                                        Model
-                                    </div>
-
+                                    <div class="label">Model</div>
                                     <div class="desc">
                                         Gemini model identifier.
                                     </div>
@@ -1000,12 +925,9 @@
 
                             <div class="row">
                                 <div>
-                                    <div class="label">
-                                        Python Tool
-                                    </div>
-
+                                    <div class="label">Python Tool</div>
                                     <div class="desc">
-                                        Enables Gemini's managed Python execution tool.
+                                        Enable Gemini managed Python execution.
                                     </div>
                                 </div>
 
@@ -1102,7 +1024,7 @@
                             </div>
 
                             <div class="section-description">
-                                Global tool-execution settings shared by the AI providers.
+                                Global tool-loop behavior shared by the AI providers.
                             </div>
                         </div>
 
@@ -1114,7 +1036,7 @@
                                     </div>
 
                                     <div class="desc">
-                                        Maximum model → tool → model rounds for one AI turn.
+                                        Maximum model → tool → model rounds allowed during one AI turn.
                                     </div>
                                 </div>
 
@@ -1128,7 +1050,7 @@
                             </div>
 
                             <div class="note">
-                                This controls the global agent loop. It is not a Gemini-only option.
+                                This is global. Providers such as Gemini, ONNX, GGUF and Puter can all use Little Hollow's tool execution loop.
                             </div>
                         </div>
                     </section>
@@ -1157,7 +1079,7 @@
                                     </div>
 
                                     <div class="desc">
-                                        Enables the debounced live AI scheduler.
+                                        Enables Little Hollow's debounced live AI scheduler.
                                     </div>
                                 </div>
 
@@ -1196,10 +1118,6 @@
                                     >
                                 </div>
                             </div>
-
-                            <div class="note">
-                                Live mode is global. The selected provider remains the backend used for each live turn.
-                            </div>
                         </div>
                     </section>
                 </div>
@@ -1214,19 +1132,19 @@
 
                     <div class="actions">
                         <button
-                            id="refreshBtn"
-                            class="button"
-                            type="button"
-                        >
-                            RELOAD
-                        </button>
-
-                        <button
                             id="saveBtn"
                             class="button primary"
                             type="button"
                         >
                             SAVE SETTINGS
+                        </button>
+
+                        <button
+                            id="refreshBtn"
+                            class="button"
+                            type="button"
+                        >
+                            RELOAD
                         </button>
                     </div>
                 </div>
@@ -1243,8 +1161,6 @@
 
             const DEFAULTS = {
                 provider: "puter",
-
-                mode: "interactive",
 
                 puter: {
                     model: "claude-sonnet-5"
@@ -1342,28 +1258,28 @@
                     return result;
                 }
 
-                for (
-                    const key of Object.keys(extra)
-                ) {
-                    const value =
-                        extra[key];
+                Object.keys(extra).forEach(
+                    key => {
+                        const value =
+                            extra[key];
 
-                    if (
-                        value &&
-                        typeof value === "object" &&
-                        !Array.isArray(value)
-                    ) {
-                        result[key] =
-                            Object.assign(
-                                {},
-                                result[key] || {},
-                                value
-                            );
-                    } else {
-                        result[key] =
-                            value;
+                        if (
+                            value &&
+                            typeof value === "object" &&
+                            !Array.isArray(value)
+                        ) {
+                            result[key] =
+                                Object.assign(
+                                    {},
+                                    result[key] || {},
+                                    value
+                                );
+                        } else {
+                            result[key] =
+                                value;
+                        }
                     }
-                }
+                );
 
                 return result;
             }
@@ -1448,15 +1364,13 @@
                 return window.AI || null;
             }
 
-            function providerName() {
+            function currentProvider() {
                 return $(
                     "providerSelect"
                 ).value || "puter";
             }
 
-            function setActiveProvider(
-                provider
-            ) {
+            function setActiveProvider(provider) {
                 const name =
                     provider || "puter";
 
@@ -1465,18 +1379,38 @@
 
                 document
                     .querySelectorAll(
-                        ".config"
+                        ".panel"
                     )
                     .forEach(panel => {
-                        panel.classList.toggle(
-                            "active",
-                            panel.id ===
-                                "config-" + name
-                        );
+                        if (
+                            panel.id.startsWith(
+                                "config-"
+                            )
+                        ) {
+                            panel.classList.toggle(
+                                "active",
+                                panel.id ===
+                                    "config-" + name
+                            );
+                        }
                     });
+
+                const titles = {
+                    puter:
+                        "PUTER.JS",
+
+                    onnx:
+                        "ONNX",
+
+                    gguf:
+                        "GGUF",
+
+                    gemini:
+                        "GEMINI"
+                };
             }
 
-            function setStatus(
+            function setSaveStatus(
                 text,
                 type = ""
             ) {
@@ -1485,11 +1419,9 @@
 
                 $("saveStatus").className =
                     "save-status" +
-                    (
-                        type
-                            ? " " + type
-                            : ""
-                    );
+                    (type
+                        ? " " + type
+                        : "");
             }
 
             function setRuntime(
@@ -1501,37 +1433,28 @@
                 const dot =
                     $(prefix + "Dot");
 
-                const titleElement =
+                const status =
                     $(prefix + "Status");
 
-                const detailElement =
+                const description =
                     $(prefix + "Detail");
 
                 if (dot) {
                     dot.className =
                         "runtime-dot";
 
-                    if (
-                        state ===
-                        "good"
-                    ) {
+                    if (state === "good") {
                         dot.classList.add(
                             "good"
                         );
-                    }
-
-                    if (
-                        state ===
-                        "warn"
+                    } else if (
+                        state === "warn"
                     ) {
                         dot.classList.add(
                             "warn"
                         );
-                    }
-
-                    if (
-                        state ===
-                        "bad"
+                    } else if (
+                        state === "bad"
                     ) {
                         dot.classList.add(
                             "bad"
@@ -1539,17 +1462,17 @@
                     }
                 }
 
-                if (titleElement) {
-                    titleElement.textContent =
-                        title || "";
+                if (status) {
+                    status.textContent =
+                        title;
                 }
 
-                if (detailElement) {
-                    detailElement.textContent =
-                        detail || "";
+                if (description) {
+                    description.textContent =
+                        detail;
                 }
 
-                const stateMap = {
+                const map = {
                     puter:
                         "providerStatePuter",
 
@@ -1563,21 +1486,21 @@
                         "providerStateGemini"
                 };
 
-                const stateElement =
-                    $(stateMap[prefix]);
+                const cardState =
+                    $(map[prefix]);
 
-                if (stateElement) {
-                    stateElement.textContent =
-                        title || "";
+                if (cardState) {
+                    cardState.textContent =
+                        title;
                 }
             }
 
-            function collect() {
+            function collectSettings() {
                 const settings =
                     readSettings();
 
                 settings.provider =
-                    providerName();
+                    currentProvider();
 
                 settings.puter =
                     Object.assign(
@@ -1904,7 +1827,7 @@
                     !navigator.gpu
                 ) {
                     $("onnxCapability").textContent =
-                        "WebGPU is not exposed by this browser.";
+                        "WebGPU is not available in this browser.";
                     return;
                 }
 
@@ -1917,9 +1840,7 @@
                     return;
                 }
 
-                if (
-                    device === "webgpu"
-                ) {
+                if (device === "webgpu") {
                     $("onnxCapability").textContent =
                         "WebGPU selected.";
                     return;
@@ -1937,8 +1858,7 @@
                     .forEach(button => {
                         button.classList.toggle(
                             "active",
-                            button.dataset.page ===
-                                page
+                            button.dataset.page === page
                         );
                     });
 
@@ -1956,21 +1876,19 @@
             }
 
             async function testPuter() {
+                const settings =
+                    collectSettings();
+
+                saveSettings(settings);
+
+                setRuntime(
+                    "puter",
+                    "warn",
+                    "TESTING",
+                    "Checking Puter.js..."
+                );
+
                 try {
-                    const settings =
-                        collect();
-
-                    saveSettings(
-                        settings
-                    );
-
-                    setRuntime(
-                        "puter",
-                        "warn",
-                        "TESTING",
-                        "Loading Puter provider..."
-                    );
-
                     const ai =
                         getAI();
 
@@ -1991,7 +1909,7 @@
 
                     if (!provider) {
                         throw new Error(
-                            "Puter provider unavailable."
+                            "Puter provider is unavailable."
                         );
                     }
 
@@ -2013,35 +1931,33 @@
             }
 
             async function loadOnnx() {
+                const settings =
+                    collectSettings();
+
+                saveSettings(settings);
+
+                $("onnxProgressWrap")
+                    .classList.remove(
+                        "hidden"
+                    );
+
+                $("onnxProgressText")
+                    .classList.remove(
+                        "hidden"
+                    );
+
+                $("onnxProgress")
+                    .style.width =
+                    "0%";
+
+                setRuntime(
+                    "onnx",
+                    "warn",
+                    "LOADING",
+                    "Initializing ONNX model..."
+                );
+
                 try {
-                    const settings =
-                        collect();
-
-                    saveSettings(
-                        settings
-                    );
-
-                    $("onnxProgressWrap")
-                        .classList.remove(
-                            "hidden"
-                        );
-
-                    $("onnxProgressText")
-                        .classList.remove(
-                            "hidden"
-                        );
-
-                    $("onnxProgress")
-                        .style.width =
-                        "0%";
-
-                    setRuntime(
-                        "onnx",
-                        "warn",
-                        "LOADING",
-                        "Initializing ONNX model..."
-                    );
-
                     const ai =
                         getAI();
 
@@ -2066,7 +1982,7 @@
                             "function"
                     ) {
                         throw new Error(
-                            "ONNX provider unavailable."
+                            "ONNX provider is unavailable."
                         );
                     }
 
@@ -2161,21 +2077,19 @@
             }
 
             async function checkGguf() {
+                const settings =
+                    collectSettings();
+
+                saveSettings(settings);
+
+                setRuntime(
+                    "gguf",
+                    "warn",
+                    "CHECKING",
+                    "Checking GGUF provider..."
+                );
+
                 try {
-                    const settings =
-                        collect();
-
-                    saveSettings(
-                        settings
-                    );
-
-                    setRuntime(
-                        "gguf",
-                        "warn",
-                        "CHECKING",
-                        "Loading GGUF provider..."
-                    );
-
                     const ai =
                         getAI();
 
@@ -2196,7 +2110,7 @@
 
                     if (!provider) {
                         throw new Error(
-                            "GGUF provider unavailable."
+                            "GGUF provider is unavailable."
                         );
                     }
 
@@ -2218,43 +2132,45 @@
             }
 
             async function testGemini() {
-                try {
-                    const settings =
-                        collect();
+                const settings =
+                    collectSettings();
 
-                    const key =
-                        settings.gemini.apiKey;
+                const key =
+                    settings.gemini.apiKey;
 
-                    const model =
-                        settings.gemini.model;
+                const model =
+                    settings.gemini.model;
 
-                    if (!key) {
-                        throw new Error(
-                            "Gemini API key is not configured."
-                        );
-                    }
-
-                    saveSettings(
-                        settings
-                    );
-
+                if (!key) {
                     setRuntime(
                         "gemini",
-                        "warn",
-                        "TESTING",
-                        "Sending Gemini request..."
+                        "bad",
+                        "NO API KEY",
+                        "Enter a Gemini API key first."
                     );
+
+                    return;
+                }
+
+                saveSettings(settings);
+
+                setRuntime(
+                    "gemini",
+                    "warn",
+                    "TESTING",
+                    "Sending Gemini request..."
+                );
+
+                try {
+                    const url =
+                        "https://generativelanguage.googleapis.com/v1beta/models/" +
+                        encodeURIComponent(model) +
+                        ":generateContent?key=" +
+                        encodeURIComponent(key);
 
                     const response =
                         await fetch(
-                            "https://generativelanguage.googleapis.com/v1beta/models/" +
-                            encodeURIComponent(
-                                model
-                            ) +
-                            ":generateContent?key=" +
-                            encodeURIComponent(
-                                key
-                            ),
+                            url,
                             {
                                 method:
                                     "POST",
@@ -2289,10 +2205,8 @@
                     if (!response.ok) {
                         throw new Error(
                             data?.error?.message ||
-                            (
-                                "HTTP " +
-                                response.status
-                            )
+                            "HTTP " +
+                            response.status
                         );
                     }
 
@@ -2335,7 +2249,7 @@
                     "Gemini settings reset."
                 );
 
-                setStatus(
+                setSaveStatus(
                     "Gemini settings reset.",
                     "good"
                 );
@@ -2346,10 +2260,11 @@
                     "change",
                     () => {
                         const settings =
-                            collect();
+                            collectSettings();
 
                         settings.provider =
-                            providerName();
+                            $("providerSelect")
+                                .value;
 
                         saveSettings(
                             settings
@@ -2359,9 +2274,10 @@
                             settings.provider
                         );
 
-                        setStatus(
-                            "Active provider: " +
-                            settings.provider.toUpperCase(),
+                        setSaveStatus(
+                            "Active provider changed to " +
+                            settings.provider.toUpperCase() +
+                            ".",
                             "good"
                         );
                     }
@@ -2387,13 +2303,17 @@
                     "click",
                     () => {
                         const settings =
-                            collect();
+                            collectSettings();
 
                         saveSettings(
                             settings
                         );
 
-                        setStatus(
+                        setActiveProvider(
+                            settings.provider
+                        );
+
+                        setSaveStatus(
                             "Settings saved.",
                             "good"
                         );
@@ -2406,7 +2326,7 @@
                     () => {
                         render();
 
-                        setStatus(
+                        setSaveStatus(
                             "Settings reloaded.",
                             "good"
                         );
@@ -2474,14 +2394,12 @@
                         "warn";
 
                     if (
-                        state ===
-                        "ready"
+                        state === "ready"
                     ) {
                         runtimeState =
                             "good";
                     } else if (
-                        state ===
-                        "error"
+                        state === "error"
                     ) {
                         runtimeState =
                             "bad";
@@ -2489,8 +2407,7 @@
 
                     const progress =
                         Number(
-                            detail.progress ||
-                            0
+                            detail.progress || 0
                         );
 
                     $("onnxProgress")
@@ -2503,14 +2420,6 @@
                             )
                         ) +
                         "%";
-
-                    $("onnxProgressText")
-                        .textContent =
-                        detail.message ||
-                        String(
-                            state ||
-                            "unknown"
-                        );
 
                     setRuntime(
                         "onnx",
