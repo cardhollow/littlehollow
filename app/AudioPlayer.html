@@ -77,6 +77,9 @@ let playing=false;
 let rafId=0;
 let loadToken=0;
 
+let loading=false;
+let loadingStart=0;
+
 const params=new URLSearchParams(location.search);
 const initialPath=params.get("src");
 
@@ -91,16 +94,31 @@ function getParentObject(name){
 }
 
 function getFS(){return getParentObject("FS")}
-function errText(error){return error&&(error.message||error.name)?(error.message||error.name):String(error||"Unknown error")}
-function setStatus(text){statusEl.textContent=String(text||"")}
+
+function errText(error){
+	return error&&(error.message||error.name)
+		?(error.message||error.name)
+		:String(error||"Unknown error")
+}
+
+function setStatus(text){
+	statusEl.textContent=String(text||"")
+}
 
 function formatTime(seconds){
 	seconds=Math.max(0,Number(seconds)||0);
 	const h=Math.floor(seconds/3600);
 	const m=Math.floor((seconds%3600)/60);
 	const s=Math.floor(seconds%60);
-	if(h>0)return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
-	return String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")
+
+	if(h>0){
+		return String(h).padStart(2,"0")+":"+
+			String(m).padStart(2,"0")+":"+
+			String(s).padStart(2,"0");
+	}
+
+	return String(m).padStart(2,"0")+":"+
+		String(s).padStart(2,"0");
 }
 
 function extension(path){
@@ -112,12 +130,16 @@ function extension(path){
 function mimeFromExtension(path){
 	switch(extension(path)){
 		case "mp3":return "audio/mpeg";
-		case "wav":case "wave":return "audio/wav";
-		case "ogg":case "oga":return "audio/ogg";
+		case "wav":
+		case "wave":return "audio/wav";
+		case "ogg":
+		case "oga":return "audio/ogg";
 		case "opus":return "audio/opus";
-		case "webm":case "weba":return "audio/webm";
+		case "webm":
+		case "weba":return "audio/webm";
 		case "flac":return "audio/flac";
-		case "m4a":case "mp4":return "audio/mp4";
+		case "m4a":
+		case "mp4":return "audio/mp4";
 		case "aac":return "audio/aac";
 		case "3gp":return "audio/3gpp";
 		case "amr":return "audio/amr";
@@ -127,374 +149,1201 @@ function mimeFromExtension(path){
 
 function isVirtualPath(value){
 	const s=String(value||"");
-	return /^chxd:\//i.test(s)||/^local:\//i.test(s)||/^session:\//i.test(s)||/^indexdb:\//i.test(s)||/^puter:\//i.test(s)
+	return /^chxd:\//i.test(s)||
+		/^local:\//i.test(s)||
+		/^session:\//i.test(s)||
+		/^indexdb:\//i.test(s)||
+		/^puter:\//i.test(s)
 }
 
 function bytesFrom(value){
 	if(value instanceof ArrayBuffer)return new Uint8Array(value);
-	if(value&&typeof value==="object"&&value.buffer instanceof ArrayBuffer)return new Uint8Array(value.buffer,value.byteOffset||0,value.byteLength);
+
+	if(value&&typeof value==="object"&&value.buffer instanceof ArrayBuffer){
+		return new Uint8Array(
+			value.buffer,
+			value.byteOffset||0,
+			value.byteLength
+		)
+	}
+
 	return null
 }
 
 function bytesToString(bytes,start,length){
 	let result="";
 	const end=Math.min(bytes.length,start+length);
-	for(let i=start;i<end;i++)result+=String.fromCharCode(bytes[i]);
+
+	for(let i=start;i<end;i++){
+		result+=String.fromCharCode(bytes[i]);
+	}
+
 	return result
 }
 
 function detectMime(bytes,path){
 	if(!bytes||bytes.length<2)return mimeFromExtension(path);
-	if(bytes.length>=4&&bytes[0]===0x4F&&bytes[1]===0x67&&bytes[2]===0x67&&bytes[3]===0x53)return "audio/ogg";
-	if(bytes.length>=4&&bytes[0]===0x66&&bytes[1]===0x4C&&bytes[2]===0x61&&bytes[3]===0x43)return "audio/flac";
-	if(bytes.length>=12&&bytes[0]===0x52&&bytes[1]===0x49&&bytes[2]===0x46&&bytes[3]===0x46&&bytes[8]===0x57&&bytes[9]===0x41&&bytes[10]===0x56&&bytes[11]===0x45)return "audio/wav";
-	if(bytes.length>=3&&bytes[0]===0x49&&bytes[1]===0x44&&bytes[2]===0x33)return "audio/mpeg";
-	if(bytes.length>=2&&bytes[0]===0xFF&&(bytes[1]&0xE0)===0xE0)return "audio/mpeg";
-	if(bytes.length>=12&&bytesToString(bytes,4,4)==="ftyp")return "audio/mp4";
-	if(bytes.length>=4&&bytes[0]===0x1A&&bytes[1]===0x45&&bytes[2]===0xDF&&bytes[3]===0xA3)return "audio/webm";
+
+	if(
+		bytes.length>=4&&
+		bytes[0]===0x4F&&
+		bytes[1]===0x67&&
+		bytes[2]===0x67&&
+		bytes[3]===0x53
+	)return "audio/ogg";
+
+	if(
+		bytes.length>=4&&
+		bytes[0]===0x66&&
+		bytes[1]===0x4C&&
+		bytes[2]===0x61&&
+		bytes[3]===0x43
+	)return "audio/flac";
+
+	if(
+		bytes.length>=12&&
+		bytes[0]===0x52&&
+		bytes[1]===0x49&&
+		bytes[2]===0x46&&
+		bytes[3]===0x46&&
+		bytes[8]===0x57&&
+		bytes[9]===0x41&&
+		bytes[10]===0x56&&
+		bytes[11]===0x45
+	)return "audio/wav";
+
+	if(
+		bytes.length>=3&&
+		bytes[0]===0x49&&
+		bytes[1]===0x44&&
+		bytes[2]===0x33
+	)return "audio/mpeg";
+
+	if(
+		bytes.length>=2&&
+		bytes[0]===0xFF&&
+		(bytes[1]&0xE0)===0xE0
+	)return "audio/mpeg";
+
+	if(bytes.length>=12&&bytesToString(bytes,4,4)==="ftyp"){
+		return "audio/mp4";
+	}
+
+	if(
+		bytes.length>=4&&
+		bytes[0]===0x1A&&
+		bytes[1]===0x45&&
+		bytes[2]===0xDF&&
+		bytes[3]===0xA3
+	)return "audio/webm";
+
 	return mimeFromExtension(path)
 }
 
 function isProbablyBase64(value){
 	if(typeof value!=="string")return false;
+
 	const s=value.trim().replace(/\s/g,"");
-	return s.length>=32&&/^[A-Za-z0-9+/]+={0,2}$/.test(s)
+
+	return s.length>=32 &&
+		/^[A-Za-z0-9+/]+={0,2}$/.test(s)
 }
 
 function base64ToArrayBuffer(value){
 	const clean=String(value||"").trim().replace(/\s/g,"");
 	const binary=atob(clean);
 	const bytes=new Uint8Array(binary.length);
-	for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+
+	for(let i=0;i<binary.length;i++){
+		bytes[i]=binary.charCodeAt(i);
+	}
+
 	return bytes.buffer
 }
 
 function binaryStringToArrayBuffer(value){
 	const s=String(value);
 	const bytes=new Uint8Array(s.length);
-	for(let i=0;i<s.length;i++)bytes[i]=s.charCodeAt(i)&255;
+
+	for(let i=0;i<s.length;i++){
+		bytes[i]=s.charCodeAt(i)&255;
+	}
+
 	return bytes.buffer
 }
 
 function looksLikeBinaryString(value){
 	if(typeof value!=="string"||!value.length)return false;
+
 	const n=Math.min(value.length,4096);
 	let count=0;
+
 	for(let i=0;i<n;i++){
 		const c=value.charCodeAt(i);
-		if(c===0||c===1||c===2||c===3||c===4||c===5||c===6||c===7||c===8||c===14||c===15||(c>=16&&c<=31)||c===127)count++
+
+		if(
+			c===0||
+			c===1||
+			c===2||
+			c===3||
+			c===4||
+			c===5||
+			c===6||
+			c===7||
+			c===8||
+			c===14||
+			c===15||
+			(c>=16&&c<=31)||
+			c===127
+		){
+			count++
+		}
 	}
+
 	return count>0
 }
 
 async function stringToData(value,path){
 	const s=String(value||"").trim();
+
 	if(/^data:/i.test(s)){
 		const response=await fetch(s);
-		return {buffer:await response.arrayBuffer(),mime:s.match(/^data:([^;,]+)/i)?.[1]||mimeFromExtension(path)}
+
+		return {
+			buffer:await response.arrayBuffer(),
+			mime:s.match(/^data:([^;,]+)/i)?.[1]||mimeFromExtension(path)
+		}
 	}
+
 	if(isProbablyBase64(s)){
 		const buffer=base64ToArrayBuffer(s);
-		return {buffer,mime:detectMime(new Uint8Array(buffer),path)}
+
+		return {
+			buffer,
+			mime:detectMime(new Uint8Array(buffer),path)
+		}
 	}
+
 	if(looksLikeBinaryString(s)){
 		const buffer=binaryStringToArrayBuffer(s);
-		return {buffer,mime:detectMime(new Uint8Array(buffer),path)}
+
+		return {
+			buffer,
+			mime:detectMime(new Uint8Array(buffer),path)
+		}
 	}
+
 	throw new Error("Unsupported string audio source.")
 }
 
 async function resolveValue(value,path,depth){
 	depth=Number(depth)||0;
-	if(depth>12)throw new Error("Audio source resolution exceeded the limit.");
-	if(value==null)throw new Error("Filesystem returned no audio data.");
-	if(typeof File!=="undefined"&&value instanceof File)return {buffer:await value.arrayBuffer(),mime:value.type||mimeFromExtension(path)};
-	if(value instanceof Blob)return {buffer:await value.arrayBuffer(),mime:value.type||mimeFromExtension(path)};
-	if(value instanceof ArrayBuffer){const bytes=new Uint8Array(value);return {buffer:value,mime:detectMime(bytes,path)}}
-	const bytes=bytesFrom(value);
-	if(bytes)return {buffer:bytes.buffer,mime:detectMime(bytes,path)};
-	if(value&&typeof value.getFile==="function")return resolveValue(await value.getFile(),path,depth+1);
-	if(typeof value==="string")return stringToData(value,path);
-	if(value&&typeof value==="object"){
-		const keys=["file","blob","content","data","bytes","arrayBuffer","buffer","handle","fileHandle","source","url","src","href"];
-		for(const key of keys){
-			if(!(key in value))continue;
-			let child;
-			try{child=value[key];if(typeof child==="function")child=await child.call(value)}catch(_){continue}
-			if(child==null)continue;
-			try{return await resolveValue(child,path,depth+1)}catch(_){}
+
+	if(depth>12){
+		throw new Error("Audio source resolution exceeded the limit.");
+	}
+
+	if(value==null){
+		throw new Error("Filesystem returned no audio data.");
+	}
+
+	if(typeof File!=="undefined"&&value instanceof File){
+		return {
+			buffer:await value.arrayBuffer(),
+			mime:value.type||mimeFromExtension(path)
 		}
 	}
-	throw new Error("Unsupported audio source type: "+Object.prototype.toString.call(value))
+
+	if(value instanceof Blob){
+		return {
+			buffer:await value.arrayBuffer(),
+			mime:value.type||mimeFromExtension(path)
+		}
+	}
+
+	if(value instanceof ArrayBuffer){
+		const bytes=new Uint8Array(value);
+
+		return {
+			buffer:value,
+			mime:detectMime(bytes,path)
+		}
+	}
+
+	const bytes=bytesFrom(value);
+
+	if(bytes){
+		return {
+			buffer:bytes.buffer,
+			mime:detectMime(bytes,path)
+		}
+	}
+
+	if(value&&typeof value.getFile==="function"){
+		return resolveValue(
+			await value.getFile(),
+			path,
+			depth+1
+		)
+	}
+
+	if(typeof value==="string"){
+		return stringToData(value,path);
+	}
+
+	if(value&&typeof value==="object"){
+		const keys=[
+			"file",
+			"blob",
+			"content",
+			"data",
+			"bytes",
+			"arrayBuffer",
+			"buffer",
+			"handle",
+			"fileHandle",
+			"source",
+			"url",
+			"src",
+			"href"
+		];
+
+		for(const key of keys){
+			if(!(key in value))continue;
+
+			let child;
+
+			try{
+				child=value[key];
+
+				if(typeof child==="function"){
+					child=await child.call(value)
+				}
+			}catch(_){
+				continue
+			}
+
+			if(child==null)continue;
+
+			try{
+				return await resolveValue(
+					child,
+					path,
+					depth+1
+				)
+			}catch(_){}
+		}
+	}
+
+	throw new Error(
+		"Unsupported audio source type: "+
+		Object.prototype.toString.call(value)
+	)
 }
 
 async function getDeviceHandle(path,fs){
 	if(!fs||typeof fs.getDeviceMounts!=="function")return null;
+
 	const prefix="chxd:/device/";
-	if(!String(path).toLowerCase().startsWith(prefix.toLowerCase()))return null;
-	const parts=String(path).slice(prefix.length).split("/").filter(Boolean);
+
+	if(!String(path).toLowerCase().startsWith(prefix.toLowerCase())){
+		return null
+	}
+
+	const parts=String(path)
+		.slice(prefix.length)
+		.split("/")
+		.filter(Boolean);
+
 	if(parts.length<2)return null;
+
 	const mountName=parts.shift();
 	const mounts=await fs.getDeviceMounts();
+
 	if(!Array.isArray(mounts))return null;
-	const mount=mounts.find(m=>m&&String(m.name)===String(mountName));
+
+	const mount=mounts.find(
+		m=>m&&String(m.name)===String(mountName)
+	);
+
 	if(!mount)return null;
-	let handle=mount.handle||mount.directoryHandle||mount.rootHandle;
+
+	let handle=
+		mount.handle||
+		mount.directoryHandle||
+		mount.rootHandle;
+
 	if(!handle)return null;
+
 	if(typeof handle.queryPermission==="function"){
 		let permission=await handle.queryPermission({mode:"read"});
-		if(permission!=="granted"&&typeof handle.requestPermission==="function")permission=await handle.requestPermission({mode:"read"});
-		if(permission!=="granted")throw new Error("File System Access permission denied for '"+mountName+"'.")
+
+		if(
+			permission!=="granted"&&
+			typeof handle.requestPermission==="function"
+		){
+			permission=await handle.requestPermission({mode:"read"})
+		}
+
+		if(permission!=="granted"){
+			throw new Error(
+				"File System Access permission denied for '"+mountName+"'."
+			)
+		}
 	}
+
 	for(let i=0;i<parts.length;i++){
 		const part=parts[i];
+
 		if(i===parts.length-1){
-			try{return await handle.getFileHandle(part)}catch(_){return null}
+			try{
+				return await handle.getFileHandle(part)
+			}catch(_){
+				return null
+			}
 		}
+
 		handle=await handle.getDirectoryHandle(part)
 	}
+
 	return null
 }
 
 async function readVirtualFile(path,depth){
 	depth=Number(depth)||0;
-	if(depth>12)throw new Error("Filesystem path resolution exceeded the limit.");
+
+	if(depth>12){
+		throw new Error("Filesystem path resolution exceeded the limit.");
+	}
+
 	const fs=getFS();
-	if(!fs)throw new Error("Little Hollow filesystem bridge is unavailable.");
+
+	if(!fs){
+		throw new Error(
+			"Little Hollow filesystem bridge is unavailable."
+		)
+	}
+
 	let normalized=String(path);
-	try{if(typeof fs.normalize==="function")normalized=fs.normalize(normalized)}catch(_){}
+
+	try{
+		if(typeof fs.normalize==="function"){
+			normalized=fs.normalize(normalized)
+		}
+	}catch(_){}
+
 	try{
 		const handle=await getDeviceHandle(normalized,fs);
+
 		if(handle&&typeof handle.getFile==="function"){
 			const file=await handle.getFile();
-			return {buffer:await file.arrayBuffer(),mime:file.type||mimeFromExtension(normalized)}
+
+			return {
+				buffer:await file.arrayBuffer(),
+				mime:file.type||mimeFromExtension(normalized)
+			}
 		}
-	}catch(error){console.warn("[Audio Player] Direct FSA read failed:",error)}
+	}catch(error){
+		console.warn(
+			"[Audio Player] Direct FSA read failed:",
+			error
+		)
+	}
+
 	if(typeof fs.read==="function"){
 		const result=await fs.read(normalized);
-		if(result&&typeof result==="object"&&"ok" in result&&!result.ok)throw new Error(result.error||result.summary||"Could not read audio.");
-		const content=result&&typeof result==="object"&&"content" in result?result.content:result;
-		if(typeof content==="string"&&content!==normalized&&isVirtualPath(content.trim()))return readVirtualFile(content.trim(),depth+1);
-		return resolveValue(content,normalized,depth+1)
+
+		if(
+			result&&
+			typeof result==="object"&&
+			"ok" in result&&
+			!result.ok
+		){
+			throw new Error(
+				result.error||
+				result.summary||
+				"Could not read audio."
+			)
+		}
+
+		const content=
+			result&&
+			typeof result==="object"&&
+			"content" in result
+				?result.content
+				:result;
+
+		if(
+			typeof content==="string"&&
+			content!==normalized&&
+			isVirtualPath(content.trim())
+		){
+			return readVirtualFile(
+				content.trim(),
+				depth+1
+			)
+		}
+
+		return resolveValue(
+			content,
+			normalized,
+			depth+1
+		)
 	}
-	throw new Error("Could not read filesystem audio:\n"+normalized)
+
+	throw new Error(
+		"Could not read filesystem audio:\n"+
+		normalized
+	)
 }
 
 async function getAudioData(src){
 	const s=String(src||"").trim();
-	if(!s)throw new Error("No audio source specified.");
-	if(isVirtualPath(s))return readVirtualFile(s,0);
+
+	if(!s){
+		throw new Error("No audio source specified.")
+	}
+
+	if(isVirtualPath(s)){
+		return readVirtualFile(s,0)
+	}
+
 	if(/^https?:\/\//i.test(s)){
 		const response=await fetch(s);
-		if(!response.ok)throw new Error("HTTP "+response.status+" while loading audio.");
-		return {buffer:await response.arrayBuffer(),mime:response.headers.get("content-type")||mimeFromExtension(s)}
+
+		if(!response.ok){
+			throw new Error(
+				"HTTP "+response.status+
+				" while loading audio."
+			)
+		}
+
+		return {
+			buffer:await response.arrayBuffer(),
+			mime:
+				response.headers.get("content-type")||
+				mimeFromExtension(s)
+		}
 	}
-	if(/^blob:/i.test(s)||/^data:/i.test(s)||/^file:/i.test(s)){
+
+	if(
+		/^blob:/i.test(s)||
+		/^data:/i.test(s)||
+		/^file:/i.test(s)
+	){
 		const response=await fetch(s);
-		return {buffer:await response.arrayBuffer(),mime:response.headers.get("content-type")||mimeFromExtension(s)}
+
+		return {
+			buffer:await response.arrayBuffer(),
+			mime:
+				response.headers.get("content-type")||
+				mimeFromExtension(s)
+		}
 	}
-	throw new Error("Unsupported audio source:\n"+s)
+
+	throw new Error(
+		"Unsupported audio source:\n"+s
+	)
 }
 
 function ensureAudioGraph(){
 	if(audioContext)return;
-	const AC=window.AudioContext||window.webkitAudioContext;
-	if(!AC)throw new Error("Web Audio API is unavailable in this browser.");
+
+	const AC=
+		window.AudioContext||
+		window.webkitAudioContext;
+
+	if(!AC){
+		throw new Error(
+			"Web Audio API is unavailable in this browser."
+		)
+	}
+
 	audioContext=new AC();
+
 	gainNode=audioContext.createGain();
+
 	analyser=audioContext.createAnalyser();
 	analyser.fftSize=2048;
 	analyser.smoothingTimeConstant=.82;
+
 	gainNode.gain.value=Number(volume.value);
+
 	gainNode.connect(analyser);
 	analyser.connect(audioContext.destination)
 }
 
 function getCurrentTime(){
 	if(!decodedBuffer)return 0;
+
 	if(!playing)return pausedAt;
-	return Math.min(decodedBuffer.duration,Math.max(0,audioContext.currentTime-sourceStartedAt+pausedAt))
+
+	return Math.min(
+		decodedBuffer.duration,
+		Math.max(
+			0,
+			audioContext.currentTime-
+			sourceStartedAt+
+			pausedAt
+		)
+	)
 }
 
 function createSource(){
 	if(!decodedBuffer)return null;
+
 	const source=audioContext.createBufferSource();
+
 	source.buffer=decodedBuffer;
 	source.connect(gainNode);
+
 	source.onended=()=>{
 		if(sourceNode!==source)return;
-		if(playing&&getCurrentTime()>=decodedBuffer.duration-.02){
+
+		if(
+			playing&&
+			getCurrentTime()>=
+			decodedBuffer.duration-.02
+		){
 			pausedAt=decodedBuffer.duration;
 			playing=false;
 			sourceNode=null;
+
 			updateButtons();
 			setStatus("Finished.")
 		}
 	};
+
 	return source
 }
 
 async function play(){
 	if(!decodedBuffer)return;
+
 	ensureAudioGraph();
-	if(audioContext.state==="suspended")await audioContext.resume();
+
+	if(audioContext.state==="suspended"){
+		await audioContext.resume()
+	}
+
 	if(playing)return;
-	if(pausedAt>=decodedBuffer.duration)pausedAt=0;
+
+	if(pausedAt>=decodedBuffer.duration){
+		pausedAt=0
+	}
+
 	const source=createSource();
+
 	if(!source)return;
+
 	sourceNode=source;
 	sourceStartedAt=audioContext.currentTime;
+
 	source.start(0,pausedAt);
+
 	playing=true;
+
 	updateButtons();
 	setStatus("Playing.")
 }
 
 function pause(){
 	if(!playing)return;
+
 	pausedAt=getCurrentTime();
-	try{if(sourceNode)sourceNode.stop()}catch(_){}
+
+	try{
+		if(sourceNode)sourceNode.stop()
+	}catch(_){}
+
 	sourceNode=null;
 	playing=false;
+
 	updateButtons();
 	setStatus("Paused.")
 }
 
 function stop(){
-	try{if(sourceNode)sourceNode.stop()}catch(_){}
+	try{
+		if(sourceNode)sourceNode.stop()
+	}catch(_){}
+
 	sourceNode=null;
 	playing=false;
 	pausedAt=0;
+
 	updateButtons();
-	setStatus(decodedBuffer?"Stopped.":"Ready.")
+
+	setStatus(
+		decodedBuffer?
+		"Stopped.":"Ready."
+	)
 }
 
 function updateButtons(){
 	playBtn.disabled=!decodedBuffer||playing;
 	stopBtn.disabled=!decodedBuffer;
-	playBtn.textContent=playing?"❚❚ PLAYING":"▶ PLAY";
+
+	playBtn.textContent=
+		playing?
+		"❚❚ PLAYING":
+		"▶ PLAY";
 }
 
 function resizeCanvas(){
 	const rect=canvas.getBoundingClientRect();
 	const dpr=window.devicePixelRatio||1;
-	canvas.width=Math.max(1,Math.floor(rect.width*dpr));
-	canvas.height=Math.max(1,Math.floor(rect.height*dpr));
-	ctx.setTransform(dpr,0,0,dpr,0,0)
+
+	canvas.width=
+		Math.max(
+			1,
+			Math.floor(rect.width*dpr)
+		);
+
+	canvas.height=
+		Math.max(
+			1,
+			Math.floor(rect.height*dpr)
+		);
+
+	ctx.setTransform(
+		dpr,
+		0,
+		0,
+		dpr,
+		0,
+		0
+	)
+}
+
+/* =========================
+   LOADING AUDIO ANIMATION
+   ========================= */
+
+function drawLoadingAnimation(width,height){
+	const now=performance.now();
+
+	if(!loadingStart){
+		loadingStart=now
+	}
+
+	const elapsed=
+		(now-loadingStart)/1000;
+
+	const count=
+		Math.min(
+			96,
+			Math.max(
+				24,
+				Math.floor(width/7)
+			)
+		);
+
+	const barWidth=width/count;
+
+	ctx.fillStyle="#00FFFF";
+
+	for(let i=0;i<count;i++){
+		const center=i/(count-1||1);
+
+		const wave1=
+			Math.sin(
+				elapsed*5+
+				i*.35
+			);
+
+		const wave2=
+			Math.sin(
+				elapsed*2.7-
+				i*.18
+			);
+
+		const distance=
+			Math.abs(center-.5);
+
+		const centerBoost=
+			1-
+			Math.min(
+				1,
+				distance*1.65
+			);
+
+		const value=
+			.16+
+			Math.abs(wave1)*.34+
+			Math.abs(wave2)*.22+
+			centerBoost*.18;
+
+		const barHeight=
+			Math.max(
+				3,
+				value*height*.72
+			);
+
+		const x=
+			i*barWidth;
+
+		const y=
+			height*.5-
+			barHeight*.5;
+
+		ctx.globalAlpha=
+			.35+
+			value*.7;
+
+		ctx.fillRect(
+			x,
+			y,
+			Math.max(1,barWidth-2),
+			barHeight
+		);
+	}
+
+	ctx.globalAlpha=1;
+
+	/* animated center line */
+
+	ctx.beginPath();
+
+	ctx.strokeStyle="#FFFFFF";
+	ctx.globalAlpha=.6;
+	ctx.lineWidth=1;
+
+	const points=120;
+
+	for(let i=0;i<points;i++){
+		const x=
+			(i/(points-1))*width;
+
+		const pulse=
+			Math.sin(
+				elapsed*7+
+				i*.24
+			);
+
+		const y=
+			height*.5+
+			pulse*height*.035;
+
+		if(i===0){
+			ctx.moveTo(x,y)
+		}else{
+			ctx.lineTo(x,y)
+		}
+	}
+
+	ctx.stroke();
+
+	ctx.globalAlpha=1;
+
+	/* loading text with animated dots */
+
+	const dots=
+		".".repeat(
+			Math.floor(elapsed*3)%4
+		);
+
+	ctx.fillStyle="#00FFFF";
+	ctx.font="11px monospace";
+	ctx.textAlign="center";
+	ctx.fillText(
+		"LOADING AUDIO"+dots,
+		width/2,
+		height-12
+	);
 }
 
 function draw(){
 	const width=canvas.clientWidth;
 	const height=canvas.clientHeight;
-	ctx.clearRect(0,0,width,height);
+
+	ctx.clearRect(
+		0,
+		0,
+		width,
+		height
+	);
+
 	ctx.fillStyle="#000";
-	ctx.fillRect(0,0,width,height);
+
+	ctx.fillRect(
+		0,
+		0,
+		width,
+		height
+	);
+
+	/* LOADING STATE */
+
+	if(loading){
+		drawLoadingAnimation(
+			width,
+			height
+		);
+
+		rafId=requestAnimationFrame(draw);
+		return
+	}
+
+	/* REAL AUDIO VISUALIZER */
+
 	if(analyser){
-		const frequency=new Uint8Array(analyser.frequencyBinCount);
-		const waveform=new Uint8Array(analyser.fftSize);
-		analyser.getByteFrequencyData(frequency);
-		analyser.getByteTimeDomainData(waveform);
-		const count=Math.min(96,Math.max(24,Math.floor(width/7)));
-		const step=Math.max(1,Math.floor(frequency.length/count));
-		const barWidth=width/count;
+		const frequency=
+			new Uint8Array(
+				analyser.frequencyBinCount
+			);
+
+		const waveform=
+			new Uint8Array(
+				analyser.fftSize
+			);
+
+		analyser.getByteFrequencyData(
+			frequency
+		);
+
+		analyser.getByteTimeDomainData(
+			waveform
+		);
+
+		const count=
+			Math.min(
+				96,
+				Math.max(
+					24,
+					Math.floor(width/7)
+				)
+			);
+
+		const step=
+			Math.max(
+				1,
+				Math.floor(
+					frequency.length/count
+				)
+			);
+
+		const barWidth=
+			width/count;
+
 		ctx.fillStyle="#00FFFF";
+
 		for(let i=0;i<count;i++){
 			let sum=0;
+
 			const start=i*step;
-			const end=Math.min(frequency.length,start+step);
-			for(let j=start;j<end;j++)sum+=frequency[j];
-			const value=sum/Math.max(1,end-start)/255;
-			const barHeight=value*height*.82;
-			ctx.fillRect(i*barWidth,height-barHeight,Math.max(1,barWidth-2),barHeight)
+
+			const end=
+				Math.min(
+					frequency.length,
+					start+step
+				);
+
+			for(
+				let j=start;
+				j<end;
+				j++
+			){
+				sum+=frequency[j]
+			}
+
+			const value=
+				sum/
+				Math.max(
+					1,
+					end-start
+				)/
+				255;
+
+			const barHeight=
+				value*
+				height*
+				.82;
+
+			ctx.fillRect(
+				i*barWidth,
+				height-barHeight,
+				Math.max(
+					1,
+					barWidth-2
+				),
+				barHeight
+			)
 		}
+
 		ctx.beginPath();
+
 		ctx.strokeStyle="#FFFFFF";
 		ctx.globalAlpha=.72;
-		const slice=width/waveform.length;
+
+		const slice=
+			width/waveform.length;
+
 		for(let i=0;i<waveform.length;i++){
-			const y=height*.5+(waveform[i]/255-.5)*height*.24;
+			const y=
+				height*.5+
+				(
+					waveform[i]/255-
+					.5
+				)*
+				height*
+				.24;
+
 			const x=i*slice;
-			if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)
+
+			if(i===0){
+				ctx.moveTo(x,y)
+			}else{
+				ctx.lineTo(x,y)
+			}
 		}
+
 		ctx.stroke();
 		ctx.globalAlpha=1
 	}
+
 	if(decodedBuffer){
 		const current=getCurrentTime();
-		const progress=decodedBuffer.duration?current/decodedBuffer.duration:0;
+
+		const progress=
+			decodedBuffer.duration?
+			current/decodedBuffer.duration:
+			0;
+
 		ctx.fillStyle="#00FFFF";
 		ctx.globalAlpha=.25;
-		ctx.fillRect(0,0,width*progress,3);
+
+		ctx.fillRect(
+			0,
+			0,
+			width*progress,
+			3
+		);
+
 		ctx.globalAlpha=1;
-		timeEl.textContent=formatTime(current)+" / "+formatTime(decodedBuffer.duration);
-		if(!seek.matches(":active"))seek.value=progress
+
+		timeEl.textContent=
+			formatTime(current)+
+			" / "+
+			formatTime(
+				decodedBuffer.duration
+			);
+
+		if(!seek.matches(":active")){
+			seek.value=progress
+		}
 	}
+
 	rafId=requestAnimationFrame(draw)
 }
 
 async function loadAudio(src){
 	const token=++loadToken;
+
 	stop();
+
 	decodedBuffer=null;
+
 	updateButtons();
+
 	seek.disabled=true;
 	seek.value=0;
-	empty.style.display="flex";
-	empty.textContent="Loading audio...";
-	info.textContent="Loading: "+src;
+
+	loading=true;
+	loadingStart=performance.now();
+
+	empty.style.display="none";
+
+	info.textContent=
+		"Loading: "+src;
+
 	setStatus("Reading audio...");
+
 	try{
-		const data=await getAudioData(src);
+		const data=
+			await getAudioData(src);
+
 		if(token!==loadToken)return;
+
 		ensureAudioGraph();
-		setStatus("Decoding audio...");
-		const buffer=await audioContext.decodeAudioData(data.buffer.slice(0));
+
+		setStatus(
+			"Decoding audio..."
+		);
+
+		const buffer=
+			await audioContext.decodeAudioData(
+				data.buffer.slice(0)
+			);
+
 		if(token!==loadToken)return;
+
 		decodedBuffer=buffer;
+
 		pausedAt=0;
 		playing=false;
+
 		seek.disabled=false;
-		empty.style.display="none";
-		const name=String(src).split("/").pop();
-		info.textContent=name+" | "+buffer.numberOfChannels+"ch | "+buffer.sampleRate+" Hz | "+formatTime(buffer.duration)+" | "+Math.round(data.buffer.byteLength/1024)+" KB";
+
+		loading=false;
+
+		const name=
+			String(src)
+			.split("/")
+			.pop();
+
+		info.textContent=
+			name+
+			" | "+
+			buffer.numberOfChannels+
+			"ch | "+
+			buffer.sampleRate+
+			" Hz | "+
+			formatTime(buffer.duration)+
+			" | "+
+			Math.round(
+				data.buffer.byteLength/1024
+			)+
+			" KB";
+
 		updateButtons();
+
 		setStatus("Ready.");
+
 		await play()
+
 	}catch(error){
 		if(token!==loadToken)return;
+
 		decodedBuffer=null;
+
 		seek.disabled=true;
+
 		updateButtons();
+
+		loading=false;
+
 		empty.style.display="flex";
-		empty.textContent="Could not decode audio.";
-		info.textContent=String(src);
-		setStatus("Error: "+errText(error))
+
+		empty.textContent=
+			"Could not decode audio.";
+
+		info.textContent=
+			String(src);
+
+		setStatus(
+			"Error: "+errText(error)
+		)
 	}
 }
 
-playBtn.onclick=async()=>{try{if(playing)pause();else await play()}catch(error){setStatus("Playback error: "+errText(error))}};
-stopBtn.onclick=stop;
-seek.oninput=()=>{
-	if(!decodedBuffer)return;
-	const position=Number(seek.value)*decodedBuffer.duration;
-	pausedAt=Math.max(0,Math.min(decodedBuffer.duration,position));
-	if(playing){
-		try{if(sourceNode)sourceNode.stop()}catch(_){}
-		sourceNode=null;
-		playing=false;
-		play().catch(error=>setStatus("Playback error: "+errText(error)))
+playBtn.onclick=async()=>{
+	try{
+		if(playing){
+			pause()
+		}else{
+			await play()
+		}
+	}catch(error){
+		setStatus(
+			"Playback error: "+
+			errText(error)
+		)
 	}
 };
-volume.oninput=()=>{if(gainNode)gainNode.gain.value=Number(volume.value)};
 
-document.getElementById("loadBtn").onclick=()=>{const src=urlInput.value.trim();if(src)loadAudio(src)};
-urlInput.onkeydown=e=>{if(e.key==="Enter"){const src=urlInput.value.trim();if(src)loadAudio(src)}};
-window.addEventListener("resize",resizeCanvas);
-window.addEventListener("beforeunload",()=>{try{if(sourceNode)sourceNode.stop()}catch(_){}try{if(audioContext)audioContext.close()}catch(_){}if(rafId)cancelAnimationFrame(rafId)});
+stopBtn.onclick=stop;
+
+seek.oninput=()=>{
+	if(!decodedBuffer)return;
+
+	const position=
+		Number(seek.value)*
+		decodedBuffer.duration;
+
+	pausedAt=
+		Math.max(
+			0,
+			Math.min(
+				decodedBuffer.duration,
+				position
+			)
+		);
+
+	if(playing){
+		try{
+			if(sourceNode)sourceNode.stop()
+		}catch(_){}
+
+		sourceNode=null;
+		playing=false;
+
+		play().catch(
+			error=>
+				setStatus(
+					"Playback error: "+
+					errText(error)
+				)
+		)
+	}
+};
+
+volume.oninput=()=>{
+	if(gainNode){
+		gainNode.gain.value=
+			Number(volume.value)
+	}
+};
+
+document.getElementById("loadBtn").onclick=()=>{
+	const src=urlInput.value.trim();
+
+	if(src){
+		loadAudio(src)
+	}
+};
+
+urlInput.onkeydown=e=>{
+	if(e.key==="Enter"){
+		const src=urlInput.value.trim();
+
+		if(src){
+			loadAudio(src)
+		}
+	}
+};
+
+window.addEventListener(
+	"resize",
+	resizeCanvas
+);
+
+window.addEventListener(
+	"beforeunload",
+	()=>{
+		try{
+			if(sourceNode)sourceNode.stop()
+		}catch(_){}
+
+		try{
+			if(audioContext){
+				audioContext.close()
+			}
+		}catch(_){}
+
+		if(rafId){
+			cancelAnimationFrame(rafId)
+		}
+	}
+);
 
 resizeCanvas();
 draw();
-if(initialPath){urlInput.value=initialPath;loadAudio(initialPath)}
+
+if(initialPath){
+	urlInput.value=initialPath;
+	loadAudio(initialPath)
+}
 </script>
 </body>
 </html>
