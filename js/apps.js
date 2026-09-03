@@ -9,6 +9,8 @@
         notepad:{title:"NOTEPAD",src:"app/notepad.html",w:540,h:430},
         paint:{title:"PAINT",src:"app/paint.html",w:560,h:480},
         terminaljs:{title:"Terminal JS",src:"app/TerminalJS.html",w:560,h:480}, 
+        recorder:{title:"RECORDER",src:"app/recorder.html",w:620,h:560},
+        camera:{title:"CAMERA",src:"app/camera.html",w:680,h:620},
         tictactoe:{title:"TIC TAC TOE",src:"app/tictactoe.html",w:360,h:340},
         snake:{title:"SNAKE",src:"app/snake.html",w:320,h:380},
         2048:{title:"2048",src:"app/2048.html",w:430,h:520},
