@@ -86,6 +86,116 @@
       }
     }
   },
+      {
+    type: "function",
+    function:
+    {
+      name: "piano_action",
+      description: "Control the built-in Little Hollow Piano through PianoAPI. Automatically opens the Piano application when needed. Supports playing/stopping MIDI notes, changing octave, volume, waveform, instrument and sustain, starting/stopping/toggling recordings, playing recordings, clearing recordings, importing PKP text, opening the Little Hollow File Manager PKP selector, saving/loading recordings, getting recordings/PKP/audio, and sending PKP directly to the piano.",
+      parameters:
+      {
+        type: "object",
+        properties:
+        {
+          action:
+          {
+            type: "string",
+            enum:
+            [
+              "open",
+              "play_midi",
+              "stop_midi",
+              "set_octave",
+              "get_octave",
+              "set_volume",
+              "set_waveform",
+              "set_instrument",
+              "get_instrument",
+              "set_sustain",
+              "start_recording",
+              "stop_recording",
+              "toggle_recording",
+              "play_recording",
+              "clear_recording",
+              "get_recording_type",
+              "get_recording",
+              "get_pkp",
+              "get_audio",
+              "play_pkp",
+              "import_pkp",
+              "open_pkp_file_manager",
+              "save",
+              "load",
+              "save_pkp",
+              "save_audio"
+            ]
+          },
+          midi:
+          {
+            type: "integer",
+            minimum: 0,
+            maximum: 127
+          },
+          octave:
+          {
+            type: "integer",
+            minimum: 1,
+            maximum: 7
+          },
+          volume:
+          {
+            type: "number",
+            minimum: 0,
+            maximum: 1
+          },
+          waveform:
+          {
+            type: "string",
+            enum:
+            [
+              "sine",
+              "triangle",
+              "square",
+              "sawtooth"
+            ]
+          },
+          instrument:
+          {
+            type: "string",
+            enum:
+            [
+              "piano",
+              "synth",
+              "organ",
+              "strings",
+              "brass",
+              "choir",
+              "pluck",
+              "bell",
+              "harpsichord",
+              "guitar",
+              "bass",
+              "pad",
+              "lead"
+            ]
+          },
+          sustain:
+          {
+            type: "boolean"
+          },
+          pkp:
+          {
+            type: "string",
+            description: "PKP sequence to play or import, for example {\"octave\":4,\"instrument\":\"piano\"}[asdf](300)[g](300)."
+          }
+        },
+        required:
+        [
+          "action"
+        ]
+      }
+    }
+  },
   {
     type: "function",
     function:
@@ -4239,6 +4349,725 @@ e
         summary:
           "Closed all windows."
       };
+    }
+
+        if (
+      name ===
+      "piano_action"
+    )
+    {
+      try
+      {
+        const action =
+          String(
+            args.action || ""
+          )
+          .toLowerCase();
+
+        if (
+          action ===
+          "open"
+        )
+        {
+          const result =
+            Apps.openApp(
+              "Piano",
+              {
+                allowMultiple:
+                  false
+              }
+            );
+
+          return result &&
+            result.ok ?
+            {
+              ok: true,
+              summary:
+                "Opened Piano."
+            } :
+            {
+              ok: false,
+              summary:
+                "Could not open Piano."
+            };
+        }
+
+        let info =
+          findIframeWindowByPath(
+            [
+              "app/piano.html",
+              "/piano.html",
+              "piano.html"
+            ]
+          );
+
+        if(!info)
+        {
+          try
+          {
+            const opened =
+              Apps.openApp(
+                "Piano",
+                {
+                  allowMultiple:
+                    false
+                }
+              );
+
+            if(
+              opened &&
+              opened.ok &&
+              opened.win
+            )
+            {
+              const frame =
+                opened.win.el &&
+                opened.win.el.querySelector ?
+                opened.win.el.querySelector(
+                  "iframe"
+                ) :
+                null;
+
+              info =
+              {
+                win:
+                  opened.win,
+                frame,
+                api:
+                  frame &&
+                  frame.contentWindow
+                    ?frame.contentWindow
+                    :null
+              };
+            }
+          }
+          catch(_)
+          {
+          }
+        }
+
+        const api =
+          (
+            info &&
+            info.api &&
+            info.api.PianoAPI
+          ) ||
+          window.PianoAPI;
+
+        if(!api)
+        {
+          return {
+            ok: false,
+            summary:
+              "PianoAPI is not available."
+          };
+        }
+
+        let result;
+
+        if(
+          action ===
+          "play_midi"
+        )
+        {
+          const midi =
+            Number(
+              args.midi
+            );
+
+          if(
+            !Number.isFinite(midi)
+          )
+          {
+            return {
+              ok: false,
+              summary:
+                "midi is required for play_midi."
+            };
+          }
+
+          result =
+            api.playMidi(
+              midi
+            );
+
+          return {
+            ok: true,
+            summary:
+              "Playing MIDI note " +
+              midi +
+              ".",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "stop_midi"
+        )
+        {
+          const midi =
+            Number(
+              args.midi
+            );
+
+          if(
+            !Number.isFinite(midi)
+          )
+          {
+            return {
+              ok: false,
+              summary:
+                "midi is required for stop_midi."
+            };
+          }
+
+          result =
+            api.stopMidi(
+              midi
+            );
+
+          return {
+            ok: true,
+            summary:
+              "Stopped MIDI note " +
+              midi +
+              ".",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "set_octave"
+        )
+        {
+          if(
+            !Number.isFinite(
+              Number(
+                args.octave
+              )
+            )
+          )
+          {
+            return {
+              ok: false,
+              summary:
+                "octave is required for set_octave."
+            };
+          }
+
+          result =
+            api.setOctave(
+              Number(
+                args.octave
+              )
+            );
+
+          return {
+            ok: true,
+            summary:
+              "Set Piano octave to " +
+              Number(
+                args.octave
+              ) +
+              ".",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "get_octave"
+        )
+        {
+          result =
+            api.getOctave();
+
+          return {
+            ok: true,
+            summary:
+              "Current Piano octave: " +
+              result +
+              ".",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "set_volume"
+        )
+        {
+          if(
+            !Number.isFinite(
+              Number(
+                args.volume
+              )
+            )
+          )
+          {
+            return {
+              ok: false,
+              summary:
+                "volume is required for set_volume."
+            };
+          }
+
+          result =
+            api.setVolume(
+              Number(
+                args.volume
+              )
+            );
+
+          return {
+            ok: true,
+            summary:
+              "Set Piano volume to " +
+              Number(
+                args.volume
+              ) +
+              ".",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "set_waveform"
+        )
+        {
+          result =
+            api.setWaveform(
+              String(
+                args.waveform ||
+                ""
+              )
+            );
+
+          return {
+            ok: true,
+            summary:
+              "Set Piano waveform to " +
+              String(
+                args.waveform ||
+                ""
+              ) +
+              ".",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "set_instrument"
+        )
+        {
+          result =
+            api.setInstrument(
+              String(
+                args.instrument ||
+                ""
+              )
+            );
+
+          return {
+            ok: true,
+            summary:
+              "Set Piano instrument to " +
+              String(
+                args.instrument ||
+                ""
+              ) +
+              ".",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "get_instrument"
+        )
+        {
+          result =
+            api.getInstrument();
+
+          return {
+            ok: true,
+            summary:
+              "Current Piano instrument: " +
+              result +
+              ".",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "set_sustain"
+        )
+        {
+          if(
+            typeof args.sustain !==
+            "boolean"
+          )
+          {
+            return {
+              ok: false,
+              summary:
+                "sustain is required for set_sustain."
+            };
+          }
+
+          result =
+            api.setSustain(
+              args.sustain
+            );
+
+          return {
+            ok: true,
+            summary:
+              "Piano sustain " +
+              (
+                args.sustain ?
+                "enabled." :
+                "disabled."
+              ),
+            result
+          };
+        }
+
+        if(
+          action ===
+          "start_recording"
+        )
+        {
+          result =
+            await api.startRecording();
+
+          return {
+            ok: true,
+            summary:
+              "Piano recording started.",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "stop_recording"
+        )
+        {
+          result =
+            await api.stopRecording();
+
+          return {
+            ok: true,
+            summary:
+              "Piano recording stopped and saved.",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "toggle_recording"
+        )
+        {
+          result =
+            await api.toggleRecording();
+
+          return {
+            ok: true,
+            summary:
+              "Piano recording toggled.",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "play_recording"
+        )
+        {
+          result =
+            api.playRecording();
+
+          return {
+            ok: true,
+            summary:
+              "Piano recording playback started.",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "clear_recording"
+        )
+        {
+          result =
+            api.clearRecording();
+
+          return {
+            ok: true,
+            summary:
+              "Piano recording cleared.",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "get_recording_type"
+        )
+        {
+          result =
+            api.getRecordingType();
+
+          return {
+            ok: true,
+            summary:
+              "Current Piano recording type: " +
+              result +
+              ".",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "get_recording"
+        )
+        {
+          result =
+            api.getRecording();
+
+          return {
+            ok: true,
+            summary:
+              "Returned the current Piano recording.",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "get_pkp"
+        )
+        {
+          result =
+            api.getPKP();
+
+          return {
+            ok: true,
+            summary:
+              "Returned the current PKP recording.",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "get_audio"
+        )
+        {
+          result =
+            api.getAudio();
+
+          return {
+            ok: true,
+            summary:
+              "Returned the current audio recording data.",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "play_pkp"
+        )
+        {
+          if(
+            typeof args.pkp !==
+            "string" ||
+            !args.pkp.trim()
+          )
+          {
+            return {
+              ok: false,
+              summary:
+                "pkp is required for play_pkp."
+            };
+          }
+
+          result =
+            api.playPKP(
+              args.pkp
+            );
+
+          return {
+            ok: true,
+            summary:
+              "Playing PKP on Piano.",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "import_pkp"
+        )
+        {
+          if(
+            typeof args.pkp !==
+            "string" ||
+            !args.pkp.trim()
+          )
+          {
+            return {
+              ok: false,
+              summary:
+                "pkp is required for import_pkp."
+            };
+          }
+
+          result =
+            api.importPKP(
+              args.pkp
+            );
+
+          return {
+            ok: !!result,
+            summary:
+              result ?
+              "PKP imported into Piano." :
+              "Could not import PKP.",
+            result
+          };
+        }
+
+        if(
+          action ===
+          "open_pkp_file_manager"
+        )
+        {
+          result =
+            await api.openPKPFileManager();
+
+          return result &&
+            typeof result ===
+            "object" &&
+            result.ok === false ?
+            result :
+            {
+              ok: true,
+              summary:
+                "Opened Little Hollow File Manager in PKP selection mode.",
+              result
+            };
+        }
+
+        if(
+          action ===
+          "save"
+        )
+        {
+          result =
+            await api.save();
+
+          return result &&
+            typeof result ===
+            "object" ?
+            result :
+            {
+              ok: true,
+              summary:
+                "Piano recording saved.",
+              result
+            };
+        }
+
+        if(
+          action ===
+          "load"
+        )
+        {
+          result =
+            await api.load();
+
+          return result &&
+            typeof result ===
+            "object" ?
+            result :
+            {
+              ok: true,
+              summary:
+                "Piano recording loaded.",
+              result
+            };
+        }
+
+        if(
+          action ===
+          "save_pkp"
+        )
+        {
+          result =
+            await api.savePKP();
+
+          return result &&
+            typeof result ===
+            "object" ?
+            result :
+            {
+              ok: true,
+              summary:
+                "PKP recording saved.",
+              result
+            };
+        }
+
+        if(
+          action ===
+          "save_audio"
+        )
+        {
+          result =
+            await api.saveAudio();
+
+          return result &&
+            typeof result ===
+            "object" ?
+            result :
+            {
+              ok: true,
+              summary:
+                "Audio recording saved.",
+              result
+            };
+        }
+
+        return {
+          ok: false,
+          summary:
+            "Unknown Piano action: " +
+            action
+        };
+      }
+      catch(e)
+      {
+        return {
+          ok: false,
+          summary:
+            "Piano action failed: " +
+            (
+              e.message ||
+              String(e)
+            )
+        };
+      }
     }
 
     return {
