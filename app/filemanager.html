@@ -15,10 +15,12 @@ body{overflow:hidden}
 .tabs{display:flex;border-bottom:1px solid #00FFFF;overflow-x:auto}
 .tabs button{flex:0 0 auto;border:0;border-right:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:7px 10px;cursor:pointer;font:11px monospace}
 .tabs button.active{background:rgba(0,255,255,.15)}
-.pathbar{display:flex;padding:5px 6px;border-bottom:1px solid rgba(0,255,255,.25)}
-.current-path{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:10px;opacity:.8;cursor:pointer}
-.current-path:hover{opacity:1;text-decoration:underline}
-.current-path:focus{outline:1px solid #00FFFF;outline-offset:-1px}
+.pathbar{display:flex;align-items:center;padding:5px 6px;border-bottom:1px solid rgba(0,255,255,.25);overflow-x:auto;overflow-y:hidden;min-height:27px}
+.current-path{display:flex;align-items:center;min-width:max-content;font-size:10px;opacity:.8;white-space:nowrap}
+.path-segment{border:0;background:transparent;color:#00FFFF;padding:2px 3px;cursor:pointer;font:10px monospace;border-radius:2px}
+.path-segment:hover{background:rgba(0,255,255,.12);opacity:1}
+.path-segment:active{background:#00FFFF;color:#000}
+.path-separator{opacity:.45;padding:0 1px;user-select:none}
 .hint{padding:4px 8px;font-size:10px;opacity:.55;border-bottom:1px solid rgba(0,255,255,.2)}
 #error{color:#ff6666;white-space:pre-wrap}
 .list{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
@@ -45,8 +47,7 @@ body{overflow:hidden}
 .mount-status.show{display:block}
 </style>
 </head>
-<body><div class="wrap">
-<div class="bar">
+<body><div class="wrap"><div class="bar">
 <input id="pathBox" placeholder="path or search">
 <button id="refresh">REFRESH</button>
 <button id="up">UP</button>
@@ -54,15 +55,11 @@ body{overflow:hidden}
 <button id="mountFolder">UPLOAD FOLDER</button>
 <button id="zip">ZIP SELECTED</button>
 <button id="selectAll">SELECT ALL</button>
-</div><div class="tabs" id="tabs"></div>
-<div class="pathbar">
-<div class="current-path" id="currentPath" tabindex="0"></div>
-</div>
-<div class="mount-status" id="mountStatus"></div>
-<div class="hint" id="hint">Tap a file to open it. Tap a folder to enter it. Double-tap a name to rename. Long-press/right-click for more actions.</div>
-<div class="hint" id="error" style="display:none"></div>
-<div class="list" id="list"></div>
-</div><div class="ctx" id="contextMenu"></div><script>
+</div><div class="tabs" id="tabs"></div><div class="pathbar">
+<div class="current-path" id="currentPath"></div>
+</div><div class="mount-status" id="mountStatus"></div><div class="hint" id="hint">
+Tap a file to open it. Tap a folder to enter it. Double-tap a name to rename. Long-press/right-click for more actions.
+</div><div class="hint" id="error" style="display:none"></div><div class="list" id="list"></div></div><div class="ctx" id="contextMenu"></div><script>
 "use strict";
 
 let uploadJob=null;
@@ -115,17 +112,30 @@ const zones=[
 ];
 
 function showError(s){
-	errorBox.textContent=String(s||"Unknown error");
-	errorBox.style.display="block";
-	clearTimeout(showError.timer);
-	showError.timer=setTimeout(
-		()=>errorBox.style.display="none",
-		5000
+	errorBox.textContent=
+		String(s||"Unknown error");
+
+	errorBox.style.display=
+		"block";
+
+	clearTimeout(
+		showError.timer
 	);
+
+	showError.timer=
+		setTimeout(
+			()=>errorBox.style.display="none",
+			5000
+		);
 }
 
-function showMountStatus(text,show=true){
-	mountStatus.textContent=String(text||"");
+function showMountStatus(
+	text,
+	show=true
+){
+	mountStatus.textContent=
+		String(text||"");
+
 	mountStatus.classList.toggle(
 		"show",
 		!!show
@@ -133,11 +143,27 @@ function showMountStatus(text,show=true){
 }
 
 function escHtml(value){
-	return String(value==null?"":value)
-		.replace(/&/g,"&amp;")
-		.replace(/</g,"&lt;")
-		.replace(/>/g,"&gt;")
-		.replace(/"/g,"&quot;");
+	return String(
+		value==null
+			?""
+			:value
+	)
+		.replace(
+			/&/g,
+			"&amp;"
+		)
+		.replace(
+			/</g,
+			"&lt;"
+		)
+		.replace(
+			/>/g,
+			"&gt;"
+		)
+		.replace(
+			/"/g,
+			"&quot;"
+		);
 }
 
 function terminalHtml(command){
@@ -160,21 +186,28 @@ function terminalHtml(command){
 	"</div>";
 }
 
-function openLittleHollowTerminal(command,title){
-	if(!parent.WM||typeof parent.WM.openWindow!=="function"){
+function openLittleHollowTerminal(
+	command,
+	title
+){
+	if(
+		!parent.WM||
+		typeof parent.WM.openWindow!=="function"
+	){
 		throw new Error(
 			"WM.openWindow is unavailable."
 		);
 	}
 
-	const win=parent.WM.openWindow({
-		title:title||"TERMINAL",
-		html:terminalHtml(command),
-		width:"560px",
-		height:"320px",
-		noPad:false,
-		standaloneKey:null
-	});
+	const win=
+		parent.WM.openWindow({
+			title:title||"TERMINAL",
+			html:terminalHtml(command),
+			width:"560px",
+			height:"320px",
+			noPad:false,
+			standaloneKey:null
+		});
 
 	if(!win){
 		throw new Error(
@@ -187,81 +220,133 @@ function openLittleHollowTerminal(command,title){
 
 function terminalOut(win){
 	return win&&win.el
-		?win.el.querySelector("#terminal-out")
+		?win.el.querySelector(
+			"#terminal-out"
+		)
 		:null;
 }
 
 function terminalScreen(win){
 	return win&&win.el
-		?win.el.querySelector("#terminal-screen")
+		?win.el.querySelector(
+			"#terminal-screen"
+		)
 		:null;
 }
 
-function terminalWrite(win,text,className){
-	const out=terminalOut(win);
+function terminalWrite(
+	win,
+	text,
+	className
+){
+	const out=
+		terminalOut(win);
 
 	if(!out)return;
 
-	const line=document.createElement("div");
+	const line=
+		document.createElement(
+			"div"
+		);
 
-	line.style.marginTop="7px";
+	line.style.marginTop=
+		"7px";
 
-	if(className==="dim"){
-		line.style.opacity=".55";
+	if(
+		className==="dim"
+	){
+		line.style.opacity=
+			".55";
 	}
 
-	if(className==="ok"){
-		line.style.color="#00FF88";
+	if(
+		className==="ok"
+	){
+		line.style.color=
+			"#00FF88";
 	}
 
-	if(className==="warn"){
-		line.style.color="#FFFF00";
+	if(
+		className==="warn"
+	){
+		line.style.color=
+			"#FFFF00";
 	}
 
-	if(className==="error"){
-		line.style.color="#FF6666";
+	if(
+		className==="error"
+	){
+		line.style.color=
+			"#FF6666";
 	}
 
-	line.textContent=String(text);
+	line.textContent=
+		String(text);
 
-	out.appendChild(line);
+	out.appendChild(
+		line
+	);
 
-	const cursor=out.querySelector(".cursor");
+	const cursor=
+		out.querySelector(
+			".cursor"
+		);
 
 	if(cursor){
-		out.appendChild(cursor);
+		out.appendChild(
+			cursor
+		);
 	}
 
-	const screen=terminalScreen(win);
+	const screen=
+		terminalScreen(win);
 
 	if(screen){
-		screen.scrollTop=screen.scrollHeight;
+		screen.scrollTop=
+			screen.scrollHeight;
 	}
 }
 
-function terminalSetProgress(win,percent,message){
-	const out=terminalOut(win);
+function terminalSetProgress(
+	win,
+	percent,
+	message
+){
+	const out=
+		terminalOut(win);
 
 	if(!out)return;
 
-	let box2=out.querySelector(
-		"#lh-upload-progress"
-	);
+	let box2=
+		out.querySelector(
+			"#lh-upload-progress"
+		);
 
 	if(!box2){
-		box2=document.createElement("div");
-		box2.id="lh-upload-progress";
-		box2.style.marginTop="12px";
-		out.appendChild(box2);
+		box2=
+			document.createElement(
+				"div"
+			);
+
+		box2.id=
+			"lh-upload-progress";
+
+		box2.style.marginTop=
+			"12px";
+
+		out.appendChild(
+			box2
+		);
 	}
 
-	const p=Math.max(
-		0,
-		Math.min(
-			100,
-			Number(percent)||0
-		)
-	);
+	const p=
+		Math.max(
+			0,
+			Math.min(
+				100,
+				Number(percent)||0
+			)
+		);
 
 	box2.innerHTML=
 		"<div style='margin-bottom:5px;opacity:.9'>"+
@@ -279,21 +364,33 @@ function terminalSetProgress(win,percent,message){
 		Math.floor(p)+
 		"%</div>";
 
-	const cursor=out.querySelector(".cursor");
+	const cursor=
+		out.querySelector(
+			".cursor"
+		);
 
 	if(cursor){
-		out.appendChild(cursor);
+		out.appendChild(
+			cursor
+		);
 	}
 
-	const screen=terminalScreen(win);
+	const screen=
+		terminalScreen(win);
 
 	if(screen){
-		screen.scrollTop=screen.scrollHeight;
+		screen.scrollTop=
+			screen.scrollHeight;
 	}
 }
 
 function lockTerminalWindow(win){
-	if(!win||!win.el)return;
+	if(
+		!win||
+		!win.el
+	){
+		return;
+	}
 
 	const lock=()=>{
 		const nodes=
@@ -304,15 +401,16 @@ function lockTerminalWindow(win){
 		for(
 			const n of nodes
 		){
-			const raw=(
-				(n.textContent||"")+
-				" "+
-				(n.getAttribute("title")||"")+
-				" "+
-				(n.getAttribute("aria-label")||"")+
-				" "+
-				(n.className||"")
-			).toLowerCase();
+			const raw=
+				(
+					(n.textContent||"")+
+					" "+
+					(n.getAttribute("title")||"")+
+					" "+
+					(n.getAttribute("aria-label")||"")+
+					" "+
+					(n.className||"")
+				).toLowerCase();
 
 			if(
 				raw.includes("close")||
@@ -320,13 +418,17 @@ function lockTerminalWindow(win){
 				raw.includes("✕")||
 				raw.includes("delete")
 			){
-				n.style.pointerEvents="none";
-				n.style.visibility="hidden";
+				n.style.pointerEvents=
+					"none";
+
+				n.style.visibility=
+					"hidden";
 			}
 		}
 
 		try{
-			win.el.dataset.lhTerminalLocked="1";
+			win.el.dataset.lhTerminalLocked=
+				"1";
 		}catch(_){}
 	};
 
@@ -360,7 +462,9 @@ function lockTerminalWindow(win){
 		);
 }
 
-function closeLittleHollowTerminal(win){
+function closeLittleHollowTerminal(
+	win
+){
 	if(!win)return;
 
 	try{
@@ -368,13 +472,17 @@ function closeLittleHollowTerminal(win){
 			parent.WM&&
 			typeof parent.WM.closeWindow==="function"
 		){
-			parent.WM.closeWindow(win);
+			parent.WM.closeWindow(
+				win
+			);
+
 			return;
 		}
 	}catch(_){}
 
 	try{
-		win.closed=true;
+		win.closed=
+			true;
 	}catch(_){}
 }
 
@@ -384,7 +492,8 @@ function closeConfirmationTerminal(){
 			confirmTerminal
 		);
 
-		confirmTerminal=null;
+		confirmTerminal=
+			null;
 	}
 }
 
@@ -459,7 +568,9 @@ function askUploadStop(){
 function stopUploadConfirmed(){
 	closeConfirmationTerminal();
 
-	if(!uploadTerminal)return;
+	if(!uploadTerminal){
+		return;
+	}
 
 	terminalWrite(
 		uploadTerminal,
@@ -480,7 +591,8 @@ function stopUploadConfirmed(){
 	);
 
 	if(uploadJob){
-		uploadJob.stopped=true;
+		uploadJob.stopped=
+			true;
 	}
 }
 
@@ -491,11 +603,14 @@ function zone(){
 }
 
 function zoneFromPath(path){
-	const p=String(path||"");
+	const p=
+		String(path||"");
 
 	return zones.find(
 		z=>
-			p.indexOf(z.prefix)===0
+			p.indexOf(
+				z.prefix
+			)===0
 	)||null;
 }
 
@@ -598,7 +713,8 @@ function isDocumentPath(path){
 }
 
 function normalizeFolderPath(p){
-	p=String(p||"");
+	p=
+		String(p||"");
 
 	return p.endsWith("/")
 		?p
@@ -638,7 +754,10 @@ function parentFolder(p){
 
 	return i<0
 		?""
-		:clean.slice(0,i+1);
+		:clean.slice(
+			0,
+			i+1
+		);
 }
 
 function isTopLevelDeviceMount(p){
@@ -652,7 +771,11 @@ function isTopLevelDeviceMount(p){
 	const prefix=
 		"chxd:/device/";
 
-	if(!clean.startsWith(prefix)){
+	if(
+		!clean.startsWith(
+			prefix
+		)
+	){
 		return false;
 	}
 
@@ -667,44 +790,270 @@ function isTopLevelDeviceMount(p){
 	);
 }
 
+function breadcrumbRootForPath(
+	path
+){
+	const z=
+		zoneFromPath(
+			path
+		);
+
+	if(z){
+		return z.prefix;
+	}
+
+	const s=
+		String(path||"");
+
+	const match=
+		s.match(
+			/^([a-zA-Z][\w-]*:)/ 
+		);
+
+	if(match){
+		return match[1]+"/";
+	}
+
+	return "";
+}
+
+function createBreadcrumb(
+	text,
+	onclick,
+	title
+){
+	const button=
+		document.createElement(
+			"button"
+		);
+
+	button.className=
+		"path-segment";
+
+	button.type=
+		"button";
+
+	button.textContent=
+		String(text);
+
+	if(title){
+		button.title=
+			title;
+	}
+
+	button.onclick=
+		e=>{
+			e.preventDefault();
+			e.stopPropagation();
+
+			onclick();
+		};
+
+	return button;
+}
+
+function createBreadcrumbSeparator(){
+	const span=
+		document.createElement(
+			"span"
+		);
+
+	span.className=
+		"path-separator";
+
+	span.textContent=
+		"/";
+
+	return span;
+}
+
+function renderPathBreadcrumbs(
+	path
+){
+	currentPathBox.innerHTML="";
+
+	if(
+		searchMode&&
+		String(path||"")===
+		"chxd:SearchResults"
+	){
+		const button=
+			createBreadcrumb(
+				"chxd:SearchResults",
+				()=>{
+					performSearch(
+						searchQuery
+					);
+				},
+				"Show search results again"
+			);
+
+		currentPathBox.appendChild(
+			button
+		);
+
+		return;
+	}
+
+	const value=
+		String(path||"");
+
+	if(!value){
+		return;
+	}
+
+	const match=
+		value.match(
+			/^([a-zA-Z][\w-]*:)(\/?)(.*)$/
+		);
+
+	if(!match){
+		const button=
+			createBreadcrumb(
+				value,
+				()=>openPath(value),
+				value
+			);
+
+		currentPathBox.appendChild(
+			button
+		);
+
+		return;
+	}
+
+	const scheme=
+		match[1];
+
+	const hasSlash=
+		match[2]==="/";
+
+	const rest=
+		match[3];
+
+	const trailingSlash=
+		value.endsWith("/");
+
+	const segments=
+		rest
+			.split("/")
+			.filter(Boolean);
+
+	const root=
+		breadcrumbRootForPath(
+			value
+		);
+
+	const schemeButton=
+		createBreadcrumb(
+			scheme,
+			()=>{
+				const target=
+					root||(
+						scheme+
+						"/"
+					);
+
+				openPath(
+					target
+				);
+			},
+			root||value
+		);
+
+	currentPathBox.appendChild(
+		schemeButton
+	);
+
+	if(
+		hasSlash
+	){
+		currentPathBox.appendChild(
+			createBreadcrumbSeparator()
+		);
+	}
+
+	let cumulative=
+		scheme+
+		(hasSlash?"/":"");
+
+	for(
+		let i=0;
+		i<segments.length;
+		i++
+	){
+		const segment=
+			segments[i];
+
+		const last=
+			i===
+			segments.length-1;
+
+		const isFile=
+			last&&
+			!trailingSlash;
+
+		cumulative+=
+			segment;
+
+		const target=
+			isFile
+				?cumulative
+				:normalizeFolderPath(
+					cumulative
+				);
+
+		const button=
+			createBreadcrumb(
+				segment,
+				()=>openPath(target),
+				target
+			);
+
+		currentPathBox.appendChild(
+			button
+		);
+
+		if(!last){
+			currentPathBox.appendChild(
+				createBreadcrumbSeparator()
+			);
+			cumulative+="/";
+		}else if(
+			trailingSlash
+		){
+			cumulative+="/";
+		}
+	}
+}
+
 function updatePathDisplay(){
-	if(searchMode){
-		currentPathBox.textContent=
-			pathDisplayOverride||
-			"chxd:SearchResults";
-
-		currentPathBox.title=
-			currentPathBox.textContent;
-
-		return;
-	}
-
-	if(pathDisplayOverride){
-		currentPathBox.textContent=
-			pathDisplayOverride;
-
-		currentPathBox.title=
-			pathDisplayOverride;
-
-		return;
-	}
-
-	const z=zone();
-
-	if(!z){
-		currentPathBox.textContent="";
-		return;
-	}
-
 	const path=
-		currentPrefix||
-		z.prefix;
+		searchMode
+			?(
+				pathDisplayOverride||
+				"chxd:SearchResults"
+			)
+			:(
+				pathDisplayOverride||
+				(
+					()=>{
+						const z=
+							zone();
 
-	currentPathBox.textContent=
-		path;
+						return z
+							?(
+								currentPrefix||
+								z.prefix
+							)
+							:"";
+					}
+				)()
+			);
 
-	currentPathBox.title=
-		path;
+	renderPathBreadcrumbs(
+		path
+	);
 }
 
 function setSearchDisplay(
@@ -721,9 +1070,14 @@ function clearPathDisplayOverride(){
 }
 
 function closeContextMenu(){
-	contextMenu.style.display="none";
-	contextPath=null;
-	contextIsFolder=false;
+	contextMenu.style.display=
+		"none";
+
+	contextPath=
+		null;
+
+	contextIsFolder=
+		false;
 }
 
 function addContextButton(
@@ -731,22 +1085,28 @@ function addContextButton(
 	fn,
 	className=""
 ){
-	const b=document.createElement(
-		"button"
-	);
+	const b=
+		document.createElement(
+			"button"
+		);
 
-	b.textContent=label;
+	b.textContent=
+		label;
 
 	if(className){
-		b.className=className;
+		b.className=
+			className;
 	}
 
-	b.onclick=()=>{
-		closeContextMenu();
-		fn();
-	};
+	b.onclick=
+		()=>{
+			closeContextMenu();
+			fn();
+		};
 
-	contextMenu.appendChild(b);
+	contextMenu.appendChild(
+		b
+	);
 }
 
 function getOwnWindow(){
@@ -846,7 +1206,9 @@ function getTargetApplicationWindow(){
 	}
 }
 
-function sendToTargetApp(paths){
+function sendToTargetApp(
+	paths
+){
 	const clean=
 		paths.filter(
 			p=>!isFolderPath(p)
@@ -924,14 +1286,18 @@ function closePicker(){
 	}
 
 	try{
-		if(window.frameElement){
+		if(
+			window.frameElement
+		){
 			window.frameElement.style.display=
 				"none";
 		}
 	}catch(_){}
 }
 
-function finishFilePick(paths){
+function finishFilePick(
+	paths
+){
 	if(
 		sendToTargetApp(
 			paths
@@ -941,7 +1307,9 @@ function finishFilePick(paths){
 	}
 }
 
-async function openImageEditor(path){
+async function openImageEditor(
+	path
+){
 	try{
 		const r=
 			await parent.FS.read(
@@ -1069,7 +1437,9 @@ async function openImageEditor(path){
 					if(
 						sent
 					){
-						clearInterval(timer);
+						clearInterval(
+							timer
+						);
 					}
 				},
 				100
@@ -1091,7 +1461,8 @@ async function openImageEditor(path){
 function openAppNameForPath(
 	path
 ){
-	const e=ext(path);
+	const e=
+		ext(path);
 
 	if(isImagePath(path)){
 		return "imageViewer";
@@ -1151,8 +1522,12 @@ function openAppNameForPath(
 	return null;
 }
 
-async function openPath(p){
-	if(isFolderPath(p)){
+async function openPath(
+	p
+){
+	if(
+		isFolderPath(p)
+	){
 		if(searchMode){
 			const z=
 				zoneFromPath(p);
@@ -1164,6 +1539,7 @@ async function openPath(p){
 				current=z.key;
 				currentPrefix=
 					normalizeFolderPath(p);
+
 				clearPathDisplayOverride();
 
 				[...tabs.children].forEach(
@@ -1183,6 +1559,7 @@ async function openPath(p){
 		}
 
 		enterFolder(p);
+
 		return;
 	}
 
@@ -1522,7 +1899,6 @@ function showContextMenu(
 							await performSearch(
 								searchQuery
 							);
-
 						}else{
 							invalidateFolder(
 								currentPrefix||
@@ -1583,12 +1959,16 @@ function showContextMenu(
 		)+"px";
 }
 
-function startRenameByPath(path){
+function startRenameByPath(
+	path
+){
 	closeContextMenu();
 
 	const target=
 		[
-			...document.querySelectorAll(".name")
+			...document.querySelectorAll(
+				".name"
+			)
 		].find(
 			n=>
 				n.dataset.path===
@@ -1644,13 +2024,18 @@ function startRename(
 	};
 
 	element.innerHTML="";
-	element.appendChild(input);
+
+	element.appendChild(
+		input
+	);
 
 	input.focus();
 
 	if(!folder){
 		const dot=
-			oldName.lastIndexOf(".");
+			oldName.lastIndexOf(
+				"."
+			);
 
 		if(dot>0){
 			try{
@@ -1712,7 +2097,9 @@ function buildNewPath(
 			)
 			.trim();
 
-	if(!cleanName)return null;
+	if(!cleanName){
+		return null;
+	}
 
 	return(
 		parentFolder(oldPath)+
@@ -1769,10 +2156,14 @@ async function renameUsingFS(
 		const descendants=
 			files.filter(
 				p=>
-					String(p).startsWith(
+					String(
+						p
+					).startsWith(
 						oldPath
 					)&&
-					String(p)!==
+					String(
+						p
+					)!==
 					oldPath
 			);
 
@@ -1780,7 +2171,9 @@ async function renameUsingFS(
 			const source of descendants
 		){
 			if(
-				String(source).endsWith("/")
+				String(
+					source
+				).endsWith("/")
 			){
 				continue;
 			}
@@ -1793,12 +2186,17 @@ async function renameUsingFS(
 			if(!r.ok){
 				throw new Error(
 					r.error||
-					("Could not read "+source)
+					(
+						"Could not read "+
+						source
+					)
 				);
 			}
 
 			const relative=
-				String(source).slice(
+				String(
+					source
+				).slice(
 					oldPath.length
 				);
 
@@ -1815,7 +2213,10 @@ async function renameUsingFS(
 			if(!w.ok){
 				throw new Error(
 					w.error||
-					("Could not create "+newPath)
+					(
+						"Could not create "+
+						newPath
+					)
 				);
 			}
 		}
@@ -1860,7 +2261,10 @@ async function renameUsingFS(
 	if(!r.ok){
 		throw new Error(
 			r.error||
-			("Could not read "+oldPath)
+			(
+				"Could not read "+
+				oldPath
+			)
 		);
 	}
 
@@ -1874,7 +2278,10 @@ async function renameUsingFS(
 	if(!w.ok){
 		throw new Error(
 			w.error||
-			("Could not create "+newPath)
+			(
+				"Could not create "+
+				newPath
+			)
 		);
 	}
 
@@ -1886,7 +2293,10 @@ async function renameUsingFS(
 	if(!d.ok){
 		throw new Error(
 			d.error||
-			("Could not remove "+oldPath)
+			(
+				"Could not remove "+
+				oldPath
+			)
 		);
 	}
 }
@@ -1931,7 +2341,7 @@ async function finishRename(){
 			currentRename.oldPath,
 			newName,
 			currentRename.folder
-		);
+	);
 
 	if(!newPath){
 		cancelRename();
@@ -1958,6 +2368,7 @@ async function finishRename(){
 		true;
 
 	try{
+
 		await renameUsingFS(
 			currentRename.oldPath,
 			newPath
@@ -2041,7 +2452,9 @@ document.addEventListener(
 
 			if(
 				e.target!==input&&
-				!input.contains(e.target)
+				!input.contains(
+					e.target
+				)
 			){
 				finishRename();
 			}
@@ -2073,7 +2486,10 @@ document.addEventListener(
 async function handleFileClick(
 	p
 ){
-	if(searchMode&&!isFolderPath(p)){
+	if(
+		searchMode&&
+		!isFolderPath(p)
+	){
 		setSearchDisplay(p);
 	}
 
@@ -2098,7 +2514,8 @@ function clearSearch(){
 	searchResults=[];
 	clearPathDisplayOverride();
 
-	const z=zone();
+	const z=
+		zone();
 
 	hint.textContent=
 		selectMode
@@ -2109,9 +2526,7 @@ function clearSearch(){
 			)
 			:"Tap a file to open it. Tap a folder to enter it. Double-tap a name to rename. Long-press/right-click for more actions.";
 
-	if(
-		z
-	){
+	if(z){
 		updatePathDisplay();
 	}
 }
@@ -2158,6 +2573,7 @@ async function performSearch(
 	searchQuery=query;
 	pathDisplayOverride=
 		"chxd:SearchResults";
+
 	selected.clear();
 
 	hint.textContent=
@@ -2171,6 +2587,7 @@ async function performSearch(
 		'<div class="empty">Searching...</div>';
 
 	try{
+
 		const all=
 			await parent.FS.list();
 
@@ -2189,14 +2606,11 @@ async function performSearch(
 					x=>String(x)
 				)
 				.filter(
-					p=>{
-						return(
-							regex.test(p)||
-							regex.test(
-								displayName(p)
-							)
-						);
-					}
+					p=>
+						regex.test(p)||
+						regex.test(
+							displayName(p)
+						)
 				);
 
 		sortPaths(
@@ -2250,7 +2664,8 @@ async function navigateOrSearch(
 	}
 
 	if(
-		v.toLowerCase()==="chxd:searchresults"
+		v.toLowerCase()===
+		"chxd:searchresults"
 	){
 		return performSearch(
 			searchQuery
@@ -2262,6 +2677,7 @@ async function navigateOrSearch(
 
 	if(z){
 		try{
+
 			const normalized=
 				parent.FS&&
 				typeof parent.FS.normalize==="function"
@@ -2299,7 +2715,7 @@ async function navigateOrSearch(
 						x.classList.toggle(
 							"active",
 							x.dataset.k===
-							current
+								current
 						)
 				);
 
@@ -2316,6 +2732,7 @@ async function navigateOrSearch(
 				);
 
 			if(exists){
+
 				clearSearch();
 
 				current=
@@ -2333,7 +2750,7 @@ async function navigateOrSearch(
 						x.classList.toggle(
 							"active",
 							x.dataset.k===
-							current
+								current
 						)
 				);
 
@@ -2352,38 +2769,6 @@ async function navigateOrSearch(
 	);
 }
 
-function openDisplayedPath(){
-	const path=
-		currentPathBox.textContent.trim();
-
-	if(!path){
-		return;
-	}
-
-	if(
-		searchMode&&
-		path==="chxd:SearchResults"
-	){
-		return;
-	}
-
-	openPath(path);
-}
-
-currentPathBox.onclick=
-	openDisplayedPath;
-
-currentPathBox.onkeydown=
-	e=>{
-		if(
-			e.key==="Enter"||
-			e.key===" "
-		){
-			e.preventDefault();
-			openDisplayedPath();
-		}
-	};
-
 async function enterFolder(
 	path
 ){
@@ -2396,7 +2781,9 @@ async function enterFolder(
 		normalizeFolderPath(path);
 
 	const z=
-		zoneFromPath(nextPrefix);
+		zoneFromPath(
+			nextPrefix
+		);
 
 	if(z){
 		current=
@@ -2407,14 +2794,16 @@ async function enterFolder(
 				x.classList.toggle(
 					"active",
 					x.dataset.k===
-					current
+						current
 				)
 		);
 	}
 
 	closeContextMenu();
 
-	if(current==="device"){
+	if(
+		current==="device"
+	){
 		const permissionOk=
 			await ensureDevicePermission({
 				path:nextPrefix,
@@ -2434,6 +2823,7 @@ async function enterFolder(
 	searchMode=false;
 	searchQuery="";
 	searchResults=[];
+
 	currentPrefix=
 		nextPrefix;
 
@@ -2450,7 +2840,10 @@ async function enterFolder(
 		);
 
 	if(existing){
-		renderFiles(existing);
+
+		renderFiles(
+			existing
+		);
 
 		preloadNearbyFolders(
 			existing
@@ -2463,6 +2856,7 @@ async function enterFolder(
 		'<div class="empty">Loading...</div>';
 
 	try{
+
 		const files=
 			await loadFolderData(
 				currentPrefix,
@@ -2510,7 +2904,9 @@ function invalidateFolder(
 	folderCache.delete(
 		cacheKey(
 			current,
-			normalizeFolderPath(path)
+			normalizeFolderPath(
+				path
+			)
 		)
 	);
 }
@@ -2519,7 +2915,9 @@ function clearFolderCachesForPrefix(
 	prefix
 ){
 	prefix=
-		normalizeFolderPath(prefix);
+		normalizeFolderPath(
+			prefix
+		);
 
 	for(
 		const key of
@@ -2592,7 +2990,11 @@ async function requestHandlePermission(
 				mode:"readwrite"
 			});
 	}catch(err){
-		permissionCache.delete(key);
+
+		permissionCache.delete(
+			key
+		);
+
 		throw err;
 	}
 
@@ -2617,7 +3019,11 @@ async function requestHandlePermission(
 					mode:"readwrite"
 				});
 		}catch(err){
-			permissionCache.delete(key);
+
+			permissionCache.delete(
+				key
+			);
+
 			throw err;
 		}
 	}
@@ -2702,6 +3108,7 @@ async function ensureDevicePermission(
 		mounts=
 			await refreshDeviceMountCache();
 	}catch(err){
+
 		showError(
 			"Could not restore device filesystem: "+
 			(err.message||String(err))
@@ -2760,14 +3167,14 @@ async function ensureDevicePermission(
 			continue;
 		}
 
-		const state=
+		const permission=
 			await requestHandlePermission(
 				mount.handle,
 				mount.name
 			);
 
 		if(
-			state==="granted"
+			permission==="granted"
 		){
 			continue;
 		}
@@ -2807,6 +3214,7 @@ async function remountDeviceAfterPermissionLoss(){
 	}
 
 	try{
+
 		showMountStatus(
 			"File System Access permission is required. Chrome will ask you to choose the folder.",
 			true
@@ -2819,6 +3227,7 @@ async function remountDeviceAfterPermissionLoss(){
 			!result||
 			!result.ok
 		){
+
 			if(
 				result&&
 				result.cancelled
@@ -2901,13 +3310,17 @@ async function loadFolderData(
 		!force&&
 		folderCache.has(key)
 	){
-		return folderCache.get(key).slice();
+		return folderCache.get(
+			key
+		).slice();
 	}
 
 	if(
 		folderLoading.has(key)
 	){
-		return folderLoading.get(key);
+		return folderLoading.get(
+			key
+		);
 	}
 
 	const loading=
@@ -2955,6 +3368,7 @@ async function loadFolderData(
 			for(
 				const p of raw
 			){
+
 				if(
 					!p.startsWith(
 						base
@@ -2968,7 +3382,9 @@ async function loadFolderData(
 						base.length
 					);
 
-				if(!rest)continue;
+				if(!rest){
+					continue;
+				}
 
 				const clean=
 					rest.replace(
@@ -2976,14 +3392,19 @@ async function loadFolderData(
 						""
 					);
 
-				if(!clean)continue;
+				if(!clean){
+					continue;
+				}
 
 				const slash=
-					clean.indexOf("/");
+					clean.indexOf(
+						"/"
+					);
 
 				if(
 					slash>=0
 				){
+
 					const folderPath=
 						base+
 						clean.slice(
@@ -3000,8 +3421,12 @@ async function loadFolderData(
 							folderPath
 						);
 					}
+
 				}else{
-					visible.push(p);
+
+					visible.push(
+						p
+					);
 				}
 			}
 
@@ -3124,7 +3549,9 @@ function renderCurrentFromCache(){
 	const z=
 		zone();
 
-	if(!z)return;
+	if(!z){
+		return;
+	}
 
 	const base=
 		currentPrefix||
@@ -3176,7 +3603,9 @@ function makeRow(p){
 	row.dataset.path=
 		p;
 
-	if(selected.has(p)){
+	if(
+		selected.has(p)
+	){
 		row.classList.add(
 			"selected"
 		);
@@ -3263,14 +3692,18 @@ function makeRow(p){
 				searchMode&&
 				!folder
 			){
-				setSearchDisplay(p);
+				setSearchDisplay(
+					p
+				);
 			}
 
 			if(
 				selectMode&&
 				!folder
 			){
+
 				if(allowMultiple){
+
 					if(
 						selected.has(p)
 					){
@@ -3280,8 +3713,12 @@ function makeRow(p){
 					}
 
 					renderSearchOrCurrent();
+
 				}else{
-					finishFilePick([p]);
+
+					finishFilePick(
+						[p]
+					);
 				}
 
 				return;
@@ -3403,6 +3840,7 @@ function makeRow(p){
 		if(
 			isTopLevelDeviceMount(p)
 		){
+
 			const dismountBtn=
 				document.createElement(
 					"button"
@@ -3463,6 +3901,7 @@ function makeRow(p){
 		if(!selectMode){
 
 			if(image){
+
 				const editImageBtn=
 					document.createElement(
 						"button"
@@ -3498,6 +3937,7 @@ function makeRow(p){
 				e!=="zip"&&
 				!image
 			){
+
 				const editBtn=
 					document.createElement(
 						"button"
@@ -3515,6 +3955,7 @@ function makeRow(p){
 			}
 
 			if(e==="zip"){
+
 				const unzipBtn=
 					document.createElement(
 						"button"
@@ -3544,8 +3985,11 @@ function makeRow(p){
 					"html",
 					"css",
 					"lua"
-				].includes(e)
+				].includes(
+					e
+				)
 			){
+
 				const codeBtn=
 					document.createElement(
 						"button"
@@ -3574,6 +4018,7 @@ function makeRow(p){
 				pathZone&&
 				pathZone.key!=="system"
 			){
+
 				const del=
 					document.createElement(
 						"button"
@@ -3601,10 +4046,13 @@ function makeRow(p){
 						selected.delete(p);
 
 						if(searchMode){
+
 							await performSearch(
 								searchQuery
 							);
+
 						}else{
+
 							invalidateFolder(
 								currentPrefix||
 								pathZone.prefix
@@ -3619,7 +4067,9 @@ function makeRow(p){
 				);
 			}
 
-		}else if(allowMultiple){
+		}else if(
+			allowMultiple
+		){
 
 			const pickBtn=
 				document.createElement(
@@ -3686,7 +4136,9 @@ function renderFiles(
 		document.createDocumentFragment();
 
 	const step=()=>{
-		if(serial!==refreshSerial){
+		if(
+			serial!==refreshSerial
+		){
 			return;
 		}
 
@@ -3711,6 +4163,7 @@ function renderFiles(
 		if(
 			fragment.childNodes.length
 		){
+
 			list.appendChild(
 				fragment
 			);
@@ -3722,6 +4175,7 @@ function renderFiles(
 		if(
 			index<files.length
 		){
+
 			scheduleFrame(
 				step
 			);
@@ -3734,6 +4188,7 @@ function renderFiles(
 			allowMultiple&&
 			serial===refreshSerial
 		){
+
 			const footer=
 				document.createElement(
 					"div"
@@ -3782,6 +4237,7 @@ async function refresh(
 	cancelRename();
 
 	if(searchMode){
+
 		await performSearch(
 			searchQuery
 		);
@@ -3792,13 +4248,16 @@ async function refresh(
 	const z=
 		zone();
 
-	if(!z)return;
+	if(!z){
+		return;
+	}
 
 	updatePathDisplay();
 
 	if(
 		z.key==="device"
 	){
+
 		const permissionOk=
 			await ensureDevicePermission({
 				path:
@@ -3808,6 +4267,7 @@ async function refresh(
 			});
 
 		if(!permissionOk){
+
 			list.innerHTML=
 				'<div class="empty">File System Access permission is required. Use DEVICE again or UPLOAD FOLDER to restore the Chrome permission.</div>';
 
@@ -3821,6 +4281,7 @@ async function refresh(
 		typeof parent.FS.puterReady==="function"&&
 		!parent.FS.puterReady()
 	){
+
 		list.innerHTML=
 			'<div class="empty">Puter filesystem unavailable.</div>';
 
@@ -3843,6 +4304,7 @@ async function refresh(
 		!force&&
 		folderCache.has(key)
 	){
+
 		renderFiles(
 			folderCache.get(
 				key
@@ -3856,6 +4318,7 @@ async function refresh(
 		'<div class="empty">Loading...</div>';
 
 	try{
+
 		const files=
 			await loadFolderData(
 				base,
@@ -3869,6 +4332,7 @@ async function refresh(
 				z.prefix
 			)===base
 		){
+
 			renderFiles(
 				files
 			);
@@ -3919,9 +4383,12 @@ function goUp(){
 	if(
 		p===root
 	){
+
 		currentPrefix="";
 		clearPathDisplayOverride();
+
 		refresh(false);
+
 		return;
 	}
 
@@ -3950,6 +4417,7 @@ function goUp(){
 		);
 
 	if(cached){
+
 		renderFiles(
 			cached
 		);
@@ -3957,7 +4425,9 @@ function goUp(){
 		preloadNearbyFolders(
 			cached
 		);
+
 	}else{
+
 		refresh(false);
 	}
 }
@@ -3969,6 +4439,7 @@ async function edit(p){
 	}
 
 	try{
+
 		const result=
 			await parent.Apps.openApp(
 				"Notepad",
@@ -3991,7 +4462,9 @@ async function edit(p){
 				"Could not open Notepad."
 			);
 		}
+
 	}catch(err){
+
 		showError(
 			err.message||
 			String(err)
@@ -4012,6 +4485,7 @@ async function code(){
 	for(
 		const p of paths
 	){
+
 		if(
 			isFolderPath(p)
 		){
@@ -4024,6 +4498,7 @@ async function code(){
 			);
 
 		if(r.ok){
+
 			files.push({
 				name:
 					p.split("/").pop(),
@@ -4060,8 +4535,11 @@ function downloadData(
 			"a"
 		);
 
-	a.href=data;
-	a.download=name;
+	a.href=
+		data;
+
+	a.download=
+		name;
 
 	document.body.appendChild(
 		a
@@ -4080,6 +4558,7 @@ async function downloadBinary(
 		);
 
 	if(!r.ok){
+
 		showError(
 			r.error
 		);
@@ -4093,6 +4572,7 @@ async function downloadBinary(
 			r.content
 		)
 	){
+
 		showError(
 			"This file does not contain downloadable binary data."
 		);
@@ -4138,6 +4618,7 @@ function dataURLToBytes(
 			header
 		)
 	){
+
 		const binary=
 			atob(body);
 
@@ -4263,7 +4744,9 @@ async function unzipFile(
 			defaultFolder
 		);
 
-	if(!output)return;
+	if(!output){
+		return;
+	}
 
 	let outputFolder=
 		String(
@@ -4277,6 +4760,7 @@ async function unzipFile(
 	}
 
 	try{
+
 		const r=
 			await parent.FS.read(
 				zipPath
@@ -4297,6 +4781,7 @@ async function unzipFile(
 				r.content
 			)
 		){
+
 			showError(
 				"ZIP does not contain binary data."
 			);
@@ -4453,6 +4938,7 @@ async function unzipFile(
 				if(
 					method===0
 				){
+
 					fileBytes=
 						compressed;
 
@@ -4487,6 +4973,7 @@ async function unzipFile(
 						);
 
 				}else{
+
 					throw new Error(
 						"Unsupported ZIP compression method "+
 						method+
@@ -4549,10 +5036,13 @@ async function unzipFile(
 		}
 
 		if(searchMode){
+
 			await performSearch(
 				searchQuery
 			);
+
 		}else{
+
 			invalidateFolder(
 				currentPrefix||
 				zone().prefix
@@ -4569,6 +5059,7 @@ async function unzipFile(
 		}
 
 	}catch(err){
+
 		showError(
 			"UNZIP failed: "+
 			(err.message||String(err))
@@ -4639,6 +5130,7 @@ function makeZip(
 	for(
 		const entry of entries
 	){
+
 		const name=
 			utf8(
 				entry.name.replace(
@@ -4770,12 +5262,14 @@ async function collectFiles(
 	for(
 		const p0 of paths
 	){
+
 		const p=
 			String(p0);
 
 		if(
 			isFolderPath(p)
 		){
+
 			const base=
 				normalizeFolderPath(
 					p
@@ -4795,6 +5289,7 @@ async function collectFiles(
 			for(
 				const item0 of files
 			){
+
 				const item=
 					String(item0);
 
@@ -4879,6 +5374,7 @@ async function downloadItem(
 		if(
 			isFolderPath(path)
 		){
+
 			const entries=
 				await collectFiles(
 					[path]
@@ -4903,6 +5399,7 @@ async function downloadItem(
 		if(
 			ext(path)==="zip"
 		){
+
 			await downloadBinary(
 				path
 			);
@@ -4916,6 +5413,7 @@ async function downloadItem(
 			);
 
 		if(!r.ok){
+
 			showError(
 				r.error||
 				"Could not read file."
@@ -4930,6 +5428,7 @@ async function downloadItem(
 				r.content
 			)
 		){
+
 			downloadData(
 				r.content,
 				displayName(path)
@@ -4972,6 +5471,7 @@ async function downloadSelected(){
 		selectedPaths();
 
 	if(!paths.length){
+
 		showError(
 			"Select files or folders first."
 		);
@@ -4984,6 +5484,7 @@ async function downloadSelected(){
 		if(
 			paths.length===1
 		){
+
 			await downloadItem(
 				paths[0]
 			);
@@ -5032,6 +5533,7 @@ function preloadNearbyFolders(
 	for(
 		const folder of folders
 	){
+
 		if(
 			preloading.has(folder)
 		){
@@ -5074,16 +5576,20 @@ function preloadNearbyFolders(
 function preloadInitialFilesystem(){
 	const run=
 		async()=>{
+
 			try{
+
 				if(
 					parent.FS&&
 					typeof parent.FS.getDeviceMounts==="function"
 				){
 					await refreshDeviceMountCache();
 				}
+
 			}catch(_){}
 
 			try{
+
 				const z=
 					zone();
 
@@ -5093,6 +5599,7 @@ function preloadInitialFilesystem(){
 						false
 					);
 				}
+
 			}catch(_){}
 
 			const deviceMounts=
@@ -5103,6 +5610,7 @@ function preloadInitialFilesystem(){
 			for(
 				const mount of deviceMounts
 			){
+
 				if(
 					!mount||
 					!mount.name
@@ -5144,9 +5652,11 @@ document.getElementById(
 	"selectAll"
 ).onclick=
 	async()=>{
+
 		cancelRename();
 
 		if(searchMode){
+
 			for(
 				const p of searchResults
 			){
@@ -5164,6 +5674,7 @@ document.getElementById(
 			zone();
 
 		try{
+
 			const files=
 				await loadFolderData(
 					currentPrefix||
@@ -5178,6 +5689,7 @@ document.getElementById(
 			for(
 				const p of files
 			){
+
 				if(
 					String(p).startsWith(
 						base
@@ -5206,6 +5718,7 @@ document.getElementById(
 	"newText"
 ).onclick=
 	async()=>{
+
 		cancelRename();
 
 		const defaultPath=
@@ -5221,7 +5734,9 @@ document.getElementById(
 				defaultPath
 			);
 
-		if(!name)return;
+		if(!name){
+			return;
+		}
 
 		const r=
 			await parent.FS.write(
@@ -5231,6 +5746,7 @@ document.getElementById(
 			);
 
 		if(!r.ok){
+
 			showError(
 				r.error
 			);
@@ -5239,10 +5755,13 @@ document.getElementById(
 		}
 
 		if(searchMode){
+
 			await performSearch(
 				searchQuery
 			);
+
 		}else{
+
 			invalidateFolder(
 				currentPrefix||
 				zone().prefix
@@ -5258,12 +5777,14 @@ document.getElementById(
 	"zip"
 ).onclick=
 	async()=>{
+
 		cancelRename();
 
 		const fs=
 			selectedPaths();
 
 		if(!fs.length){
+
 			showError(
 				"Select files first."
 			);
@@ -5281,7 +5802,9 @@ document.getElementById(
 				"archive.zip"
 			);
 
-		if(!out)return;
+		if(!out){
+			return;
+		}
 
 		try{
 
@@ -5295,6 +5818,7 @@ document.getElementById(
 				);
 
 			if(!r.ok){
+
 				showError(
 					r.summary||
 					"Could not create ZIP."
@@ -5306,10 +5830,13 @@ document.getElementById(
 			selected.clear();
 
 			if(searchMode){
+
 				await performSearch(
 					searchQuery
 				);
+
 			}else{
+
 				invalidateFolder(
 					currentPrefix||
 					zone().prefix
@@ -5371,8 +5898,10 @@ document.addEventListener(
 			e.key.toLowerCase()==="c"&&
 			uploadTerminal
 		){
+
 			e.preventDefault();
 			e.stopPropagation();
+
 			askUploadStop();
 		}
 	},
@@ -5381,11 +5910,13 @@ document.addEventListener(
 
 function stopUploadUiTimer(){
 	if(uploadUiTimer){
+
 		clearInterval(
 			uploadUiTimer
 		);
 
-		uploadUiTimer=null;
+		uploadUiTimer=
+			null;
 	}
 }
 
@@ -5393,7 +5924,9 @@ document.getElementById(
 	"mountFolder"
 ).onclick=
 	async()=>{
+
 		if(uploadTerminal){
+
 			showError(
 				"A folder upload is already running."
 			);
@@ -5404,6 +5937,7 @@ document.getElementById(
 		cancelRename();
 
 		try{
+
 			uploadTerminal=
 				openLittleHollowTerminal(
 					"mount_folder",
@@ -5479,9 +6013,8 @@ document.getElementById(
 
 				setTimeout(
 					()=>{
-						if(
-							uploadTerminal
-						){
+						if(uploadTerminal){
+
 							closeLittleHollowTerminal(
 								uploadTerminal
 							);
@@ -5550,7 +6083,9 @@ document.getElementById(
 			const progressTimer=
 				setInterval(
 					()=>{
-						if(!uploadTerminal){
+						if(
+							!uploadTerminal
+						){
 							return;
 						}
 
@@ -5619,9 +6154,8 @@ document.getElementById(
 
 			setTimeout(
 				()=>{
-					if(
-						uploadTerminal
-					){
+					if(uploadTerminal){
+
 						closeLittleHollowTerminal(
 							uploadTerminal
 						);
@@ -5646,6 +6180,7 @@ document.getElementById(
 			stopUploadUiTimer();
 
 			if(uploadTerminal){
+
 				terminalWrite(
 					uploadTerminal,
 					"Upload failed: "+
@@ -5662,6 +6197,7 @@ document.getElementById(
 			setTimeout(
 				()=>{
 					if(uploadTerminal){
+
 						closeLittleHollowTerminal(
 							uploadTerminal
 						);
@@ -5698,6 +6234,7 @@ zones.forEach(
 
 		b.onclick=
 			async()=>{
+
 				cancelRename();
 
 				searchMode=false;
@@ -5718,7 +6255,7 @@ zones.forEach(
 						x.classList.toggle(
 							"active",
 							x.dataset.k===
-							current
+								current
 						)
 				);
 
@@ -5727,6 +6264,7 @@ zones.forEach(
 				if(
 					z.key==="device"
 				){
+
 					const ok=
 						await ensureDevicePermission({
 							force:true,
@@ -5745,7 +6283,9 @@ zones.forEach(
 				preloadInitialFilesystem();
 			};
 
-		tabs.appendChild(b);
+		tabs.appendChild(
+			b
+		);
 	}
 );
 
@@ -5786,7 +6326,7 @@ async function initialize(){
 			x.classList.toggle(
 				"active",
 				x.dataset.k===
-				current
+					current
 			)
 	);
 
@@ -5801,12 +6341,14 @@ async function initialize(){
 			parent.FS&&
 			typeof parent.FS.getDeviceMounts==="function"
 		){
+
 			await refreshDeviceMountCache();
 
 			for(
 				const mount of
 				deviceMountCache.values()
 			){
+
 				if(
 					!mount||
 					!mount.name||
@@ -5818,7 +6360,9 @@ async function initialize(){
 				if(
 					typeof mount.handle.queryPermission==="function"
 				){
+
 					try{
+
 						const permission=
 							await mount.handle.queryPermission({
 								mode:"readwrite"
@@ -5827,15 +6371,18 @@ async function initialize(){
 						if(
 							permission==="granted"
 						){
+
 							permissionCache.set(
 								mount.name,
 								"granted"
 							);
 						}
+
 					}catch(_){}
 				}
 			}
 		}
+
 	}catch(_){}
 
 	try{
