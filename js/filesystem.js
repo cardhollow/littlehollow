@@ -828,7 +828,8 @@
     async function deviceWrite(
         path,
         content,
-        create = true
+        create = true,
+        allowBinary = false
     ){
         const normalized =
             normalize(path);
@@ -934,7 +935,9 @@
                 await fileHandle.createWritable();
 
             await writable.write(
-                String(content)
+                allowBinary
+                    ? content
+                    : String(content)
             );
 
             await writable.close();
@@ -1321,7 +1324,9 @@
 
     async function puterWrite(
         path,
-        content
+        content,
+        create = true,
+        allowBinary = false
     ){
         if(
             !window.puter ||
@@ -1339,7 +1344,9 @@
         try{
             await puter.fs.write(
                 path.slice(7),
-                String(content)
+                allowBinary
+                    ? content
+                    : String(content)
             );
 
             return {
@@ -1561,7 +1568,9 @@
                 : {
                     ok: true,
                     content:
-                        String(v)
+                        typeof v === "string"
+                            ? v
+                            : v
                 };
         }
 
@@ -1576,7 +1585,8 @@
     async function write(
         path,
         content,
-        create = true
+        create = true,
+        allowBinary = false
     ){
         path =
             normalize(path);
@@ -1597,7 +1607,8 @@
             return deviceWrite(
                 path,
                 content,
-                create
+                create,
+                allowBinary
             );
         }
 
@@ -1605,7 +1616,8 @@
             return puterWrite(
                 path,
                 content,
-                create
+                create,
+                allowBinary
             );
         }
 
@@ -1631,6 +1643,15 @@
         }
 
         if(z === "local"){
+            if(allowBinary){
+                return {
+                    ok: false,
+                    error:
+                        "Binary writing is not supported by localStorage: " +
+                        path
+                };
+            }
+
             localStorage.setItem(
                 storageKey(path),
                 String(content)
@@ -1642,6 +1663,15 @@
         }
 
         if(z === "session"){
+            if(allowBinary){
+                return {
+                    ok: false,
+                    error:
+                        "Binary writing is not supported by sessionStorage: " +
+                        path
+                };
+            }
+
             sessionStorage.setItem(
                 storageKey(path),
                 String(content)
@@ -1655,7 +1685,9 @@
         if(z === "indexdb"){
             await idbSet(
                 storageKey(path),
-                String(content)
+                allowBinary
+                    ? content
+                    : String(content)
             );
 
             return {
@@ -1671,6 +1703,7 @@
         };
     }
 
+    
     async function remove(path){
         path =
             normalize(path);
