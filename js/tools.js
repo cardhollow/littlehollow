@@ -28,7 +28,25 @@
               "videoPlayer",
               "audioPlayer",
               "Messenger",
-              "Settings"
+              "Settings",
+              "App Installer",
+              "Terminal JS",
+              "Recorder",
+              "Camera",
+              "2048",
+              "Minesweeper",
+              "Sudoku",
+              "SOS",
+              "Tetris",
+              "Wordle",
+              "Document Viewer",
+              "Game Finder",
+              "Doom",
+              "Pacman",
+              "GBA",
+              "Browser",
+              "Image Editor",
+              "Maps"
             ]
           },
           src:
@@ -554,6 +572,258 @@
           }
         },
         required: ["code"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function:
+    {
+      name: "browser_action",
+      description: "Full control of the built-in Browser application. Automatically opens Browser when needed. Actions: open_url (url,title), new_tab, get_tabs, get_current_tab, close_tab (index), close_tab_by_id (id), back, forward, reload. Returns the Browser API result/state.",
+      parameters:
+      {
+        type: "object",
+        properties:
+        {
+          action:
+          {
+            type: "string",
+            enum: [
+              "open_url",
+              "new_tab",
+              "get_tabs",
+              "get_current_tab",
+              "close_tab",
+              "close_tab_by_id",
+              "back",
+              "forward",
+              "reload"
+            ]
+          },
+          url:
+          {
+            type: "string"
+          },
+          title:
+          {
+            type: "string"
+          },
+          index:
+          {
+            type: "integer",
+            minimum: 0
+          },
+          id:
+          {
+            type: "integer",
+            minimum: 0
+          }
+        },
+        required: ["action"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function:
+    {
+      name: "camera_action",
+      description: "Full control of the built-in Camera app through CameraAPI. Automatically opens Camera when needed. Supports open, close, photo/capture/picture, recording start/stop, timed record in milliseconds, camera/orientation/facing front/back/switch, switch, and state/status. The photo and recording operations save media using the Camera app's own storage behavior and return the resulting path when available.",
+      parameters:
+      {
+        type: "object",
+        properties:
+        {
+          actions:
+          {
+            type: "object",
+            additionalProperties: true,
+            description: "CameraAPI action object. Examples: {\"open\":true}, {\"photo\":true}, {\"recording\":\"start\"}, {\"record\":5000}, {\"facing\":\"front\"}, {\"switch\":true}, {\"state\":true}. Multiple actions can be supplied in one call."
+          }
+        },
+        required: ["actions"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function:
+    {
+      name: "document_action",
+      description: "Full control of the built-in Document Viewer through DocumentAPI. Automatically opens Document Viewer when needed. Supports open, close, next/nextpage, previous/prev/previouspage, page/goto, zoom, find/search, and state. Can open supported virtual-file paths or source URLs accepted by the viewer.",
+      parameters:
+      {
+        type: "object",
+        properties:
+        {
+          actions:
+          {
+            type: "object",
+            additionalProperties: true,
+            description: "DocumentAPI action object. Examples: {\"open\":\"chxd:/local/file.pdf\"}, {\"next\":true}, {\"goto\":3}, {\"zoom\":1.5}, {\"search\":\"hello\"}, {\"state\":true}. Multiple actions can be supplied in one call."
+          }
+        },
+        required: ["actions"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function:
+    {
+      name: "image_editor_action",
+      description: "Full control of the built-in Image Editor's exported LHImageEditor API. Automatically opens Image Editor when needed. Supports receive/load/open image data, get_document, get_state, export_image, set_tool, and fit_canvas. Image export returns a data URL.",
+      parameters:
+      {
+        type: "object",
+        properties:
+        {
+          action:
+          {
+            type: "string",
+            enum: [
+              "receive_image",
+              "open_image_data",
+              "load_image",
+              "get_document",
+              "get_state",
+              "export_image",
+              "set_tool",
+              "fit_canvas"
+            ]
+          },
+          data:
+          {
+            type: "string",
+            description: "Image source accepted by the editor, normally a data URL or other string source accepted by receiveImage."
+          },
+          name:
+          {
+            type: "string"
+          },
+          format:
+          {
+            type: "string",
+            enum: ["png", "jpeg", "jpg", "webp"]
+          },
+          quality:
+          {
+            type: "number",
+            minimum: 0,
+            maximum: 1
+          },
+          tool:
+          {
+            type: "string"
+          }
+        },
+        required: ["action"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function:
+    {
+      name: "maps_action",
+      description: "Full control of the built-in Maps application through its exported Maps API. Automatically opens Maps when needed. Supports search, get_coordinates, set_zoom, and set_location.",
+      parameters:
+      {
+        type: "object",
+        properties:
+        {
+          action:
+          {
+            type: "string",
+            enum: [
+              "search",
+              "get_coordinates",
+              "set_zoom",
+              "set_location"
+            ]
+          },
+          query:
+          {
+            type: "string"
+          },
+          zoom:
+          {
+            type: "number",
+            minimum: 1,
+            maximum: 20
+          },
+          lat:
+          {
+            type: "number",
+            minimum: -90,
+            maximum: 90
+          },
+          lng:
+          {
+            type: "number",
+            minimum: -180,
+            maximum: 180
+          },
+          name:
+          {
+            type: "string"
+          }
+        },
+        required: ["action"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function:
+    {
+      name: "list_windows",
+      description: "List currently open Little Hollow windows with their ids, titles, minimized/maximized/closed state, and standalone keys.",
+      parameters:
+      {
+        type: "object",
+        properties: {}
+      }
+    }
+  },
+  {
+    type: "function",
+    function:
+    {
+      name: "close_window",
+      description: "Close one currently open Little Hollow window by its window id as returned by list_windows.",
+      parameters:
+      {
+        type: "object",
+        properties:
+        {
+          window_id:
+          {
+            type: "string"
+          }
+        },
+        required: ["window_id"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function:
+    {
+      name: "focus_window",
+      description: "Bring one currently open Little Hollow window to the front by window id as returned by list_windows.",
+      parameters:
+      {
+        type: "object",
+        properties:
+        {
+          window_id:
+          {
+            type: "string"
+          }
+        },
+        required: ["window_id"]
       }
     }
   },
@@ -1781,6 +2051,161 @@ e
         );
       });
   }
+  function listWMWindows(){
+    try{
+      return WM && typeof WM.list === "function" ? WM.list() : [];
+    }catch(_){
+      return [];
+    }
+  }
+
+  function findWindowById(id){
+    const wanted=String(id||"");
+    return listWMWindows().find(w=>String(w&&w.id||"")===wanted) || null;
+  }
+
+  function findIframeWindowByPath(parts){
+    const wanted=(Array.isArray(parts)?parts:[]).map(x=>String(x).toLowerCase());
+    for(const win of listWMWindows()){
+      try{
+        const frame=win && win.el && win.el.querySelector ? win.el.querySelector("iframe") : null;
+        if(!frame || !frame.contentWindow) continue;
+        const src=String(frame.getAttribute("src")||frame.src||"").toLowerCase();
+        if(wanted.some(part=>src.includes(part))) return {win,frame,api:frame.contentWindow};
+      }catch(_){ }
+    }
+    return null;
+  }
+
+  async function waitForIframeApp(appName, pathHints, timeoutMs=5000){
+    let found=findIframeWindowByPath(pathHints);
+    if(found) return found;
+    let opened=null;
+    try{
+      opened=Apps.openApp(appName,{allowMultiple:false});
+    }catch(e){
+      return {ok:false,error:e.message||String(e)};
+    }
+    if(opened && opened.ok && opened.win){
+      const frame=opened.win.el && opened.win.el.querySelector ? opened.win.el.querySelector("iframe") : null;
+      const start=Date.now();
+      while(Date.now()-start<timeoutMs){
+        try{
+          if(frame && frame.contentWindow){
+            const doc=frame.contentDocument;
+            if(doc && doc.readyState!=="loading") return {win:opened.win,frame,api:frame.contentWindow};
+          }
+        }catch(_){ }
+        await new Promise(r=>setTimeout(r,50));
+      }
+      if(frame && frame.contentWindow) return {win:opened.win,frame,api:frame.contentWindow};
+    }
+    const start=Date.now();
+    while(Date.now()-start<timeoutMs){
+      found=findIframeWindowByPath(pathHints);
+      if(found) return found;
+      await new Promise(r=>setTimeout(r,50));
+    }
+    return {ok:false,error:"Could not access the "+appName+" application frame."};
+  }
+
+  async function waitForGlobalAPI(apiName, appName, pathHints, timeoutMs=5000){
+    if(window[apiName]) return window[apiName];
+    const info=await waitForIframeApp(appName,pathHints,timeoutMs);
+    if(info && info.ok===false) throw new Error(info.error);
+    const start=Date.now();
+    while(Date.now()-start<timeoutMs){
+      if(window[apiName]) return window[apiName];
+      await new Promise(r=>setTimeout(r,50));
+    }
+    // A few apps intentionally export the API into their own iframe window.
+    if(info && info.api && info.api[apiName]) return info.api[apiName];
+    throw new Error(appName+" API is not available.");
+  }
+
+  async function browserAction(args){
+    const info=await waitForIframeApp("Browser",["app/browser.html","/browser.html"]);
+    if(info && info.ok===false) return {ok:false,summary:info.error};
+    const api=info.api && info.api.BrowserAPI;
+    if(!api) return {ok:false,summary:"BrowserAPI is not available."};
+    try{
+      const action=String(args.action||"").toLowerCase();
+      let result;
+      if(action==="open_url"){
+        if(!args.url) return {ok:false,summary:"url is required for open_url."};
+        result=api.openUrl(String(args.url),args.title);
+      }else if(action==="new_tab") result=api.newTab();
+      else if(action==="get_tabs") result=api.getTabs();
+      else if(action==="get_current_tab") result=api.getCurrentTab();
+      else if(action==="close_tab") result=api.closeTab(Number(args.index));
+      else if(action==="close_tab_by_id") result=api.closeTabById(Number(args.id));
+      else if(action==="back") result=api.back();
+      else if(action==="forward") result=api.forward();
+      else if(action==="reload") result=api.reload();
+      else return {ok:false,summary:"Unknown browser action: "+action};
+      return {ok:true,summary:"Browser action "+action+" completed.",result};
+    }catch(e){return {ok:false,summary:"Browser action failed: "+(e.message||String(e))};}
+  }
+
+  async function cameraAction(args){
+    try{
+      const api=await waitForGlobalAPI("CameraAPI","Camera",["app/camera.html","/camera.html"]);
+      const result=await api.action(args.actions||{});
+      return result && typeof result==="object" ? result : {ok:true,summary:"Camera action completed.",result};
+    }catch(e){return {ok:false,summary:"Camera action failed: "+(e.message||String(e))};}
+  }
+
+  async function documentAction(args){
+    const info=await waitForIframeApp("Document Viewer",["app/DocumentViewer.html","/DocumentViewer.html"]);
+    if(info && info.ok===false) return {ok:false,summary:info.error};
+    const api=(window.DocumentAPI|| (info.api&&info.api.DocumentAPI));
+    if(!api) return {ok:false,summary:"DocumentAPI is not available."};
+    try{
+      const result=await api.action(args.actions||{});
+      return result && typeof result==="object" ? result : {ok:true,summary:"Document action completed.",result};
+    }catch(e){return {ok:false,summary:"Document action failed: "+(e.message||String(e))};}
+  }
+
+  async function imageEditorAction(args){
+    const info=await waitForIframeApp("Image Editor",["app/imageEditor.html","/imageEditor.html"]);
+    if(info && info.ok===false) return {ok:false,summary:info.error};
+    const api=info.api&&info.api.LHImageEditor;
+    if(!api) return {ok:false,summary:"LHImageEditor API is not available."};
+    try{
+      const action=String(args.action||"").toLowerCase();
+      let result;
+      if(action==="receive_image"||action==="open_image_data"||action==="load_image") result=await api[action==="receive_image"?"receiveImage":action==="open_image_data"?"openImageData":"loadImage"](args.data,args.name);
+      else if(action==="get_document") result=api.getDocument();
+      else if(action==="get_state") result=api.getState();
+      else if(action==="export_image") result=await api.exportImage(args.format||"png",args.quality==null?.92:Number(args.quality));
+      else if(action==="set_tool") result=api.setTool(String(args.tool||""));
+      else if(action==="fit_canvas") result=api.fitCanvas();
+      else return {ok:false,summary:"Unknown image editor action: "+action};
+      return {ok:true,summary:"Image Editor action "+action+" completed.",result};
+    }catch(e){return {ok:false,summary:"Image Editor action failed: "+(e.message||String(e))};}
+  }
+
+  async function mapsAction(args){
+    const info=await waitForIframeApp("Maps",["app/map.html","/map.html"]);
+    if(info && info.ok===false) return {ok:false,summary:info.error};
+    const api=info.api&&info.api.Maps;
+    if(!api) return {ok:false,summary:"Maps API is not available."};
+    try{
+      const action=String(args.action||"").toLowerCase();
+      let result;
+      if(action==="search"){
+        if(!args.query) return {ok:false,summary:"query is required for search."};
+        result=await api.search(String(args.query));
+      }else if(action==="get_coordinates") result=api.getCoordinates();
+      else if(action==="set_zoom") result=api.setZoom(Number(args.zoom));
+      else if(action==="set_location"){
+        if(!Number.isFinite(Number(args.lat))||!Number.isFinite(Number(args.lng))) return {ok:false,summary:"lat and lng are required for set_location."};
+        result=api.setLocation(Number(args.lat),Number(args.lng),args.name);
+      }else return {ok:false,summary:"Unknown maps action: "+action};
+      return {ok:true,summary:"Maps action "+action+" completed.",result};
+    }catch(e){return {ok:false,summary:"Maps action failed: "+(e.message||String(e))};}
+  }
+
   async function executeRaw(
     name,
     args
@@ -2482,6 +2907,39 @@ e
           )
         )
       );
+    }
+    if (name === "browser_action") return await browserAction(args);
+    if (name === "camera_action") return await cameraAction(args);
+    if (name === "document_action") return await documentAction(args);
+    if (name === "image_editor_action") return await imageEditorAction(args);
+    if (name === "maps_action") return await mapsAction(args);
+    if (name === "list_windows"){
+      const windows=listWMWindows().map(w=>({
+        id:w.id,
+        title:w.title,
+        standaloneKey:w.standaloneKey,
+        minimized:!!w.minimized,
+        maximized:!!w.maximized,
+        closed:!!w.closed
+      }));
+      return {ok:true,summary:"Listed "+windows.length+" open window(s).",windows};
+    }
+    if (name === "close_window"){
+      const win=findWindowById(args.window_id);
+      if(!win) return {ok:false,summary:"Window not found: "+args.window_id};
+      WM.closeWindow(win);
+      return {ok:true,summary:"Closed window "+win.id+" ("+win.title+")."};
+    }
+    if (name === "focus_window"){
+      const win=findWindowById(args.window_id);
+      if(!win) return {ok:false,summary:"Window not found: "+args.window_id};
+      if(win.minimized && typeof win.el?.querySelector==="function"){
+        // Use the existing window manager's controls when available.
+        const restore=Array.from(win.el.querySelectorAll("button")).find(b=>b.textContent==="_");
+        if(restore) restore.click();
+      }
+      try{ win.el.style.zIndex=String(100000+Date.now()); }catch(_){ }
+      return {ok:true,summary:"Focused window "+win.id+" ("+win.title+")."};
     }
     if (
       name ===
