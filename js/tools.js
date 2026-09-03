@@ -6,7 +6,7 @@
     function:
     {
       name: "open_application",
-      description: "Open a built-in Little Hollow application. For pre-filling content, prefer the dedicated tools (open_notepad, open_calculator, open_paint) — but path/text/equation/strokes/select are also accepted here and forwarded to the app.",
+      description: "Open any registered Little Hollow application, including built-in Apps.REGISTRY entries and user-installed App Installer applications. Installed src applications open their URL; installed srcDoc applications open the HTML source referenced by srcDoc in CIA.json. For pre-filling content, prefer the dedicated tools (open_notepad, open_calculator, open_paint).",
       parameters:
       {
         type: "object",
@@ -15,39 +15,7 @@
           name:
           {
             type: "string",
-            enum: [
-              "Apps",
-              "File Manager",
-              "Clock",
-              "Calculator",
-              "Notepad",
-              "Paint",
-              "tictactoe",
-              "snake",
-              "imageViewer",
-              "videoPlayer",
-              "audioPlayer",
-              "Messenger",
-              "Settings",
-              "App Installer",
-              "Terminal JS",
-              "Recorder",
-              "Camera",
-              "2048",
-              "Minesweeper",
-              "Sudoku",
-              "SOS",
-              "Tetris",
-              "Wordle",
-              "Document Viewer",
-              "Game Finder",
-              "Doom",
-              "Pacman",
-              "GBA",
-              "Browser",
-              "Image Editor",
-              "Maps"
-            ]
+            description: "Exact application identifier returned by find_app. Use find_app first when you do not already know the registered key/package name. Do not guess friendly titles when find_app can resolve the correct name."
           },
           src:
           {
@@ -79,6 +47,38 @@
           }
         },
         required: ["name"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function:
+    {
+      name: "find_app",
+      description: "Find registered Little Hollow applications using a JavaScript regular expression. Searches built-in Apps.REGISTRY entries and user-installed applications from CIA.json. Returns the exact name/package key that open_application accepts, plus the friendly title and source. Use this before open_application when the correct application identifier is unknown. The regex uses JavaScript RegExp syntax and optional flags such as i, m, s.",
+      parameters:
+      {
+        type: "object",
+        properties:
+        {
+          regex:
+          {
+            type: "string",
+            description: "JavaScript regular expression pattern used to match the app key/package, title, or source."
+          },
+          flags:
+          {
+            type: "string",
+            description: "Optional JavaScript RegExp flags, for example i for case-insensitive matching."
+          },
+          max_results:
+          {
+            type: "integer",
+            minimum: 1,
+            maximum: 50
+          }
+        },
+        required: ["regex"]
       }
     }
   },
@@ -650,6 +650,59 @@
     type: "function",
     function:
     {
+      name: "app_installer_action",
+      description: "Full control of the built-in App Installer. Automatically opens App Installer when needed. Supports get_state, list, preview, install, and uninstall. Install sourceType=src stores a URL in CIA.json; install sourceType=srcDoc stores the HTML source in the App Installer SrcDocs folder and stores only the source-file path as srcDoc in CIA.json.",
+      parameters:
+      {
+        type: "object",
+        properties:
+        {
+          action:
+          {
+            type: "string",
+            enum: [
+              "get_state",
+              "list",
+              "preview",
+              "install",
+              "uninstall"
+            ]
+          },
+          pkg:
+          {
+            type: "string"
+          },
+          name:
+          {
+            type: "string"
+          },
+          app_icon:
+          {
+            type: "string"
+          },
+          source_type:
+          {
+            type: "string",
+            enum: ["src", "srcDoc"]
+          },
+          src:
+          {
+            type: "string"
+          },
+          srcDoc:
+          {
+            type: "string",
+            description: "Complete HTML source code when installing/updating an srcDoc application. The source is saved into Little Hollow's App Installer SrcDocs folder; it is not stored directly inside CIA.json."
+          }
+        },
+        required: ["action"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function:
+    {
       name: "document_action",
       description: "Full control of the built-in Document Viewer through DocumentAPI. Automatically opens Document Viewer when needed. Supports open, close, next/nextpage, previous/prev/previouspage, page/goto, zoom, find/search, and state. Can open supported virtual-file paths or source URLs accepted by the viewer.",
       parameters:
@@ -841,6 +894,207 @@
       }
     }
   }];
+
+  /* ============================================================
+   * DYNAMIC REGISTERED-APP TOOL CONTEXT
+   *
+   * open_application.name.enum is NEVER maintained manually.
+   * It is rebuilt from Apps.REGISTRY plus CIA.json every time
+   * Tools.definitions is requested by the AI layer.
+   * ============================================================ */
+
+  const CIA_PATH =
+    "chxd:/local/Custom Installed Application/CIA.json";
+
+  function normalizeRegisteredName(value)
+  {
+    return String(value == null ? "" : value)
+      .trim()
+      .toLowerCase();
+  }
+
+  function readInstalledAppsSyncForTools()
+  {
+    try
+    {
+      /* FS.local ultimately maps this exact path to localStorage. */
+      const raw =
+        localStorage.getItem(
+          "LH::" + CIA_PATH
+        );
+
+      if (!raw)
+      {
+        return [];
+      }
+
+      const data = JSON.parse(raw);
+      return Array.isArray(data) ? data : [];
+    }
+    catch (_)
+    {
+      return [];
+    }
+  }
+
+  function getOpenApplicationTool()
+  {
+    return definitions.find(
+      d =>
+        d &&
+        d.type === "function" &&
+        d.function &&
+        d.function.name === "open_application"
+    );
+  }
+
+  function buildRegisteredApplicationNames()
+  {
+    const names = [];
+    const seen = new Set();
+
+    function add(value)
+    {
+      const name =
+        String(value == null ? "" : value)
+          .trim();
+
+      if (!name)
+      {
+        return;
+      }
+
+      const key = normalizeRegisteredName(name);
+
+      if (seen.has(key))
+      {
+        return;
+      }
+
+      seen.add(key);
+      names.push(name);
+    }
+
+    /* Built-in applications. */
+    try
+    {
+      const registry =
+        window.Apps &&
+        Apps.REGISTRY &&
+        typeof Apps.REGISTRY === "object"
+          ? Apps.REGISTRY
+          : {};
+
+      const sourceSeen = new Set();
+
+      for (const [key, app] of Object.entries(registry))
+      {
+        if (!app || typeof app !== "object")
+        {
+          continue;
+        }
+
+        const title =
+          String(app.title || key || "").trim();
+
+        const sourceType =
+          app.srcDoc != null
+            ? "srcDoc"
+            : "src";
+
+        const source =
+          String(app[sourceType] || "").trim();
+
+        /* Collapse registry aliases such as map/maps. */
+        const identity =
+          (
+            sourceType +
+            ":" +
+            source +
+            ":" +
+            title
+          ).toLowerCase();
+
+        if (sourceSeen.has(identity))
+        {
+          continue;
+        }
+
+        sourceSeen.add(identity);
+        add(title);
+      }
+    }
+    catch (e)
+    {
+      console.warn(
+        "[Tools] Could not build built-in application context:",
+        e
+      );
+    }
+
+    /* User-installed applications. */
+    for (const app of readInstalledAppsSyncForTools())
+    {
+      if (!app || typeof app !== "object")
+      {
+        continue;
+      }
+
+      add(
+        app.name ||
+        app.pkg
+      );
+    }
+
+    return names;
+  }
+
+  function refreshRegisteredApplicationToolSchema()
+  {
+    const tool = getOpenApplicationTool();
+
+    if (!tool)
+    {
+      return [];
+    }
+
+    const names =
+      buildRegisteredApplicationNames();
+
+    tool.function
+      .parameters
+      .properties
+      .name
+      .enum = names;
+
+    return names;
+  }
+
+  /* Keep the schema current when App Installer changes CIA.json. */
+  window.addEventListener(
+    "lh:apps-changed",
+    () =>
+    {
+      refreshRegisteredApplicationToolSchema();
+    }
+  );
+
+  window.addEventListener(
+    "message",
+    e =>
+    {
+      if (
+        e.data &&
+        e.data.type === "LH_APPS_CHANGED"
+      )
+      {
+        refreshRegisteredApplicationToolSchema();
+      }
+    }
+  );
+
+  /* Initial synchronous refresh. */
+  refreshRegisteredApplicationToolSchema();
 
   function formatValue(value)
   {
@@ -2082,7 +2336,7 @@ e
     if(found) return found;
     let opened=null;
     try{
-      opened=Apps.openApp(appName,{allowMultiple:false});
+      opened=await Apps.openApp(appName,{allowMultiple:false});
     }catch(e){
       return {ok:false,error:e.message||String(e)};
     }
@@ -2155,6 +2409,138 @@ e
     }catch(e){return {ok:false,summary:"Camera action failed: "+(e.message||String(e))};}
   }
 
+  async function appInstallerAction(args)
+  {
+    const info =
+      await waitForIframeApp(
+        "App Installer",
+        [
+          "app/AppInstaller.html",
+          "/AppInstaller.html"
+        ]
+      );
+
+    if (info && info.ok === false)
+    {
+      return {
+        ok: false,
+        summary: info.error
+      };
+    }
+
+    const api =
+      info.api &&
+      info.api.AppInstallerAPI;
+
+    if (!api)
+    {
+      return {
+        ok: false,
+        summary: "AppInstallerAPI is not available."
+      };
+    }
+
+    try
+    {
+      const action =
+        String(args.action || "")
+          .toLowerCase();
+
+      let result;
+
+      if (action === "get_state")
+      {
+        result = api.getState();
+      }
+      else if (action === "list")
+      {
+        result = await api.list();
+      }
+      else if (action === "preview")
+      {
+        if (typeof api.preview !== "function")
+        {
+          return {
+            ok: false,
+            summary: "AppInstaller preview API is unavailable."
+          };
+        }
+
+        result = api.preview();
+      }
+      else if (action === "install")
+      {
+        if (typeof api.install !== "function")
+        {
+          return {
+            ok: false,
+            summary: "AppInstaller install API is unavailable."
+          };
+        }
+
+        result = await api.install(
+        {
+          pkg: args.pkg,
+          name: args.name,
+          appIcon: args.app_icon,
+          sourceType: args.source_type,
+          src: args.src,
+          srcDoc: args.srcDoc
+        });
+      }
+      else if (action === "uninstall")
+      {
+        if (!args.pkg)
+        {
+          return {
+            ok: false,
+            summary: "pkg is required for uninstall."
+          };
+        }
+
+        result = await api.uninstall(
+          String(args.pkg)
+        );
+      }
+      else
+      {
+        return {
+          ok: false,
+          summary:
+            "Unknown App Installer action: " +
+            action
+        };
+      }
+
+      if (
+        result &&
+        typeof result === "object" &&
+        Object.prototype.hasOwnProperty.call(result, "ok")
+      )
+      {
+        return result;
+      }
+
+      return {
+        ok: true,
+        summary:
+          "App Installer action " +
+          action +
+          " completed.",
+        result
+      };
+    }
+    catch (e)
+    {
+      return {
+        ok: false,
+        summary:
+          "App Installer action failed: " +
+          (e.message || String(e))
+      };
+    }
+  }
+
   async function documentAction(args){
     const info=await waitForIframeApp("Document Viewer",["app/DocumentViewer.html","/DocumentViewer.html"]);
     if(info && info.ok===false) return {ok:false,summary:info.error};
@@ -2206,6 +2592,224 @@ e
     }catch(e){return {ok:false,summary:"Maps action failed: "+(e.message||String(e))};}
   }
 
+  async function findApp(args)
+  {
+    args = args || {};
+
+    const pattern = String(args.regex == null ? "" : args.regex);
+    const flags = String(args.flags == null ? "i" : args.flags);
+
+    if (!pattern)
+    {
+      return {
+        ok: false,
+        summary: "Regex is empty."
+      };
+    }
+
+    let re;
+    try
+    {
+      re = new RegExp(pattern, flags);
+    }
+    catch (e)
+    {
+      return {
+        ok: false,
+        summary: "Invalid JavaScript regex: " + (e.message || String(e))
+      };
+    }
+
+    const limit =
+      Math.max(
+        1,
+        Math.min(
+          50,
+          Number(args.max_results) || 20
+        )
+      );
+
+    const matches = [];
+    const seen = new Set();
+
+    function test(value)
+    {
+      re.lastIndex = 0;
+      return re.test(String(value == null ? "" : value));
+    }
+
+    function addMatch(match)
+    {
+      const identity =
+        String(
+          match.source || ""
+        ) + "|" + String(match.name || "");
+
+      if (seen.has(identity))
+      {
+        return false;
+      }
+
+      seen.add(identity);
+      matches.push(match);
+      return matches.length < limit;
+    }
+
+    /*
+     * Built-in applications.
+     *
+     * REGISTRY contains aliases (for example map/maps and
+     * filemanager/file manager). The first matching registry
+     * key for a unique src is treated as the canonical identifier
+     * because Apps.openApp() accepts that key directly.
+     */
+    const registry =
+      window.Apps &&
+      Apps.REGISTRY &&
+      typeof Apps.REGISTRY === "object"
+        ? Apps.REGISTRY
+        : {};
+
+    const registrySources = new Set();
+
+    for (const [key, app] of Object.entries(registry))
+    {
+      if (!app || typeof app !== "object")
+      {
+        continue;
+      }
+
+      const title = String(app.title || key || "").trim();
+      const sourceType = app.srcDoc != null ? "srcDoc" : "src";
+      const src = String(app[sourceType] || "").trim();
+
+      /* Avoid returning duplicate registry aliases. */
+      const sourceIdentity = src || title || key;
+
+      if (
+        !registrySources.has(sourceIdentity) &&
+        (
+          test(key) ||
+          test(title) ||
+          test(src)
+        )
+      )
+      {
+        registrySources.add(sourceIdentity);
+
+        if (!addMatch({
+          name: key,
+          display_name: title,
+          source: "builtin",
+          registry_key: key,
+          sourceType,
+          src: sourceType === "src" ? src : undefined,
+          srcDoc: sourceType === "srcDoc" ? src : undefined
+        }))
+        {
+          break;
+        }
+      }
+    }
+
+    /*
+     * User-installed applications.
+     *
+     * Apps.openApp() resolves these by pkg, so `name` is always
+     * the package identifier rather than only the friendly title.
+     */
+    if (matches.length < limit)
+    {
+      try
+      {
+        if (
+          window.FS &&
+          typeof FS.read === "function"
+        )
+        {
+          const r = await FS.read(
+            "chxd:/local/Custom Installed Application/CIA.json"
+          );
+
+          if (r && r.ok && r.content)
+          {
+            let installed = [];
+
+            try
+            {
+              const data = JSON.parse(r.content);
+              installed = Array.isArray(data) ? data : [];
+            }
+            catch (e)
+            {
+              return {
+                ok: false,
+                summary: "CIA.json contains invalid JSON.",
+                matches
+              };
+            }
+
+            for (const app of installed)
+            {
+              if (!app || typeof app !== "object")
+              {
+                continue;
+              }
+
+              const pkg = String(app.pkg || "").trim();
+              const title = String(app.name || app.pkg || "").trim();
+              const sourceType = app.srcDoc != null ? "srcDoc" : "src";
+              const src = String(app[sourceType] || "").trim();
+
+              if (!pkg)
+              {
+                continue;
+              }
+
+              if (
+                test(pkg) ||
+                test(title) ||
+                test(src)
+              )
+              {
+                if (!addMatch({
+                  name: pkg,
+                  display_name: title,
+                  source: "installed",
+                  package: pkg,
+                  sourceType,
+                  src: sourceType === "src" ? src : undefined,
+                  srcDoc: sourceType === "srcDoc" ? src : undefined
+                }))
+                {
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+      catch (e)
+      {
+        console.warn(
+          "[Tools] find_app could not read installed applications:",
+          e
+        );
+      }
+    }
+
+    return {
+      ok: true,
+      summary:
+        matches.length
+          ? "Found " + matches.length + " application(s). Use the `name` field with open_application."
+          : "No registered applications matched the regex.",
+      regex: pattern,
+      flags,
+      matches
+    };
+  }
+
   async function executeRaw(
     name,
     args
@@ -2214,6 +2818,10 @@ e
     args =
       args ||
       {};
+    if (name === "find_app")
+    {
+      return await findApp(args);
+    }
     if (
       name ===
       "open_application"
@@ -2231,7 +2839,7 @@ e
         ) ||
         !!args.select;
       const result =
-        Apps.openApp(
+        await Apps.openApp(
           args.name,
           {
             src: args.src,
@@ -2268,7 +2876,7 @@ e
     )
     {
       const result =
-        Apps.openApp(
+        await Apps.openApp(
           "Notepad",
           {
             path: args.path,
@@ -2302,7 +2910,7 @@ e
     )
     {
       const result =
-        Apps.openApp(
+        await Apps.openApp(
           "Paint",
           {
             painting: Array.isArray(
@@ -2330,7 +2938,7 @@ e
     )
     {
       const result =
-        Apps.openApp(
+        await Apps.openApp(
           "Calculator",
           {
             equation: String(
@@ -2358,7 +2966,7 @@ e
     )
     {
       const result =
-        Apps.openApp(
+        await Apps.openApp(
           "File Manager",
           {
             selectMode:
@@ -2409,7 +3017,7 @@ e
       )
       {
         const result =
-          Apps.openApp(
+          await Apps.openApp(
             "imageViewer",
             {
               src: p,
@@ -2438,7 +3046,7 @@ e
       )
       {
         const result =
-          Apps.openApp(
+          await Apps.openApp(
             "videoPlayer",
             {
               src: p,
@@ -2467,7 +3075,7 @@ e
       )
       {
         const result =
-          Apps.openApp(
+          await Apps.openApp(
             "audioPlayer",
             {
               src: p,
@@ -2487,7 +3095,7 @@ e
           };
       }
       const result =
-        Apps.openApp(
+        await Apps.openApp(
           "Notepad",
           {
             path: p,
@@ -2910,6 +3518,7 @@ e
     }
     if (name === "browser_action") return await browserAction(args);
     if (name === "camera_action") return await cameraAction(args);
+    if (name === "app_installer_action") return await appInstallerAction(args);
     if (name === "document_action") return await documentAction(args);
     if (name === "image_editor_action") return await imageEditorAction(args);
     if (name === "maps_action") return await mapsAction(args);
@@ -3053,8 +3662,40 @@ e
       }
     }
   }
-  window.Tools = {
-    definitions,
-    execute
-  };
+  const toolsAPI =
+    {
+      execute,
+      prepareForAI:
+        function()
+        {
+          refreshRegisteredApplicationToolSchema();
+          return definitions;
+        },
+      getRegisteredApplications:
+        function()
+        {
+          return buildRegisteredApplicationNames();
+        }
+    };
+
+  Object.defineProperty(
+    toolsAPI,
+    "definitions",
+    {
+      enumerable: true,
+      configurable: false,
+      get: function()
+      {
+        /*
+         * IMPORTANT: ai.js reads Tools.definitions directly.
+         * Rebuilding here means the AI schema is current even when
+         * ai.js does not explicitly call prepareForAI().
+         */
+        refreshRegisteredApplicationToolSchema();
+        return definitions;
+      }
+    }
+  );
+
+  window.Tools = toolsAPI;
 })();
