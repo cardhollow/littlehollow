@@ -459,7 +459,8 @@
                         model:
                             settings?.puter?.model ||
                             "claude-sonnet-5",
-
+                        normalize:
+                            true,
                         tools:
                             tools || []
                     }
