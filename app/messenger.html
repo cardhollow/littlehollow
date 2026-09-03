@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -10,74 +9,72 @@
     margin:0;
     padding:0;
     font-family:monospace;
-}
-
-html,body{
-    width:100%;
-    height:100%;
-    background:#000d0d;
-    color:#00FFFF;
+}html,body{
+width:100%;
+height:100%;
+background:#000d0d;
+color:#00FFFF;
 }
 
 .msg-app{
-    display:flex;
-    flex-direction:column;
-    height:100%;
+display:flex;
+flex-direction:column;
+height:100%;
 }
 
 .msg-log{
-    flex:1 1 auto;
-    overflow-y:auto;
-    padding:12px;
-    display:flex;
-    flex-direction:column;
-    gap:10px;
+flex:1 1 auto;
+overflow-y:auto;
+padding:12px;
+display:flex;
+flex-direction:column;
+gap:10px;
 }
 
 .msg-row{
-    max-width:86%;
-    padding:8px 10px;
-    border:1px solid #00FFFF;
-    font-size:13px;
-    line-height:1.4;
-    word-break:break-word;
+max-width:86%;
+padding:8px 10px;
+border:1px solid #00FFFF;
+font-size:13px;
+line-height:1.4;
+word-break:break-word;
 }
 
 .msg-row.user{
-    align-self:flex-end;
-    background:rgba(0,255,255,0.14);
-    white-space:pre-wrap;
+align-self:flex-end;
+background:rgba(0,255,255,0.14);
+white-space:pre-wrap;
 }
 
 .msg-row.ai{
-    align-self:flex-start;
-    background:rgba(0,255,255,0.04);
+align-self:flex-start;
+background:rgba(0,255,255,0.04);
 }
 
 .msg-row.sys{
-    align-self:center;
-    opacity:.55;
-    font-size:10px;
-    border-style:dashed;
-    max-width:96%;
-    white-space:pre-wrap;
+align-self:center;
+opacity:.55;
+font-size:10px;
+border-style:dashed;
+max-width:96%;
+white-space:pre-wrap;
 }
 
 .msg-row.debug{
-    border-style:dotted;
-    background:rgba(255,255,0,.035);
+border-style:dotted;
+background:rgba(255,255,0,.035);
 }
 
 .message-markdown{
-    white-space:normal;
+white-space:normal;
 }
 
 .message-markdown p{
-    margin:0 0 8px;
+margin:0 0 8px;
 }
 
 .message-markdown p:last-child{
-    margin-bottom:0;
+margin-bottom:0;
 }
 
 .message-markdown h1,
@@ -86,187 +83,183 @@ html,body{
 .message-markdown h4,
 .message-markdown h5,
 .message-markdown h6{
-    margin:10px 0 6px;
+margin:10px 0 6px;
 }
 
 .message-markdown ul,
 .message-markdown ol{
-    margin:6px 0 8px 20px;
+margin:6px 0 8px 20px;
 }
 
 .message-markdown blockquote{
-    margin:8px 0;
-    padding-left:10px;
-    border-left:2px solid #00FFFF;
-    opacity:.85;
+margin:8px 0;
+padding-left:10px;
+border-left:2px solid #00FFFF;
+opacity:.85;
 }
 
 .message-markdown pre{
-    overflow:auto;
-    padding:8px;
-    margin:8px 0;
-    border:1px solid rgba(0,255,255,.45);
-    background:#001515;
+overflow:auto;
+padding:8px;
+margin:8px 0;
+border:1px solid rgba(0,255,255,.45);
+background:#001515;
 }
 
 .message-markdown code{
-    font-family:monospace;
+font-family:monospace;
 }
 
 .message-markdown :not(pre)>code{
-    padding:1px 4px;
-    background:rgba(0,255,255,.08);
+padding:1px 4px;
+background:rgba(0,255,255,.08);
 }
 
 .message-markdown table{
-    border-collapse:collapse;
-    width:100%;
-    margin:8px 0;
+border-collapse:collapse;
+width:100%;
+margin:8px 0;
 }
 
 .message-markdown th,
 .message-markdown td{
-    border:1px solid rgba(0,255,255,.45);
-    padding:5px 7px;
-    vertical-align:top;
+border:1px solid rgba(0,255,255,.45);
+padding:5px 7px;
+vertical-align:top;
 }
 
 .message-markdown img{
-    max-width:100%;
-    height:auto;
+max-width:100%;
+height:auto;
 }
 
 .message-markdown a{
-    color:#00FFFF;
+color:#00FFFF;
 }
 
 .message-markdown hr{
-    border:none;
-    border-top:1px solid rgba(0,255,255,.5);
-    margin:10px 0;
+border:none;
+border-top:1px solid rgba(0,255,255,.5);
+margin:10px 0;
 }
 
 .message-markdown input[type="checkbox"]{
-    accent-color:#00FFFF;
+accent-color:#00FFFF;
 }
 
 /* FILE REFERENCES */
 .file-reference{
-    display:inline-flex;
-    align-items:center;
-    gap:5px;
-    border:1px solid rgba(0,255,255,.65);
-    background:rgba(0,255,255,.08);
-    color:#00FFFF;
-    padding:1px 5px;
-    margin:0 1px;
-    cursor:pointer;
-    font-family:monospace;
-    font-size:inherit;
-    line-height:1.3;
-    text-decoration:none;
-    vertical-align:baseline;
-    user-select:none;
+display:inline-flex;
+align-items:center;
+gap:5px;
+border:1px solid rgba(0,255,255,.65);
+background:rgba(0,255,255,.08);
+color:#00FFFF;
+padding:1px 5px;
+margin:0 1px;
+cursor:pointer;
+font-family:monospace;
+font-size:inherit;
+line-height:1.3;
+text-decoration:none;
+vertical-align:baseline;
+user-select:none;
 }
 
 .file-reference:hover{
-    background:rgba(0,255,255,.18);
+background:rgba(0,255,255,.18);
 }
 
 .file-reference:active{
-    background:#00FFFF;
-    color:#000;
+background:#00FFFF;
+color:#000;
 }
 
 .file-reference::before{
-    content:"📄";
-    font-size:.9em;
+content:"📄";
+font-size:.9em;
 }
 
 .msg-status{
-    flex:0 0 auto;
-    min-height:18px;
-    padding:3px 12px;
-    font-size:10px;
-    border-top:1px solid rgba(0,255,255,.35);
-    opacity:.65;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
+flex:0 0 auto;
+min-height:18px;
+padding:3px 12px;
+font-size:10px;
+border-top:1px solid rgba(0,255,255,.35);
+opacity:.65;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
 }
 
 .msg-status.debug{
-    color:#FFFF00;
-    border-top-color:rgba(255,255,0,.45);
+color:#FFFF00;
+border-top-color:rgba(255,255,0,.45);
 }
 
 .msg-inputbar{
-    flex:0 0 auto;
-    display:flex;
-    border-top:1px solid #00FFFF;
+flex:0 0 auto;
+display:flex;
+border-top:1px solid #00FFFF;
 }
 
 .msg-inputbar input{
-    flex:1 1 auto;
-    border:none;
-    background:transparent;
-    padding:10px;
-    color:#00FFFF;
-    font-family:monospace;
-    font-size:13px;
-    outline:none;
+flex:1 1 auto;
+border:none;
+background:transparent;
+padding:10px;
+color:#00FFFF;
+font-family:monospace;
+font-size:13px;
+outline:none;
 }
 
 .msg-inputbar button{
-    flex:0 0 auto;
-    border:none;
-    border-left:1px solid #00FFFF;
-    background:transparent;
-    color:#00FFFF;
-    padding:0 16px;
-    cursor:pointer;
-    font-family:monospace;
+flex:0 0 auto;
+border:none;
+border-left:1px solid #00FFFF;
+background:transparent;
+color:#00FFFF;
+padding:0 16px;
+cursor:pointer;
+font-family:monospace;
 }
 
 .msg-inputbar button:active{
-    background:#00FFFF;
-    color:#000;
+background:#00FFFF;
+color:#000;
 }
 
 .msg-inputbar button:disabled{
-    opacity:.45;
-    cursor:wait;
+opacity:.45;
+cursor:wait;
 }
 
 .msg-log::-webkit-scrollbar{
-    width:8px;
+width:8px;
 }
 
 .msg-log::-webkit-scrollbar-thumb{
-    background:#00FFFF;
+background:#00FFFF;
 }
 </style>
+
 </head>
-<body>
+<body><div class="msg-app">
+    <div class="msg-log" id="log"></div><div class="msg-status" id="status">ONLINE</div>
 
-<div class="msg-app">
-    <div class="msg-log" id="log"></div>
-
-    <div class="msg-status" id="status">ONLINE</div>
-
-    <div class="msg-inputbar">
-        <input
-            id="input"
-            type="text"
-            placeholder="Message Little Hollow..."
-            autocomplete="off"
-            spellcheck="false"
-        >
-        <button id="sendBtn">SEND</button>
-    </div>
+<div class="msg-inputbar">
+    <input
+        id="input"
+        type="text"
+        placeholder="Message Little Hollow..."
+        autocomplete="off"
+        spellcheck="false"
+    >
+    <button id="sendBtn">SEND</button>
 </div>
 
-<script type="module">
+</div><script type="module">
 import "../js/markdown.js";
 
 const log=document.getElementById("log");
@@ -294,69 +287,73 @@ const parentWindow=
 
     [file:music/song.mid]
 
-    The parser turns it into a clickable UI element.
+    Clicking it opens the existing Little Hollow
+    File Manager through parent.Apps.openApp().
 */
 
-const FILE_REFERENCE_REGEX=/\[file:([^\]]+)\]/g;
+const FILE_REFERENCE_REGEX=/file:([^]+)\]/g;
 
-function emitFileReference(path){
+async function openFileReference(path){
     const cleanPath=String(path??"").trim();
 
-    if(!cleanPath)return;
-
-    const detail={
-        path:cleanPath
-    };
-
-    /*
-        Main Little Hollow event.
-        The host application can listen for:
-
-        littlehollow:file-reference
-    */
-    try{
-        parentWindow.dispatchEvent(
-            new CustomEvent(
-                "littlehollow:file-reference",
-                {detail}
-            )
-        );
-    }catch(err){
-        console.error(
-            "File reference event error:",
-            err
-        );
+    if(!cleanPath){
+        return;
     }
 
-    /*
-        Also send a postMessage so the outer
-        Little Hollow interface can receive it
-        even when it prefers message passing.
-    */
     try{
-        parentWindow.postMessage(
-            {
-                type:"littlehollow:file-reference",
-                path:cleanPath
-            },
-            "*"
+        if(
+            parentWindow.Apps&&
+            typeof parentWindow.Apps.openApp==="function"
+        ){
+            const result=
+                await parentWindow.Apps.openApp(
+                    "filemanager",
+                    {
+                        path:cleanPath,
+                        allowMultiple:true
+                    }
+                );
+
+            if(
+                result&&
+                result.ok===false
+            ){
+                console.error(
+                    "File Manager error:",
+                    result.error||result.summary
+                );
+            }
+
+            return;
+        }
+
+        throw new Error(
+            "Little Hollow Apps API is unavailable."
         );
+
     }catch(err){
         console.error(
-            "File reference postMessage error:",
+            "Could not open File Manager:",
             err
+        );
+
+        addRow(
+            "Could not open File Manager: "+
+            (err?.message||err),
+            "sys"
         );
     }
 }
 
 function createFileReference(path){
-    const button=document.createElement("button");
+    const button=
+        document.createElement("button");
 
     button.type="button";
     button.className="file-reference";
     button.textContent=path;
     button.dataset.filePath=path;
-    button.title="Open file: "+path;
+    button.title="Open in File Manager: "+path;
 
     button.addEventListener(
         "click",
@@ -364,7 +361,7 @@ function createFileReference(path){
             event.preventDefault();
             event.stopPropagation();
 
-            emitFileReference(path);
+            openFileReference(path);
         }
     );
 
@@ -372,66 +369,79 @@ function createFileReference(path){
 }
 
 function parseFileReferences(element){
-    if(!element)return;
-
-    const walker=document.createTreeWalker(
-        element,
-        NodeFilter.SHOW_TEXT,
-        {
-            acceptNode(node){
-                const parent=node.parentElement;
-
-                if(!parent){
-                    return NodeFilter.FILTER_REJECT;
-                }
-
-                /*
-                    Don't replace syntax inside code blocks.
-                */
-                if(
-                    parent.closest("pre") ||
-                    parent.closest("code") ||
-                    parent.closest(".file-reference")
-                ){
-                    return NodeFilter.FILTER_REJECT;
-                }
-
-                return FILE_REFERENCE_REGEX.test(node.nodeValue||"")
-                    ?NodeFilter.FILTER_ACCEPT
-                    :NodeFilter.FILTER_REJECT;
-            }
-        }
-    );
-
-    /*
-        Reset regex state because test() with a global
-        regex keeps lastIndex between calls.
-    */
-    FILE_REFERENCE_REGEX.lastIndex=0;
-
-    const nodes=[];
-
-    let current;
-
-    while((current=walker.nextNode())){
-        nodes.push(current);
+    if(!element){
+        return;
     }
 
-    for(const node of nodes){
-        const text=node.nodeValue||"";
+    const walker=
+        document.createTreeWalker(
+            element,
+            NodeFilter.SHOW_TEXT
+        );
+
+    const nodes=[];
+    let current;
+
+    while(
+        (current=walker.nextNode())
+    ){
+        const parent=
+            current.parentElement;
+
+        if(!parent){
+            continue;
+        }
+
+        /*
+            Do not transform references inside
+            Markdown code blocks.
+        */
+        if(
+            parent.closest("pre")||
+            parent.closest("code")||
+            parent.closest(".file-reference")
+        ){
+            continue;
+        }
+
+        if(
+            /file:[^]+\]/.test(
+                current.nodeValue||""
+            )
+        ){
+            nodes.push(current);
+        }
+    }
+
+    for(
+        const node of nodes
+    ){
+        const text=
+            node.nodeValue||"";
 
         FILE_REFERENCE_REGEX.lastIndex=0;
 
         let match;
         let lastIndex=0;
 
-        const fragment=document.createDocumentFragment();
+        const fragment=
+            document.createDocumentFragment();
 
-        while((match=FILE_REFERENCE_REGEX.exec(text))){
-            const fullMatch=match[0];
-            const filePath=String(match[1]||"").trim();
+        while(
+            (match=
+                FILE_REFERENCE_REGEX.exec(text))
+        ){
+            const fullMatch=
+                match[0];
 
-            if(match.index>lastIndex){
+            const filePath=
+                String(
+                    match[1]||""
+                ).trim();
+
+            if(
+                match.index>lastIndex
+            ){
                 fragment.appendChild(
                     document.createTextNode(
                         text.slice(
@@ -444,11 +454,15 @@ function parseFileReferences(element){
 
             if(filePath){
                 fragment.appendChild(
-                    createFileReference(filePath)
+                    createFileReference(
+                        filePath
+                    )
                 );
             }else{
                 fragment.appendChild(
-                    document.createTextNode(fullMatch)
+                    document.createTextNode(
+                        fullMatch
+                    )
                 );
             }
 
@@ -457,10 +471,14 @@ function parseFileReferences(element){
                 fullMatch.length;
         }
 
-        if(lastIndex<text.length){
+        if(
+            lastIndex<text.length
+        ){
             fragment.appendChild(
                 document.createTextNode(
-                    text.slice(lastIndex)
+                    text.slice(
+                        lastIndex
+                    )
                 )
             );
         }
@@ -474,52 +492,82 @@ function parseFileReferences(element){
     }
 }
 
-function setStatus(text,isDebug=false){
-    status.textContent=text||"";
-    status.classList.toggle("debug",!!isDebug);
+function setStatus(
+    text,
+    isDebug=false
+){
+    status.textContent=
+        text||"";
+
+    status.classList.toggle(
+        "debug",
+        !!isDebug
+    );
 }
 
-function addRow(text,cls){
-    const row=document.createElement("div");
+function addRow(
+    text,
+    cls
+){
+    const row=
+        document.createElement("div");
 
-    row.className="msg-row "+cls;
-    row.textContent=String(text??"");
+    row.className=
+        "msg-row "+cls;
+
+    row.textContent=
+        String(text??"");
 
     log.appendChild(row);
-    log.scrollTop=log.scrollHeight;
+
+    log.scrollTop=
+        log.scrollHeight;
 
     return row;
 }
 
-function renderMarkdown(element,text){
-    const source=String(text??"");
+function renderMarkdown(
+    element,
+    text
+){
+    const source=
+        String(text??"");
 
-    if(!mark||typeof mark.parse!=="function"){
-        element.textContent=source;
-        parseFileReferences(element);
+    if(
+        !mark||
+        typeof mark.parse!=="function"
+    ){
+        element.textContent=
+            source;
+
+        parseFileReferences(
+            element
+        );
+
         return;
     }
 
     try{
-        element.innerHTML=mark.parse(
-            source,
-            {
-                gfm:true,
-                breaks:true
-            }
+        element.innerHTML=
+            mark.parse(
+                source,
+                {
+                    gfm:true,
+                    breaks:true
+                }
+            );
+
+        parseFileReferences(
+            element
         );
 
-        /*
-            Markdown has been rendered.
-            Now find [file:...] references
-            inside the rendered result.
-        */
-        parseFileReferences(element);
-
     }catch(err){
-        element.textContent=source;
+        element.textContent=
+            source;
 
-        parseFileReferences(element);
+        parseFileReferences(
+            element
+        );
 
         console.error(
             "Markdown parse error:",
@@ -528,29 +576,47 @@ function renderMarkdown(element,text){
     }
 }
 
-function addMarkdownRow(text,cls="ai"){
-    const row=document.createElement("div");
+function addMarkdownRow(
+    text,
+    cls="ai"
+){
+    const row=
+        document.createElement("div");
 
-    row.className="msg-row "+cls;
+    row.className=
+        "msg-row "+cls;
 
-    const content=document.createElement("div");
-    content.className="message-markdown";
+    const content=
+        document.createElement("div");
+
+    content.className=
+        "message-markdown";
 
     renderMarkdown(
         content,
         text
     );
 
-    row.appendChild(content);
+    row.appendChild(
+        content
+    );
 
-    log.appendChild(row);
-    log.scrollTop=log.scrollHeight;
+    log.appendChild(
+        row
+    );
+
+    log.scrollTop=
+        log.scrollHeight;
 
     return row;
 }
 
-function updatePending(text){
-    if(!activePending)return;
+function updatePending(
+    text
+){
+    if(!activePending){
+        return;
+    }
 
     const content=
         activePending.querySelector(
@@ -564,51 +630,81 @@ function updatePending(text){
         );
     }
 
-    log.scrollTop=log.scrollHeight;
+    log.scrollTop=
+        log.scrollHeight;
 }
 
-function normalizeVisibleMessage(result){
-    if(!result)return "";
+function normalizeVisibleMessage(
+    result
+){
+    if(!result){
+        return "";
+    }
 
     if(typeof result==="string"){
         return result;
     }
 
-    if(typeof result.visibleMessage==="string"){
+    if(
+        typeof result.visibleMessage===
+        "string"
+    ){
         return result.visibleMessage;
     }
 
-    if(typeof result.message==="string"){
+    if(
+        typeof result.message===
+        "string"
+    ){
         return result.message;
     }
 
-    if(typeof result.text==="string"){
+    if(
+        typeof result.text===
+        "string"
+    ){
         return result.text;
     }
 
-    if(typeof result.content==="string"){
+    if(
+        typeof result.content===
+        "string"
+    ){
         return result.content;
     }
 
-    if(Array.isArray(result.parts)){
-        return result.parts.map(part=>{
-            if(typeof part==="string"){
-                return part;
-            }
+    if(
+        Array.isArray(result.parts)
+    ){
+        return result.parts.map(
+            part=>{
+                if(
+                    typeof part==="string"
+                ){
+                    return part;
+                }
 
-            if(typeof part?.text==="string"){
-                return part.text;
-            }
+                if(
+                    typeof part?.text===
+                    "string"
+                ){
+                    return part.text;
+                }
 
-            return "";
-        }).join("");
+                return "";
+            }
+        ).join("");
     }
 
     return "";
 }
 
-function normalizeLog(result){
-    if(!result)return [];
+function normalizeLog(
+    result
+){
+    if(!result){
+        return [];
+    }
 
     if(Array.isArray(result.log)){
         return result.log.map(
@@ -619,14 +715,27 @@ function normalizeLog(result){
     return [];
 }
 
-function handleAIStream(event){
-    if(!busy||!activePending)return;
+function handleAIStream(
+    event
+){
+    if(
+        !busy||
+        !activePending
+    ){
+        return;
+    }
 
-    const detail=event?.detail||{};
+    const detail=
+        event?.detail||{};
 
-    if(typeof detail.token!=="string")return;
+    if(
+        typeof detail.token!=="string"
+    ){
+        return;
+    }
 
-    streamText+=detail.token;
+    streamText+=
+        detail.token;
 
     updatePending(
         streamText
@@ -640,9 +749,13 @@ try{
     );
 }catch(_){}
 
-async function sha256(value){
+async function sha256(
+    value
+){
     const data=
-        new TextEncoder().encode(value);
+        new TextEncoder().encode(
+            value
+        );
 
     const digest=
         await crypto.subtle.digest(
@@ -662,7 +775,10 @@ async function sha256(value){
     .join("");
 }
 
-async function matchesHash(value,hash){
+async function matchesHash(
+    value,
+    hash
+){
     try{
         return await sha256(
             value
@@ -675,7 +791,10 @@ async function matchesHash(value,hash){
     }
 }
 
-async function sendResponseToLittleHollowAPI(text,meta={}){
+async function sendResponseToLittleHollowAPI(
+    text,
+    meta={}
+){
     const ai=
         parentWindow?.LittleHollowAI;
 
@@ -693,8 +812,12 @@ async function sendResponseToLittleHollowAPI(text,meta={}){
         "receive"
     ];
 
-    for(const method of methods){
-        if(typeof ai[method]!=="function"){
+    for(
+        const method of methods
+    ){
+        if(
+            typeof ai[method]!=="function"
+        ){
             continue;
         }
 
@@ -724,7 +847,9 @@ async function sendResponseToLittleHollowAPI(text,meta={}){
     );
 }
 
-async function processDebugMessage(text){
+async function processDebugMessage(
+    text
+){
     const row=
         addMarkdownRow(
             text,
@@ -736,13 +861,16 @@ async function processDebugMessage(text){
             await sendResponseToLittleHollowAPI(
                 text,
                 {
-                    source:"messenger-debug",
+                    source:
+                        "messenger-debug",
                     debug:true
                 }
             );
 
         const visible=
-            normalizeVisibleMessage(result);
+            normalizeVisibleMessage(
+                result
+            );
 
         if(
             visible&&
@@ -775,7 +903,9 @@ async function processDebugMessage(text){
     }
 }
 
-async function sendToAI(text){
+async function sendToAI(
+    text
+){
     const ai=
         parentWindow?.LittleHollowAI;
 
@@ -788,14 +918,18 @@ async function sendToAI(text){
         );
     }
 
-    return await ai.send(text);
+    return await ai.send(
+        text
+    );
 }
 
 async function send(){
     const text=
         input.value.trim();
 
-    if(!text||busy)return;
+    if(!text||busy){
+        return;
+    }
 
     if(
         await matchesHash(
@@ -908,7 +1042,8 @@ async function send(){
     const pending=
         document.createElement("div");
 
-    pending.className="msg-row ai";
+    pending.className=
+        "msg-row ai";
 
     const content=
         document.createElement("div");
@@ -916,9 +1051,12 @@ async function send(){
     content.className=
         "message-markdown";
 
-    content.textContent="...";
+    content.textContent=
+        "...";
 
-    pending.appendChild(content);
+    pending.appendChild(
+        content
+    );
 
     log.appendChild(
         pending
@@ -934,7 +1072,9 @@ async function send(){
 
     try{
         const result=
-            await sendToAI(text);
+            await sendToAI(
+                text
+            );
 
         const visible=
             normalizeVisibleMessage(
@@ -958,7 +1098,9 @@ async function send(){
         }
 
         const logs=
-            normalizeLog(result);
+            normalizeLog(
+                result
+            );
 
         if(logs.length){
             addRow(
@@ -1026,7 +1168,5 @@ setStatus(
 );
 
 input.focus();
-</script>
-
-</body>
+</script></body>
 </html>
