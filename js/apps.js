@@ -57,6 +57,13 @@
             h:430
         },
 
+        notepadide:{
+            title:"NOTEPAD IDE",
+            src:"app/notepadide.html",
+            w:540,
+            h:430
+        },
+
         paint:{
             title:"PAINT",
             src:"app/paint.html",
