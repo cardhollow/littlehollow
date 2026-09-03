@@ -62,7 +62,8 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
   };
 
   function status(text){
-    $("msg").textContent = text;
+    $("msg").textContent =
+      text;
   }
 
   function showPlaceholder(text){
@@ -70,7 +71,9 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
       text || "";
 
     $("placeholder").style.display =
-      text ? "flex" : "none";
+      text
+        ? "flex"
+        : "none";
   }
 
   function stopTracks(stream){
@@ -90,12 +93,18 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
   function stamp(){
     return new Date()
       .toISOString()
-      .replace(/[:.]/g,"-");
+      .replace(
+        /[:.]/g,
+        "-"
+      );
   }
 
   function errText(error){
     return error &&
-      (error.message || error.name)
+      (
+        error.message ||
+        error.name
+      )
       ? (
           error.message ||
           error.name
@@ -142,6 +151,114 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     return "";
   }
 
+  function blobToDataURL(blob){
+    return new Promise(
+      (resolve,reject) => {
+        const reader =
+          new FileReader();
+
+        reader.onload =
+          () => {
+            resolve(
+              String(
+                reader.result
+              )
+            );
+          };
+
+        reader.onerror =
+          () => {
+            reject(
+              reader.error ||
+              new Error(
+                "Could not convert media to data URI."
+              )
+            );
+          };
+
+        reader.readAsDataURL(
+          blob
+        );
+      }
+    );
+  }
+
+  function dataURLToBlob(data){
+    const comma =
+      data.indexOf(",");
+
+    if(
+      comma === -1
+    ){
+      throw new Error(
+        "Invalid data URI."
+      );
+    }
+
+    const header =
+      data.slice(
+        0,
+        comma
+      );
+
+    const body =
+      data.slice(
+        comma + 1
+      );
+
+    const match =
+      header.match(
+        /^data:([^;,]+)/i
+      );
+
+    const mime =
+      match &&
+      match[1]
+        ? match[1]
+        : "application/octet-stream";
+
+    if(
+      /;base64/i.test(
+        header
+      )
+    ){
+      const binary =
+        atob(body);
+
+      const bytes =
+        new Uint8Array(
+          binary.length
+        );
+
+      for(
+        let i = 0;
+        i < binary.length;
+        i++
+      ){
+        bytes[i] =
+          binary.charCodeAt(i);
+      }
+
+      return new Blob(
+        [bytes],
+        {
+          type:mime
+        }
+      );
+    }
+
+    return new Blob(
+      [
+        decodeURIComponent(
+          body
+        )
+      ],
+      {
+        type:mime
+      }
+    );
+  }
+
   async function openCamera(){
     if(
       !navigator.mediaDevices ||
@@ -170,7 +287,8 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
       state.cameraStream
     );
 
-    state.cameraStream = null;
+    state.cameraStream =
+      null;
 
     $("preview").srcObject =
       null;
@@ -288,19 +406,6 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
   ){
     return new Promise(
       (resolve,reject) => {
-        if(
-          typeof canvas.toBlob !==
-          "function"
-        ){
-          reject(
-            new Error(
-              "Canvas binary export is unavailable."
-            )
-          );
-
-          return;
-        }
-
         canvas.toBlob(
           blob => {
             if(!blob){
@@ -313,7 +418,9 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
               return;
             }
 
-            resolve(blob);
+            resolve(
+              blob
+            );
           },
           type,
           quality
@@ -429,19 +536,23 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
           0.92
         );
 
+      const data =
+        await blobToDataURL(
+          blob
+        );
+
       const path =
         PREFIX +
         "photo-" +
         stamp() +
         ".jpg";
 
-      await saveBinary(
+      await saveDataURI(
         path,
-        blob,
+        data,
         {
           kind:"photo",
           mimeType:
-            blob.type ||
             "image/jpeg",
           size:
             blob.size
@@ -462,9 +573,9 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     }
   }
 
-  async function saveBinary(
+  async function saveDataURI(
     path,
-    blob,
+    data,
     meta
   ){
     if(
@@ -480,19 +591,23 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     }
 
     if(
-      !(blob instanceof Blob)
+      typeof data !==
+      "string" ||
+      data.indexOf(
+        "data:"
+      ) !== 0
     ){
       throw new Error(
-        "Media data is not a Blob."
+        "Media data is not a valid data URI."
       );
     }
 
     const result =
       await parent.FS.write(
         path,
-        blob,
+        data,
         true,
-        true
+        false
       );
 
     if(
@@ -503,7 +618,7 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
         result &&
         result.error
           ? result.error
-          : "Filesystem binary write failed"
+          : "Filesystem write failed"
       );
     }
 
@@ -516,8 +631,8 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
             createdAt:
               new Date()
                 .toISOString(),
-            storage:"blob",
-            binary:true,
+            storage:"data-url",
+            binary:false,
             ...meta
           }
         ),
@@ -536,13 +651,6 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
           : "Metadata write failed"
       );
     }
-  }
-
-  function updateRecordButton(){
-    $("record").textContent =
-      state.recording
-        ? "■ STOP VIDEO"
-        : "● START VIDEO";
   }
 
   async function startRecording(){
@@ -604,12 +712,14 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
         tracks
       );
 
-    state.chunks = [];
+    state.chunks =
+      [];
 
     state.mime =
       supportedMime();
 
-    let recorder = null;
+    let recorder =
+      null;
 
     try{
       recorder =
@@ -679,7 +789,7 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
       event => {
         if(
           event.data &&
-          event.data.size > 0
+          event.data.size
         ){
           state.chunks.push(
             event.data
@@ -783,7 +893,8 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     const chunks =
       state.chunks.slice();
 
-    state.chunks = [];
+    state.chunks =
+      [];
 
     if(!chunks.length){
       status(
@@ -835,6 +946,11 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
           ? "mp4"
           : "webm";
 
+      const data =
+        await blobToDataURL(
+          blob
+        );
+
       const path =
         PREFIX +
         "video-" +
@@ -848,9 +964,9 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
               .getAudioTracks()
           : [];
 
-      await saveBinary(
+      await saveDataURI(
         path,
-        blob,
+        data,
         {
           kind:"video",
           mimeType:
@@ -871,19 +987,21 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
       if(
         !verify ||
         verify.ok !== true ||
-        !(verify.content instanceof Blob)
+        typeof verify.content !==
+          "string"
       ){
         throw new Error(
-          "Saved video was not returned as a Blob."
+          "Saved video was not returned as a data URI."
         );
       }
 
       if(
-        verify.content.size !==
-        blob.size
+        verify.content.indexOf(
+          "data:"
+        ) !== 0
       ){
         throw new Error(
-          "Saved video size does not match the original."
+          "Saved video is not a valid data URI."
         );
       }
 
@@ -905,6 +1023,13 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
         errText(error)
       );
     }
+  }
+
+  function updateRecordButton(){
+    $("record").textContent =
+      state.recording
+        ? "■ STOP VIDEO"
+        : "● START VIDEO";
   }
 
   function restoreButtons(){
@@ -941,67 +1066,6 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
     state.libraryUrls =
       [];
-  }
-
-  async function mediaBlobFromContent(
-    content,
-    mime
-  ){
-    if(
-      content instanceof Blob
-    ){
-      return content;
-    }
-
-    if(
-      typeof content ===
-      "string" &&
-      content.indexOf(
-        "data:"
-      ) === 0
-    ){
-      const response =
-        await fetch(
-          content
-        );
-
-      return response.blob();
-    }
-
-    if(
-      content instanceof ArrayBuffer
-    ){
-      return new Blob(
-        [
-          content
-        ],
-        {
-          type:mime
-        }
-      );
-    }
-
-    if(
-      typeof ArrayBuffer !==
-        "undefined" &&
-      ArrayBuffer.isView &&
-      ArrayBuffer.isView(
-        content
-      )
-    ){
-      return new Blob(
-        [
-          content
-        ],
-        {
-          type:mime
-        }
-      );
-    }
-
-    throw new Error(
-      "Saved media is not a supported binary value."
-    );
   }
 
   async function loadLibrary(){
@@ -1053,7 +1117,20 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
         if(
           !read ||
-          read.ok !== true
+          read.ok !== true ||
+          typeof read.content !==
+            "string"
+        ){
+          continue;
+        }
+
+        const data =
+          read.content;
+
+        if(
+          data.indexOf(
+            "data:"
+          ) !== 0
         ){
           continue;
         }
@@ -1062,44 +1139,6 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
           /\.(jpg|jpeg|png)$/i.test(
             path
           );
-
-        const fallbackMime =
-          isPhoto
-            ? (
-                /\.png$/i.test(path)
-                  ? "image/png"
-                  : "image/jpeg"
-              )
-            : (
-                /\.mp4$/i.test(path)
-                  ? "video/mp4"
-                  : "video/webm"
-              );
-
-        let blob;
-
-        try{
-          blob =
-            await mediaBlobFromContent(
-              read.content,
-              fallbackMime
-            );
-        }catch(_){
-          continue;
-        }
-
-        const mime =
-          blob.type ||
-          fallbackMime;
-
-        const url =
-          URL.createObjectURL(
-            blob
-          );
-
-        state.libraryUrls.push(
-          url
-        );
 
         const card =
           document.createElement(
@@ -1119,6 +1158,9 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
           media.alt =
             path.split("/").pop();
+
+          media.src =
+            data;
         }else{
           media =
             document.createElement(
@@ -1133,6 +1175,23 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
           media.preload =
             "metadata";
+
+          const blob =
+            dataURLToBlob(
+              data
+            );
+
+          const url =
+            URL.createObjectURL(
+              blob
+            );
+
+          state.libraryUrls.push(
+            url
+          );
+
+          media.src =
+            url;
 
           media.onerror =
             () => {
@@ -1164,9 +1223,6 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
         media.className =
           "thumb";
-
-        media.src =
-          url;
 
         const name =
           document.createElement(
@@ -1200,8 +1256,8 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
 
         save.onclick =
           () => {
-            downloadBlob(
-              blob,
+            downloadDataURI(
+              data,
               path.split("/").pop()
             );
           };
@@ -1276,46 +1332,28 @@ body{display:flex;flex-direction:column;gap:9px;padding:10px;overflow:auto}
     }
   }
 
-  function downloadBlob(
-    blob,
+  function downloadDataURI(
+    data,
     name
   ){
-    const url =
-      URL.createObjectURL(
-        blob
+    const a =
+      document.createElement(
+        "a"
       );
 
-    try{
-      const a =
-        document.createElement(
-          "a"
-        );
+    a.href =
+      data;
 
-      a.href =
-        url;
+    a.download =
+      name;
 
-      a.download =
-        name;
+    document.body.appendChild(
+      a
+    );
 
-      document.body.appendChild(
-        a
-      );
+    a.click();
 
-      a.click();
-
-      a.remove();
-    }finally{
-      setTimeout(
-        () => {
-          try{
-            URL.revokeObjectURL(
-              url
-            );
-          }catch(_){}
-        },
-        5000
-      );
-    }
+    a.remove();
   }
 
   function escapeHTML(s){
