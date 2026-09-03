@@ -4,2435 +4,369 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Little Hollow — Settings</title>
-
     <style>
         :root {
             color-scheme: dark;
             --bg: #071216;
             --panel: #0b1a20;
             --panel-2: #0e232a;
-            --panel-3: #07181d;
             --line: #1c6670;
-            --line-soft: rgba(28, 102, 112, .38);
             --text: #d9ffff;
             --muted: #78a9ad;
             --accent: #31f4ff;
             --good: #63ffb1;
-            --warn: #ffd166;
             --danger: #ff708c;
         }
 
-        * {
-            box-sizing: border-box;
-        }
-
-        html,
+        * { box-sizing: border-box; }
         body {
             margin: 0;
-            min-height: 100%;
-            background: var(--bg);
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at 15% 10%, rgba(49,244,255,.08), transparent 35%),
+                radial-gradient(circle at 90% 90%, rgba(99,255,177,.05), transparent 35%),
+                var(--bg);
             color: var(--text);
             font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         }
 
-        body {
-            min-height: 100vh;
-        }
-
-        button,
-        input,
-        select {
-            font: inherit;
-        }
-
-        button {
-            cursor: pointer;
-        }
-
-        .shell {
-            width: 100%;
-            max-width: 920px;
-            margin: 0 auto;
-            padding: 24px;
-        }
-
+        .shell { max-width: 920px; margin: 0 auto; padding: 20px; }
         .header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 20px;
-            padding: 20px 22px;
+            gap: 16px;
+            margin-bottom: 18px;
+            padding: 16px 18px;
             border: 1px solid var(--line);
-            background:
-                linear-gradient(
-                    135deg,
-                    rgba(49, 244, 255, .055),
-                    rgba(11, 26, 32, .94) 42%
-                );
-            box-shadow: 0 10px 40px rgba(0, 0, 0, .2);
+            background: rgba(11,26,32,.88);
+            box-shadow: 0 0 28px rgba(49,244,255,.08);
         }
-
-        .title {
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: .07em;
-            text-transform: uppercase;
-        }
-
-        .subtitle {
-            margin-top: 6px;
-            color: var(--muted);
-            font-size: 10px;
-            line-height: 1.5;
-        }
-
-        .provider-select-wrap {
-            min-width: 220px;
-        }
-
-        .provider-label {
-            margin-bottom: 5px;
-            color: var(--muted);
-            font-size: 8px;
-            letter-spacing: .08em;
-            text-transform: uppercase;
-        }
-
-        .provider-select {
-            width: 100%;
-            min-height: 40px;
-            padding: 10px 12px;
-            border: 1px solid var(--accent);
-            border-radius: 2px;
-            background: #0a2228;
-            color: var(--accent);
-            font-size: 10px;
-            font-weight: 700;
-            outline: none;
-        }
-
-        .provider-select:focus {
-            box-shadow: 0 0 0 2px rgba(49, 244, 255, .12);
-        }
-
-        .layout {
-            display: grid;
-            grid-template-columns: 190px minmax(0, 1fr);
-            gap: 14px;
-            margin-top: 14px;
-        }
-
-        .sidebar {
-            align-self: start;
-            padding: 8px;
-            border: 1px solid var(--line);
-            background: rgba(11, 26, 32, .82);
-        }
-
-        .side-title {
-            padding: 8px 9px;
-            color: var(--muted);
-            font-size: 8px;
-            font-weight: 700;
-            letter-spacing: .1em;
-            text-transform: uppercase;
-        }
-
-        .nav {
-            display: grid;
-            gap: 4px;
-        }
-
-        .nav-button {
-            width: 100%;
-            padding: 10px 11px;
-            border: 1px solid transparent;
-            background: transparent;
-            color: var(--muted);
-            text-align: left;
-            font-size: 9px;
-        }
-
-        .nav-button:hover {
-            border-color: var(--line);
-            background: rgba(49, 244, 255, .04);
-            color: var(--text);
-        }
-
-        .nav-button.active {
-            border-color: rgba(49, 244, 255, .4);
-            background: rgba(49, 244, 255, .09);
-            color: var(--accent);
-        }
-
-        .content {
-            min-width: 0;
-        }
-
-        .page {
-            display: none;
-        }
-
-        .page.active {
-            display: block;
-        }
-
+        .title { font-size: 18px; letter-spacing: .08em; text-transform: uppercase; }
+        .subtitle { margin-top: 5px; color: var(--muted); font-size: 11px; }
         .section {
+            margin-top: 16px;
+            padding: 16px;
             border: 1px solid var(--line);
-            background: rgba(11, 26, 32, .82);
+            background: rgba(11,26,32,.82);
         }
-
-        .section-header {
-            padding: 17px 18px;
-            border-bottom: 1px solid var(--line-soft);
-            background: rgba(14, 35, 42, .32);
-        }
-
-        .section-title {
-            font-size: 12px;
-            font-weight: 700;
+        .section h2 {
+            margin: 0 0 14px;
+            font-size: 13px;
             letter-spacing: .08em;
             text-transform: uppercase;
             color: var(--accent);
         }
-
-        .section-description {
-            margin-top: 5px;
-            color: var(--muted);
-            font-size: 8px;
-            line-height: 1.55;
-        }
-
-        .panel {
-            display: none;
-            padding: 18px;
-        }
-
-        .panel.active {
-            display: block;
-        }
-
-        .field {
-            padding: 13px 0;
-            border-top: 1px solid var(--line-soft);
-        }
-
-        .field:first-child {
-            padding-top: 0;
-            border-top: 0;
-        }
-
         .row {
             display: grid;
-            grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.3fr);
-            gap: 16px;
+            grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.2fr);
+            gap: 14px;
             align-items: center;
-            padding: 13px 0;
-            border-top: 1px solid var(--line-soft);
+            padding: 10px 0;
+            border-top: 1px solid rgba(28,102,112,.36);
         }
-
-        .row:first-child {
-            border-top: 0;
-            padding-top: 0;
-        }
-
-        .label {
-            color: var(--text);
-            font-size: 9px;
-            font-weight: 700;
-        }
-
-        .desc {
-            margin-top: 4px;
-            color: var(--muted);
-            font-size: 8px;
-            line-height: 1.5;
-        }
-
-        .field-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .field-box {
-            min-width: 0;
-        }
-
-        .field-box > label {
-            display: block;
-            margin-bottom: 5px;
-            color: var(--muted);
-            font-size: 8px;
-            letter-spacing: .04em;
-            text-transform: uppercase;
-        }
-
-        input,
-        select {
+        .row:first-of-type { border-top: 0; }
+        label { font-size: 12px; }
+        .desc { margin-top: 4px; color: var(--muted); font-size: 10px; line-height: 1.5; }
+        input, select {
             width: 100%;
-            min-height: 36px;
-            padding: 9px 10px;
             border: 1px solid var(--line);
-            border-radius: 2px;
-            background: var(--panel-3);
-            color: var(--text);
-            font-size: 9px;
-            outline: none;
-        }
-
-        input:focus,
-        select:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 1px rgba(49, 244, 255, .18);
-        }
-
-        input[type="checkbox"] {
-            width: 18px;
-            min-height: 18px;
-            height: 18px;
-            accent-color: var(--accent);
-        }
-
-        .toggle {
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-        }
-
-        .actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 15px;
-        }
-
-        .button {
-            min-height: 35px;
-            padding: 9px 13px;
-            border: 1px solid var(--line);
-            border-radius: 2px;
             background: var(--panel-2);
             color: var(--text);
-            font-size: 8px;
-            font-weight: 700;
-            letter-spacing: .03em;
+            padding: 10px 11px;
+            font: inherit;
+            font-size: 12px;
+            outline: none;
         }
-
-        .button:hover {
-            border-color: var(--accent);
-            background: #10272d;
+        input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(49,244,255,.22); }
+        .toggle { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+        .toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
+        .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+        button {
+            border: 1px solid var(--line);
+            padding: 10px 13px;
+            background: var(--panel-2);
+            color: var(--text);
+            font: inherit;
+            font-size: 11px;
+            cursor: pointer;
         }
-
-        .button.primary {
-            border-color: var(--accent);
-            color: var(--accent);
-            background: rgba(49, 244, 255, .06);
-        }
-
-        .button.danger {
-            border-color: #693942;
-            color: var(--danger);
-        }
-
-        .runtime {
-            display: grid;
-            grid-template-columns: 8px minmax(0, 1fr);
-            gap: 9px;
-            margin-top: 14px;
-            padding: 10px;
-            border: 1px solid var(--line-soft);
-            background: #061114;
-        }
-
-        .runtime-dot {
-            width: 8px;
-            height: 8px;
-            margin-top: 2px;
-            border-radius: 50%;
-            background: #61767a;
-        }
-
-        .runtime-dot.good {
-            background: var(--good);
-            box-shadow: 0 0 8px rgba(99, 255, 177, .3);
-        }
-
-        .runtime-dot.warn {
-            background: var(--warn);
-            box-shadow: 0 0 8px rgba(255, 209, 102, .25);
-        }
-
-        .runtime-dot.bad {
-            background: var(--danger);
-            box-shadow: 0 0 8px rgba(255, 112, 140, .25);
-        }
-
-        .runtime-title {
-            font-size: 8px;
-            font-weight: 700;
-        }
-
-        .runtime-detail {
-            margin-top: 3px;
-            color: var(--muted);
-            font-size: 8px;
-            line-height: 1.5;
-            word-break: break-word;
-        }
-
+        button:hover { border-color: var(--accent); }
+        button.primary { border-color: var(--accent); color: var(--accent); }
+        #status { min-height: 18px; margin-top: 12px; font-size: 11px; color: var(--muted); }
+        #status.good { color: var(--good); }
+        #status.bad { color: var(--danger); }
         .note {
             margin-top: 12px;
-            padding: 10px 11px;
+            padding: 10px;
             border-left: 2px solid var(--accent);
-            background: rgba(49, 244, 255, .025);
             color: var(--muted);
-            font-size: 8px;
+            font-size: 10px;
             line-height: 1.55;
         }
-
-        .progress {
-            width: 100%;
-            height: 6px;
-            margin-top: 9px;
-            overflow: hidden;
-            border: 1px solid var(--line-soft);
-            background: #030a0c;
-        }
-
-        .progress-bar {
-            width: 0;
-            height: 100%;
-            background: var(--accent);
-            transition: width .12s ease;
-        }
-
-        .save-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            margin-top: 14px;
-            padding: 11px 13px;
-            border: 1px solid var(--line);
-            background: rgba(11, 26, 32, .9);
-        }
-
-        .save-status {
-            color: var(--muted);
-            font-size: 8px;
-        }
-
-        .save-status.good {
-            color: var(--good);
-        }
-
-        .save-status.bad {
-            color: var(--danger);
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        code {
-            color: var(--accent);
-        }
-
-        @media (max-width: 760px) {
-            .layout {
-                grid-template-columns: 1fr;
-            }
-
-            .sidebar {
-                padding: 6px;
-            }
-
-            .nav {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-
-            .side-title {
-                display: none;
-            }
-
-            .nav-button {
-                text-align: center;
-            }
-        }
-
-        @media (max-width: 620px) {
-            .shell {
-                padding: 10px;
-            }
-
-            .header {
-                align-items: stretch;
-                flex-direction: column;
-            }
-
-            .provider-select-wrap {
-                min-width: 0;
-            }
-
-            .row {
-                grid-template-columns: 1fr;
-            }
-
-            .field-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .save-bar {
-                align-items: stretch;
-                flex-direction: column;
-            }
+        code { color: var(--accent); }
+        @media (max-width: 680px) {
+            .row { grid-template-columns: 1fr; }
+            .toggle { justify-content: flex-start; }
         }
     </style>
 </head>
-
 <body>
     <main class="shell">
-        <header class="header">
+        <section class="header">
             <div>
                 <div class="title">Little Hollow / Settings</div>
-                <div class="subtitle">
-                    Configure the active AI provider and global AI behavior.
-                </div>
+                <div class="subtitle">AI provider and Gemini configuration</div>
             </div>
+            <button id="closeBtn" type="button">CLOSE</button>
+        </section>
 
-            <div class="provider-select-wrap">
-                <div class="provider-label">Active Provider</div>
-
-                <select id="providerSelect" class="provider-select">
-                    <option value="puter">Puter.js</option>
-                    <option value="onnx">ONNX</option>
-                    <option value="gguf">GGUF</option>
-                    <option value="gemini">Gemini</option>
+        <section class="section">
+            <h2>AI Provider</h2>
+            <div class="row">
+                <div>
+                    <label for="provider">Active provider</label>
+                    <div class="desc">Choose which provider <code>ai.js</code> sends new turns to.</div>
+                </div>
+                <select id="provider">
+                    <option value="puter">Puter</option>
+                    <option value="onnx">ONNX (local)</option>
+                    <option value="gguf">GGUF (local)</option>
+                    <option value="gemini">Google Gemini</option>
                 </select>
             </div>
-        </header>
-
-        <div class="layout">
-            <aside class="sidebar">
-                <div class="side-title">Settings</div>
-
-                <nav class="nav">
-                    <button
-                        class="nav-button active"
-                        data-page="providers"
-                        type="button"
-                    >
-                        Providers
-                    </button>
-
-                    <button
-                        class="nav-button"
-                        data-page="agent"
-                        type="button"
-                    >
-                        Agent
-                    </button>
-
-                    <button
-                        class="nav-button"
-                        data-page="live"
-                        type="button"
-                    >
-                        Live Mode
-                    </button>
-                </nav>
-            </aside>
-
-            <section class="content">
-                <div
-                    id="page-providers"
-                    class="page active"
-                >
-                    <section class="section">
-                        <div class="section-header">
-                            <div class="section-title">
-                                Provider Configuration
-                            </div>
-
-                            <div class="section-description">
-                                Settings below belong only to the selected provider.
-                            </div>
-                        </div>
-
-                        <div
-                            id="config-puter"
-                            class="panel active"
-                        >
-                            <div class="row">
-                                <div>
-                                    <div class="label">Model</div>
-                                    <div class="desc">
-                                        Model identifier passed to Puter.js.
-                                    </div>
-                                </div>
-
-                                <input
-                                    id="puterModel"
-                                    type="text"
-                                    spellcheck="false"
-                                >
-                            </div>
-
-                            <div class="actions">
-                                <button
-                                    id="puterTestBtn"
-                                    class="button"
-                                    type="button"
-                                >
-                                    TEST PUTER
-                                </button>
-                            </div>
-
-                            <div class="runtime">
-                                <span
-                                    id="puterDot"
-                                    class="runtime-dot"
-                                ></span>
-
-                                <div>
-                                    <div
-                                        id="puterStatus"
-                                        class="runtime-title"
-                                    >
-                                        NOT TESTED
-                                    </div>
-
-                                    <div
-                                        id="puterDetail"
-                                        class="runtime-detail"
-                                    >
-                                        Puter.js has not been tested.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div
-                            id="config-onnx"
-                            class="panel"
-                        >
-                            <div class="field">
-                                <div class="label">Model</div>
-                                <div class="desc">
-                                    Hugging Face ONNX model repository.
-                                </div>
-
-                                <input
-                                    id="onnxModel"
-                                    type="text"
-                                    spellcheck="false"
-                                >
-                            </div>
-
-                            <div class="field-grid">
-                                <div class="field-box">
-                                    <label for="onnxDevice">
-                                        Device
-                                    </label>
-
-                                    <select id="onnxDevice">
-                                        <option value="webgpu">
-                                            WebGPU
-                                        </option>
-
-                                        <option value="wasm">
-                                            WASM
-                                        </option>
-                                    </select>
-                                </div>
-
-                                <div class="field-box">
-                                    <label for="onnxDtype">
-                                        DType
-                                    </label>
-
-                                    <select id="onnxDtype">
-                                        <option value="q4">
-                                            Q4
-                                        </option>
-
-                                        <option value="q4f16">
-                                            Q4F16
-                                        </option>
-
-                                        <option value="q8">
-                                            Q8
-                                        </option>
-
-                                        <option value="int8">
-                                            INT8
-                                        </option>
-
-                                        <option value="uint8">
-                                            UINT8
-                                        </option>
-
-                                        <option value="fp16">
-                                            FP16
-                                        </option>
-
-                                        <option value="fp32">
-                                            FP32
-                                        </option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="field-grid">
-                                <div class="field-box">
-                                    <label for="onnxMaxNewTokens">
-                                        Max New Tokens
-                                    </label>
-
-                                    <input
-                                        id="onnxMaxNewTokens"
-                                        type="number"
-                                        min="1"
-                                        max="16384"
-                                        step="1"
-                                    >
-                                </div>
-
-                                <div class="field-box">
-                                    <label for="onnxTemperature">
-                                        Temperature
-                                    </label>
-
-                                    <input
-                                        id="onnxTemperature"
-                                        type="number"
-                                        min="0"
-                                        max="2"
-                                        step="0.05"
-                                    >
-                                </div>
-                            </div>
-
-                            <div
-                                id="onnxCapability"
-                                class="note"
-                            ></div>
-
-                            <div class="actions">
-                                <button
-                                    id="onnxLoadBtn"
-                                    class="button primary"
-                                    type="button"
-                                >
-                                    LOAD MODEL
-                                </button>
-
-                                <button
-                                    id="onnxUnloadBtn"
-                                    class="button danger"
-                                    type="button"
-                                >
-                                    UNLOAD
-                                </button>
-                            </div>
-
-                            <div class="runtime">
-                                <span
-                                    id="onnxDot"
-                                    class="runtime-dot"
-                                ></span>
-
-                                <div>
-                                    <div
-                                        id="onnxStatus"
-                                        class="runtime-title"
-                                    >
-                                        NOT LOADED
-                                    </div>
-
-                                    <div
-                                        id="onnxDetail"
-                                        class="runtime-detail"
-                                    >
-                                        ONNX model has not been loaded.
-                                    </div>
-
-                                    <div
-                                        id="onnxProgressWrap"
-                                        class="progress hidden"
-                                    >
-                                        <div
-                                            id="onnxProgress"
-                                            class="progress-bar"
-                                        ></div>
-                                    </div>
-
-                                    <div
-                                        id="onnxProgressText"
-                                        class="runtime-detail hidden"
-                                    ></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div
-                            id="config-gguf"
-                            class="panel"
-                        >
-                            <div class="field">
-                                <div class="label">Model</div>
-                                <div class="desc">
-                                    GGUF model path, URL, or runtime identifier.
-                                </div>
-
-                                <input
-                                    id="ggufModel"
-                                    type="text"
-                                    spellcheck="false"
-                                    placeholder="model.gguf"
-                                >
-                            </div>
-
-                            <div class="field-grid">
-                                <div class="field-box">
-                                    <label for="ggufContext">
-                                        Context
-                                    </label>
-
-                                    <input
-                                        id="ggufContext"
-                                        type="number"
-                                        min="512"
-                                        step="512"
-                                    >
-                                </div>
-
-                                <div class="field-box">
-                                    <label for="ggufThreads">
-                                        Threads
-                                    </label>
-
-                                    <input
-                                        id="ggufThreads"
-                                        type="number"
-                                        min="1"
-                                        step="1"
-                                    >
-                                </div>
-                            </div>
-
-                            <div class="field-grid">
-                                <div class="field-box">
-                                    <label for="ggufMaxNewTokens">
-                                        Max New Tokens
-                                    </label>
-
-                                    <input
-                                        id="ggufMaxNewTokens"
-                                        type="number"
-                                        min="1"
-                                        max="16384"
-                                        step="1"
-                                    >
-                                </div>
-
-                                <div class="field-box">
-                                    <label for="ggufTemperature">
-                                        Temperature
-                                    </label>
-
-                                    <input
-                                        id="ggufTemperature"
-                                        type="number"
-                                        min="0"
-                                        max="2"
-                                        step="0.05"
-                                    >
-                                </div>
-                            </div>
-
-                            <div class="actions">
-                                <button
-                                    id="ggufTestBtn"
-                                    class="button primary"
-                                    type="button"
-                                >
-                                    CHECK RUNTIME
-                                </button>
-                            </div>
-
-                            <div class="runtime">
-                                <span
-                                    id="ggufDot"
-                                    class="runtime-dot"
-                                ></span>
-
-                                <div>
-                                    <div
-                                        id="ggufStatus"
-                                        class="runtime-title"
-                                    >
-                                        NOT READY
-                                    </div>
-
-                                    <div
-                                        id="ggufDetail"
-                                        class="runtime-detail"
-                                    >
-                                        GGUF runtime has not been checked.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div
-                            id="config-gemini"
-                            class="panel"
-                        >
-                            <div class="row">
-                                <div>
-                                    <div class="label">API Key</div>
-                                    <div class="desc">
-                                        Stored in Little Hollow's local AI settings.
-                                    </div>
-                                </div>
-
-                                <input
-                                    id="geminiApiKey"
-                                    type="password"
-                                    autocomplete="off"
-                                    spellcheck="false"
-                                    placeholder="AIza..."
-                                >
-                            </div>
-
-                            <div class="row">
-                                <div>
-                                    <div class="label">Model</div>
-                                    <div class="desc">
-                                        Gemini model identifier.
-                                    </div>
-                                </div>
-
-                                <input
-                                    id="geminiModel"
-                                    type="text"
-                                    spellcheck="false"
-                                >
-                            </div>
-
-                            <div class="row">
-                                <div>
-                                    <div class="label">Python Tool</div>
-                                    <div class="desc">
-                                        Enable Gemini managed Python execution.
-                                    </div>
-                                </div>
-
-                                <div class="toggle">
-                                    <input
-                                        id="geminiPythonTool"
-                                        type="checkbox"
-                                    >
-                                </div>
-                            </div>
-
-                            <div class="field-grid">
-                                <div class="field-box">
-                                    <label for="geminiMaxOutputTokens">
-                                        Max Output Tokens
-                                    </label>
-
-                                    <input
-                                        id="geminiMaxOutputTokens"
-                                        type="number"
-                                        min="1"
-                                        max="65000"
-                                        step="1"
-                                    >
-                                </div>
-
-                                <div class="field-box">
-                                    <label for="geminiTemperature">
-                                        Temperature
-                                    </label>
-
-                                    <input
-                                        id="geminiTemperature"
-                                        type="number"
-                                        min="0"
-                                        max="2"
-                                        step="0.05"
-                                    >
-                                </div>
-                            </div>
-
-                            <div class="actions">
-                                <button
-                                    id="geminiTestBtn"
-                                    class="button primary"
-                                    type="button"
-                                >
-                                    TEST GEMINI
-                                </button>
-
-                                <button
-                                    id="geminiResetBtn"
-                                    class="button danger"
-                                    type="button"
-                                >
-                                    RESET GEMINI
-                                </button>
-                            </div>
-
-                            <div class="runtime">
-                                <span
-                                    id="geminiDot"
-                                    class="runtime-dot"
-                                ></span>
-
-                                <div>
-                                    <div
-                                        id="geminiStatus"
-                                        class="runtime-title"
-                                    >
-                                        NOT TESTED
-                                    </div>
-
-                                    <div
-                                        id="geminiDetail"
-                                        class="runtime-detail"
-                                    >
-                                        Gemini has not been tested.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
+        </section>
+
+        <section class="section">
+            <h2>Gemini</h2>
+            <div class="row">
+                <div>
+                    <label for="geminiEnabled">Use Gemini</label>
+                    <div class="desc">Sets the active AI provider to Gemini when enabled.</div>
                 </div>
-
-                <div
-                    id="page-agent"
-                    class="page"
-                >
-                    <section class="section">
-                        <div class="section-header">
-                            <div class="section-title">
-                                Agent
-                            </div>
-
-                            <div class="section-description">
-                                Global tool-loop behavior shared by the AI providers.
-                            </div>
-                        </div>
-
-                        <div class="panel active">
-                            <div class="row">
-                                <div>
-                                    <div class="label">
-                                        Maximum Tool Rounds
-                                    </div>
-
-                                    <div class="desc">
-                                        Maximum model → tool → model rounds allowed during one AI turn.
-                                    </div>
-                                </div>
-
-                                <input
-                                    id="maxToolRounds"
-                                    type="number"
-                                    min="1"
-                                    max="100"
-                                    step="1"
-                                >
-                            </div>
-
-                            <div class="note">
-                                This is global. Providers such as Gemini, ONNX, GGUF and Puter can all use Little Hollow's tool execution loop.
-                            </div>
-                        </div>
-                    </section>
+                <div class="toggle"><input id="geminiEnabled" type="checkbox"></div>
+            </div>
+            <div class="row">
+                <div>
+                    <label for="apiKey">Google API key</label>
+                    <div class="desc">Your key is stored locally in this browser under <code>littlehollow.ai.settings</code>.</div>
                 </div>
-
-                <div
-                    id="page-live"
-                    class="page"
-                >
-                    <section class="section">
-                        <div class="section-header">
-                            <div class="section-title">
-                                Live Mode
-                            </div>
-
-                            <div class="section-description">
-                                Global live-AI scheduling controls.
-                            </div>
-                        </div>
-
-                        <div class="panel active">
-                            <div class="row">
-                                <div>
-                                    <div class="label">
-                                        Enable Live AI
-                                    </div>
-
-                                    <div class="desc">
-                                        Enables Little Hollow's debounced live AI scheduler.
-                                    </div>
-                                </div>
-
-                                <div class="toggle">
-                                    <input
-                                        id="liveEnabled"
-                                        type="checkbox"
-                                    >
-                                </div>
-                            </div>
-
-                            <div class="field-grid">
-                                <div class="field-box">
-                                    <label for="debounceMs">
-                                        Debounce
-                                    </label>
-
-                                    <input
-                                        id="debounceMs"
-                                        type="number"
-                                        min="0"
-                                        step="50"
-                                    >
-                                </div>
-
-                                <div class="field-box">
-                                    <label for="minIntervalMs">
-                                        Minimum Interval
-                                    </label>
-
-                                    <input
-                                        id="minIntervalMs"
-                                        type="number"
-                                        min="0"
-                                        step="50"
-                                    >
-                                </div>
-                            </div>
-                        </div>
-                    </section>
+                <input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="AIza...">
+            </div>
+            <div class="row">
+                <div>
+                    <label for="model">Model</label>
+                    <div class="desc">Default: Gemini 3.5 Flash.</div>
                 </div>
-
-                <div class="save-bar">
-                    <div
-                        id="saveStatus"
-                        class="save-status"
-                    >
-                        No unsaved changes.
-                    </div>
-
-                    <div class="actions">
-                        <button
-                            id="saveBtn"
-                            class="button primary"
-                            type="button"
-                        >
-                            SAVE SETTINGS
-                        </button>
-
-                        <button
-                            id="refreshBtn"
-                            class="button"
-                            type="button"
-                        >
-                            RELOAD
-                        </button>
-                    </div>
+                <input id="model" type="text" value="gemini-3.5-flash" spellcheck="false">
+            </div>
+            <div class="row">
+                <div>
+                    <label for="pythonTool">Python Tool</label>
+                    <div class="desc">Lets Gemini use Google's managed Python code-execution tool for calculations and code-based reasoning.</div>
                 </div>
-            </section>
+                <div class="toggle"><input id="pythonTool" type="checkbox"></div>
+            </div>
+            <div class="row">
+                <div>
+                    <label for="maxOutputTokens">Max output tokens</label>
+                    <div class="desc">Used as a local preference; the current provider adapter leaves provider defaults intact.</div>
+                </div>
+                <input id="maxOutputTokens" type="number" min="1" max="65000" step="1">
+            </div>
+            <div class="row">
+                <div>
+                    <label for="temperature">Temperature</label>
+                    <div class="desc">Kept for compatibility with the other providers.</div>
+                </div>
+                <input id="temperature" type="number" min="0" max="2" step="0.1">
+            </div>
+            <div class="note">
+                Gemini streaming uses the Generate Content streaming endpoint, so text arrives progressively in <code>littlehollow:ai-stream</code> events. Tool calls are executed by Little Hollow's existing <code>Tools.execute()</code> and sent back to Gemini before the next streamed turn.
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Live mode</h2>
+            <div class="row">
+                <div>
+                    <label for="liveEnabled">Enable live AI</label>
+                    <div class="desc">Keeps the existing debounced live-mode API available for UI code that uses it.</div>
+                </div>
+                <div class="toggle"><input id="liveEnabled" type="checkbox"></div>
+            </div>
+            <div class="row">
+                <div>
+                    <label for="debounceMs">Debounce (ms)</label>
+                    <div class="desc">Wait before starting a live turn.</div>
+                </div>
+                <input id="debounceMs" type="number" min="0" step="50">
+            </div>
+            <div class="row">
+                <div>
+                    <label for="minIntervalMs">Minimum interval (ms)</label>
+                    <div class="desc">Prevents repeated live turns from firing too quickly.</div>
+                </div>
+                <input id="minIntervalMs" type="number" min="0" step="50">
+            </div>
+        </section>
+
+        <div class="actions">
+            <button class="primary" id="saveBtn" type="button">SAVE SETTINGS</button>
+            <button id="testBtn" type="button">TEST GEMINI</button>
+            <button id="resetBtn" type="button">RESET GEMINI</button>
         </div>
+        <div id="status" aria-live="polite"></div>
     </main>
 
     <script>
         (() => {
             "use strict";
 
-            const SETTINGS_KEY =
-                "littlehollow.ai.settings";
-
+            const SETTINGS_KEY = "littlehollow.ai.settings";
             const DEFAULTS = {
                 provider: "puter",
-
-                puter: {
-                    model: "claude-sonnet-5"
-                },
-
-                onnx: {
-                    model:
-                        "onnx-community/Qwen2.5-0.5B-Instruct",
-
-                    device:
-                        "webgpu",
-
-                    dtype:
-                        "q4",
-
-                    maxNewTokens:
-                        256,
-
-                    temperature:
-                        0.7
-                },
-
-                gguf: {
-                    model:
-                        "",
-
-                    context:
-                        8192,
-
-                    threads:
-                        4,
-
-                    maxNewTokens:
-                        512,
-
-                    temperature:
-                        0.7
-                },
-
                 gemini: {
-                    apiKey:
-                        "",
-
-                    model:
-                        "gemini-3.5-flash",
-
-                    pythonTool:
-                        false,
-
-                    maxOutputTokens:
-                        4096,
-
-                    temperature:
-                        0.7
+                    apiKey: "",
+                    model: "gemini-3.5-flash",
+                    pythonTool: false,
+                    maxOutputTokens: 4096,
+                    temperature: 0.7
                 },
-
                 live: {
-                    enabled:
-                        false,
-
-                    debounceMs:
-                        1800,
-
-                    minIntervalMs:
-                        2500
-                },
-
-                agent: {
-                    maxToolRounds:
-                        8
+                    enabled: false,
+                    debounceMs: 1800,
+                    minIntervalMs: 2500
                 }
             };
 
-            const $ = id =>
-                document.getElementById(id);
-
-            function clone(value) {
-                try {
-                    return JSON.parse(
-                        JSON.stringify(value)
-                    );
-                } catch (_) {
-                    return value;
-                }
-            }
-
-            function merge(base, extra) {
-                const result =
-                    clone(base);
-
-                if (
-                    !extra ||
-                    typeof extra !== "object"
-                ) {
-                    return result;
-                }
-
-                Object.keys(extra).forEach(
-                    key => {
-                        const value =
-                            extra[key];
-
-                        if (
-                            value &&
-                            typeof value === "object" &&
-                            !Array.isArray(value)
-                        ) {
-                            result[key] =
-                                Object.assign(
-                                    {},
-                                    result[key] || {},
-                                    value
-                                );
-                        } else {
-                            result[key] =
-                                value;
-                        }
-                    }
-                );
-
-                return result;
-            }
+            const $ = id => document.getElementById(id);
 
             function readSettings() {
+                const source = window.parent && window.parent !== window ? window.parent : window;
                 try {
-                    if (
-                        window.parent &&
-                        window.parent !== window &&
-                        window.parent.AI &&
-                        typeof window.parent.AI.getSettings ===
-                            "function"
-                    ) {
-                        return merge(
-                            DEFAULTS,
-                            window.parent.AI.getSettings()
-                        );
-                    }
+                    if (source.AI && typeof source.AI.getSettings === "function") return source.AI.getSettings();
                 } catch (_) {}
 
                 try {
-                    const raw =
-                        localStorage.getItem(
-                            SETTINGS_KEY
-                        );
-
-                    if (!raw) {
-                        return clone(DEFAULTS);
-                    }
-
-                    return merge(
-                        DEFAULTS,
-                        JSON.parse(raw)
-                    );
+                    const raw = source.localStorage.getItem(SETTINGS_KEY);
+                    return raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULTS));
                 } catch (_) {
-                    return clone(DEFAULTS);
+                    return JSON.parse(JSON.stringify(DEFAULTS));
                 }
             }
 
-            function saveSettings(next) {
-                const settings =
-                    merge(
-                        DEFAULTS,
-                        next || {}
-                    );
-
+            function saveSettings(settings) {
+                const source = window.parent && window.parent !== window ? window.parent : window;
                 try {
-                    localStorage.setItem(
-                        SETTINGS_KEY,
-                        JSON.stringify(settings)
-                    );
-                } catch (_) {}
-
-                try {
-                    if (
-                        window.parent &&
-                        window.parent !== window &&
-                        window.parent.AI &&
-                        typeof window.parent.AI.setSettings ===
-                            "function"
-                    ) {
-                        window.parent.AI.setSettings(
-                            settings
-                        );
+                    if (source.AI && typeof source.AI.setSettings === "function") {
+                        return source.AI.setSettings(settings);
                     }
                 } catch (_) {}
 
+                source.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
                 return settings;
             }
 
-            function getAI() {
+            function render() {
+                const settings = readSettings();
+                const gemini = settings.gemini || DEFAULTS.gemini;
+                const live = settings.live || DEFAULTS.live;
+
+                $("provider").value = settings.provider || "puter";
+                $("geminiEnabled").checked = (settings.provider || "") === "gemini";
+                $("apiKey").value = gemini.apiKey || "";
+                $("model").value = gemini.model || "gemini-3.5-flash";
+                $("pythonTool").checked = Boolean(gemini.pythonTool);
+                $("maxOutputTokens").value = Number(gemini.maxOutputTokens || 4096);
+                $("temperature").value = Number(gemini.temperature ?? 0.7);
+                $("liveEnabled").checked = Boolean(live.enabled);
+                $("debounceMs").value = Number(live.debounceMs || 1800);
+                $("minIntervalMs").value = Number(live.minIntervalMs || 2500);
+            }
+
+            function collect() {
+                const settings = readSettings();
+                settings.provider = $("geminiEnabled").checked ? "gemini" : $("provider").value;
+                settings.gemini = Object.assign({}, settings.gemini || {}, {
+                    apiKey: $("apiKey").value.trim(),
+                    model: $("model").value.trim() || "gemini-3.5-flash",
+                    pythonTool: $("pythonTool").checked,
+                    maxOutputTokens: Number($("maxOutputTokens").value || 4096),
+                    temperature: Number($("temperature").value || 0.7)
+                });
+                settings.live = Object.assign({}, settings.live || {}, {
+                    enabled: $("liveEnabled").checked,
+                    debounceMs: Number($("debounceMs").value || 1800),
+                    minIntervalMs: Number($("minIntervalMs").value || 2500)
+                });
+                return settings;
+            }
+
+            function status(message, kind) {
+                $("status").textContent = message;
+                $("status").className = kind || "";
+            }
+
+            $("saveBtn").addEventListener("click", () => {
+                saveSettings(collect());
+                status("Saved.", "good");
+            });
+
+            $("provider").addEventListener("change", () => {
+                $("geminiEnabled").checked = $("provider").value === "gemini";
+            });
+
+            $("geminiEnabled").addEventListener("change", () => {
+                if ($("geminiEnabled").checked) $("provider").value = "gemini";
+            });
+
+            $("testBtn").addEventListener("click", async () => {
+                const settings = collect();
+                const key = settings.gemini.apiKey;
+                const model = settings.gemini.model;
+                if (!key) {
+                    status("Enter a Gemini API key first.", "bad");
+                    return;
+                }
+
+                status("Testing Gemini...");
                 try {
-                    if (
-                        window.parent &&
-                        window.parent !== window &&
-                        window.parent.AI
-                    ) {
-                        return window.parent.AI;
+                    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(key), {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            contents: [{ role: "user", parts: [{ text: "Reply with exactly: LITTLE HOLLOW GEMINI OK" }] }]
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data?.error?.message || `HTTP ${response.status}`);
+
+                    saveSettings(settings);
+                    status("Gemini connection OK.", "good");
+                } catch (error) {
+                    status("Gemini test failed: " + (error?.message || String(error)), "bad");
+                }
+            });
+
+            $("resetBtn").addEventListener("click", () => {
+                const settings = readSettings();
+                settings.gemini = JSON.parse(JSON.stringify(DEFAULTS.gemini));
+                saveSettings(settings);
+                render();
+                status("Gemini settings reset.", "good");
+            });
+
+            $("closeBtn").addEventListener("click", () => {
+                try {
+                    if (window.parent && window.parent !== window && window.parent.WM && typeof window.parent.WM.closeTopWindow === "function") {
+                        window.parent.WM.closeTopWindow();
+                        return;
                     }
                 } catch (_) {}
-
-                return window.AI || null;
-            }
-
-            function currentProvider() {
-                return $(
-                    "providerSelect"
-                ).value || "puter";
-            }
-
-            function setActiveProvider(provider) {
-                const name =
-                    provider || "puter";
-
-                $("providerSelect").value =
-                    name;
-
-                document
-                    .querySelectorAll(
-                        ".panel"
-                    )
-                    .forEach(panel => {
-                        if (
-                            panel.id.startsWith(
-                                "config-"
-                            )
-                        ) {
-                            panel.classList.toggle(
-                                "active",
-                                panel.id ===
-                                    "config-" + name
-                            );
-                        }
-                    });
-
-                const titles = {
-                    puter:
-                        "PUTER.JS",
-
-                    onnx:
-                        "ONNX",
-
-                    gguf:
-                        "GGUF",
-
-                    gemini:
-                        "GEMINI"
-                };
-            }
-
-            function setSaveStatus(
-                text,
-                type = ""
-            ) {
-                $("saveStatus").textContent =
-                    text;
-
-                $("saveStatus").className =
-                    "save-status" +
-                    (type
-                        ? " " + type
-                        : "");
-            }
-
-            function setRuntime(
-                prefix,
-                state,
-                title,
-                detail
-            ) {
-                const dot =
-                    $(prefix + "Dot");
-
-                const status =
-                    $(prefix + "Status");
-
-                const description =
-                    $(prefix + "Detail");
-
-                if (dot) {
-                    dot.className =
-                        "runtime-dot";
-
-                    if (state === "good") {
-                        dot.classList.add(
-                            "good"
-                        );
-                    } else if (
-                        state === "warn"
-                    ) {
-                        dot.classList.add(
-                            "warn"
-                        );
-                    } else if (
-                        state === "bad"
-                    ) {
-                        dot.classList.add(
-                            "bad"
-                        );
-                    }
-                }
-
-                if (status) {
-                    status.textContent =
-                        title;
-                }
-
-                if (description) {
-                    description.textContent =
-                        detail;
-                }
-
-                const map = {
-                    puter:
-                        "providerStatePuter",
-
-                    onnx:
-                        "providerStateOnnx",
-
-                    gguf:
-                        "providerStateGguf",
-
-                    gemini:
-                        "providerStateGemini"
-                };
-
-                const cardState =
-                    $(map[prefix]);
-
-                if (cardState) {
-                    cardState.textContent =
-                        title;
-                }
-            }
-
-            function collectSettings() {
-                const settings =
-                    readSettings();
-
-                settings.provider =
-                    currentProvider();
-
-                settings.puter =
-                    Object.assign(
-                        {},
-                        settings.puter || {},
-                        {
-                            model:
-                                $("puterModel")
-                                    .value
-                                    .trim() ||
-                                DEFAULTS.puter.model
-                        }
-                    );
-
-                settings.onnx =
-                    Object.assign(
-                        {},
-                        settings.onnx || {},
-                        {
-                            model:
-                                $("onnxModel")
-                                    .value
-                                    .trim() ||
-                                DEFAULTS.onnx.model,
-
-                            device:
-                                $("onnxDevice")
-                                    .value,
-
-                            dtype:
-                                $("onnxDtype")
-                                    .value,
-
-                            maxNewTokens:
-                                Number(
-                                    $("onnxMaxNewTokens")
-                                        .value
-                                ) ||
-                                DEFAULTS.onnx.maxNewTokens,
-
-                            temperature:
-                                Number(
-                                    $("onnxTemperature")
-                                        .value
-                                )
-                        }
-                    );
-
-                if (
-                    !Number.isFinite(
-                        settings.onnx.temperature
-                    )
-                ) {
-                    settings.onnx.temperature =
-                        DEFAULTS.onnx.temperature;
-                }
-
-                settings.gguf =
-                    Object.assign(
-                        {},
-                        settings.gguf || {},
-                        {
-                            model:
-                                $("ggufModel")
-                                    .value
-                                    .trim(),
-
-                            context:
-                                Number(
-                                    $("ggufContext")
-                                        .value
-                                ) ||
-                                DEFAULTS.gguf.context,
-
-                            threads:
-                                Number(
-                                    $("ggufThreads")
-                                        .value
-                                ) ||
-                                DEFAULTS.gguf.threads,
-
-                            maxNewTokens:
-                                Number(
-                                    $("ggufMaxNewTokens")
-                                        .value
-                                ) ||
-                                DEFAULTS.gguf.maxNewTokens,
-
-                            temperature:
-                                Number(
-                                    $("ggufTemperature")
-                                        .value
-                                )
-                        }
-                    );
-
-                if (
-                    !Number.isFinite(
-                        settings.gguf.temperature
-                    )
-                ) {
-                    settings.gguf.temperature =
-                        DEFAULTS.gguf.temperature;
-                }
-
-                settings.gemini =
-                    Object.assign(
-                        {},
-                        settings.gemini || {},
-                        {
-                            apiKey:
-                                $("geminiApiKey")
-                                    .value
-                                    .trim(),
-
-                            model:
-                                $("geminiModel")
-                                    .value
-                                    .trim() ||
-                                DEFAULTS.gemini.model,
-
-                            pythonTool:
-                                $("geminiPythonTool")
-                                    .checked,
-
-                            maxOutputTokens:
-                                Number(
-                                    $("geminiMaxOutputTokens")
-                                        .value
-                                ) ||
-                                DEFAULTS.gemini.maxOutputTokens,
-
-                            temperature:
-                                Number(
-                                    $("geminiTemperature")
-                                        .value
-                                )
-                        }
-                    );
-
-                if (
-                    !Number.isFinite(
-                        settings.gemini.temperature
-                    )
-                ) {
-                    settings.gemini.temperature =
-                        DEFAULTS.gemini.temperature;
-                }
-
-                settings.agent =
-                    Object.assign(
-                        {},
-                        settings.agent || {},
-                        {
-                            maxToolRounds:
-                                Number(
-                                    $("maxToolRounds")
-                                        .value
-                                ) ||
-                                DEFAULTS.agent.maxToolRounds
-                        }
-                    );
-
-                settings.live =
-                    Object.assign(
-                        {},
-                        settings.live || {},
-                        {
-                            enabled:
-                                $("liveEnabled")
-                                    .checked,
-
-                            debounceMs:
-                                Number(
-                                    $("debounceMs")
-                                        .value
-                                ) ||
-                                DEFAULTS.live.debounceMs,
-
-                            minIntervalMs:
-                                Number(
-                                    $("minIntervalMs")
-                                        .value
-                                ) ||
-                                DEFAULTS.live.minIntervalMs
-                        }
-                    );
-
-                return merge(
-                    DEFAULTS,
-                    settings
-                );
-            }
-
-            function render() {
-                const settings =
-                    readSettings();
-
-                $("providerSelect").value =
-                    settings.provider ||
-                    "puter";
-
-                $("puterModel").value =
-                    settings.puter?.model ||
-                    DEFAULTS.puter.model;
-
-                $("onnxModel").value =
-                    settings.onnx?.model ||
-                    DEFAULTS.onnx.model;
-
-                $("onnxDevice").value =
-                    settings.onnx?.device ||
-                    DEFAULTS.onnx.device;
-
-                $("onnxDtype").value =
-                    settings.onnx?.dtype ||
-                    DEFAULTS.onnx.dtype;
-
-                $("onnxMaxNewTokens").value =
-                    Number(
-                        settings.onnx?.maxNewTokens ||
-                        DEFAULTS.onnx.maxNewTokens
-                    );
-
-                $("onnxTemperature").value =
-                    Number(
-                        settings.onnx?.temperature ??
-                        DEFAULTS.onnx.temperature
-                    );
-
-                $("ggufModel").value =
-                    settings.gguf?.model ||
-                    "";
-
-                $("ggufContext").value =
-                    Number(
-                        settings.gguf?.context ||
-                        DEFAULTS.gguf.context
-                    );
-
-                $("ggufThreads").value =
-                    Number(
-                        settings.gguf?.threads ||
-                        DEFAULTS.gguf.threads
-                    );
-
-                $("ggufMaxNewTokens").value =
-                    Number(
-                        settings.gguf?.maxNewTokens ||
-                        DEFAULTS.gguf.maxNewTokens
-                    );
-
-                $("ggufTemperature").value =
-                    Number(
-                        settings.gguf?.temperature ??
-                        DEFAULTS.gguf.temperature
-                    );
-
-                $("geminiApiKey").value =
-                    settings.gemini?.apiKey ||
-                    "";
-
-                $("geminiModel").value =
-                    settings.gemini?.model ||
-                    DEFAULTS.gemini.model;
-
-                $("geminiPythonTool").checked =
-                    Boolean(
-                        settings.gemini?.pythonTool
-                    );
-
-                $("geminiMaxOutputTokens").value =
-                    Number(
-                        settings.gemini?.maxOutputTokens ||
-                        DEFAULTS.gemini.maxOutputTokens
-                    );
-
-                $("geminiTemperature").value =
-                    Number(
-                        settings.gemini?.temperature ??
-                        DEFAULTS.gemini.temperature
-                    );
-
-                $("maxToolRounds").value =
-                    Number(
-                        settings.agent?.maxToolRounds ||
-                        DEFAULTS.agent.maxToolRounds
-                    );
-
-                $("liveEnabled").checked =
-                    Boolean(
-                        settings.live?.enabled
-                    );
-
-                $("debounceMs").value =
-                    Number(
-                        settings.live?.debounceMs ||
-                        DEFAULTS.live.debounceMs
-                    );
-
-                $("minIntervalMs").value =
-                    Number(
-                        settings.live?.minIntervalMs ||
-                        DEFAULTS.live.minIntervalMs
-                    );
-
-                setActiveProvider(
-                    settings.provider ||
-                    "puter"
-                );
-
-                updateOnnxCapability();
-            }
-
-            function updateOnnxCapability() {
-                const device =
-                    $("onnxDevice").value;
-
-                const dtype =
-                    $("onnxDtype").value;
-
-                if (
-                    device === "webgpu" &&
-                    !navigator.gpu
-                ) {
-                    $("onnxCapability").textContent =
-                        "WebGPU is not available in this browser.";
-                    return;
-                }
-
-                if (
-                    device === "webgpu" &&
-                    dtype === "q4f16"
-                ) {
-                    $("onnxCapability").textContent =
-                        "WebGPU + Q4F16 selected.";
-                    return;
-                }
-
-                if (device === "webgpu") {
-                    $("onnxCapability").textContent =
-                        "WebGPU selected.";
-                    return;
-                }
-
-                $("onnxCapability").textContent =
-                    "WASM selected.";
-            }
-
-            function showPage(page) {
-                document
-                    .querySelectorAll(
-                        ".nav-button"
-                    )
-                    .forEach(button => {
-                        button.classList.toggle(
-                            "active",
-                            button.dataset.page === page
-                        );
-                    });
-
-                document
-                    .querySelectorAll(
-                        ".page"
-                    )
-                    .forEach(section => {
-                        section.classList.toggle(
-                            "active",
-                            section.id ===
-                                "page-" + page
-                        );
-                    });
-            }
-
-            async function testPuter() {
-                const settings =
-                    collectSettings();
-
-                saveSettings(settings);
-
-                setRuntime(
-                    "puter",
-                    "warn",
-                    "TESTING",
-                    "Checking Puter.js..."
-                );
-
-                try {
-                    const ai =
-                        getAI();
-
-                    if (
-                        !ai ||
-                        typeof ai.getProvider !==
-                            "function"
-                    ) {
-                        throw new Error(
-                            "Little Hollow AI controller is unavailable."
-                        );
-                    }
-
-                    const provider =
-                        await ai.getProvider(
-                            "puter"
-                        );
-
-                    if (!provider) {
-                        throw new Error(
-                            "Puter provider is unavailable."
-                        );
-                    }
-
-                    setRuntime(
-                        "puter",
-                        "good",
-                        "READY",
-                        "Puter provider loaded."
-                    );
-                } catch (error) {
-                    setRuntime(
-                        "puter",
-                        "bad",
-                        "FAILED",
-                        error?.message ||
-                        String(error)
-                    );
-                }
-            }
-
-            async function loadOnnx() {
-                const settings =
-                    collectSettings();
-
-                saveSettings(settings);
-
-                $("onnxProgressWrap")
-                    .classList.remove(
-                        "hidden"
-                    );
-
-                $("onnxProgressText")
-                    .classList.remove(
-                        "hidden"
-                    );
-
-                $("onnxProgress")
-                    .style.width =
-                    "0%";
-
-                setRuntime(
-                    "onnx",
-                    "warn",
-                    "LOADING",
-                    "Initializing ONNX model..."
-                );
-
-                try {
-                    const ai =
-                        getAI();
-
-                    if (
-                        !ai ||
-                        typeof ai.getProvider !==
-                            "function"
-                    ) {
-                        throw new Error(
-                            "Little Hollow AI controller is unavailable."
-                        );
-                    }
-
-                    const provider =
-                        await ai.getProvider(
-                            "onnx"
-                        );
-
-                    if (
-                        !provider ||
-                        typeof provider.prepare !==
-                            "function"
-                    ) {
-                        throw new Error(
-                            "ONNX provider is unavailable."
-                        );
-                    }
-
-                    const result =
-                        await provider.prepare(
-                            settings
-                        );
-
-                    $("onnxProgress")
-                        .style.width =
-                        "100%";
-
-                    $("onnxProgressText")
-                        .textContent =
-                        "ONNX model ready.";
-
-                    setRuntime(
-                        "onnx",
-                        "good",
-                        "READY",
-                        result?.status?.message ||
-                        "ONNX model loaded."
-                    );
-                } catch (error) {
-                    $("onnxProgress")
-                        .style.width =
-                        "0%";
-
-                    $("onnxProgressText")
-                        .textContent =
-                        "ONNX initialization failed.";
-
-                    setRuntime(
-                        "onnx",
-                        "bad",
-                        "FAILED",
-                        error?.message ||
-                        String(error)
-                    );
-                }
-            }
-
-            async function unloadOnnx() {
-                try {
-                    const ai =
-                        getAI();
-
-                    if (
-                        ai &&
-                        typeof ai.getProvider ===
-                            "function"
-                    ) {
-                        const provider =
-                            await ai.getProvider(
-                                "onnx"
-                            );
-
-                        if (
-                            provider &&
-                            typeof provider.unload ===
-                                "function"
-                        ) {
-                            provider.unload();
-                        }
-                    }
-
-                    $("onnxProgressWrap")
-                        .classList.add(
-                            "hidden"
-                        );
-
-                    $("onnxProgressText")
-                        .classList.add(
-                            "hidden"
-                        );
-
-                    setRuntime(
-                        "onnx",
-                        "warn",
-                        "NOT LOADED",
-                        "ONNX model unloaded."
-                    );
-                } catch (error) {
-                    setRuntime(
-                        "onnx",
-                        "bad",
-                        "FAILED",
-                        error?.message ||
-                        String(error)
-                    );
-                }
-            }
-
-            async function checkGguf() {
-                const settings =
-                    collectSettings();
-
-                saveSettings(settings);
-
-                setRuntime(
-                    "gguf",
-                    "warn",
-                    "CHECKING",
-                    "Checking GGUF provider..."
-                );
-
-                try {
-                    const ai =
-                        getAI();
-
-                    if (
-                        !ai ||
-                        typeof ai.getProvider !==
-                            "function"
-                    ) {
-                        throw new Error(
-                            "Little Hollow AI controller is unavailable."
-                        );
-                    }
-
-                    const provider =
-                        await ai.getProvider(
-                            "gguf"
-                        );
-
-                    if (!provider) {
-                        throw new Error(
-                            "GGUF provider is unavailable."
-                        );
-                    }
-
-                    setRuntime(
-                        "gguf",
-                        "good",
-                        "READY",
-                        "GGUF provider loaded."
-                    );
-                } catch (error) {
-                    setRuntime(
-                        "gguf",
-                        "bad",
-                        "FAILED",
-                        error?.message ||
-                        String(error)
-                    );
-                }
-            }
-
-            async function testGemini() {
-                const settings =
-                    collectSettings();
-
-                const key =
-                    settings.gemini.apiKey;
-
-                const model =
-                    settings.gemini.model;
-
-                if (!key) {
-                    setRuntime(
-                        "gemini",
-                        "bad",
-                        "NO API KEY",
-                        "Enter a Gemini API key first."
-                    );
-
-                    return;
-                }
-
-                saveSettings(settings);
-
-                setRuntime(
-                    "gemini",
-                    "warn",
-                    "TESTING",
-                    "Sending Gemini request..."
-                );
-
-                try {
-                    const url =
-                        "https://generativelanguage.googleapis.com/v1beta/models/" +
-                        encodeURIComponent(model) +
-                        ":generateContent?key=" +
-                        encodeURIComponent(key);
-
-                    const response =
-                        await fetch(
-                            url,
-                            {
-                                method:
-                                    "POST",
-
-                                headers: {
-                                    "Content-Type":
-                                        "application/json"
-                                },
-
-                                body:
-                                    JSON.stringify({
-                                        contents: [
-                                            {
-                                                role:
-                                                    "user",
-
-                                                parts: [
-                                                    {
-                                                        text:
-                                                            "Reply with exactly: LITTLE HOLLOW GEMINI OK"
-                                                    }
-                                                ]
-                                            }
-                                        ]
-                                    })
-                            }
-                        );
-
-                    const data =
-                        await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(
-                            data?.error?.message ||
-                            "HTTP " +
-                            response.status
-                        );
-                    }
-
-                    setRuntime(
-                        "gemini",
-                        "good",
-                        "READY",
-                        "Gemini API responded successfully."
-                    );
-                } catch (error) {
-                    setRuntime(
-                        "gemini",
-                        "bad",
-                        "FAILED",
-                        error?.message ||
-                        String(error)
-                    );
-                }
-            }
-
-            function resetGemini() {
-                const settings =
-                    readSettings();
-
-                settings.gemini =
-                    clone(
-                        DEFAULTS.gemini
-                    );
-
-                saveSettings(
-                    settings
-                );
-
-                render();
-
-                setRuntime(
-                    "gemini",
-                    "warn",
-                    "RESET",
-                    "Gemini settings reset."
-                );
-
-                setSaveStatus(
-                    "Gemini settings reset.",
-                    "good"
-                );
-            }
-
-            $("providerSelect")
-                .addEventListener(
-                    "change",
-                    () => {
-                        const settings =
-                            collectSettings();
-
-                        settings.provider =
-                            $("providerSelect")
-                                .value;
-
-                        saveSettings(
-                            settings
-                        );
-
-                        setActiveProvider(
-                            settings.provider
-                        );
-
-                        setSaveStatus(
-                            "Active provider changed to " +
-                            settings.provider.toUpperCase() +
-                            ".",
-                            "good"
-                        );
-                    }
-                );
-
-            document
-                .querySelectorAll(
-                    ".nav-button"
-                )
-                .forEach(button => {
-                    button.addEventListener(
-                        "click",
-                        () => {
-                            showPage(
-                                button.dataset.page
-                            );
-                        }
-                    );
-                });
-
-            $("saveBtn")
-                .addEventListener(
-                    "click",
-                    () => {
-                        const settings =
-                            collectSettings();
-
-                        saveSettings(
-                            settings
-                        );
-
-                        setActiveProvider(
-                            settings.provider
-                        );
-
-                        setSaveStatus(
-                            "Settings saved.",
-                            "good"
-                        );
-                    }
-                );
-
-            $("refreshBtn")
-                .addEventListener(
-                    "click",
-                    () => {
-                        render();
-
-                        setSaveStatus(
-                            "Settings reloaded.",
-                            "good"
-                        );
-                    }
-                );
-
-            $("puterTestBtn")
-                .addEventListener(
-                    "click",
-                    testPuter
-                );
-
-            $("onnxLoadBtn")
-                .addEventListener(
-                    "click",
-                    loadOnnx
-                );
-
-            $("onnxUnloadBtn")
-                .addEventListener(
-                    "click",
-                    unloadOnnx
-                );
-
-            $("ggufTestBtn")
-                .addEventListener(
-                    "click",
-                    checkGguf
-                );
-
-            $("geminiTestBtn")
-                .addEventListener(
-                    "click",
-                    testGemini
-                );
-
-            $("geminiResetBtn")
-                .addEventListener(
-                    "click",
-                    resetGemini
-                );
-
-            $("onnxDevice")
-                .addEventListener(
-                    "change",
-                    updateOnnxCapability
-                );
-
-            $("onnxDtype")
-                .addEventListener(
-                    "change",
-                    updateOnnxCapability
-                );
-
-            window.addEventListener(
-                "littlehollow:onnxstatus",
-                event => {
-                    const detail =
-                        event?.detail || {};
-
-                    const state =
-                        detail.state;
-
-                    let runtimeState =
-                        "warn";
-
-                    if (
-                        state === "ready"
-                    ) {
-                        runtimeState =
-                            "good";
-                    } else if (
-                        state === "error"
-                    ) {
-                        runtimeState =
-                            "bad";
-                    }
-
-                    const progress =
-                        Number(
-                            detail.progress || 0
-                        );
-
-                    $("onnxProgress")
-                        .style.width =
-                        Math.max(
-                            0,
-                            Math.min(
-                                100,
-                                progress
-                            )
-                        ) +
-                        "%";
-
-                    setRuntime(
-                        "onnx",
-                        runtimeState,
-                        String(
-                            state ||
-                            "UNKNOWN"
-                        ).toUpperCase(),
-                        detail.message ||
-                        "ONNX status updated."
-                    );
-                }
-            );
+                window.history.back();
+            });
 
             render();
         })();
