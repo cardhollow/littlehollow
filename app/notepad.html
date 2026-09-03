@@ -232,7 +232,13 @@ text-overflow:ellipsis
 <div class="wrap">
 
 <div class="toolbar">
-<input id="path" value="chxd:/local/notes.txt">
+
+<input
+id="path"
+value="chxd:/local/notes.txt"
+spellcheck="false"
+autocomplete="off"
+>
 
 <select id="language">
 <option value="javascript">JavaScript</option>
@@ -256,76 +262,168 @@ text-overflow:ellipsis
 <button id="saveBtn">SAVE</button>
 <button id="newBtn">NEW</button>
 <button id="runBtn">RUN IN ONECOMPILER</button>
+
 </div>
 
 <div class="editorWrap">
 
-<textarea id="editor" placeholder="Start typing..."></textarea>
+<textarea
+id="editor"
+placeholder="Start typing..."
+spellcheck="false"
+></textarea>
 
-<div class="findPanel" id="findPanel">
+<div
+class="findPanel"
+id="findPanel"
+>
 
 <div class="findTop">
-<div class="findTitle">FIND / REPLACE</div>
-<button class="findClose" id="findClose">×</button>
+<div class="findTitle">
+FIND / REPLACE
+</div>
+
+<button
+class="findClose"
+id="findClose"
+>
+×
+</button>
 </div>
 
 <div class="findRow">
-<input id="findInput" type="text" placeholder="Find">
-<button id="findPrev" title="Previous match">↑</button>
-<button id="findNext" title="Next match">↓</button>
+
+<input
+id="findInput"
+type="text"
+placeholder="Find"
+autocomplete="off"
+spellcheck="false"
+>
+
+<button
+id="findPrev"
+title="Previous match"
+>
+↑
+</button>
+
+<button
+id="findNext"
+title="Next match"
+>
+↓
+</button>
+
 </div>
 
 <div class="findRow">
-<input id="replaceInput" type="text" placeholder="Replace">
-<button id="replaceOne">Replace</button>
-<button id="replaceAll">All</button>
+
+<input
+id="replaceInput"
+type="text"
+placeholder="Replace"
+autocomplete="off"
+spellcheck="false"
+>
+
+<button id="replaceOne">
+Replace
+</button>
+
+<button id="replaceAll">
+All
+</button>
+
 </div>
 
 <div class="findOptions">
 
 <label>
-<input id="caseSensitive" type="checkbox">
+<input
+id="caseSensitive"
+type="checkbox"
+>
 Case
 </label>
 
 <label>
-<input id="useRegex" type="checkbox">
+<input
+id="useRegex"
+type="checkbox"
+>
 Regex
 </label>
 
 <label>
-<input id="wholeWord" type="checkbox">
+<input
+id="wholeWord"
+type="checkbox"
+>
 Word
 </label>
 
 </div>
 
-<div class="findInfo" id="findInfo"></div>
+<div
+class="findInfo"
+id="findInfo"
+></div>
 
 </div>
 
 </div>
 
-<div class="status" id="status">Ready.</div>
+<div
+class="status"
+id="status"
+>
+Ready.
+</div>
 
 </div>
 
 <script>
-const pathInput=document.getElementById("path");
-const editor=document.getElementById("editor");
-const status=document.getElementById("status");
-const language=document.getElementById("language");
-const saveBtn=document.getElementById("saveBtn");
+const pathInput=
+document.getElementById("path");
 
-const findPanel=document.getElementById("findPanel");
-const findInput=document.getElementById("findInput");
-const replaceInput=document.getElementById("replaceInput");
-const findInfo=document.getElementById("findInfo");
-const caseSensitive=document.getElementById("caseSensitive");
-const useRegex=document.getElementById("useRegex");
-const wholeWord=document.getElementById("wholeWord");
+const editor=
+document.getElementById("editor");
 
-const params=new URLSearchParams(location.search);
+const status=
+document.getElementById("status");
+
+const language=
+document.getElementById("language");
+
+const saveBtn=
+document.getElementById("saveBtn");
+
+const findPanel=
+document.getElementById("findPanel");
+
+const findInput=
+document.getElementById("findInput");
+
+const replaceInput=
+document.getElementById("replaceInput");
+
+const findInfo=
+document.getElementById("findInfo");
+
+const caseSensitive=
+document.getElementById("caseSensitive");
+
+const useRegex=
+document.getElementById("useRegex");
+
+const wholeWord=
+document.getElementById("wholeWord");
+
+const params=
+new URLSearchParams(
+location.search
+);
 
 let dirty=false;
 let lastSavedValue="";
@@ -337,118 +435,182 @@ js:"javascript",
 mjs:"javascript",
 cjs:"javascript",
 jsx:"javascript",
+
 ts:"typescript",
 tsx:"typescript",
+
 html:"html",
 htm:"html",
 xhtml:"html",
+
 css:"css",
+
 py:"python",
 pyw:"python",
+
 java:"java",
+
 cpp:"cpp",
 cc:"cpp",
 cxx:"cpp",
 hpp:"cpp",
+
 h:"c",
 c:"c",
+
 cs:"csharp",
+
 php:"php",
+
 json:"json",
+
 xml:"xml",
 svg:"xml",
+
 md:"markdown",
 markdown:"markdown",
+
 txt:"plaintext"
 };
 
 function setStatus(s){
-status.textContent=String(s||"")
+status.textContent=
+String(s||"");
 }
 
 function setDirty(value){
 dirty=!!value;
-saveBtn.textContent=dirty?"*SAVE":"SAVE";
-saveBtn.classList.toggle("dirty",dirty)
+
+saveBtn.textContent=
+dirty
+?"*SAVE"
+:"SAVE";
+
+saveBtn.classList.toggle(
+"dirty",
+dirty
+);
 }
 
 function markEdited(){
-setDirty(editor.value!==lastSavedValue)
+setDirty(
+editor.value!==lastSavedValue
+);
 }
 
 function normalizePath(path){
 return String(path||"")
 .trim()
 .split("?")[0]
-.split("#")[0]
+.split("#")[0];
 }
 
 function languageFromPath(path){
-const clean=normalizePath(path);
-const file=clean.split("/").pop()||"";
-const dot=file.lastIndexOf(".");
+const clean=
+normalizePath(path);
 
-if(dot<0)return null;
+const file=
+clean.split("/").pop()||"";
 
-const ext=file.slice(dot+1).toLowerCase();
+const dot=
+file.lastIndexOf(".");
 
-return extensionMap[ext]||null
+if(dot<0){
+return null;
+}
+
+const ext=
+file
+.slice(dot+1)
+.toLowerCase();
+
+return extensionMap[ext]||null;
 }
 
 function languageFromContent(text){
-const s=String(text||"").trimStart();
+const s=
+String(text||"")
+.trimStart();
 
-if(/^<!doctype\s+html/i.test(s)||/<html[\s>]/i.test(s)){
-return"html"
+if(
+/^<!doctype\s+html/i.test(s)||
+/<html[\s>]/i.test(s)
+){
+return "html";
 }
 
-if(/^\s*[{[]/.test(s)){
+if(
+/^\s*[{[]/.test(s)
+){
 try{
 JSON.parse(s);
-return"json"
+return "json";
 }catch(e){}
 }
 
-if(/<\/?[a-z][^>]*>/i.test(s)&&/<\/[a-z][^>]*>/i.test(s)){
-return"html"
+if(
+/<\/?[a-z][^>]*>/i.test(s)&&
+/<\/[a-z][^>]*>/i.test(s)
+){
+return "html";
 }
 
-if(/\b(function|const|let|var|=>|console\.log|document\.|window\.)\b/.test(s)){
-return"javascript"
+if(
+/\b(function|const|let|var|=>|console\.log|document\.|window\.)\b/.test(s)
+){
+return "javascript";
 }
 
-if(/\b(def|from\s+\w+\s+import|print\(|elif|async\s+def)\b/.test(s)){
-return"python"
+if(
+/\b(def|from\s+\w+\s+import|print\(|elif|async\s+def)\b/.test(s)
+){
+return "python";
 }
 
-if(/(^|\s)(class|interface|namespace)\s+\w+/.test(s)&&/\b(public|private|protected)\b/.test(s)){
-return"java"
+if(
+/(^|\s)(class|interface|namespace)\s+\w+/.test(s)&&
+/\b(public|private|protected)\b/.test(s)
+){
+return "java";
 }
 
-if(/^[.#][\w-]+\s*\{/m.test(s)||/@media\b|@keyframes\b/.test(s)){
-return"css"
+if(
+/^[.#][\w-]+\s*\{/m.test(s)||
+/@media\b/.test(s)||
+/@keyframes\b/.test(s)
+){
+return "css";
 }
 
-return null
+return null;
 }
 
 function detectLanguage(path,text){
-const byPath=languageFromPath(path);
-const detected=byPath||languageFromContent(text);
+const byPath=
+languageFromPath(path);
+
+const detected=
+byPath||
+languageFromContent(text);
 
 if(
 detected&&
-[...language.options].some(o=>o.value===detected)
+[...language.options].some(
+o=>o.value===detected
+)
 ){
-language.value=detected
+language.value=
+detected;
 }
 
-return detected
+return detected;
 }
 
 async function newNotepad(){
 try{
-const result=await parent.Apps.openApp(
+
+const result=
+await parent.Apps.openApp(
 "notepad",
 {
 title:"NOTEPAD",
@@ -458,160 +620,297 @@ allowMultiple:true
 }
 );
 
-if(!result||!result.ok){
+if(
+!result||
+!result.ok
+){
+
 setStatus(
 result&&result.error
 ?result.error
 :"Could not open new Notepad."
 );
-return
+
+return;
 }
 
-setStatus("Opened new Notepad.")
+setStatus(
+"Opened new Notepad."
+);
+
 }catch(err){
-setStatus(err.message||String(err))
+
+setStatus(
+err.message||
+String(err)
+);
+
 }
 }
 
 async function load(){
-const p=pathInput.value.trim();
+const p=
+pathInput.value.trim();
 
-if(!p)return;
+if(!p){
+setStatus(
+"No file path."
+);
+return;
+}
 
 try{
-const r=await parent.FS.read(p);
 
-if(r.ok){
-editor.value=r.content;
-lastSavedValue=editor.value;
-setDirty(false);
-detectLanguage(p,editor.value);
-setStatus("Loaded "+p+".");
-closeFind()
-}else{
+const r=
+await parent.FS.read(p);
+
+if(!r||!r.ok){
+
 setStatus(
-r.error||
-"Could not load file."
-)
+r&&r.error
+?r.error
+:"Could not load file."
+);
+
+return;
 }
+
+editor.value=
+String(r.content??"");
+
+lastSavedValue=
+editor.value;
+
+setDirty(false);
+
+detectLanguage(
+p,
+editor.value
+);
+
+closeFind();
+
+setStatus(
+"Loaded "+
+p+"."
+);
+
+editor.focus();
+
 }catch(err){
-setStatus(err.message||String(err))
+
+setStatus(
+err.message||
+String(err)
+);
+
 }
 }
 
 async function save(){
-const p=pathInput.value.trim();
+const p=
+pathInput.value.trim();
 
 if(!p){
-setStatus("No file path.");
-return
+
+setStatus(
+"No file path."
+);
+
+return;
 }
 
 try{
-const r=await parent.FS.write(
+
+const r=
+await parent.FS.write(
 p,
 editor.value,
 true
 );
 
 if(r.ok){
-lastSavedValue=editor.value;
+
+lastSavedValue=
+editor.value;
+
 setDirty(false);
-detectLanguage(p,editor.value);
-setStatus("Saved "+p+".")
+
+detectLanguage(
+p,
+editor.value
+);
+
+setStatus(
+"Saved "+
+p+"."
+);
+
 }else{
+
 setStatus(
 r.error||
 "Could not save file."
-)
+);
+
 }
+
 }catch(err){
-setStatus(err.message||String(err))
+
+setStatus(
+err.message||
+String(err)
+);
+
 }
 }
 
 function getSelectedText(){
-const start=editor.selectionStart;
-const end=editor.selectionEnd;
+const start=
+editor.selectionStart;
 
-if(start===end)return"";
+const end=
+editor.selectionEnd;
 
-return editor.value.slice(start,end)
+if(start===end){
+return "";
 }
 
-function openFind(useSelection=true){
-const selected=getSelectedText();
-
-if(useSelection&&selected){
-findInput.value=selected;
-currentMatchIndex=-1
+return editor.value.slice(
+start,
+end
+);
 }
 
-findPanel.classList.add("open");
+function openFind(
+useSelection=true
+){
+
+const selected=
+getSelectedText();
+
+if(
+useSelection&&
+selected
+){
+
+findInput.value=
+selected;
+
+currentMatchIndex=
+-1;
+}
+
+findPanel.classList.add(
+"open"
+);
 
 findInput.focus();
 
 if(findInput.value){
-findInput.select()
+findInput.select();
 }
 
-updateFindMatches()
+updateFindMatches();
 }
 
 function closeFind(){
-findPanel.classList.remove("open");
+
+findPanel.classList.remove(
+"open"
+);
+
 currentMatches=[];
-currentMatchIndex=-1;
-findInfo.textContent=""
+currentMatchIndex=
+-1;
+
+findInfo.textContent="";
 }
 
 function escapeRegex(s){
-return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")
+return s.replace(
+/[.*+?^${}()|[\]\\]/g,
+"\\$&"
+);
 }
 
 function buildRegex(){
-const value=findInput.value;
+
+const value=
+findInput.value;
 
 if(!value){
-findInfo.textContent="";
-return null
+
+findInfo.textContent=
+"";
+
+return null;
 }
 
-let source=value;
+let source=
+value;
 
-if(!useRegex.checked){
-source=escapeRegex(source)
+if(
+!useRegex.checked
+){
+source=
+escapeRegex(source);
 }
 
-if(wholeWord.checked){
-source="\\b"+source+"\\b"
+if(
+wholeWord.checked
+){
+source=
+"\\b"+
+source+
+"\\b";
 }
 
-let flags="g";
+let flags=
+"g";
 
-if(!caseSensitive.checked){
-flags+="i"
+if(
+!caseSensitive.checked
+){
+flags+="i";
 }
 
 try{
-return new RegExp(source,flags)
+
+return new RegExp(
+source,
+flags
+);
+
 }catch(err){
-findInfo.textContent="Invalid regex: "+err.message;
-return null
+
+findInfo.textContent=
+"Invalid regex: "+
+err.message;
+
+return null;
 }
 }
 
 function getMatches(){
-const regex=buildRegex();
 
-if(!regex)return[];
+const regex=
+buildRegex();
 
-const text=editor.value;
+if(!regex){
+return[];
+}
+
+const text=
+editor.value;
+
 const matches=[];
 
 let m;
 
-while((m=regex.exec(text))!==null){
+while(
+(m=regex.exec(text))!==null
+){
 
 matches.push({
 index:m.index,
@@ -619,165 +918,259 @@ length:m[0].length,
 text:m[0]
 });
 
-if(m[0]===""){
-regex.lastIndex++
-}
-}
-
-return matches
+if(
+m[0]===""
+){
+regex.lastIndex++;
 }
 
-function updateFindMatches(selectCurrent=true){
-const matches=getMatches();
+}
 
-currentMatches=matches;
+return matches;
+}
 
-if(!matches.length){
-currentMatchIndex=-1;
+function updateFindMatches(
+selectCurrent=true
+){
+
+const matches=
+getMatches();
+
+currentMatches=
+matches;
+
+if(
+!matches.length
+){
+
+currentMatchIndex=
+-1;
 
 if(findInput.value){
-findInfo.textContent="No matches"
+findInfo.textContent=
+"No matches";
 }else{
-findInfo.textContent=""
+findInfo.textContent=
+"";
 }
 
-return
+return;
 }
 
 if(
 currentMatchIndex<0||
 currentMatchIndex>=matches.length
 ){
-currentMatchIndex=0
+
+currentMatchIndex=
+0;
 }
 
 findInfo.textContent=
 matches.length+
-(matches.length===1?" match":" matches")+
+(
+matches.length===1
+?" match"
+:" matches"
+)+
 " · "+
 (currentMatchIndex+1);
 
 if(selectCurrent){
-selectCurrentMatch()
+selectCurrentMatch();
 }
 }
 
 function selectCurrentMatch(){
+
 if(
 currentMatchIndex<0||
-!currentMatches[currentMatchIndex]
+!currentMatches[
+currentMatchIndex
+]
 ){
-return
+return;
 }
 
-const m=currentMatches[currentMatchIndex];
+const m=
+currentMatches[
+currentMatchIndex
+];
 
 editor.focus();
 
 editor.setSelectionRange(
 m.index,
 m.index+m.length
-)
+);
 }
 
 function findNext(){
-if(!findInput.value)return;
 
-const oldSelectionStart=editor.selectionStart;
+if(!findInput.value){
+return;
+}
+
+const oldSelectionStart=
+editor.selectionStart;
 
 updateFindMatches(false);
 
-if(!currentMatches.length)return;
+if(
+!currentMatches.length
+){
+return;
+}
 
-let nextIndex=-1;
+let nextIndex=
+-1;
 
 for(
 let i=0;
 i<currentMatches.length;
 i++
 ){
+
 if(
-currentMatches[i].index>=oldSelectionStart+1
+currentMatches[i].index>
+oldSelectionStart
 ){
+
 nextIndex=i;
-break
-}
+
+break;
 }
 
-if(nextIndex<0){
-nextIndex=0
 }
 
-currentMatchIndex=nextIndex;
+if(
+nextIndex<0
+){
+nextIndex=0;
+}
+
+currentMatchIndex=
+nextIndex;
 
 findInfo.textContent=
 currentMatches.length+
-" matches · "+
+(
+currentMatches.length===1
+?" match"
+:" matches"
+)+
+" · "+
 (currentMatchIndex+1);
 
-selectCurrentMatch()
+selectCurrentMatch();
 }
 
 function findPrevious(){
-if(!findInput.value)return;
 
-const oldSelectionStart=editor.selectionStart;
+if(!findInput.value){
+return;
+}
+
+const oldSelectionStart=
+editor.selectionStart;
 
 updateFindMatches(false);
 
-if(!currentMatches.length)return;
+if(
+!currentMatches.length
+){
+return;
+}
 
-let previousIndex=-1;
+let previousIndex=
+-1;
 
 for(
-let i=currentMatches.length-1;
+let i=
+currentMatches.length-1;
 i>=0;
 i--
 ){
+
 if(
-currentMatches[i].index<oldSelectionStart
+currentMatches[i].index<
+oldSelectionStart
 ){
+
 previousIndex=i;
-break
-}
+
+break;
 }
 
-if(previousIndex<0){
-previousIndex=currentMatches.length-1
 }
 
-currentMatchIndex=previousIndex;
+if(
+previousIndex<0
+){
+previousIndex=
+currentMatches.length-1;
+}
+
+currentMatchIndex=
+previousIndex;
 
 findInfo.textContent=
 currentMatches.length+
-" matches · "+
+(
+currentMatches.length===1
+?" match"
+:" matches"
+)+
+" · "+
 (currentMatchIndex+1);
 
-selectCurrentMatch()
+selectCurrentMatch();
 }
 
 function replaceCurrent(){
-const regex=buildRegex();
 
-if(!regex)return;
+const regex=
+buildRegex();
 
-const start=editor.selectionStart;
-const end=editor.selectionEnd;
-const selected=editor.value.slice(start,end);
-
-const testRegex=new RegExp(
-regex.source,
-regex.flags.replace("g","")
-);
-
-if(!testRegex.test(selected)){
-findNext();
-return
+if(!regex){
+return;
 }
 
-const replacement=replaceInput.value;
+const start=
+editor.selectionStart;
 
-const replaced=selected.replace(
+const end=
+editor.selectionEnd;
+
+const selected=
+editor.value.slice(
+start,
+end
+);
+
+const testRegex=
+new RegExp(
+regex.source,
+regex.flags.replace(
+"g",
+""
+)
+);
+
+if(
+!testRegex.test(selected)
+){
+
+findNext();
+
+return;
+}
+
+const replacement=
+replaceInput.value;
+
+const replaced=
+selected.replace(
 testRegex,
 replacement
 );
@@ -791,25 +1184,34 @@ end,
 
 markEdited();
 
-currentMatchIndex=-1;
+currentMatchIndex=
+-1;
 
 updateFindMatches(false);
 
-setStatus("Replaced match.")
+setStatus(
+"Replaced match."
+);
 }
 
 function replaceAllMatches(){
-const regex=buildRegex();
+
+const regex=
+buildRegex();
 
 if(!regex){
-return
+return;
 }
 
-const matches=getMatches();
+const matches=
+getMatches();
 
 if(!matches.length){
-findInfo.textContent="No matches";
-return
+
+findInfo.textContent=
+"No matches";
+
+return;
 }
 
 editor.value=
@@ -820,27 +1222,41 @@ replaceInput.value
 
 markEdited();
 
-currentMatchIndex=-1;
+currentMatchIndex=
+-1;
 
 updateFindMatches(false);
 
 setStatus(
 matches.length+
-(matches.length===1?" match":" matches")+
+(
+matches.length===1
+?" match"
+:" matches"
+)+
 " replaced."
-)
+);
 }
 
-document.getElementById("openBtn").onclick=load;
+document.getElementById(
+"openBtn"
+).onclick=
+load;
 
-saveBtn.onclick=save;
+saveBtn.onclick=
+save;
 
-document.getElementById("newBtn").onclick=
+document.getElementById(
+"newBtn"
+).onclick=
 newNotepad;
 
-document.getElementById("pickBtn").onclick=
+document.getElementById(
+"pickBtn"
+).onclick=
 async()=>{
 try{
+
 await parent.Apps.openApp(
 "File Manager",
 {
@@ -848,30 +1264,48 @@ selectMode:true,
 allowMultiple:false
 }
 );
+
 }catch(err){
-setStatus(err.message||String(err))
+
+setStatus(
+err.message||
+String(err)
+);
+
 }
 };
 
-document.getElementById("runBtn").onclick=
+document.getElementById(
+"runBtn"
+).onclick=
 ()=>{
+
 const detected=
-languageFromPath(pathInput.value)||
-languageFromContent(editor.value)||
+languageFromPath(
+pathInput.value
+)||
+languageFromContent(
+editor.value
+)||
 language.value||
 "javascript";
 
-language.value=detected;
+language.value=
+detected;
 
 const name=
-pathInput.value.split("/").pop()||
+pathInput.value
+.split("/")
+.pop()||
 "main.js";
+
+try{
 
 parent.Apps.openOneCompiler({
 language:detected,
 files:[
 {
-name,
+name:name,
 content:editor.value
 }
 ],
@@ -879,30 +1313,52 @@ run:true
 });
 
 setStatus(
-"Opened OneCompiler as "+detected+"."
-)
+"Opened OneCompiler as "+
+detected+"."
+);
+
+}catch(err){
+
+setStatus(
+err.message||
+String(err)
+);
+
+}
 };
 
-document.getElementById("findClose").onclick=
+document.getElementById(
+"findClose"
+).onclick=
 closeFind;
 
-document.getElementById("findNext").onclick=
+document.getElementById(
+"findNext"
+).onclick=
 findNext;
 
-document.getElementById("findPrev").onclick=
+document.getElementById(
+"findPrev"
+).onclick=
 findPrevious;
 
-document.getElementById("replaceOne").onclick=
+document.getElementById(
+"replaceOne"
+).onclick=
 replaceCurrent;
 
-document.getElementById("replaceAll").onclick=
+document.getElementById(
+"replaceAll"
+).onclick=
 replaceAllMatches;
 
 findInput.addEventListener(
 "input",
 ()=>{
-currentMatchIndex=-1;
-updateFindMatches()
+currentMatchIndex=
+-1;
+
+updateFindMatches();
 }
 );
 
@@ -910,8 +1366,11 @@ replaceInput.addEventListener(
 "keydown",
 e=>{
 if(e.key==="Enter"){
+
 e.preventDefault();
-replaceCurrent()
+
+replaceCurrent();
+
 }
 }
 );
@@ -920,26 +1379,36 @@ replaceCurrent()
 caseSensitive,
 useRegex,
 wholeWord
-].forEach(el=>{
+].forEach(
+el=>{
 el.addEventListener(
 "change",
 ()=>{
-currentMatchIndex=-1;
-updateFindMatches()
+currentMatchIndex=
+-1;
+
+updateFindMatches();
 }
-)
-});
+);
+}
+);
 
 editor.addEventListener(
 "input",
 ()=>{
 markEdited();
 
-if(!languageFromPath(pathInput.value)){
+if(
+!languageFromPath(
+pathInput.value
+)
+){
+
 detectLanguage(
 pathInput.value,
 editor.value
-)
+);
+
 }
 }
 );
@@ -948,15 +1417,22 @@ pathInput.addEventListener(
 "input",
 ()=>{
 const detected=
-languageFromPath(pathInput.value);
+languageFromPath(
+pathInput.value
+);
 
 if(detected){
-language.value=detected
+
+language.value=
+detected;
+
 }else{
+
 detectLanguage(
 pathInput.value,
 editor.value
-)
+);
+
 }
 }
 );
@@ -964,122 +1440,201 @@ editor.value
 document.addEventListener(
 "keydown",
 e=>{
-const key=e.key.toLowerCase();
+
+const key=
+e.key.toLowerCase();
 
 if(
 (e.ctrlKey||e.metaKey)&&
 key==="s"
 ){
+
 e.preventDefault();
+
 save();
-return
+
+return;
 }
 
 if(
 (e.ctrlKey||e.metaKey)&&
 (key==="f"||key==="r")
 ){
+
 e.preventDefault();
+
 openFind(true);
-return
+
+return;
 }
 
 if(
 (e.ctrlKey||e.metaKey)&&
 key==="h"
 ){
+
 e.preventDefault();
+
 openFind(false);
-return
+
+return;
 }
 
 if(
-findPanel.classList.contains("open")&&
+findPanel.classList.contains(
+"open"
+)&&
 e.key==="Escape"
 ){
+
 e.preventDefault();
+
 closeFind();
-return
+
+return;
 }
 
 if(
-findPanel.classList.contains("open")&&
-document.activeElement===findInput
+findPanel.classList.contains(
+"open"
+)&&
+document.activeElement===
+findInput
 ){
-if(e.key==="ArrowDown"){
+
+if(
+e.key==="ArrowDown"
+){
+
 e.preventDefault();
+
 findNext();
-return
+
+return;
 }
 
-if(e.key==="ArrowUp"){
+if(
+e.key==="ArrowUp"
+){
+
 e.preventDefault();
+
 findPrevious();
-return
+
+return;
 }
 
-if(e.key==="Enter"){
+if(
+e.key==="Enter"
+){
+
 e.preventDefault();
 
 if(e.shiftKey){
-findPrevious()
+findPrevious();
 }else{
-findNext()
+findNext();
 }
 
-return
+return;
+}
+
 }
 }
-});
+);
 
 window.addEventListener(
 "message",
 e=>{
-const d=e.data||{};
 
-if(d.type!=="LH_FILE_SELECTED")return;
-if(!d.path)return;
+const d=
+e.data||{};
 
-pathInput.value=d.path;
+if(
+d.type!=="LH_FILE_SELECTED"
+){
+return;
+}
+
+if(!d.path){
+return;
+}
+
+pathInput.value=
+d.path;
 
 detectLanguage(
 d.path,
 editor.value
 );
 
-load()
-});
+load();
 
-if(params.get("path")){
-pathInput.value=params.get("path");
-detectLanguage(
-pathInput.value,
-editor.value
-)
 }
+);
 
-if(params.get("text")!==null){
-editor.value=params.get("text");
-lastSavedValue=editor.value;
+async function initialize(){
+
+const textParam=
+params.get("text");
+
+const pathParam=
+params.get("path");
+
+if(
+textParam!==null
+){
+
+pathInput.value=
+pathParam||
+pathInput.value;
+
+editor.value=
+textParam;
+
+lastSavedValue=
+editor.value;
+
 setDirty(false);
 
 detectLanguage(
 pathInput.value,
 editor.value
-)
+);
+
+editor.focus();
+
+return;
 }
 
 if(
-!params.get("path")&&
-params.get("text")===null
+pathParam
 ){
+
+pathInput.value=
+pathParam;
+
+detectLanguage(
+pathInput.value,
+""
+);
+
+await load();
+
+editor.focus();
+
+return;
+}
+
 detectLanguage(
 pathInput.value,
 editor.value
-)
-}
+);
 
 editor.focus();
+}
+
+initialize();
 </script>
 
 </body>
