@@ -17,681 +17,1701 @@
 --danger:#ff708c;
 }
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+html,body{
+margin:0;
+min-height:100%;
+background:var(--bg);
+color:var(--text);
+font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace
+}
 body{min-height:100vh}
 button,input{font:inherit}
-.shell{width:min(560px,100%);margin:0 auto;padding:18px}
-.topbar{padding:18px 20px;margin-bottom:16px;background:rgba(11,26,32,.9);border:1px solid var(--line)}
-.title{font-size:18px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-.subtitle{margin-top:6px;color:var(--muted);font-size:10px;line-height:1.5}
-.section{background:rgba(11,26,32,.86);border:1px solid var(--line);padding:18px}
-h2{margin:0 0 15px;color:var(--accent);font-size:14px;letter-spacing:.08em;text-transform:uppercase}
-.note{margin-bottom:15px;padding:11px 12px;border-left:2px solid var(--accent);background:rgba(49,244,255,.025);color:var(--muted);font-size:10px;line-height:1.6}
-.field{margin-bottom:13px}
-label{display:block;margin-bottom:6px;font-size:11px}
-input{width:100%;padding:11px;border:1px solid var(--line);outline:none;background:var(--panel2);color:var(--text);font-size:12px}
-input:focus{border-color:var(--accent);box-shadow:0 0 0 1px rgba(49,244,255,.16)}
-input::placeholder{color:#557b80}
-.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:15px}
-button.action,.action-link{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border:1px solid var(--line);background:var(--panel2);color:var(--text);cursor:pointer;font-size:11px;text-decoration:none}
-button.action:hover,.action-link:hover{border-color:var(--accent)}
-button.primary,.primary{border-color:var(--accent);color:var(--accent)}
-button.good{border-color:var(--good);color:var(--good)}
-button.danger{border-color:var(--danger);color:var(--danger)}
-button:disabled{opacity:.45;cursor:not-allowed}
-.status{min-height:18px;margin-top:13px;font-size:10px;line-height:1.5;color:var(--muted)}
+.shell{
+width:min(620px,100%);
+margin:0 auto;
+padding:18px
+}
+.topbar{
+padding:18px 20px;
+margin-bottom:16px;
+background:rgba(11,26,32,.9);
+border:1px solid var(--line)
+}
+.title{
+font-size:18px;
+font-weight:700;
+letter-spacing:.08em;
+text-transform:uppercase
+}
+.subtitle{
+margin-top:6px;
+color:var(--muted);
+font-size:10px;
+line-height:1.5
+}
+.section{
+background:rgba(11,26,32,.86);
+border:1px solid var(--line);
+padding:18px;
+margin-bottom:14px
+}
+h2{
+margin:0 0 15px;
+color:var(--accent);
+font-size:14px;
+letter-spacing:.08em;
+text-transform:uppercase
+}
+h3{
+margin:0 0 10px;
+color:var(--accent);
+font-size:12px;
+letter-spacing:.06em;
+text-transform:uppercase
+}
+.note{
+margin-bottom:15px;
+padding:11px 12px;
+border-left:2px solid var(--accent);
+background:rgba(49,244,255,.025);
+color:var(--muted);
+font-size:10px;
+line-height:1.6
+}
+.field{
+margin-bottom:13px
+}
+label{
+display:block;
+margin-bottom:6px;
+font-size:11px
+}
+input{
+width:100%;
+padding:11px;
+border:1px solid var(--line);
+outline:none;
+background:var(--panel2);
+color:var(--text);
+font-size:12px
+}
+input:focus{
+border-color:var(--accent);
+box-shadow:0 0 0 1px rgba(49,244,255,.16)
+}
+input::placeholder{
+color:#557b80
+}
+.actions{
+display:flex;
+flex-wrap:wrap;
+gap:9px;
+margin-top:15px
+}
+button.action,
+.action-link{
+display:inline-flex;
+align-items:center;
+justify-content:center;
+padding:10px 14px;
+border:1px solid var(--line);
+background:var(--panel2);
+color:var(--text);
+cursor:pointer;
+font-size:11px;
+text-decoration:none
+}
+button.action:hover,
+.action-link:hover{
+border-color:var(--accent)
+}
+button.primary,
+.primary{
+border-color:var(--accent);
+color:var(--accent)
+}
+button.good{
+border-color:var(--good);
+color:var(--good)
+}
+button.danger{
+border-color:var(--danger);
+color:var(--danger)
+}
+button:disabled{
+opacity:.45;
+cursor:not-allowed
+}
+.status{
+min-height:18px;
+margin-top:13px;
+font-size:10px;
+line-height:1.5;
+color:var(--muted);
+white-space:pre-wrap
+}
 .status.good{color:var(--good)}
 .status.bad{color:var(--danger)}
 .hidden{display:none!important}
-.info{display:grid;grid-template-columns:130px minmax(0,1fr);border-top:1px solid rgba(28,102,112,.4)}
-.info:first-child{border-top:0}
-.info-label,.info-value{padding:11px 0;font-size:11px}
-.info-label{color:var(--muted)}
-.info-value{word-break:break-word}
-.muted{color:var(--muted);font-size:10px;line-height:1.6}
+.info{
+display:grid;
+grid-template-columns:130px minmax(0,1fr);
+border-top:1px solid rgba(28,102,112,.4)
+}
+.info:first-child{
+border-top:0
+}
+.info-label,
+.info-value{
+padding:11px 0;
+font-size:11px
+}
+.info-label{
+color:var(--muted)
+}
+.info-value{
+word-break:break-word
+}
+.muted{
+color:var(--muted);
+font-size:10px;
+line-height:1.6
+}
+.pat-list{
+display:flex;
+flex-direction:column;
+gap:7px;
+margin-top:10px
+}
+.pat-row{
+display:grid;
+grid-template-columns:minmax(0,1fr) auto;
+gap:8px;
+align-items:center;
+border:1px solid rgba(28,102,112,.65);
+background:#0a1b20;
+padding:9px
+}
+.pat-value{
+font-size:10px;
+overflow:hidden;
+text-overflow:ellipsis;
+white-space:nowrap
+}
+.pat-index{
+color:var(--muted);
+font-size:9px;
+margin-right:6px
+}
+.small-button{
+padding:7px 10px!important;
+font-size:9px!important
+}
+.count{
+display:inline-block;
+padding:2px 6px;
+border:1px solid var(--line);
+font-size:9px;
+color:var(--muted);
+margin-left:6px
+}
 @media(max-width:480px){
 .shell{padding:12px}
 .section{padding:15px}
-.info{grid-template-columns:105px minmax(0,1fr)}
+.info{
+grid-template-columns:105px minmax(0,1fr)
+}
 }
 </style>
 </head>
 <body>
+
 <main class="shell">
+
 <header class="topbar">
 <div class="title">Little Hollow / User Control</div>
-<div class="subtitle">Account and local login management</div>
+<div class="subtitle">Account, GitHub access and local login management</div>
 </header>
 
 <section class="section" id="loginView">
+
 <h2>Login</h2>
 
 <div class="note">
-Sign in with your Little Hollow account. The GitHub username is used to locate your account repository and read your profile.uxd file.
+Sign in with your Little Hollow account. The GitHub username is used to locate your Little Hollow repository and read profile.uxd.
 </div>
 
 <div class="field">
 <label for="loginGithub">GITHUB USERNAME</label>
-<input id="loginGithub" type="text" autocomplete="username" spellcheck="false" placeholder="GitHub username">
+<input
+id="loginGithub"
+type="text"
+autocomplete="username"
+spellcheck="false"
+placeholder="GitHub username">
 </div>
 
 <div class="field">
 <label for="loginUsername">USERNAME</label>
-<input id="loginUsername" type="text" autocomplete="username" spellcheck="false" placeholder="LittleHollow account name">
+<input
+id="loginUsername"
+type="text"
+autocomplete="username"
+spellcheck="false"
+placeholder="LittleHollow account name">
 </div>
 
 <div class="field">
 <label for="loginPassword">PASSWORD</label>
-<input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password">
+<input
+id="loginPassword"
+type="password"
+autocomplete="current-password"
+placeholder="Password">
 </div>
 
 <div class="actions">
-<button class="action primary" id="loginBtn" type="button">LOGIN</button>
-<button class="action" id="signupBtn" type="button">SIGN UP</button>
+<button
+class="action primary"
+id="loginBtn"
+type="button">
+LOGIN
+</button>
+
+<button
+class="action"
+id="signupBtn"
+type="button">
+SIGN UP
+</button>
 </div>
 
-<div class="status" id="loginStatus"></div>
+<div
+class="status"
+id="loginStatus">
+</div>
+
 </section>
 
-<section class="section hidden" id="accountView">
+
+<section
+class="section hidden"
+id="accountView">
+
 <h2>User Account</h2>
 
 <div class="info">
 <div class="info-label">USERNAME</div>
-<div class="info-value" id="accountUsername"></div>
+<div
+class="info-value"
+id="accountUsername">
+</div>
 </div>
 
 <div class="info">
 <div class="info-label">GITHUB</div>
-<div class="info-value" id="accountGithub"></div>
+<div
+class="info-value"
+id="accountGithub">
+</div>
 </div>
 
 <div class="info">
 <div class="info-label">PASSWORD</div>
-<div class="info-value">•••••••• <span class="muted">Manage it from your GAS project.</span></div>
+<div class="info-value">
+••••••••
+<span class="muted">
+Manage it from your GAS project.
+</span>
 </div>
-
-<div class="info">
-<div class="info-label">PAT</div>
-<div class="info-value">••••••••••••••••</div>
 </div>
 
 <div class="info">
 <div class="info-label">GAS</div>
-<div class="info-value" id="gasUrl"></div>
+<div
+class="info-value"
+id="gasUrl">
+</div>
 </div>
 
-<div class="note" style="margin-top:15px">
-Your login credentials are stored locally on this device. Logging out removes the stored username, GitHub username, PAT and GAS information.
+<div
+class="note"
+style="margin-top:15px">
+Your GitHub PATs are managed by your GAS account endpoint. PAT values are not stored in LocalStorage by this page.
 </div>
 
 <div class="actions">
-<button class="action" id="githubBtn" type="button">GITHUB</button>
-<button class="action" id="gasBtn" type="button">GAS PROJECT</button>
-<button class="action good" id="logoutBtn" type="button">LOGOUT</button>
+<button
+class="action"
+id="githubBtn"
+type="button">
+GITHUB
+</button>
+
+<button
+class="action"
+id="gasBtn"
+type="button">
+GAS PROJECT
+</button>
+
+<button
+class="action good"
+id="logoutBtn"
+type="button">
+LOGOUT
+</button>
 </div>
 
-<div class="status" id="accountStatus"></div>
+<div
+class="status"
+id="accountStatus">
+</div>
+
 </section>
+
+
+<section
+class="section hidden"
+id="githubAccessView">
+
+<h2>
+GitHub Access
+<span
+class="count"
+id="patCount">
+0 PATs
+</span>
+</h2>
+
+<div class="note">
+A PAT is a GitHub credential. You can add multiple PATs. Little Hollow can later use each PAT to determine which repositories GitHub allows it to access.
+</div>
+
+<div class="field">
+<label for="patInput">ADD PAT</label>
+<input
+id="patInput"
+type="password"
+autocomplete="off"
+placeholder="Paste GitHub PAT">
+</div>
+
+<div class="actions">
+<button
+class="action primary"
+id="addPatBtn"
+type="button">
+ADD PAT
+</button>
+
+<button
+class="action"
+id="getPatsBtn"
+type="button">
+GET PATS
+</button>
+</div>
+
+<div
+class="pat-list"
+id="patList">
+</div>
+
+<div
+class="status"
+id="patStatus">
+</div>
+
+</section>
+
 </main>
 
 <script src="../js/useraccount.js"></script>
+
 <script>
-const $=id=>document.getElementById(id);
+const $=
+id=>document.getElementById(id);
 
-const loginView=$("loginView");
-const accountView=$("accountView");
-const loginGithub=$("loginGithub");
-const loginUsername=$("loginUsername");
-const loginPassword=$("loginPassword");
-const loginBtn=$("loginBtn");
-const signupBtn=$("signupBtn");
-const loginStatus=$("loginStatus");
+const loginView=
+$("loginView");
 
-const accountUsername=$("accountUsername");
-const accountGithub=$("accountGithub");
-const gasUrl=$("gasUrl");
+const accountView=
+$("accountView");
 
-function setStatus(el,text,type=""){
-el.textContent=text;
-el.className="status"+(type?" "+type:"");
-}
+const githubAccessView=
+$("githubAccessView");
 
-function decodeProfile(buffer){
-if(buffer.length<10)throw new Error("Invalid profile.");
+const loginGithub=
+$("loginGithub");
 
-if(
-buffer[0]!==0x55||
-buffer[1]!==0x58||
-buffer[2]!==0x44||
-buffer[3]!==0x31
+const loginUsername=
+$("loginUsername");
+
+const loginPassword=
+$("loginPassword");
+
+const loginBtn=
+$("loginBtn");
+
+const signupBtn=
+$("signupBtn");
+
+const loginStatus=
+$("loginStatus");
+
+const accountUsername=
+$("accountUsername");
+
+const accountGithub=
+$("accountGithub");
+
+const gasUrl=
+$("gasUrl");
+
+const accountStatus=
+$("accountStatus");
+
+const patInput=
+$("patInput");
+
+const patList=
+$("patList");
+
+const patCount=
+$("patCount");
+
+const patStatus=
+$("patStatus");
+
+const addPatBtn=
+$("addPatBtn");
+
+const getPatsBtn=
+$("getPatsBtn");
+
+function setStatus(
+    el,
+    text,
+    type=""
 ){
-throw new Error("Invalid profile format.");
+    el.textContent=
+        String(
+            text || ""
+        );
+
+    el.className=
+        "status"+
+        (
+            type
+                ?" "+type
+                :""
+        );
 }
 
-const view=new DataView(
-buffer.buffer,
-buffer.byteOffset,
-buffer.byteLength
-);
+function getStoredAccount(){
+    return {
+        username:
+            window.userAccount
+                ?.username ||
+            localStorage.getItem(
+                "littlehollow.username"
+            ) ||
+            "",
 
-const length=view.getUint32(6,true);
-const out=[];
-let pos=10;
+        github:
+            window.userAccount
+                ?.github ||
+            localStorage.getItem(
+                "littlehollow.github"
+            ) ||
+            "",
 
-while(pos<buffer.length&&out.length<length){
+        gas:
+            window.userAccount
+                ?.gas ||
+            localStorage.getItem(
+                "littlehollow.gas"
+            ) ||
+            "",
 
-if(pos>=buffer.length){
-throw new Error("Corrupt profile.");
+        authToken:
+            window.userAccount
+                ?.authToken ||
+            localStorage.getItem(
+                "littlehollow.authToken"
+            ) ||
+            ""
+    };
 }
 
-const control=buffer[pos++];
-
-for(
-let bit=0;
-bit<8&&out.length<length;
-bit++
+function saveStoredAccount(
+    values
 ){
-
-if(control&(1<<bit)){
-
-if(pos+2>=buffer.length){
-throw new Error("Corrupt profile.");
-}
-
-const dist=
-buffer[pos]|
-((buffer[pos+1]&15)<<8);
-
-const len=
-buffer[pos+2]+3;
-
-pos+=3;
-
-if(!dist||dist>out.length){
-throw new Error("Corrupt profile.");
-}
-
-for(
-let i=0;
-i<len&&out.length<length;
-i++
-){
-out.push(
-out[out.length-dist]
-);
-}
-
-}else{
-
-if(pos>=buffer.length){
-throw new Error("Corrupt profile.");
-}
-
-out.push(buffer[pos++]);
-
-}
-}
-}
-
-if(out.length!==length){
-throw new Error("Incomplete profile.");
-}
-
-return new TextDecoder().decode(
-new Uint8Array(out)
-);
-}
-
-async function fetchProfile(github,account){
-
-const repoName=
-"littlehollow-"+account;
-
-const raw=
-"https://raw.githubusercontent.com/"+
-encodeURIComponent(github)+"/"+
-encodeURIComponent(repoName)+
-"/main/profile.uxd";
-
-const res=
-await fetch(raw,{cache:"no-store"});
-
-if(!res.ok){
-
-if(res.status===404){
-throw new Error("Invalid username or password.");
-}
-
-throw new Error(
-"Unable to fetch profile.uxd (HTTP "+
-res.status+")."
-);
-}
-
-const bytes=
-new Uint8Array(
-await res.arrayBuffer()
-);
-
-let json;
-
-try{
-json=JSON.parse(
-decodeProfile(bytes)
-);
-}catch(e){
-throw new Error(
-"Unable to decode profile.uxd."
-);
-}
-
-if(
-!json||
-typeof json!=="object"
-){
-throw new Error(
-"Invalid profile data."
-);
-}
-
-if(
-!json.account||
-String(json.account).toLowerCase()!==account.toLowerCase()
-){
-throw new Error(
-"Profile account does not match."
-);
-}
-
-return{
-github:github,
-account:String(json.account),
-gas:String(json.gas||"")
-};
-}
-
-async function authenticate(profile,account,password){
-    if(!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec(?:[?#].*)?$/.test(profile.gas)){
-        throw new Error("Invalid GAS URL in profile.");
+    if(
+        window.userAccount &&
+        typeof window.userAccount.save ===
+            "function"
+    ){
+        window.userAccount.save(
+            values
+        );
+        return;
     }
 
-    const res=await fetch(profile.gas,{
-        method:"POST",
-        headers:{
-            "Content-Type":"text/plain;charset=utf-8"
-        },
-        body:JSON.stringify({
-            username:account,
-            password:password
-        })
-    });
+    if(
+        values.username !== undefined
+    ){
+        localStorage.setItem(
+            "littlehollow.username",
+            values.username
+        );
+    }
 
-    let data=null;
+    if(
+        values.github !== undefined
+    ){
+        localStorage.setItem(
+            "littlehollow.github",
+            values.github
+        );
+    }
+
+    if(
+        values.gas !== undefined
+    ){
+        localStorage.setItem(
+            "littlehollow.gas",
+            values.gas
+        );
+    }
+
+    if(
+        values.authToken !== undefined
+    ){
+        if(values.authToken){
+            localStorage.setItem(
+                "littlehollow.authToken",
+                values.authToken
+            );
+        }else{
+            localStorage.removeItem(
+                "littlehollow.authToken"
+            );
+        }
+    }
+}
+
+async function fetchProfile(
+    github,
+    account
+){
+    const repoName=
+        "littlehollow-"+account;
+
+    const raw=
+        "https://raw.githubusercontent.com/"+
+        encodeURIComponent(github)+
+        "/"+
+        encodeURIComponent(repoName)+
+        "/main/profile.uxd";
+
+    const res=
+        await fetch(
+            raw,
+            {
+                cache:"no-store"
+            }
+        );
+
+    if(!res.ok){
+        if(res.status===404){
+            throw new Error(
+                "Invalid username or password."
+            );
+        }
+
+        throw new Error(
+            "Unable to fetch profile.uxd (HTTP "+
+            res.status+")."
+        );
+    }
+
+    const bytes=
+        new Uint8Array(
+            await res.arrayBuffer()
+        );
+
+    let json;
 
     try{
-        data=await res.json();
-    }catch(_){
-        throw new Error("GAS returned an invalid response.");
-    }
-
-    if(Number(data?.status)===429){
+        json=
+            JSON.parse(
+                decodeProfile(bytes)
+            );
+    }catch(e){
         throw new Error(
-            "Too many login attempts. Try again later."
+            "Unable to decode profile.uxd."
         );
     }
 
-    if(Number(data?.status)===401){
+    if(
+        !json ||
+        typeof json!=="object"
+    ){
         throw new Error(
-            "Invalid username or password."
+            "Invalid profile data."
         );
     }
 
-    if(Number(data?.status)!==200||!data?.pat){
+    if(
+        !json.account ||
+        String(
+            json.account
+        ).toLowerCase() !==
+        account.toLowerCase()
+    ){
         throw new Error(
-            data?.message||"GAS authentication failed."
+            "Profile account does not match."
         );
     }
 
-    return data.pat;
+    return {
+        github:
+            github,
+
+        account:
+            String(
+                json.account
+            ),
+
+        gas:
+            String(
+                json.gas || ""
+            )
+    };
 }
 
-function saveAccount(username,pat,github,gas){
-
-if(
-window.userAccount&&
-typeof window.userAccount.clear==="function"
+function decodeProfile(
+    buffer
 ){
+    if(
+        buffer.length<10
+    ){
+        throw new Error(
+            "Invalid profile."
+        );
+    }
 
-localStorage.setItem(
-"littlehollow.username",
-username
-);
+    if(
+        buffer[0]!==0x55 ||
+        buffer[1]!==0x58 ||
+        buffer[2]!==0x44 ||
+        buffer[3]!==0x31
+    ){
+        throw new Error(
+            "Invalid profile format."
+        );
+    }
 
-localStorage.setItem(
-"littlehollow.pat",
-pat
-);
+    const view=
+        new DataView(
+            buffer.buffer,
+            buffer.byteOffset,
+            buffer.byteLength
+        );
 
-localStorage.setItem(
-"littlehollow.github",
-github
-);
+    const length=
+        view.getUint32(
+            6,
+            true
+        );
 
-localStorage.setItem(
-"littlehollow.gas",
-gas
-);
+    const out=[];
+    let pos=10;
 
-return;
+    while(
+        pos<buffer.length &&
+        out.length<length
+    ){
+        if(
+            pos>=buffer.length
+        ){
+            throw new Error(
+                "Corrupt profile."
+            );
+        }
+
+        const control=
+            buffer[pos++];
+
+        for(
+            let bit=0;
+            bit<8 &&
+            out.length<length;
+            bit++
+        ){
+            if(
+                control &
+                (1<<bit)
+            ){
+                if(
+                    pos+2>=buffer.length
+                ){
+                    throw new Error(
+                        "Corrupt profile."
+                    );
+                }
+
+                const dist=
+                    buffer[pos] |
+                    (
+                        (
+                            buffer[
+                                pos+1
+                            ] &
+                            15
+                        ) << 8
+                    );
+
+                const len=
+                    buffer[
+                        pos+2
+                    ]+3;
+
+                pos+=3;
+
+                if(
+                    !dist ||
+                    dist>out.length
+                ){
+                    throw new Error(
+                        "Corrupt profile."
+                    );
+                }
+
+                for(
+                    let i=0;
+                    i<len &&
+                    out.length<length;
+                    i++
+                ){
+                    out.push(
+                        out[
+                            out.length-dist
+                        ]
+                    );
+                }
+            }else{
+                if(
+                    pos>=buffer.length
+                ){
+                    throw new Error(
+                        "Corrupt profile."
+                    );
+                }
+
+                out.push(
+                    buffer[pos++]
+                );
+            }
+        }
+    }
+
+    if(
+        out.length!==length
+    ){
+        throw new Error(
+            "Incomplete profile."
+        );
+    }
+
+    return new TextDecoder()
+        .decode(
+            new Uint8Array(
+                out
+            )
+        );
 }
 
-localStorage.setItem(
-"littlehollow.username",
-username
-);
+async function gasRequest(
+    action,
+    payload={},
+    allowPasswordRetry=true
+){
+    const account=
+        getStoredAccount();
 
-localStorage.setItem(
-"littlehollow.pat",
-pat
-);
+    if(!account.gas){
+        throw new Error(
+            "GAS URL is unavailable."
+        );
+    }
 
-localStorage.setItem(
-"littlehollow.github",
-github
-);
+    let body=
+        Object.assign(
+            {
+                action:
+                    action,
 
-localStorage.setItem(
-"littlehollow.gas",
-gas
-);
-}
+                username:
+                    account.username,
 
-function showLoggedIn(){
+                authToken:
+                    account.authToken
+            },
+            payload
+        );
 
-const username=
-localStorage.getItem(
-"littlehollow.username"
-)||"";
+    const send=
+        async requestBody=>{
+            const res=
+                await fetch(
+                    account.gas,
+                    {
+                        method:"POST",
+                        headers:{
+                            "Content-Type":
+                                "text/plain;charset=utf-8"
+                        },
+                        body:
+                            JSON.stringify(
+                                requestBody
+                            )
+                    }
+                );
 
-const github=
-localStorage.getItem(
-"littlehollow.github"
-)||"";
+            let data=null;
 
-const gas=
-localStorage.getItem(
-"littlehollow.gas"
-)||"";
+            try{
+                data=
+                    await res.json();
+            }catch(_){
+                throw new Error(
+                    "GAS returned an invalid response."
+                );
+            }
 
-if(!username){
+            return data;
+        };
 
-loginView.classList.remove("hidden");
-accountView.classList.add("hidden");
+    let data=
+        await send(body);
 
-const storedGithub=
-localStorage.getItem(
-"littlehollow.github"
-)||"";
+    if(
+        allowPasswordRetry &&
+        data &&
+        (
+            data.requiresPassword===true ||
+            (
+                Number(
+                    data.status
+                )===401 &&
+                action!=="logout"
+            )
+        )
+    ){
+        const password=
+            prompt(
+                "Re-enter your Little Hollow password to manage GitHub PATs:"
+            );
 
-if(storedGithub){
-loginGithub.value=storedGithub;
-}
+        if(
+            password===null ||
+            !String(
+                password
+            ).trim()
+        ){
+            return {
+                cancelled:true
+            };
+        }
 
-return;
-}
+        body=
+            Object.assign(
+                {},
+                body,
+                {
+                    password:
+                        password
+                }
+            );
 
-loginView.classList.add("hidden");
-accountView.classList.remove("hidden");
+        data=
+            await send(
+                body
+            );
+    }
 
-accountUsername.textContent=
-username;
+    if(
+        Number(
+            data?.status
+        )!==200
+    ){
+        throw new Error(
+            data?.message ||
+            "GAS request failed."
+        );
+    }
 
-accountGithub.textContent=
-github||"Unavailable";
+    if(
+        data.authToken
+    ){
+        saveStoredAccount({
+            authToken:
+                data.authToken
+        });
+    }
 
-gasUrl.textContent=
-gas||"Unavailable";
+    if(
+        Array.isArray(
+            data.pats
+        )
+    ){
+        if(
+            window.userAccount &&
+            typeof window.userAccount.setPATS ===
+                "function"
+        ){
+            window.userAccount.setPATS(
+                data.pats
+            );
+        }
+    }
+
+    return data;
 }
 
 async function login(){
+    const github=
+        loginGithub.value.trim();
 
-const github=
-loginGithub.value.trim();
+    const account=
+        loginUsername.value.trim();
 
-const account=
-loginUsername.value.trim();
+    const password=
+        loginPassword.value;
 
-const password=
-loginPassword.value;
+    setStatus(
+        loginStatus,
+        ""
+    );
 
-setStatus(
-loginStatus,
-""
-);
+    if(!github){
+        setStatus(
+            loginStatus,
+            "Enter your GitHub username.",
+            "bad"
+        );
+        return;
+    }
 
-if(!github){
-setStatus(
-loginStatus,
-"Enter your GitHub username.",
-"bad"
-);
-return;
+    if(
+        !/^[A-Za-z0-9-]+$/.test(
+            github
+        )
+    ){
+        setStatus(
+            loginStatus,
+            "Invalid GitHub username.",
+            "bad"
+        );
+        return;
+    }
+
+    if(!account){
+        setStatus(
+            loginStatus,
+            "Enter your Little Hollow username.",
+            "bad"
+        );
+        return;
+    }
+
+    if(!password){
+        setStatus(
+            loginStatus,
+            "Enter your password.",
+            "bad"
+        );
+        return;
+    }
+
+    loginBtn.disabled=true;
+    signupBtn.disabled=true;
+
+    setStatus(
+        loginStatus,
+        "FETCHING PROFILE..."
+    );
+
+    try{
+        const profile=
+            await fetchProfile(
+                github,
+                account
+            );
+
+        if(!profile.gas){
+            throw new Error(
+                "Profile has no GAS URL."
+            );
+        }
+
+        setStatus(
+            loginStatus,
+            "AUTHENTICATING..."
+        );
+
+        const res=
+            await fetch(
+                profile.gas,
+                {
+                    method:"POST",
+                    headers:{
+                        "Content-Type":
+                            "text/plain;charset=utf-8"
+                    },
+                    body:
+                        JSON.stringify({
+                            action:"login",
+                            username:
+                                account,
+                            password:
+                                password
+                        })
+                }
+            );
+
+        let data=null;
+
+        try{
+            data=
+                await res.json();
+        }catch(_){
+            throw new Error(
+                "GAS returned an invalid response."
+            );
+        }
+
+        if(
+            Number(
+                data?.status
+            )===429
+        ){
+            throw new Error(
+                "Too many login attempts. Try again later."
+            );
+        }
+
+        if(
+            Number(
+                data?.status
+            )===401
+        ){
+            throw new Error(
+                "Invalid username or password."
+            );
+        }
+
+        if(
+            Number(
+                data?.status
+            )!==200 ||
+            !data?.authToken
+        ){
+            throw new Error(
+                data?.message ||
+                "GAS authentication failed."
+            );
+        }
+
+        saveStoredAccount({
+            username:
+                account,
+
+            github:
+                github,
+
+            gas:
+                profile.gas,
+
+            authToken:
+                data.authToken
+        });
+
+        if(
+            window.userAccount &&
+            typeof window.userAccount.clearPATS ===
+                "function"
+        ){
+            window.userAccount.clearPATS();
+        }
+
+        setStatus(
+            loginStatus,
+            "Login successful.",
+            "good"
+        );
+
+        showLoggedIn();
+
+        await getPATS();
+
+    }catch(error){
+        setStatus(
+            loginStatus,
+            error?.message ||
+            "Login failed.",
+            "bad"
+        );
+    }finally{
+        loginBtn.disabled=false;
+        signupBtn.disabled=false;
+    }
 }
 
-if(!/^[A-Za-z0-9-]+$/.test(github)){
-setStatus(
-loginStatus,
-"Invalid GitHub username.",
-"bad"
-);
-return;
-}
-
-if(!account){
-setStatus(
-loginStatus,
-"Enter your Little Hollow username.",
-"bad"
-);
-return;
-}
-
-if(!password){
-setStatus(
-loginStatus,
-"Enter your password.",
-"bad"
-);
-return;
-}
-
-loginBtn.disabled=true;
-signupBtn.disabled=true;
-
-setStatus(
-loginStatus,
-"FETCHING PROFILE..."
-);
-
-try{
-
-const profile=
-await fetchProfile(
-github,
-account
-);
-
-if(!profile.gas){
-throw new Error(
-"Profile has no GAS URL."
-);
-}
-
-setStatus(
-loginStatus,
-"AUTHENTICATING..."
-);
-
-const token=
-await authenticate(
-profile,
-account,
-password
-);
-
-saveAccount(
-account,
-token,
-github,
-profile.gas
-);
-
-setStatus(
-loginStatus,
-"Login successful.",
-"good"
-);
-
-setTimeout(()=>{
-location.reload();
-},250);
-
-}catch(error){
-
-setStatus(
-loginStatus,
-error?.message||
-"Login failed.",
-"bad"
-);
-
-}finally{
-
-loginBtn.disabled=false;
-signupBtn.disabled=false;
-
-}
-}
-
-function logout(){
-
-if(
-window.userAccount&&
-typeof window.userAccount.clear==="function"
+function maskPAT(
+    value
 ){
+    const text=
+        String(
+            value || ""
+        );
 
-window.userAccount.clear();
+    if(
+        text.length<=8
+    ){
+        return "••••••••";
+    }
 
-}else{
-
-localStorage.removeItem(
-"littlehollow.username"
-);
-
-localStorage.removeItem(
-"littlehollow.pat"
-);
-
-localStorage.removeItem(
-"littlehollow.github"
-);
-
+    return (
+        "•••••••••••• " +
+        text.slice(
+            -6
+        )
+    );
 }
 
-localStorage.removeItem(
-"littlehollow.gas"
-);
+function renderPATS(
+    values
+){
+    const pats=
+        Array.isArray(
+            values
+        )
+            ?values
+            :[];
 
-location.reload();
+    patCount.textContent=
+        pats.length+
+        (
+            pats.length===1
+                ?" PAT"
+                :" PATs"
+        );
+
+    patList.innerHTML="";
+
+    if(!pats.length){
+        patList.innerHTML=
+            '<div class="muted">No GitHub PATs stored.</div>';
+        return;
+    }
+
+    pats.forEach(
+        (
+            pat,
+            index
+        )=>{
+            const row=
+                document.createElement(
+                    "div"
+                );
+
+            row.className=
+                "pat-row";
+
+            const value=
+                document.createElement(
+                    "div"
+                );
+
+            value.className=
+                "pat-value";
+
+            const number=
+                document.createElement(
+                    "span"
+                );
+
+            number.className=
+                "pat-index";
+
+            number.textContent=
+                "#"+(index+1);
+
+            value.appendChild(
+                number
+            );
+
+            value.appendChild(
+                document.createTextNode(
+                    maskPAT(
+                        pat
+                    )
+                )
+            );
+
+            const remove=
+                document.createElement(
+                    "button"
+                );
+
+            remove.type=
+                "button";
+
+            remove.className=
+                "action danger small-button";
+
+            remove.textContent=
+                "REMOVE";
+
+            remove.onclick=
+                async()=>{
+                    await removePat(
+                        pat
+                    );
+                };
+
+            row.append(
+                value,
+                remove
+            );
+
+            patList.appendChild(
+                row
+            );
+        }
+    );
+}
+
+async function getPATS(){
+    getPatsBtn.disabled=true;
+
+    try{
+        setStatus(
+            patStatus,
+            "GETTING PATs..."
+        );
+
+        const data=
+            await gasRequest(
+                "getPATS"
+            );
+
+        const pats=
+            Array.isArray(
+                data.pats
+            )
+                ?data.pats
+                :[];
+
+        if(
+            window.userAccount &&
+            typeof window.userAccount.setPATS ===
+                "function"
+        ){
+            window.userAccount.setPATS(
+                pats
+            );
+        }
+
+        renderPATS(
+            pats
+        );
+
+        setStatus(
+            patStatus,
+            "PAT access loaded.",
+            "good"
+        );
+
+        return pats;
+
+    }catch(error){
+        setStatus(
+            patStatus,
+            error?.message ||
+            "Could not get PATs.",
+            "bad"
+        );
+
+        return [];
+    }finally{
+        getPatsBtn.disabled=false;
+    }
+}
+
+async function addPAT(){
+    const value=
+        patInput.value.trim();
+
+    if(!value){
+        setStatus(
+            patStatus,
+            "Enter a PAT first.",
+            "bad"
+        );
+        patInput.focus();
+        return;
+    }
+
+    addPatBtn.disabled=true;
+
+    try{
+        setStatus(
+            patStatus,
+            "ADDING PAT..."
+        );
+
+        const data=
+            await gasRequest(
+                "addPAT",
+                {
+                    patValue:
+                        value
+                }
+            );
+
+        patInput.value="";
+
+        const pats=
+            Array.isArray(
+                data.pats
+            )
+                ?data.pats
+                :[];
+
+        if(
+            window.userAccount &&
+            typeof window.userAccount.setPATS ===
+                "function"
+        ){
+            window.userAccount.setPATS(
+                pats
+            );
+        }
+
+        renderPATS(
+            pats
+        );
+
+        setStatus(
+            patStatus,
+            "PAT added.",
+            "good"
+        );
+
+    }catch(error){
+        setStatus(
+            patStatus,
+            error?.message ||
+            "Could not add PAT.",
+            "bad"
+        );
+    }finally{
+        addPatBtn.disabled=false;
+    }
+}
+
+async function removePAT(
+    patValue
+){
+    if(
+        !confirm(
+            "Remove this GitHub PAT?"
+        )
+    ){
+        return;
+    }
+
+    setStatus(
+        patStatus,
+        "REMOVING PAT..."
+    );
+
+    try{
+        const data=
+            await gasRequest(
+                "removePAT",
+                {
+                    patValue:
+                        patValue
+                }
+            );
+
+        const pats=
+            Array.isArray(
+                data.pats
+            )
+                ?data.pats
+                :[];
+
+        if(
+            window.userAccount &&
+            typeof window.userAccount.setPATS ===
+                "function"
+        ){
+            window.userAccount.setPATS(
+                pats
+            );
+        }
+
+        renderPATS(
+            pats
+        );
+
+        setStatus(
+            patStatus,
+            "PAT removed.",
+            "good"
+        );
+
+    }catch(error){
+        setStatus(
+            patStatus,
+            error?.message ||
+            "Could not remove PAT.",
+            "bad"
+        );
+    }
+}
+
+async function logout(){
+    const account=
+        getStoredAccount();
+
+    try{
+        if(
+            account.gas &&
+            account.username
+        ){
+            await fetch(
+                account.gas,
+                {
+                    method:"POST",
+                    headers:{
+                        "Content-Type":
+                            "text/plain;charset=utf-8"
+                    },
+                    body:
+                        JSON.stringify({
+                            action:"logout",
+                            username:
+                                account.username,
+                            authToken:
+                                account.authToken
+                        })
+                }
+            );
+        }
+    }catch(_){}
+
+    if(
+        window.userAccount &&
+        typeof window.userAccount.clear ===
+            "function"
+    ){
+        window.userAccount.clear();
+    }else{
+        localStorage.removeItem(
+            "littlehollow.username"
+        );
+
+        localStorage.removeItem(
+            "littlehollow.github"
+        );
+
+        localStorage.removeItem(
+            "littlehollow.gas"
+        );
+
+        localStorage.removeItem(
+            "littlehollow.authToken"
+        );
+    }
+
+    location.reload();
+}
+
+function showLoggedIn(){
+    const account=
+        getStoredAccount();
+
+    if(!account.username){
+        loginView.classList.remove(
+            "hidden"
+        );
+
+        accountView.classList.add(
+            "hidden"
+        );
+
+        githubAccessView.classList.add(
+            "hidden"
+        );
+
+        if(account.github){
+            loginGithub.value=
+                account.github;
+        }
+
+        return;
+    }
+
+    loginView.classList.add(
+        "hidden"
+    );
+
+    accountView.classList.remove(
+        "hidden"
+    );
+
+    githubAccessView.classList.remove(
+        "hidden"
+    );
+
+    accountUsername.textContent=
+        account.username;
+
+    accountGithub.textContent=
+        account.github ||
+        "Unavailable";
+
+    gasUrl.textContent=
+        account.gas ||
+        "Unavailable";
+
+    renderPATS(
+        window.userAccount
+            ?.pats || []
+    );
 }
 
 loginBtn.addEventListener(
-"click",
-login
+    "click",
+    login
 );
 
 loginPassword.addEventListener(
-"keydown",
-e=>{
-if(e.key==="Enter"){
-login();
-}
-}
+    "keydown",
+    e=>{
+        if(
+            e.key==="Enter"
+        ){
+            login();
+        }
+    }
 );
 
 loginUsername.addEventListener(
-"keydown",
-e=>{
-if(e.key==="Enter"){
-login();
-}
-}
+    "keydown",
+    e=>{
+        if(
+            e.key==="Enter"
+        ){
+            login();
+        }
+    }
 );
 
 loginGithub.addEventListener(
-"keydown",
-e=>{
-if(e.key==="Enter"){
-login();
-}
-}
+    "keydown",
+    e=>{
+        if(
+            e.key==="Enter"
+        ){
+            login();
+        }
+    }
 );
 
 signupBtn.addEventListener(
-"click",
-()=>{
-window.open(
-"../createaccount/Index.html",
-"_blank",
-"noopener"
-);
-}
+    "click",
+    ()=>{
+        window.open(
+            "../createaccount/Index.html",
+            "_blank",
+            "noopener"
+        );
+    }
 );
 
 $("logoutBtn").addEventListener(
-"click",
-logout
+    "click",
+    logout
 );
 
 $("githubBtn").addEventListener(
-"click",
-()=>{
-const github=
-localStorage.getItem(
-"littlehollow.github"
-);
+    "click",
+    ()=>{
+        const account=
+            getStoredAccount();
 
-if(github){
-window.open(
-"https://github.com/"+
-encodeURIComponent(github),
-"_blank",
-"noopener"
-);
-}
-}
+        if(account.github){
+            window.open(
+                "https://github.com/"+
+                encodeURIComponent(
+                    account.github
+                ),
+                "_blank",
+                "noopener"
+            );
+        }
+    }
 );
 
 $("gasBtn").addEventListener(
-"click",
-()=>{
-const url=
-localStorage.getItem(
-"littlehollow.gas"
+    "click",
+    ()=>{
+        const account=
+            getStoredAccount();
+
+        if(account.gas){
+            window.open(
+                account.gas,
+                "_blank",
+                "noopener"
+            );
+        }
+    }
 );
 
-if(url){
-window.open(
-url,
-"_blank",
-"noopener"
+addPatBtn.addEventListener(
+    "click",
+    addPAT
 );
-}
-}
+
+getPatsBtn.addEventListener(
+    "click",
+    getPATS
+);
+
+patInput.addEventListener(
+    "keydown",
+    e=>{
+        if(
+            e.key==="Enter"
+        ){
+            e.preventDefault();
+            addPAT();
+        }
+    }
 );
 
 showLoggedIn();
 </script>
+
 </body>
 </html>
