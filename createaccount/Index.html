@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#000000">
+<title>Little Hollow // Create Account</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:#000;color:#00FFFF;font-family:monospace}
+body{overflow:auto}
+a{color:#00FFFF;text-decoration:none}
+a:hover{text-decoration:underline}
+button,input{font:inherit}
+button{cursor:pointer}
+#app{min-height:100vh;padding:18px 12px 62px;background:#000}
+.shell{width:min(860px,100%);margin:0 auto}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:46px;padding:0 10px 0 14px;border:1px solid #00FFFF;background:#000d0d;box-shadow:0 0 8px rgba(0,255,255,.45),inset 0 0 18px rgba(0,255,255,.05)}
+.brand{font-size:13px;letter-spacing:1.6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toplink,.btn{display:inline-flex;align-items:center;justify-content:center;border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:8px 12px;font-size:12px;letter-spacing:.5px}
+.toplink:active,.btn:active{background:#00FFFF;color:#000}
+.hero{margin-top:12px;padding:18px;border:1px solid #00FFFF;background:#000d0d;box-shadow:0 0 8px rgba(0,255,255,.35),inset 0 0 20px rgba(0,255,255,.04)}
+.kicker{font-size:11px;letter-spacing:1.5px;opacity:.65;margin-bottom:7px}
+h1{font-size:22px;line-height:1.25;letter-spacing:1px;margin-bottom:8px}
+.hero p{font-size:12px;line-height:1.55;opacity:.75}
+.progress{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:16px}
+.progress div{height:5px;border:1px solid rgba(0,255,255,.45);background:rgba(0,255,255,.04)}
+.progress div.on{background:#00FFFF;box-shadow:0 0 7px rgba(0,255,255,.55)}
+.progress div.done{background:rgba(0,255,255,.55)}
+.steps{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.step{border:1px solid #00FFFF;background:#000d0d;box-shadow:0 0 7px rgba(0,255,255,.22),inset 0 0 16px rgba(0,255,255,.035);transition:opacity .15s}
+.step.locked{opacity:.36}
+.step.locked .stepbody{pointer-events:none;user-select:none}
+.step.done{box-shadow:0 0 9px rgba(0,255,255,.35),inset 0 0 18px rgba(0,255,255,.05)}
+.stephead{display:flex;align-items:center;gap:10px;padding:11px 12px;border-bottom:1px solid rgba(0,255,255,.65);background:rgba(0,255,255,.05)}
+.stepnum{width:28px;height:28px;display:grid;place-items:center;border:1px solid #00FFFF;flex:0 0 28px;font-size:12px}
+.step.locked .stepnum{border-color:rgba(0,255,255,.45)}
+.stepmeta{min-width:0;flex:1}
+.steptitle{font-size:13px;letter-spacing:.8px}
+.stepsub{font-size:10px;opacity:.62;margin-top:2px}
+.state{font-size:10px;letter-spacing:1px;opacity:.65;white-space:nowrap}
+.stepbody{padding:14px}
+.stepbody p{font-size:12px;line-height:1.5;margin-bottom:8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field.full{grid-column:1/-1}
+label{font-size:11px}
+input{width:100%;min-height:36px;padding:8px 9px;border:1px solid #00FFFF;outline:none;background:#001010;color:#00FFFF}
+input::placeholder{color:rgba(0,255,255,.42)}
+input:focus{box-shadow:0 0 7px rgba(0,255,255,.2)}
+.error{min-height:13px;font-size:10px;opacity:.72}
+.codebox,.valuebox,.pathbox,.note{border:1px solid rgba(0,255,255,.72);background:#000808}
+.valuebox,.pathbox{padding:9px;font-size:11px;line-height:1.45;word-break:break-all}
+.codebox{padding:10px;font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:280px;overflow:auto;color:#00FFFF}
+.note{padding:9px;font-size:10px;line-height:1.55;opacity:.82}
+.note strong{opacity:1}
+.actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+.btn.primary{background:rgba(0,255,255,.08)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn.primary:active{background:#00FFFF;color:#000}
+.lockmsg{padding:9px 11px;font-size:10px;border-top:1px solid rgba(0,255,255,.35);opacity:.7}
+.successbar{margin-top:9px;padding:9px 10px;border:1px solid #00FFFF;background:rgba(0,255,255,.06);font-size:10px;line-height:1.5}
+.footer{text-align:center;margin-top:12px;font-size:10px;opacity:.4}
+.hidden{display:none!important}
+@media(max-width:650px){
+#app{padding:10px 8px 54px}
+.hero{padding:14px}
+h1{font-size:18px}
+.grid{grid-template-columns:1fr}
+.field.full{grid-column:auto}
+.progress{gap:3px}
+.state{display:none}
+.stepbody{padding:11px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+<div class="shell">
+
+<header class="topbar">
+<div class="brand">LITTLE HOLLOW // CREATE ACCOUNT</div>
+<a class="toplink" href="../">LOGIN</a>
+</header>
+
+<section class="hero">
+<div class="kicker">ACCOUNT SETUP</div>
+<h1>Create your Little Hollow account</h1>
+<p>Complete each step in order.</p>
+<div class="progress" id="progress">
+<div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+</div>
+</section>
+
+<main class="steps">
+
+<section class="step" id="step0">
+<div class="stephead">
+<div class="stepnum">0</div>
+<div class="stepmeta">
+<div class="steptitle">Enter Credentials</div>
+<div class="stepsub">Create your Little Hollow identity.</div>
+</div>
+<div class="state" id="state0">ACTIVE</div>
+</div>
+
+<div class="stepbody">
+<div class="grid">
+
+<div class="field">
+<label for="githubUser">Github Username:</label>
+<input id="githubUser" autocomplete="username" placeholder="GitHub username">
+<div class="error" id="githubError"></div>
+</div>
+
+<div class="field">
+<label for="accountName">Account Name:</label>
+<input id="accountName" autocomplete="nickname" placeholder="Account name">
+<div class="error" id="accountError"></div>
+</div>
+
+<div class="field">
+<label for="password">Password:</label>
+<input id="password" type="password" autocomplete="new-password" placeholder="Password">
+<div class="error" id="passwordError"></div>
+</div>
+
+<div class="field">
+<label for="confirmPassword">Confirm Password:</label>
+<input id="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirm password">
+<div class="error" id="confirmError"></div>
+</div>
+
+</div>
+
+<div class="note" style="margin-top:9px">
+Repository: <strong id="repoInline0">littlehollow-accountname</strong>
+</div>
+
+<div class="actions">
+<button class="btn primary" id="finish0" type="button">CONTINUE →</button>
+</div>
+</div>
+</section>
+
+
+<section class="step locked" id="step1" aria-disabled="true">
+<div class="stephead">
+<div class="stepnum">1</div>
+<div class="stepmeta">
+<div class="steptitle">Create Repository</div>
+<div class="stepsub">Create your Little Hollow repository.</div>
+</div>
+<div class="state" id="state1">LOCKED</div>
+</div>
+
+<div class="stepbody">
+
+<div class="valuebox" id="repoTemplateUrl"></div>
+
+<div class="actions">
+<a class="btn primary" id="openTemplate" href="https://github.com/new" target="_blank" rel="noopener">CREATE REPOSITORY →</a>
+<button class="btn" id="copyTemplate" type="button">COPY URL</button>
+<button class="btn" id="finish1" type="button">CHECK REPOSITORY ✓</button>
+</div>
+
+<div class="error" id="repoError" style="margin-top:8px"></div>
+
+</div>
+
+<div class="lockmsg" id="lockmsg1">Complete Step 0 first.</div>
+</section>
+
+
+<section class="step locked" id="step2" aria-disabled="true">
+<div class="stephead">
+<div class="stepnum">2</div>
+<div class="stepmeta">
+<div class="steptitle">Create Access Token</div>
+<div class="stepsub">Create your repository access token.</div>
+</div>
+<div class="state" id="state2">LOCKED</div>
+</div>
+
+<div class="stepbody">
+
+<div class="valuebox" id="patUrl"></div>
+
+<div class="actions">
+<a class="btn primary" id="patOpen" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">CREATE PAT →</a>
+<button class="btn" id="copyPat" type="button">COPY URL</button>
+</div>
+
+<div class="field" style="margin-top:10px">
+<label for="pat">PAT:</label>
+<input id="pat" type="password" autocomplete="off" placeholder="Paste your PAT">
+<div class="error" id="patError"></div>
+</div>
+
+<div class="actions">
+<button class="btn primary" id="finish2" type="button">CONTINUE →</button>
+</div>
+
+</div>
+
+<div class="lockmsg" id="lockmsg2">Complete Step 1 first.</div>
+</section>
+
+
+<section class="step locked" id="step3" aria-disabled="true">
+<div class="stephead">
+<div class="stepnum">3</div>
+<div class="stepmeta">
+<div class="steptitle">Create GAS Authentication</div>
+<div class="stepsub">Create your authentication endpoint.</div>
+</div>
+<div class="state" id="state3">LOCKED</div>
+</div>
+
+<div class="stepbody">
+
+<div class="actions" style="margin-top:0">
+<a class="btn primary" href="https://script.google.com/create" target="_blank" rel="noopener">CREATE GAS PROJECT →</a>
+</div>
+
+<div style="margin-top:10px">
+
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px">
+<div class="kicker" style="margin-bottom:0">Code.gs</div>
+<button class="btn" id="copyGasCode" type="button">COPY CODE</button>
+</div>
+
+<div class="codebox" id="gasCode"></div>
+
+</div>
+
+<div class="field" style="margin-top:10px">
+<label for="gasUrl">GAS URL:</label>
+<input id="gasUrl" inputmode="url" placeholder="https://script.google.com/macros/s/.../exec">
+<div class="stepsub">Create GAS project | Deploy it | Project/Select type: web app | Execute as me | Who has access: anyone | Copy web app url https://script.google.com/macros/s/.../exec
+<div class="error" id="gasError"></div>
+</div>
+
+<div class="actions">
+<button class="btn" id="openGas" type="button">OPEN URL</button>
+<button class="btn primary" id="finish3" type="button">CONTINUE →</button>
+</div>
+
+</div>
+
+<div class="lockmsg" id="lockmsg3">Complete Step 2 first.</div>
+</section>
+
+
+<section class="step locked" id="step4" aria-disabled="true">
+<div class="stephead">
+<div class="stepnum">4</div>
+<div class="stepmeta">
+<div class="steptitle">Download Profile</div>
+<div class="stepsub">Generate your profile.uxd.</div>
+</div>
+<div class="state" id="state4">LOCKED</div>
+</div>
+
+<div class="stepbody">
+
+<div class="actions">
+<button class="btn primary" id="downloadProfile" type="button" disabled>DOWNLOAD profile.uxd</button>
+<button class="btn" id="copyProfileData" type="button" disabled>COPY DATA</button>
+</div>
+
+<div class="successbar hidden" id="profileDone">
+profile.uxd downloaded.
+</div>
+
+</div>
+
+<div class="lockmsg" id="lockmsg4">Complete Step 3 first.</div>
+</section>
+
+
+<section class="step locked" id="step5" aria-disabled="true">
+<div class="stephead">
+<div class="stepnum">5</div>
+<div class="stepmeta">
+<div class="steptitle">Upload Profile</div>
+<div class="stepsub">Upload profile.uxd to your repository.</div>
+</div>
+<div class="state" id="state5">LOCKED</div>
+</div>
+
+<div class="stepbody">
+
+<div class="pathbox" id="uploadUrl"></div>
+
+<div class="actions">
+<a class="btn primary" id="uploadOpen" href="https://github.com/" target="_blank" rel="noopener">UPLOAD →</a>
+<button class="btn" id="copyUpload" type="button">COPY URL</button>
+<button class="btn" id="finish5" type="button">DONE ✓</button>
+</div>
+
+</div>
+
+<div class="lockmsg" id="lockmsg5">Complete Step 4 first.</div>
+</section>
+
+
+<section class="step locked" id="step6" aria-disabled="true">
+<div class="stephead">
+<div class="stepnum">✓</div>
+<div class="stepmeta">
+<div class="steptitle">Finished</div>
+<div class="stepsub">Your Little Hollow account is ready.</div>
+</div>
+<div class="state" id="state6">LOCKED</div>
+</div>
+
+<div class="stepbody">
+<div class="actions">
+<a class="btn primary" href="../">LITTLE HOLLOW LOGIN</a>
+</div>
+</div>
+
+<div class="lockmsg" id="lockmsg6">Complete Step 5 first.</div>
+</section>
+
+</main>
+
+<div class="footer">LITTLE HOLLOW // USER-OWNED STORAGE</div>
+
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+const githubUser=$("githubUser");
+const accountName=$("accountName");
+const password=$("password");
+const confirmPassword=$("confirmPassword");
+const pat=$("pat");
+const gasUrl=$("gasUrl");
+
+const steps=[0,1,2,3,4,5,6].map(n=>$("step"+n));
+const progress=[...document.querySelectorAll("#progress div")];
+const completed=new Set();
+
+function repo(){
+const raw=accountName.value.trim()
+.replace(/[^A-Za-z0-9._-]/g,"-")
+.replace(/-+/g,"-")
+.replace(/^-|-$/g,"")
+.toLowerCase();
+
+return "littlehollow-"+(raw||"accountname");
+}
+
+function validGas(v){
+return /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec(?:[?#].*)?$/.test(v);
+}
+
+async function checkGithubUsername(){
+const u=githubUser.value.trim();
+
+$("githubError").textContent="";
+
+if(!u){
+$("githubError").textContent="Required.";
+return false;
+}
+
+if(!/^[A-Za-z0-9-]+$/.test(u)){
+$("githubError").textContent="Invalid username.";
+return false;
+}
+
+$("githubError").textContent="Checking GitHub...";
+
+try{
+const res=await fetch(
+"https://api.github.com/users/"+encodeURIComponent(u),
+{
+method:"GET",
+headers:{
+"Accept":"application/vnd.github+json"
+}
+}
+);
+
+if(res.status===200){
+$("githubError").textContent="Username found.";
+return true;
+}
+
+if(res.status===404){
+$("githubError").textContent="Username not found.";
+return false;
+}
+
+$("githubError").textContent="GitHub returned HTTP "+res.status+".";
+return false;
+
+}catch(e){
+$("githubError").textContent="Unable to reach GitHub.";
+return false;
+}
+}
+
+async function checkRepository(){
+const u=githubUser.value.trim();
+const r=repo();
+
+if(!u)return false;
+
+$("repoError").textContent="Checking repository...";
+
+try{
+const res=await fetch(
+"https://api.github.com/repos/"+
+encodeURIComponent(u)+
+"/"+
+encodeURIComponent(r),
+{
+method:"GET",
+headers:{
+"Accept":"application/vnd.github+json"
+}
+}
+);
+
+if(res.status===200){
+$("repoError").textContent="Repository found.";
+return true;
+}
+
+if(res.status===404){
+$("repoError").textContent="Repository not found yet. If you just created it, wait a moment and check again.";
+return false;
+}
+
+if(res.status===403){
+$("repoError").textContent="GitHub rate limit reached. Please try again later.";
+return false;
+}
+
+$("repoError").textContent="GitHub returned HTTP "+res.status+".";
+return false;
+
+}catch(e){
+$("repoError").textContent="Unable to reach GitHub. Please try again.";
+return false;
+}
+}
+
+function validateCredentials(show){
+let ok=true;
+
+$("githubError").textContent="";
+$("accountError").textContent="";
+$("passwordError").textContent="";
+$("confirmError").textContent="";
+
+const u=githubUser.value.trim();
+const a=accountName.value.trim();
+const p=password.value;
+const c=confirmPassword.value;
+
+if(!u){
+ok=false;
+if(show)$("githubError").textContent="Required.";
+}else if(!/^[A-Za-z0-9-]+$/.test(u)){
+ok=false;
+if(show)$("githubError").textContent="Invalid username.";
+}
+
+if(!a){
+ok=false;
+if(show)$("accountError").textContent="Required.";
+}else if(!/^[A-Za-z0-9._-]+$/.test(a)){
+ok=false;
+if(show)$("accountError").textContent="Invalid account name.";
+}
+
+if(!p){
+ok=false;
+if(show)$("passwordError").textContent="Required.";
+}
+
+if(p!==c){
+ok=false;
+if(show)$("confirmError").textContent="Passwords do not match.";
+}
+
+return ok;
+}
+
+function gasCode(){
+return `let username = ${JSON.stringify(accountName.value.trim())};
+let password = ${JSON.stringify(password.value)};
+let pat = ${JSON.stringify(pat.value)};
+
+function doPost(e) {
+  const props = PropertiesService.getScriptProperties();
+  const now = Date.now();
+
+  const input = JSON.parse(e.postData.contents || "{}");
+  const inputUsername = input.username || "";
+  const inputPassword = input.password || "";
+
+  const lockUntil = Number(props.getProperty("LOCK_UNTIL") || 0);
+
+  if (lockUntil > now) {
+    return response(429, "Too Many Requests", Math.ceil((lockUntil - now) / 1000));
+  }
+
+  if (lockUntil && lockUntil <= now) {
+    props.deleteProperty("LOCK_UNTIL");
+    props.deleteProperty("ATTEMPTS");
+  }
+
+  if (inputUsername !== username || inputPassword !== password) {
+    let attempts = Number(props.getProperty("ATTEMPTS") || 0) + 1;
+
+    if (attempts >= 5) {
+      const timeout = now + 30 * 60 * 1000;
+      props.setProperty("LOCK_UNTIL", String(timeout));
+      props.setProperty("ATTEMPTS", "0");
+      return response(429, "Too Many Requests", 1800);
+    }
+
+    props.setProperty("ATTEMPTS", String(attempts));
+    return response(401, "Unauthorized", 5 - attempts);
+  }
+
+  props.deleteProperty("ATTEMPTS");
+  props.deleteProperty("LOCK_UNTIL");
+
+  return response(200, "Authorized", 0, pat);
+}
+
+function response(status, message, attempts, token) {
+  return ContentService
+    .createTextOutput(JSON.stringify({
+      status: status,
+      message: message,
+      attemptsRemaining: attempts,
+      pat: token || null
+    }))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+}
+
+function updateGasCode(){
+$("gasCode").textContent=gasCode();
+}
+
+function updateLinks(){
+const r=repo();
+const u=githubUser.value.trim();
+
+$("repoInline0").textContent=r;
+
+const template=
+"https://github.com/new?name="+
+encodeURIComponent(r)+
+"&visibility=public&owner=%40me"+
+"&template_owner=cardhollow"+
+"&template_name=littlehollowtemplate";
+
+$("repoTemplateUrl").textContent=template;
+$("openTemplate").href=template;
+
+const patUrl=
+"https://github.com/settings/personal-access-tokens/new?"+
+new URLSearchParams({
+name:"littlehollow",
+target_name:u||"GITHUBUSERNAME",
+expires_in:"none",
+contents:"write",
+description: `Select this repository
+Then select 'Only select repositories' under Repository access and select ${u||GITHUBUSERNAME}
+`
+}).toString();
+
+$("patUrl").textContent=patUrl;
+$("patOpen").href=patUrl;
+
+const upload=u
+?"https://github.com/"+encodeURIComponent(u)+"/"+encodeURIComponent(r)+"/upload"
+:"https://github.com/GithubUserName/"+encodeURIComponent(r)+"/upload";
+
+$("uploadUrl").textContent=upload;
+$("uploadOpen").href=upload;
+
+updateGasCode();
+}
+
+function setLocked(n,locked){
+const el=steps[n];
+
+el.classList.toggle("locked",locked);
+el.setAttribute("aria-disabled",String(locked));
+
+$("state"+n).textContent=
+locked
+?"LOCKED"
+:completed.has(n)
+?"DONE"
+:"READY";
+}
+
+function setDone(n){
+completed.add(n);
+
+setLocked(n,false);
+
+steps[n].classList.add("done");
+
+$("state"+n).textContent="DONE";
+
+progress.forEach((p,i)=>{
+if(i<=n){
+p.classList.add(i===n?"on":"done");
+}
+});
+}
+
+function unlock(n){
+if(n<0||n>=steps.length)return;
+
+setLocked(n,false);
+
+steps[n].scrollIntoView({
+behavior:"smooth",
+block:"start"
+});
+}
+
+function gateNext(n){
+const next=n+1;
+
+if(next<steps.length){
+unlock(next);
+}
+}
+
+function profileBytes(input){
+const bytes=new TextEncoder().encode(input);
+const out=[0x55,0x58,0x44,0x31,1,0];
+
+const len=new Uint8Array(4);
+
+new DataView(len.buffer).setUint32(
+0,
+bytes.length,
+true
+);
+
+out.push(...len);
+
+let i=0;
+
+while(i<bytes.length){
+const controlIndex=out.length;
+
+out.push(0);
+
+let control=0;
+const payload=[];
+
+for(let bit=0;bit<8&&i<bytes.length;bit++){
+let bestLen=0;
+let bestDist=0;
+
+const start=Math.max(0,i-4095);
+
+for(let j=i-1;j>=start;j--){
+let l=0;
+
+while(
+l<258&&
+i+l<bytes.length&&
+j+l<i&&
+bytes[j+l]===bytes[i+l]
+){
+l++;
+}
+
+if(l>bestLen&&l>=3){
+bestLen=l;
+bestDist=i-j;
+
+if(l===258)break;
+}
+}
+
+if(bestLen>=3){
+control|=1<<bit;
+
+payload.push(
+bestDist&255,
+(bestDist>>8)&15,
+bestLen-3
+);
+
+i+=bestLen;
+}else{
+payload.push(bytes[i++]);
+}
+}
+
+out[controlIndex]=control;
+out.push(...payload);
+}
+
+return new Uint8Array(out);
+}
+
+function downloadProfile(){
+if(
+!completed.has(3)||
+!validGas(gasUrl.value.trim())
+){
+return;
+}
+
+const payload=JSON.stringify({
+gas:gasUrl.value.trim(),
+account:accountName.value.trim()
+});
+
+const file=profileBytes(payload);
+
+const blob=new Blob(
+[file],
+{type:"application/octet-stream"}
+);
+
+const url=URL.createObjectURL(blob);
+const a=document.createElement("a");
+
+a.href=url;
+a.download="profile.uxd";
+
+document.body.appendChild(a);
+a.click();
+a.remove();
+
+setTimeout(()=>{
+URL.revokeObjectURL(url);
+},1000);
+
+$("profileDone").classList.remove("hidden");
+
+if(!completed.has(4)){
+setDone(4);
+gateNext(4);
+}
+}
+
+function updateStep4(){
+const ready=
+completed.has(3)&&
+validGas(gasUrl.value.trim());
+
+$("downloadProfile").disabled=!ready;
+$("copyProfileData").disabled=!ready;
+}
+
+async function copyText(text,button){
+try{
+await navigator.clipboard.writeText(text);
+
+if(button){
+const old=button.textContent;
+
+button.textContent="COPIED ✓";
+
+setTimeout(()=>{
+button.textContent=old;
+},1200);
+}
+
+}catch(e){}
+}
+
+[githubUser,accountName,password,confirmPassword,pat].forEach(el=>{
+el.addEventListener("input",()=>{
+updateLinks();
+updateStep4();
+
+if(el===githubUser){
+$("githubError").textContent="";
+}
+
+if(el===pat){
+$("patError").textContent="";
+}
+});
+});
+
+gasUrl.addEventListener("input",()=>{
+$("gasError").textContent="";
+updateStep4();
+});
+
+$("finish0").onclick=async()=>{
+if(!validateCredentials(true))return;
+
+$("finish0").disabled=true;
+$("finish0").textContent="CHECKING...";
+
+const exists=await checkGithubUsername();
+
+$("finish0").disabled=false;
+$("finish0").textContent="CONTINUE →";
+
+if(!exists)return;
+
+setDone(0);
+gateNext(0);
+};
+
+$("copyTemplate").onclick=()=>{
+copyText(
+$("repoTemplateUrl").textContent,
+$("copyTemplate")
+);
+};
+
+$("finish1").onclick=async()=>{
+$("finish1").disabled=true;
+$("finish1").textContent="CHECKING...";
+
+const exists=await checkRepository();
+
+$("finish1").disabled=false;
+$("finish1").textContent="CHECK REPOSITORY ✓";
+
+if(!exists)return;
+
+setDone(1);
+gateNext(1);
+};
+
+$("copyPat").onclick=()=>{
+copyText(
+$("patUrl").textContent,
+$("copyPat")
+);
+};
+
+$("finish2").onclick=()=>{
+if(!pat.value.trim()){
+$("patError").textContent="Paste your PAT first.";
+pat.focus();
+return;
+}
+
+$("patError").textContent="";
+
+setDone(2);
+gateNext(2);
+
+updateGasCode();
+};
+
+$("copyGasCode").onclick=()=>{
+copyText(
+gasCode(),
+$("copyGasCode")
+);
+};
+
+$("openGas").onclick=()=>{
+const u=gasUrl.value.trim();
+
+if(validGas(u)){
+window.open(
+u,
+"_blank",
+"noopener"
+);
+}else{
+$("gasError").textContent="Enter your GAS URL first.";
+gasUrl.focus();
+}
+};
+
+$("finish3").onclick=()=>{
+if(!validGas(gasUrl.value.trim())){
+$("gasError").textContent="Enter your GAS URL first.";
+gasUrl.focus();
+return;
+}
+
+setDone(3);
+gateNext(3);
+updateStep4();
+};
+
+$("downloadProfile").onclick=downloadProfile;
+
+$("copyProfileData").onclick=()=>{
+copyText(
+JSON.stringify({
+gas:gasUrl.value.trim(),
+account:accountName.value.trim()
+}),
+$("copyProfileData")
+);
+};
+
+$("copyUpload").onclick=()=>{
+copyText(
+$("uploadUrl").textContent,
+$("copyUpload")
+);
+};
+
+$("finish5").onclick=()=>{
+setDone(5);
+gateNext(5);
+};
+
+updateLinks();
+updateGasCode();
+updateStep4();
+</script>
+</body>
+</html>
