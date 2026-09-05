@@ -3795,7 +3795,7 @@
         };
     }
 
-    async rename(oldPath,newPath){
+    async function rename(oldPath,newPath){
     try{
         const normalizePath=p=>{
             let s=String(p||"").trim().replace(/\\/g,"/");
