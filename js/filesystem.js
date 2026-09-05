@@ -10,12 +10,14 @@
     };
 
     const DEVICE_PREFIX = "chxd:/device/";
+    const REPOSITORY_PREFIX = "chxd:/repository/";
     const ROOT_PREFIXES = {
         local: "chxd:/local/",
         session: "chxd:/session/",
         indexdb: "chxd:/indexdb/",
         system: "chxd:/system/",
         device: DEVICE_PREFIX,
+        repository: REPOSITORY_PREFIX,
         puter: "puter:/"
     };
 
@@ -90,6 +92,10 @@
             return "device";
         }
 
+        if(path.indexOf(REPOSITORY_PREFIX) === 0){
+            return "repository";
+        }
+
         if(path.indexOf("puter:/") === 0){
             return "puter";
         }
@@ -106,6 +112,7 @@
             path === "chxd:/indexdb/" ||
             path === "chxd:/system/" ||
             path === "chxd:/device/" ||
+            path === REPOSITORY_PREFIX ||
             path === "puter:/"
         );
     }
@@ -2321,6 +2328,10 @@
             };
         }
 
+        if(z === "repository"){
+            return repositoryStat(path);
+        }
+
         if(z === "device"){
             const entry =
                 await getDeviceEntry(path);
@@ -2440,6 +2451,10 @@
                     ]),
                 kind: "file"
             };
+        }
+
+        if(z === "repository"){
+            return repositoryReadBinary(path);
         }
 
         if(z === "device"){
@@ -2626,6 +2641,17 @@
             }
         }
 
+        if(z === "repository"){
+            return repositoryWriteBinary(
+                path,
+                data,
+                {
+                    create,
+                    overwrite
+                }
+            );
+        }
+
         if(z === "device"){
             return deviceWriteBinary(
                 path,
@@ -2744,6 +2770,14 @@
             };
         }
 
+        if(z === "repository"){
+            return repositoryWrite(
+                path,
+                content,
+                create
+            );
+        }
+
         if(z === "device"){
             return deviceWrite(
                 path,
@@ -2831,6 +2865,10 @@
                 error:
                     "Cannot modify protected system filesystem."
             };
+        }
+
+        if(z === "repository"){
+            return repositoryMkdir(path);
         }
 
         if(z === "device"){
@@ -2938,6 +2976,769 @@
         };
     }
 
+
+    const repositoryCache = {
+        time: 0,
+        repos: new Map()
+    };
+    const repositoryDirectoryCache = new Map();
+    const REPOSITORY_CACHE_MS = 30000;
+
+    function repositoryPATs(){
+        const values = [];
+        try{
+            const raw = localStorage.getItem("littlehollow.pats");
+            if(raw){
+                const parsed = JSON.parse(raw);
+                if(Array.isArray(parsed)){
+                    for(const item of parsed){
+                        const value = String(item || "").trim();
+                        if(value && !values.includes(value)){
+                            values.push(value);
+                        }
+                    }
+                }
+            }
+        }catch(_){ }
+        if(!values.length){
+            try{
+                const legacy = String(localStorage.getItem("littlehollow.pat") || "").trim();
+                if(legacy){
+                    values.push(legacy);
+                }
+            }catch(_){ }
+        }
+        return values;
+    }
+
+    function repositoryHeader(pat, accept){
+        return {
+            "Accept": accept || "application/vnd.github+json",
+            "Authorization": "Bearer " + pat,
+            "X-GitHub-Api-Version": "2026-03-10"
+        };
+    }
+
+    function repositoryParts(path){
+        const clean = normalize(path)
+            .slice(REPOSITORY_PREFIX.length)
+            .replace(/^\/+|\/+$/g, "");
+        const parts = clean ? clean.split("/").filter(Boolean) : [];
+        return {
+            parts,
+            owner: parts[0] || "",
+            repo: parts[1] || "",
+            relative: parts.slice(2).join("/")
+        };
+    }
+
+    function repositoryPath(owner, repo, relative, directory){
+        let path =
+            REPOSITORY_PREFIX +
+            owner + "/" +
+            repo + "/";
+        if(relative){
+            path += relative.replace(/^\/+|\/+$/g, "") + "/";
+        }
+        if(!directory){
+            path = path.replace(/\/$/, "");
+        }
+        return path;
+    }
+
+    function repositoryApiUrl(owner, repo, relative){
+        let url =
+            "https://api.github.com/repos/" +
+            encodeURIComponent(owner) +
+            "/" +
+            encodeURIComponent(repo) +
+            "/contents";
+        const clean = String(relative || "").replace(/^\/+|\/+$/g, "");
+        if(clean){
+            url += "/" + clean.split("/").map(encodeURIComponent).join("/");
+        }
+        return url;
+    }
+
+    async function repositoryRequest(url, options, accept){
+        const pats = repositoryPATs();
+        if(!pats.length){
+            return {
+                ok: false,
+                status: 401,
+                error: "No GitHub PAT is configured."
+            };
+        }
+
+        let last = null;
+        for(const token of pats){
+            try{
+                const headers = Object.assign(
+                    {},
+                    repositoryHeader(token, accept),
+                    options && options.headers || {}
+                );
+                const response = await fetch(
+                    url,
+                    Object.assign({}, options || {}, { headers })
+                );
+                last = response;
+                if(response.ok){
+                    return { ok: true, response, pat: token };
+                }
+                if(response.status === 429){
+                    continue;
+                }
+            }catch(error){
+                last = { error };
+            }
+        }
+
+        let message = "GitHub request failed.";
+        if(last && last.error){
+            message = errorText(last.error);
+        }else if(last && last.status){
+            if(last.status === 401){
+                message = "GitHub PAT is invalid or expired.";
+            }else if(last.status === 403){
+                message = "GitHub denied access to this repository.";
+            }else if(last.status === 404){
+                message = "Repository or path was not found.";
+            }else{
+                message = "GitHub API returned HTTP " + last.status + ".";
+            }
+        }
+        return {
+            ok: false,
+            status: last && last.status || 0,
+            error: message
+        };
+    }
+
+    async function discoverRepositories(force = false){
+        const now = Date.now();
+        if(!force && repositoryCache.repos.size && now - repositoryCache.time < REPOSITORY_CACHE_MS){
+            return Array.from(repositoryCache.repos.values());
+        }
+
+        const tokens = repositoryPATs();
+        if(!tokens.length){
+            repositoryCache.repos.clear();
+            repositoryCache.time = now;
+            return [];
+        }
+
+        const merged = new Map();
+
+        for(const token of tokens){
+            let url =
+                "https://api.github.com/user/repos?per_page=100&visibility=all&affiliation=owner,collaborator,organization_member";
+            let pageGuard = 0;
+            while(url && pageGuard++ < 20){
+                let response;
+                try{
+                    response = await fetch(
+                        url,
+                        {
+                            headers: repositoryHeader(token),
+                            cache: "no-store"
+                        }
+                    );
+                }catch(_){
+                    break;
+                }
+
+                if(!response.ok){
+                    break;
+                }
+
+                let data;
+                try{
+                    data = await response.json();
+                }catch(_){
+                    break;
+                }
+
+                if(Array.isArray(data)){
+                    for(const item of data){
+                        const full = String(item.full_name || "").trim();
+                        const owner = String(item.owner && item.owner.login || "").trim();
+                        const repo = String(item.name || "").trim();
+                        if(!owner || !repo || !full){
+                            continue;
+                        }
+                        if(!merged.has(full)){
+                            merged.set(full, {
+                                owner,
+                                repo,
+                                full_name: full,
+                                default_branch: String(item.default_branch || "main"),
+                                tokens: []
+                            });
+                        }
+                        const entry = merged.get(full);
+                        if(!entry.tokens.includes(token)){
+                            entry.tokens.push(token);
+                        }
+                    }
+                }
+
+                const link = response.headers.get("Link") || "";
+                const match = link.match(/<([^>]+)>;\s*rel="next"/i);
+                url = match ? match[1] : "";
+            }
+        }
+
+        repositoryCache.repos = merged;
+        repositoryCache.time = now;
+        repositoryDirectoryCache.clear();
+        return Array.from(merged.values());
+    }
+
+    async function repositoryEntriesForOwner(owner){
+        await discoverRepositories(false);
+        return Array.from(repositoryCache.repos.values())
+            .filter(item => item.owner.toLowerCase() === owner.toLowerCase());
+    }
+
+    function repositoryEntry(owner, repo){
+        for(const item of repositoryCache.repos.values()){
+            if(
+                item.owner.toLowerCase() === owner.toLowerCase() &&
+                item.repo.toLowerCase() === repo.toLowerCase()
+            ){
+                return item;
+            }
+        }
+        return null;
+    }
+
+    async function ensureRepositoryEntry(owner, repo){
+        let entry = repositoryEntry(owner, repo);
+        if(entry){
+            return entry;
+        }
+        await discoverRepositories(true);
+        entry = repositoryEntry(owner, repo);
+        if(entry){
+            return entry;
+        }
+        return null;
+    }
+
+    async function repositoryDirectoryContents(owner, repo, relative){
+        const cacheKey =
+            owner + ":" + repo + ":" + (relative || "");
+        const cached = repositoryDirectoryCache.get(cacheKey);
+        if(cached && Date.now() - cached.time < 15000){
+            return cached.items.slice();
+        }
+
+        const result = await repositoryRequest(
+            repositoryApiUrl(owner, repo, relative),
+            {
+                method: "GET",
+                cache: "no-store"
+            },
+            "application/vnd.github+json"
+        );
+
+        if(!result.ok){
+            throw new Error(result.error);
+        }
+
+        let data;
+        try{
+            data = await result.response.json();
+        }catch(_){
+            throw new Error("GitHub returned invalid repository data.");
+        }
+
+        if(!Array.isArray(data)){
+            throw new Error("Repository path is not a directory.");
+        }
+
+        const base = repositoryPath(owner, repo, relative, true);
+        const items = data.map(item => {
+            const name = String(item.name || "");
+            const directory = item.type === "dir";
+            return base + name + (directory ? "/" : "");
+        }).filter(Boolean);
+
+        repositoryDirectoryCache.set(
+            cacheKey,
+            {
+                time: Date.now(),
+                items: items.slice()
+            }
+        );
+
+        return items;
+    }
+
+    async function repositoryListDir(path){
+        const normalized = ensureTrailingSlash(path);
+        if(normalized === REPOSITORY_PREFIX){
+            const repos = await discoverRepositories(false);
+            const owners = new Map();
+            for(const repo of repos){
+                owners.set(repo.owner.toLowerCase(), repo.owner);
+            }
+            return Array.from(owners.values()).sort((a,b)=>a.localeCompare(b))
+                .map(owner => REPOSITORY_PREFIX + owner + "/");
+        }
+
+        const info = repositoryParts(normalized);
+        if(!info.owner){
+            return [];
+        }
+        if(!info.repo){
+            const repos = await repositoryEntriesForOwner(info.owner);
+            return repos
+                .sort((a,b)=>a.repo.localeCompare(b.repo))
+                .map(item => repositoryPath(item.owner, item.repo, "", true));
+        }
+
+        const entry = await ensureRepositoryEntry(info.owner, info.repo);
+        if(!entry){
+            return [];
+        }
+        return repositoryDirectoryContents(
+            entry.owner,
+            entry.repo,
+            info.relative
+        );
+    }
+
+    async function repositoryListRecursive(path){
+        const result = [];
+        async function walk(directory){
+            const children = await repositoryListDir(directory);
+            for(const child of children){
+                result.push(child);
+                if(child.endsWith("/")){
+                    await walk(child);
+                }
+            }
+        }
+        await walk(ensureTrailingSlash(path));
+        return result;
+    }
+
+    async function repositoryContentMeta(owner, repo, relative){
+        const result = await repositoryRequest(
+            repositoryApiUrl(owner, repo, relative),
+            {
+                method: "GET",
+                cache: "no-store"
+            },
+            "application/vnd.github+json"
+        );
+        if(!result.ok){
+            return result;
+        }
+        let data;
+        try{
+            data = await result.response.json();
+        }catch(_){
+            return {
+                ok: false,
+                error: "GitHub returned invalid repository metadata."
+            };
+        }
+        return {
+            ok: true,
+            data,
+            pat: result.pat
+        };
+    }
+
+    async function repositoryStat(path){
+        const normalized = normalize(path);
+        if(normalized === REPOSITORY_PREFIX){
+            return {
+                ok: true,
+                kind: "directory",
+                name: "repository",
+                path: REPOSITORY_PREFIX,
+                size: null
+            };
+        }
+
+        const info = repositoryParts(normalized);
+        if(!info.owner){
+            return {
+                ok: false,
+                error: "Path does not exist: " + normalized
+            };
+        }
+
+        if(!info.repo){
+            const repos = await repositoryEntriesForOwner(info.owner);
+            if(!repos.length){
+                return {
+                    ok: false,
+                    error: "Repository owner was not found: " + info.owner
+                };
+            }
+            return {
+                ok: true,
+                kind: "directory",
+                name: info.owner,
+                path: REPOSITORY_PREFIX + info.owner + "/",
+                size: null
+            };
+        }
+
+        const entry = await ensureRepositoryEntry(info.owner, info.repo);
+        if(!entry){
+            return {
+                ok: false,
+                error: "Repository is not accessible: " + info.owner + "/" + info.repo
+            };
+        }
+
+        if(!info.relative){
+            return {
+                ok: true,
+                kind: "directory",
+                name: entry.repo,
+                path: repositoryPath(entry.owner, entry.repo, "", true),
+                size: null
+            };
+        }
+
+        const result = await repositoryContentMeta(
+            entry.owner,
+            entry.repo,
+            info.relative
+        );
+        if(!result.ok){
+            return {
+                ok: false,
+                error: result.error
+            };
+        }
+
+        const data = result.data;
+        if(Array.isArray(data)){
+            return {
+                ok: true,
+                kind: "directory",
+                name: basename(normalized),
+                path: ensureTrailingSlash(normalized),
+                size: null
+            };
+        }
+
+        if(data && (data.type === "file" || data.type === "symlink")){
+            return {
+                ok: true,
+                kind: "file",
+                name: basename(normalized),
+                path: normalized,
+                size: Number.isFinite(Number(data.size)) ? Number(data.size) : null,
+                sha: data.sha || ""
+            };
+        }
+
+        return {
+            ok: false,
+            error: "Unsupported GitHub repository item: " + normalized
+        };
+    }
+
+    async function repositoryReadBinary(path){
+        const normalized = normalize(path);
+        const info = repositoryParts(normalized);
+        if(!info.owner || !info.repo || !info.relative){
+            return {
+                ok: false,
+                error: "Repository file path is required: " + normalized
+            };
+        }
+
+        const result = await repositoryRequest(
+            repositoryApiUrl(info.owner, info.repo, info.relative),
+            {
+                method: "GET",
+                cache: "no-store"
+            },
+            "application/vnd.github.raw+json"
+        );
+        if(!result.ok){
+            return result;
+        }
+
+        try{
+            return {
+                ok: true,
+                data: await result.response.blob(),
+                kind: "file"
+            };
+        }catch(error){
+            return {
+                ok: false,
+                error: "Could not read GitHub file: " + errorText(error)
+            };
+        }
+    }
+
+    async function repositoryWriteBinary(path, data, options = {}){
+        const normalized = normalize(path);
+        const info = repositoryParts(normalized);
+        if(!info.owner || !info.repo || !info.relative){
+            return {
+                ok: false,
+                error: "Repository file path is required: " + normalized
+            };
+        }
+
+        const entry = await ensureRepositoryEntry(info.owner, info.repo);
+        if(!entry){
+            return {
+                ok: false,
+                error: "Repository is not accessible: " + info.owner + "/" + info.repo
+            };
+        }
+
+        if(options.overwrite === false){
+            const existing = await repositoryContentMeta(
+                entry.owner,
+                entry.repo,
+                info.relative
+            );
+            if(existing.ok){
+                return {
+                    ok: false,
+                    error: "Destination already exists: " + normalized
+                };
+            }
+        }
+
+        let buffer;
+        try{
+            buffer = await arrayBufferFrom(data);
+        }catch(error){
+            return {
+                ok: false,
+                error: "Could not prepare GitHub file: " + errorText(error)
+            };
+        }
+
+        const content = bytesToBase64(buffer);
+        let sha = "";
+        try{
+            const existing = await repositoryContentMeta(
+                entry.owner,
+                entry.repo,
+                info.relative
+            );
+            if(existing.ok && existing.data && !Array.isArray(existing.data)){
+                sha = String(existing.data.sha || "");
+            }
+        }catch(_){ }
+
+        const payload = {
+            message: "LittleHollow: update " + info.relative,
+            content: content
+        };
+        if(sha){
+            payload.sha = sha;
+        }
+
+        const result = await repositoryRequest(
+            repositoryApiUrl(entry.owner, entry.repo, info.relative),
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            },
+            "application/vnd.github+json"
+        );
+
+        if(!result.ok){
+            return result;
+        }
+
+        repositoryDirectoryCache.clear();
+        return {
+            ok: true
+        };
+    }
+
+    async function repositoryWrite(path, content, create = true){
+        return repositoryWriteBinary(
+            path,
+            new Blob([String(content)]),
+            {
+                create,
+                overwrite: true
+            }
+        );
+    }
+
+    async function repositoryRemoveFile(path){
+        const normalized = normalize(path);
+        const info = repositoryParts(normalized);
+        const entry = await ensureRepositoryEntry(info.owner, info.repo);
+        if(!entry){
+            return {
+                ok: false,
+                error: "Repository is not accessible: " + info.owner + "/" + info.repo
+            };
+        }
+
+        const meta = await repositoryContentMeta(
+            entry.owner,
+            entry.repo,
+            info.relative
+        );
+        if(!meta.ok){
+            return meta;
+        }
+        if(Array.isArray(meta.data) || !meta.data.sha){
+            return {
+                ok: false,
+                error: "Path is not a file: " + normalized
+            };
+        }
+
+        const payload = {
+            message: "LittleHollow: delete " + info.relative,
+            sha: meta.data.sha
+        };
+
+        const result = await repositoryRequest(
+            repositoryApiUrl(entry.owner, entry.repo, info.relative),
+            {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            },
+            "application/vnd.github+json"
+        );
+        if(result.ok){
+            repositoryDirectoryCache.clear();
+            return { ok: true };
+        }
+        return result;
+    }
+
+    async function repositoryRemove(path){
+        const normalized = normalize(path);
+        const st = await repositoryStat(normalized);
+        if(!st.ok){
+            return st;
+        }
+        if(st.kind === "file"){
+            return repositoryRemoveFile(normalized);
+        }
+        const files = (await repositoryListRecursive(normalized))
+            .filter(item => !item.endsWith("/"));
+        for(const file of files){
+            const removed = await repositoryRemoveFile(file);
+            if(!removed.ok){
+                return {
+                    ok: false,
+                    error: "Delete failed at '" + file + "': " + removed.error
+                };
+            }
+        }
+        repositoryDirectoryCache.clear();
+        return { ok: true };
+    }
+
+    async function repositoryMkdir(path){
+        const normalized = ensureTrailingSlash(path);
+        if(normalized === REPOSITORY_PREFIX){
+            return { ok: true };
+        }
+        const marker = normalized + ".gitkeep";
+        const existing = await repositoryStat(marker);
+        if(existing.ok){
+            return { ok: true };
+        }
+        return repositoryWrite(
+            marker,
+            "",
+            true
+        );
+    }
+
+    async function repositoryRename(oldPath, newPath){
+        const source = normalize(oldPath);
+        const target = normalize(newPath);
+        const sourceStat = await repositoryStat(source);
+        if(!sourceStat.ok){
+            return sourceStat;
+        }
+        const targetStat = await repositoryStat(target);
+        if(targetStat.ok){
+            return {
+                ok: false,
+                error: "Destination already exists: " + target
+            };
+        }
+        if(
+            source.endsWith("/") &&
+            sameOrInside(source, target)
+        ){
+            return {
+                ok: false,
+                error: "Cannot rename a repository folder into itself."
+            };
+        }
+
+        if(sourceStat.kind === "file"){
+            const data = await repositoryReadBinary(source);
+            if(!data.ok){
+                return data;
+            }
+            const written = await repositoryWriteBinary(
+                target,
+                data.data,
+                { create: true, overwrite: true }
+            );
+            if(!written.ok){
+                return written;
+            }
+            return repositoryRemoveFile(source);
+        }
+
+        const children = await repositoryListRecursive(source);
+        const files = children.filter(item => !item.endsWith("/"));
+        for(const file of files){
+            const relative = file.slice(source.length);
+            const destination = ensureTrailingSlash(target) + relative;
+            const data = await repositoryReadBinary(file);
+            if(!data.ok){
+                return data;
+            }
+            const written = await repositoryWriteBinary(
+                destination,
+                data.data,
+                { create: true, overwrite: true }
+            );
+            if(!written.ok){
+                return {
+                    ok: false,
+                    error: "Rename failed at '" + file + "': " + written.error
+                };
+            }
+        }
+        const removed = await repositoryRemove(source);
+        if(!removed.ok){
+            return removed;
+        }
+        repositoryDirectoryCache.clear();
+        return { ok: true, path: ensureTrailingSlash(target) };
+    }
+
     async function listDir(path){
         path = normalize(path);
 
@@ -2965,6 +3766,10 @@
                 );
         }
 
+        if(z === "repository"){
+            return repositoryListDir(path);
+        }
+
         if(z === "device"){
             return deviceList(path);
         }
@@ -2983,6 +3788,12 @@
         if(z === "system"){
             return Object.keys(
                 SYSTEM_FILES
+            );
+        }
+
+        if(z === "repository"){
+            return repositoryListRecursive(
+                REPOSITORY_PREFIX
             );
         }
 
@@ -3119,6 +3930,7 @@
                 "indexdb",
                 "system",
                 "device",
+                "repository",
                 "puter"
             ];
 
@@ -3207,6 +4019,12 @@
                     "Cannot remove protected system file: " +
                     path
             };
+        }
+
+        if(
+            z === "repository"
+        ){
+            return repositoryRemove(path);
         }
 
         if(
@@ -3797,6 +4615,24 @@
 
     async function rename(oldPath,newPath){
     try{
+        if(
+            zone(oldPath) === "repository" ||
+            zone(newPath) === "repository"
+        ){
+            if(
+                zone(oldPath) !== "repository" ||
+                zone(newPath) !== "repository"
+            ){
+                return {
+                    ok:false,
+                    error:"Repository rename cannot cross filesystems."
+                };
+            }
+            return await repositoryRename(
+                oldPath,
+                newPath
+            );
+        }
         const normalizePath=p=>{
             let s=String(p||"").trim().replace(/\\/g,"/");
             if(!s){
