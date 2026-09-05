@@ -62,13 +62,6 @@ font-size:14px;
 letter-spacing:.08em;
 text-transform:uppercase
 }
-h3{
-margin:0 0 10px;
-color:var(--accent);
-font-size:12px;
-letter-spacing:.06em;
-text-transform:uppercase
-}
 .note{
 margin-bottom:15px;
 padding:11px 12px;
@@ -185,12 +178,18 @@ margin-top:10px
 }
 .pat-row{
 display:grid;
-grid-template-columns:minmax(0,1fr) auto;
+grid-template-columns:30px minmax(0,1fr);
 gap:8px;
 align-items:center;
 border:1px solid rgba(28,102,112,.65);
 background:#0a1b20;
 padding:9px
+}
+.pat-check{
+width:18px;
+height:18px;
+margin:0;
+accent-color:#31f4ff
 }
 .pat-value{
 font-size:10px;
@@ -214,6 +213,20 @@ border:1px solid var(--line);
 font-size:9px;
 color:var(--muted);
 margin-left:6px
+}
+.selection-bar{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:9px;
+margin-top:10px;
+padding:9px;
+border:1px solid rgba(28,102,112,.65);
+background:#09171b
+}
+.selection-info{
+font-size:9px;
+color:var(--muted)
 }
 @media(max-width:480px){
 .shell{padding:12px}
@@ -293,7 +306,6 @@ id="loginStatus">
 
 </section>
 
-
 <section
 class="section hidden"
 id="accountView">
@@ -337,7 +349,7 @@ id="gasUrl">
 <div
 class="note"
 style="margin-top:15px">
-Your GitHub PATs are managed by your GAS account endpoint. PAT values are not stored in LocalStorage by this page.
+GitHub PATs are stored locally so Little Hollow can use them normally. Adding, removing, or retrieving PATs requires the PAT management authorization token or your password.
 </div>
 
 <div class="actions">
@@ -370,7 +382,6 @@ id="accountStatus">
 
 </section>
 
-
 <section
 class="section hidden"
 id="githubAccessView">
@@ -385,7 +396,7 @@ id="patCount">
 </h2>
 
 <div class="note">
-A PAT is a GitHub credential. You can add multiple PATs. Little Hollow can later use each PAT to determine which repositories GitHub allows it to access.
+Multiple GitHub PATs can be stored. Little Hollow keeps the PAT array locally and uses the management authorization token only when adding, removing, or retrieving PATs from GAS.
 </div>
 
 <div class="field">
@@ -411,6 +422,34 @@ id="getPatsBtn"
 type="button">
 GET PATS
 </button>
+</div>
+
+<div
+class="selection-bar">
+
+<div
+class="selection-info"
+id="selectionInfo">
+0 selected
+</div>
+
+<div class="actions" style="margin-top:0">
+<button
+class="action small-button"
+id="selectAllBtn"
+type="button">
+SELECT ALL
+</button>
+
+<button
+class="action danger small-button"
+id="removeSelectedBtn"
+type="button"
+disabled>
+REMOVE SELECTED
+</button>
+</div>
+
 </div>
 
 <div
@@ -490,6 +529,18 @@ $("addPatBtn");
 const getPatsBtn=
 $("getPatsBtn");
 
+const selectAllBtn=
+$("selectAllBtn");
+
+const removeSelectedBtn=
+$("removeSelectedBtn");
+
+const selectionInfo=
+$("selectionInfo");
+
+let selectedPATS=
+new Set();
+
 function setStatus(
     el,
     text,
@@ -541,7 +592,12 @@ function getStoredAccount(){
             localStorage.getItem(
                 "littlehollow.authToken"
             ) ||
-            ""
+            "",
+
+        pats:
+            window.userAccount
+                ?.pats ||
+            []
     };
 }
 
@@ -896,7 +952,9 @@ async function gasRequest(
         };
 
     let data=
-        await send(body);
+        await send(
+            body
+        );
 
     if(
         allowPasswordRetry &&
@@ -917,10 +975,7 @@ async function gasRequest(
             );
 
         if(
-            password===null ||
-            !String(
-                password
-            ).trim()
+            password===null
         ){
             return {
                 cancelled:true
@@ -941,6 +996,13 @@ async function gasRequest(
             await send(
                 body
             );
+    }
+
+    if(
+        data &&
+        data.cancelled
+    ){
+        return data;
     }
 
     if(
@@ -1140,14 +1202,6 @@ async function login(){
                 data.authToken
         });
 
-        if(
-            window.userAccount &&
-            typeof window.userAccount.clearPATS ===
-                "function"
-        ){
-            window.userAccount.clearPATS();
-        }
-
         setStatus(
             loginStatus,
             "Login successful.",
@@ -1193,6 +1247,38 @@ function maskPAT(
     );
 }
 
+function updateSelectionUI(){
+    const count=
+        selectedPATS.size;
+
+    selectionInfo.textContent=
+        count+
+        (
+            count===1
+                ?" selected"
+                :" selected"
+        );
+
+    removeSelectedBtn.disabled=
+        count===0;
+
+    const account=
+        getStoredAccount();
+
+    const pats=
+        Array.isArray(
+            account.pats
+        )
+            ?account.pats
+            :[];
+
+    selectAllBtn.textContent=
+        pats.length &&
+        count===pats.length
+            ?"CLEAR ALL"
+            :"SELECT ALL";
+}
+
 function renderPATS(
     values
 ){
@@ -1200,8 +1286,27 @@ function renderPATS(
         Array.isArray(
             values
         )
-            ?values
+            ?[
+                ...values
+            ]
             :[];
+
+    const available=
+        new Set(
+            pats
+        );
+
+    selectedPATS=
+        new Set(
+            [
+                ...selectedPATS
+            ].filter(
+                value =>
+                    available.has(
+                        value
+                    )
+            )
+        );
 
     patCount.textContent=
         pats.length+
@@ -1216,6 +1321,9 @@ function renderPATS(
     if(!pats.length){
         patList.innerHTML=
             '<div class="muted">No GitHub PATs stored.</div>';
+
+        updateSelectionUI();
+
         return;
     }
 
@@ -1226,11 +1334,46 @@ function renderPATS(
         )=>{
             const row=
                 document.createElement(
-                    "div"
+                    "label"
                 );
 
             row.className=
                 "pat-row";
+
+            const checkbox=
+                document.createElement(
+                    "input"
+                );
+
+            checkbox.type=
+                "checkbox";
+
+            checkbox.className=
+                "pat-check";
+
+            checkbox.checked=
+                selectedPATS.has(
+                    pat
+                );
+
+            checkbox.addEventListener(
+                "change",
+                ()=>{
+                    if(
+                        checkbox.checked
+                    ){
+                        selectedPATS.add(
+                            pat
+                        );
+                    }else{
+                        selectedPATS.delete(
+                            pat
+                        );
+                    }
+
+                    updateSelectionUI();
+                }
+            );
 
             const value=
                 document.createElement(
@@ -1263,30 +1406,9 @@ function renderPATS(
                 )
             );
 
-            const remove=
-                document.createElement(
-                    "button"
-                );
-
-            remove.type=
-                "button";
-
-            remove.className=
-                "action danger small-button";
-
-            remove.textContent=
-                "REMOVE";
-
-            remove.onclick=
-                async()=>{
-                    await removePat(
-                        pat
-                    );
-                };
-
             row.append(
-                value,
-                remove
+                checkbox,
+                value
             );
 
             patList.appendChild(
@@ -1294,6 +1416,8 @@ function renderPATS(
             );
         }
     );
+
+    updateSelectionUI();
 }
 
 async function getPATS(){
@@ -1309,6 +1433,14 @@ async function getPATS(){
             await gasRequest(
                 "getPATS"
             );
+
+        if(data?.cancelled){
+            setStatus(
+                patStatus,
+                "Cancelled."
+            );
+            return [];
+        }
 
         const pats=
             Array.isArray(
@@ -1348,6 +1480,7 @@ async function getPATS(){
         );
 
         return [];
+
     }finally{
         getPatsBtn.disabled=false;
     }
@@ -1363,7 +1496,9 @@ async function addPAT(){
             "Enter a PAT first.",
             "bad"
         );
+
         patInput.focus();
+
         return;
     }
 
@@ -1384,6 +1519,14 @@ async function addPAT(){
                 }
             );
 
+        if(data?.cancelled){
+            setStatus(
+                patStatus,
+                "Cancelled."
+            );
+            return;
+        }
+
         patInput.value="";
 
         const pats=
@@ -1402,6 +1545,8 @@ async function addPAT(){
                 pats
             );
         }
+
+        selectedPATS.clear();
 
         renderPATS(
             pats
@@ -1425,38 +1570,79 @@ async function addPAT(){
     }
 }
 
-async function removePAT(
-    patValue
-){
+async function removeSelectedPATS(){
+    const values=
+        [
+            ...selectedPATS
+        ];
+
+    if(!values.length){
+        return;
+    }
+
     if(
         !confirm(
-            "Remove this GitHub PAT?"
+            "Remove "+
+            values.length+
+            (
+                values.length===1
+                    ?" selected PAT?"
+                    :" selected PATs?"
+            )
         )
     ){
         return;
     }
 
-    setStatus(
-        patStatus,
-        "REMOVING PAT..."
-    );
+    removeSelectedBtn.disabled=true;
+    addPatBtn.disabled=true;
+    getPatsBtn.disabled=true;
 
     try{
-        const data=
-            await gasRequest(
-                "removePAT",
-                {
-                    patValue:
+        let remaining=
+            getStoredAccount().pats;
+
+        for(
+            const patValue of values
+        ){
+            setStatus(
+                patStatus,
+                "REMOVING PAT "+
+                (
+                    values.indexOf(
                         patValue
-                }
+                    )+1
+                )+
+                " OF "+
+                values.length+"..."
             );
 
-        const pats=
-            Array.isArray(
-                data.pats
-            )
-                ?data.pats
-                :[];
+            const data=
+                await gasRequest(
+                    "removePAT",
+                    {
+                        patValue:
+                            patValue
+                    }
+                );
+
+            if(data?.cancelled){
+                setStatus(
+                    patStatus,
+                    "Cancelled."
+                );
+                return;
+            }
+
+            remaining=
+                Array.isArray(
+                    data.pats
+                )
+                    ?data.pats
+                    :remaining;
+        }
+
+        selectedPATS.clear();
 
         if(
             window.userAccount &&
@@ -1464,17 +1650,22 @@ async function removePAT(
                 "function"
         ){
             window.userAccount.setPATS(
-                pats
+                remaining
             );
         }
 
         renderPATS(
-            pats
+            remaining
         );
 
         setStatus(
             patStatus,
-            "PAT removed.",
+            values.length+
+            (
+                values.length===1
+                    ?" PAT removed."
+                    :" PATs removed."
+            ),
             "good"
         );
 
@@ -1482,10 +1673,42 @@ async function removePAT(
         setStatus(
             patStatus,
             error?.message ||
-            "Could not remove PAT.",
+            "Could not remove selected PATs.",
             "bad"
         );
+
+    }finally{
+        removeSelectedBtn.disabled=
+            selectedPATS.size===0;
+
+        addPatBtn.disabled=false;
+        getPatsBtn.disabled=false;
     }
+}
+
+function toggleSelectAll(){
+    const pats=
+        getStoredAccount().pats;
+
+    if(!pats.length){
+        return;
+    }
+
+    if(
+        selectedPATS.size===
+        pats.length
+    ){
+        selectedPATS.clear();
+    }else{
+        selectedPATS=
+            new Set(
+                pats
+            );
+    }
+
+    renderPATS(
+        pats
+    );
 }
 
 async function logout(){
@@ -1539,6 +1762,10 @@ async function logout(){
 
         localStorage.removeItem(
             "littlehollow.authToken"
+        );
+
+        localStorage.removeItem(
+            "littlehollow.pats"
         );
     }
 
@@ -1594,8 +1821,7 @@ function showLoggedIn(){
         "Unavailable";
 
     renderPATS(
-        window.userAccount
-            ?.pats || []
+        account.pats
     );
 }
 
@@ -1696,6 +1922,16 @@ addPatBtn.addEventListener(
 getPatsBtn.addEventListener(
     "click",
     getPATS
+);
+
+selectAllBtn.addEventListener(
+    "click",
+    toggleSelectAll
+);
+
+removeSelectedBtn.addEventListener(
+    "click",
+    removeSelectedPATS
 );
 
 patInput.addEventListener(
