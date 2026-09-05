@@ -3346,36 +3346,16 @@
         };
     }
 
-    async function resolveDestination(
-        source,
-        destination
-    ){
-        source =
-            normalize(source);
-
-        destination =
-            normalize(destination);
-
-        const dstStat =
-            await stat(destination);
-
-        if(
-            dstStat.ok &&
-            dstStat.kind === "directory"
-        ){
-            return (
-                ensureTrailingSlash(
-                    destination
-                ) +
-                basename(source) +
-                (
-                    source.endsWith("/")
-                        ? "/"
-                        : ""
-                )
-            );
+    async function resolveDestination(source,destination){
+        source=normalize(source);
+        destination=normalize(destination);
+        if(destination.endsWith("/")){
+            return ensureTrailingSlash(destination)+basename(source)+(source.endsWith("/")?"/":"");
         }
-
+        const dstStat=await stat(destination);
+        if(dstStat.ok&&dstStat.kind==="directory"){
+            return ensureTrailingSlash(destination)+basename(source)+(source.endsWith("/")?"/":"");
+        }
         return destination;
     }
 
