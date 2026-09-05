@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MIDI to PKP Converter & Player</title>
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:monospace;
+    -webkit-tap-highlight-color:transparent;
+}
+
+html, body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#000;
+    color:#00ffff;
+}
+
+body{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    padding:10px;
+}
+
+button, select, input, textarea{
+    font:inherit;
+    color:#00ffff;
+    background:#000;
+    border:1px solid #00ffff;
+}
+
+button{
+    height:34px;
+    padding:0 10px;
+    cursor:pointer;
+}
+
+button:active, button.active{
+    background:#00ffff;
+    color:#000;
+}
+
+select, input[type="number"]{
+    height:34px;
+    padding:0 7px;
+}
+
+.converterPanel{
+    flex:0 0 auto;
+    border:1px solid #00ffff;
+    padding:10px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    background:#000d0d;
+}
+
+.controlsRow{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:8px;
+}
+
+.dropZone{
+    border:1px dashed #00ffff;
+    padding:10px;
+    text-align:center;
+    cursor:pointer;
+    background:#001515;
+    font-size:11px;
+}
+
+.dropZone.dragover{
+    background:#003333;
+}
+
+.pkpOutput{
+    width:100%;
+    height:70px;
+    resize:none;
+    padding:6px;
+    font-size:10px;
+    background:#000;
+    border:1px solid #005555;
+    color:#00ffff;
+}
+
+.top{
+    flex:0 0 auto;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:6px;
+}
+
+.volume{
+    height:34px;
+    display:flex;
+    align-items:center;
+    gap:5px;
+    border:1px solid #004d4d;
+    padding:0 7px;
+    font-size:10px;
+}
+
+.volume input{
+    width:100px;
+    border:0;
+    accent-color:#00ffff;
+}
+
+.info{
+    flex:0 0 auto;
+    min-height:28px;
+    border:1px solid #005555;
+    padding:6px 8px;
+    font-size:10px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.pianoArea{
+    flex:1 1 auto;
+    min-height:0;
+    overflow:auto;
+    border:1px solid #00ffff;
+    background:#000;
+    padding:12px;
+    touch-action:none;
+}
+
+.piano{
+    position:relative;
+    height:100%;
+    min-height:220px;
+    width:max-content;
+    min-width:100%;
+    display:flex;
+    align-items:stretch;
+    justify-content:center;
+    user-select:none;
+}
+
+.whiteKeys{
+    display:flex;
+    height:100%;
+    min-height:200px;
+    gap:2px;
+}
+
+.whiteKey{
+    position:relative;
+    flex:0 0 64px;
+    height:100%;
+    min-height:200px;
+    background:#001818;
+    border:1px solid #008888;
+    border-top:3px solid #00ffff;
+    border-radius:0 0 7px 7px;
+    color:#00ffff;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+    padding-bottom:13px;
+    cursor:pointer;
+    box-shadow:inset 0 -5px 0 #000, inset 0 0 0 1px #002e2e;
+    z-index:1;
+}
+
+.whiteKey.pressed{
+    background:#00ffff;
+    color:#000;
+    border-color:#00ffff;
+    transform:translateY(3px);
+    box-shadow:0 0 13px #00ffff, inset 0 -4px 0 #008888;
+}
+
+.whiteKey .note{ font-size:11px; font-weight:bold; }
+.whiteKey .computer{ margin-top:5px; font-size:10px; opacity:.7; }
+
+.blackKeys{
+    position:absolute;
+    left:0;
+    top:0;
+    height:72%;
+    min-height:140px;
+    pointer-events:none;
+    z-index:5;
+}
+
+.blackKey{
+    position:absolute;
+    top:0;
+    width:39px;
+    height:100%;
+    min-height:140px;
+    background:#001010;
+    border:1px solid #00ffff;
+    border-top:4px solid #00ffff;
+    border-radius:0 0 6px 6px;
+    color:#00ffff;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+    padding-bottom:10px;
+    pointer-events:auto;
+    cursor:pointer;
+    box-shadow:0 5px 0 #000, inset 0 -5px 0 #003a3a, inset 0 0 0 1px #003131;
+}
+
+.blackKey.pressed{
+    background:#00ffff;
+    color:#000;
+    transform:translateY(3px);
+    box-shadow:0 0 13px #00ffff, 0 2px 0 #008888;
+}
+
+.blackKey .note, .blackKey .computer{ font-size:9px; font-weight:bold; }
+
+.bottom{
+    flex:0 0 auto;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:6px;
+}
+
+.recordState{
+    height:34px;
+    display:flex;
+    align-items:center;
+    padding:0 8px;
+    border:1px solid #004d4d;
+    font-size:10px;
+    min-width:170px;
+}
+
+@media(max-width:700px){
+    .whiteKey{ flex-basis:54px; }
+    .blackKey{ width:33px; }
+}
+</style>
+</head>
+<body>
+
+<div class="converterPanel">
+    <div class="dropZone" id="dropZone">
+        DROP .MID / .MIDI FILE HERE OR CLICK TO SELECT
+        <input type="file" id="midiInput" accept=".mid,.midi" style="display:none;">
+    </div>
+    <div class="controlsRow">
+        <label style="font-size:10px;">TRANSPOSE: 
+            <input type="number" id="transpose" value="0" style="width:50px;">
+        </label>
+        <label style="font-size:10px;">TARGET OCTAVE: 
+            <select id="targetOctave">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4" selected>4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+            </select>
+        </label>
+        <button id="convertBtn">CONVERT MIDI TO PKP</button>
+        <button id="copyBtn">COPY PKP</button>
+        <button id="playConvertedBtn">PLAY IN PIANO</button>
+    </div>
+    <textarea class="pkpOutput" id="pkpOutput" placeholder="Converted PKP string will appear here..."></textarea>
+</div>
+
+<div class="top">
+    <button id="octDown">OCT −</button>
+    <button id="octUp">OCT +</button>
+    <button id="sustain">SUSTAIN</button>
+
+    <select id="instrument">
+        <option value="piano">PIANO</option>
+        <option value="synth">SYNTH</option>
+        <option value="organ">ORGAN</option>
+        <option value="strings">STRINGS</option>
+        <option value="brass">BRASS</option>
+        <option value="choir">CHOIR</option>
+        <option value="pluck">PLUCK</option>
+        <option value="bell">BELL</option>
+        <option value="harpsichord">HARPSICHORD</option>
+        <option value="guitar">GUITAR</option>
+        <option value="bass">BASS</option>
+        <option value="pad">PAD</option>
+        <option value="lead">LEAD</option>
+    </select>
+
+    <select id="wave">
+        <option value="triangle">TRIANGLE</option>
+        <option value="sine">SINE</option>
+        <option value="sawtooth">SAW</option>
+        <option value="square">SQUARE</option>
+    </select>
+
+    <label class="volume">
+        VOL
+        <input id="volume" type="range" min="0" max="1" step=".01" value=".75">
+    </label>
+</div>
+
+<div class="info" id="info">
+    MIDI TO PKP CONVERTER & HOLLOW PIANO ENGINE
+</div>
+
+<div class="pianoArea" id="pianoArea">
+    <div class="piano" id="piano">
+        <div class="whiteKeys" id="whiteKeys"></div>
+        <div class="blackKeys" id="blackKeys"></div>
+    </div>
+</div>
+
+<div class="bottom">
+    <button id="play">▶ PLAY PKP</button>
+    <button id="stop">■ STOP</button>
+    <div class="recordState" id="recordState">Ready</div>
+</div>
+
+<script>
+(function(){
+    "use strict";
+
+    let audioContext=null, masterGain=null;
+    let octave=4, waveform="triangle", volume=.75, sustain=false, instrument="piano";
+    const activeVoices=new Map(), sustained=new Set(), pressedPhysical=new Set(), playbackVoices=new Set();
+    let playbackTimers=[];
+
+    const piano=document.getElementById("piano"), whiteKeys=document.getElementById("whiteKeys"), blackKeys=document.getElementById("blackKeys");
+    const info=document.getElementById("info"), recordState=document.getElementById("recordState");
+    const octDown=document.getElementById("octDown"), octUp=document.getElementById("octUp"), sustainButton=document.getElementById("sustain");
+    const instrumentControl=document.getElementById("instrument"), wave=document.getElementById("wave"), volumeControl=document.getElementById("volume");
+    const playButton=document.getElementById("play"), stopButton=document.getElementById("stop");
+
+    const dropZone=document.getElementById("dropZone"), midiInput=document.getElementById("midiInput");
+    const convertBtn=document.getElementById("convertBtn"), copyBtn=document.getElementById("copyBtn"), playConvertedBtn=document.getElementById("playConvertedBtn");
+    const pkpOutput=document.getElementById("pkpOutput"), transposeInput=document.getElementById("transpose"), targetOctaveSelect=document.getElementById("targetOctave");
+
+    let loadedMidiBuffer = null;
+
+    const whiteMapping=[["a",0],["s",2],["d",4],["f",5],["g",7],["h",9],["j",11],["k",12],["l",14],["z",16],["x",17],["c",19],["v",21],["b",23],["n",24],["m",26]];
+    const blackMapping=[["q",1],["w",3],["e",6],["r",8],["t",10],["y",13],["u",15],["i",18],["o",20],["p",22]];
+    const whiteByBlack=[0,1,3,4,5,7,8,10,11,12];
+    const BASE_MIDI=60;
+
+    const computerNotes=new Map();
+    const semitoneToKeyMap=new Map();
+
+    for(const [key,semitone] of whiteMapping){ computerNotes.set(key,semitone); semitoneToKeyMap.set(semitone, key); }
+    for(const [key,semitone] of blackMapping){ computerNotes.set(key,semitone); semitoneToKeyMap.set(semitone, key); }
+
+    const instrumentDefinitions={
+        piano:{parts:[{type:"triangle",mult:1,gain:.8,detune:0},{type:"sine",mult:2,gain:.18,detune:0},{type:"sine",mult:3,gain:.08,detune:0}],attack:.006,peak:.8,release:.22,decay:.7},
+        synth:{parts:[{type:"sawtooth",mult:1,gain:.55,detune:-4},{type:"square",mult:1,gain:.22,detune:4},{type:"triangle",mult:2,gain:.12,detune:0}],attack:.01,peak:.7,release:.12,decay:.45},
+        organ:{parts:[{type:"sine",mult:1,gain:.65,detune:0},{type:"sine",mult:2,gain:.35,detune:0},{type:"sine",mult:3,gain:.19,detune:0},{type:"sine",mult:4,gain:.1,detune:0}],attack:.015,peak:.7,release:.2,decay:1},
+        strings:{parts:[{type:"sawtooth",mult:1,gain:.48,detune:-7},{type:"sawtooth",mult:1,gain:.48,detune:7},{type:"triangle",mult:2,gain:.2,detune:0}],attack:.08,peak:.62,release:.35,decay:1},
+        brass:{parts:[{type:"sawtooth",mult:1,gain:.65,detune:0},{type:"square",mult:1,gain:.2,detune:5},{type:"sawtooth",mult:2,gain:.13,detune:0}],attack:.045,peak:.68,release:.22,decay:1},
+        choir:{parts:[{type:"sine",mult:1,gain:.7,detune:-4},{type:"sine",mult:1.01,gain:.45,detune:4},{type:"triangle",mult:2,gain:.12,detune:0}],attack:.18,peak:.52,release:.5,decay:1},
+        pluck:{parts:[{type:"triangle",mult:1,gain:.7,detune:0},{type:"square",mult:2,gain:.18,detune:0},{type:"sine",mult:3,gain:.08,detune:0}],attack:.002,peak:.78,release:.12,decay:.18},
+        bell:{parts:[{type:"sine",mult:1,gain:.55,detune:0},{type:"sine",mult:2.01,gain:.38,detune:0},{type:"sine",mult:3.96,gain:.24,detune:0},{type:"sine",mult:5.02,gain:.12,detune:0}],attack:.001,peak:.62,release:1.05,decay:1.8},
+        harpsichord:{parts:[{type:"square",mult:1,gain:.45,detune:0},{type:"triangle",mult:2,gain:.3,detune:0},{type:"sine",mult:3,gain:.12,detune:0}],attack:.003,peak:.65,release:.18,decay:.55},
+        guitar:{parts:[{type:"triangle",mult:1,gain:.62,detune:0},{type:"square",mult:2,gain:.14,detune:0},{type:"sine",mult:3,gain:.08,detune:0}],attack:.006,peak:.63,release:.25,decay:.55},
+        bass:{parts:[{type:"triangle",mult:1,gain:.85,detune:0},{type:"sine",mult:.5,gain:.3,detune:0},{type:"sine",mult:2,gain:.1,detune:0}],attack:.015,peak:.72,release:.25,decay:.75},
+        pad:{parts:[{type:"sawtooth",mult:1,gain:.3,detune:-10},{type:"sawtooth",mult:1,gain:.3,detune:10},{type:"triangle",mult:2,gain:.18,detune:0},{type:"sine",mult:1,gain:.24,detune:0}],attack:.3,peak:.5,release:.7,decay:1},
+        lead:{parts:[{type:"sawtooth",mult:1,gain:.65,detune:0},{type:"square",mult:1,gain:.2,detune:4},{type:"triangle",mult:2,gain:.12,detune:0}],attack:.008,peak:.7,release:.16,decay:.5}
+    };
+
+    dropZone.addEventListener("click", ()=>midiInput.click());
+    dropZone.addEventListener("dragover", (e)=>{ e.preventDefault(); dropZone.classList.add("dragover"); });
+    dropZone.addEventListener("dragleave", ()=>dropZone.classList.remove("dragover"));
+    dropZone.addEventListener("drop", (e)=>{
+        e.preventDefault();
+        dropZone.classList.remove("dragover");
+        if(e.dataTransfer.files.length){
+            handleFile(e.dataTransfer.files[0]);
+        }
+    });
+
+    midiInput.addEventListener("change", (e)=>{
+        if(e.target.files.length) handleFile(e.target.files[0]);
+    });
+
+    function handleFile(file){
+        dropZone.textContent = "FILE: " + file.name.toUpperCase();
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            loadedMidiBuffer = e.target.result;
+            info.textContent = "MIDI Loaded: " + file.name;
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    convertBtn.addEventListener("click", ()=>{
+        if(!loadedMidiBuffer){
+            alert("Please load a MIDI file first!");
+            return;
+        }
+        try{
+            const parsed = parseMidi(loadedMidiBuffer);
+            const notes = extractMidiNotes(parsed);
+            const targetOct = parseInt(targetOctaveSelect.value, 10);
+            const transpose = parseInt(transposeInput.value, 10);
+            const pkpString = generatePKPFromNotes(notes, targetOct, transpose);
+            pkpOutput.value = pkpString;
+            recordState.textContent = "Converted " + notes.length + " notes to PKP";
+        }catch(err){
+            alert("Error converting MIDI: " + err.message);
+        }
+    });
+
+    copyBtn.addEventListener("click", ()=>{
+        if(!pkpOutput.value) return;
+        pkpOutput.select();
+        navigator.clipboard.writeText(pkpOutput.value);
+        recordState.textContent = "PKP Copied to Clipboard!";
+    });
+
+    playConvertedBtn.addEventListener("click", ()=>{
+        if(pkpOutput.value) playPKP(pkpOutput.value);
+    });
+
+    function parseMidi(buffer){
+        const dv = new DataView(buffer);
+        let ptr = 0;
+        function rStr(len){ let s=""; for(let i=0;i<len;i++) s+=String.fromCharCode(dv.getUint8(ptr++)); return s; }
+        function rVar(){
+            let v = 0;
+            while(ptr < dv.byteLength){
+                let b = dv.getUint8(ptr++);
+                v = (v << 7) | (b & 0x7F);
+                if(!(b & 0x80)) break;
+            }
+            return v;
+        }
+
+        if(rStr(4) !== "MThd") throw new Error("Invalid MIDI Header");
+        ptr += 4;
+        const format = dv.getUint16(ptr); ptr += 2;
+        const numTracks = dv.getUint16(ptr); ptr += 2;
+        const timeDiv = dv.getUint16(ptr); ptr += 2;
+
+        const tracks = [];
+        for(let i=0; i<numTracks; i++){
+            if(rStr(4) !== "MTrk") break;
+            const len = dv.getUint32(ptr); ptr += 4;
+            const end = ptr + len;
+            let ticks = 0, runningStatus = 0;
+            const events = [];
+
+            while(ptr < end){
+                const delta = rVar();
+                ticks += delta;
+                let b = dv.getUint8(ptr);
+                if(b >= 0x80){ runningStatus = b; ptr++; } else { b = runningStatus; }
+
+                if(b === 0xFF){
+                    const type = dv.getUint8(ptr++);
+                    const l = rVar();
+                    const data = [];
+                    for(let k=0; k<l; k++) data.push(dv.getUint8(ptr++));
+                    if(type === 0x51 && l === 3){
+                        events.push({ ticks, type:"tempo", tempo:(data[0]<<16)|(data[1]<<8)|data[2] });
+                    }
+                } else if(b === 0xF0 || b === 0xF7){
+                    ptr += rVar();
+                } else {
+                    const cmd = b & 0xF0;
+                    if(cmd === 0x90 || cmd === 0x80){
+                        const note = dv.getUint8(ptr++);
+                        const vel = dv.getUint8(ptr++);
+                        events.push({ ticks, type:(cmd===0x90 && vel>0)?"noteOn":"noteOff", note, vel });
+                    } else if(cmd === 0xC0 || cmd === 0xD0){ ptr += 1; }
+                    else { ptr += 2; }
+                }
+            }
+            tracks.push(events);
+        }
+        return { ticksPerQuarter: timeDiv & 0x7FFF, tracks };
+    }
+
+    function extractMidiNotes(parsed){
+        let tempos = [{ ticks:0, usPerQuarter:500000, timeMs:0 }];
+        parsed.tracks.forEach(tr => tr.forEach(e => {
+            if(e.type === "tempo") tempos.push({ ticks:e.ticks, usPerQuarter:e.tempo });
+        }));
+        tempos.sort((a,b)=>a.ticks-b.ticks);
+
+        for(let i=1; i<tempos.length; i++){
+            const prev = tempos[i-1];
+            const deltaTicks = tempos[i].ticks - prev.ticks;
+            const msPerTick = (prev.usPerQuarter / 1000) / parsed.ticksPerQuarter;
+            tempos[i].timeMs = prev.timeMs + deltaTicks * msPerTick;
+        }
+
+        function ticksToMs(t){
+            let cur = tempos[0];
+            for(let i=0; i<tempos.length; i++){
+                if(tempos[i].ticks <= t) cur = tempos[i]; else break;
+            }
+            return cur.timeMs + (t - cur.ticks) * ((cur.usPerQuarter / 1000) / parsed.ticksPerQuarter);
+        }
+
+        const notes = [];
+        parsed.tracks.forEach(tr => {
+            const active = {};
+            tr.forEach(e => {
+                if(e.type === "noteOn"){
+                    active[e.note] = ticksToMs(e.ticks);
+                } else if(e.type === "noteOff"){
+                    if(active[e.note] !== undefined){
+                        const start = active[e.note];
+                        const end = ticksToMs(e.ticks);
+                        if(end > start) notes.push({ midi: e.note, start, end, duration: end - start });
+                        delete active[e.note];
+                    }
+                }
+            });
+        });
+        notes.sort((a,b)=>a.start-b.start);
+        return notes;
+    }
+
+    function generatePKPFromNotes(notes, targetOctave, transpose){
+        const baseMidi = 60 + (targetOctave - 4) * 12;
+        const pkpNotes = [];
+
+        notes.forEach(n => {
+            let midi = n.midi + transpose;
+            let offset = midi - baseMidi;
+
+            while(offset < 0) offset += 12;
+            while(offset > 26) offset -= 12;
+
+            if(offset === 25) offset = 24; 
+
+            let key = semitoneToKeyMap.get(offset);
+            if(!key){
+                offset = Math.min(26, Math.max(0, offset));
+                key = semitoneToKeyMap.get(offset) || "a";
+            }
+
+            pkpNotes.push({
+                key,
+                midi,
+                start: Math.round(n.start),
+                end: Math.round(n.end),
+                duration: Math.max(10, Math.round(n.duration))
+            });
+        });
+
+        pkpNotes.sort((a,b)=>a.start-b.start);
+
+        const layers = [];
+        const startGroups = [];
+
+        for(const note of pkpNotes){
+            let group = startGroups[startGroups.length - 1];
+            if(!group || Math.abs(group.start - note.start) > 15){
+                group = { start: note.start, notes: [] };
+                startGroups.push(group);
+            }
+            group.notes.push(note);
+        }
+
+        for(const group of startGroups){
+            let selected = null;
+            for(const layer of layers){
+                if(layer.lastEnd <= group.start + 15){
+                    selected = layer;
+                    break;
+                }
+            }
+            if(!selected){
+                selected = { events: [], lastEnd: 0 };
+                layers.push(selected);
+            }
+            selected.events.push({
+                type: "group",
+                time: group.start,
+                notes: group.notes
+            });
+            selected.lastEnd = Math.max(selected.lastEnd, ...group.notes.map(n=>n.end));
+        }
+
+        const settings = { instrument, waveform, volume, sustain, octave: targetOctave };
+        let result = JSON.stringify(settings);
+
+        for(const layer of layers){
+            let layerStr = "";
+            let currentTime = 0;
+            for(const ev of layer.events){
+                const delta = Math.max(0, Math.round(ev.time - currentTime));
+                if(delta > 0) layerStr += "(" + delta + ")";
+                const notesStr = ev.notes.map(n => n.key + ":" + n.duration).join(",");
+                layerStr += "[" + notesStr + "]";
+                currentTime = ev.time;
+            }
+            result += "<" + layerStr + ">";
+        }
+
+        return result;
+    }
+
+    function initAudio(){
+        if(audioContext) return true;
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if(!AC) return false;
+        try{
+            audioContext = new AC();
+            masterGain = audioContext.createGain();
+            masterGain.gain.value = volume;
+            masterGain.connect(audioContext.destination);
+            return true;
+        }catch(_){ return false; }
+    }
+
+    function midiToFrequency(midi){ return 440 * Math.pow(2, (midi - 69) / 12); }
+    function midiToName(midi){
+        const names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+        return names[((midi % 12) + 12) % 12] + (Math.floor(midi / 12) - 1);
+    }
+    function currentMidi(semitone){ return BASE_MIDI + (octave - 4) * 12 + semitone; }
+
+    function createVoice(midi){
+        if(!initAudio()) return null;
+        if(audioContext.state === "suspended") audioContext.resume();
+        const definition = instrumentDefinitions[instrument] || instrumentDefinitions.piano;
+        const voiceGain = audioContext.createGain();
+        const now = audioContext.currentTime;
+
+        voiceGain.gain.setValueAtTime(.0001, now);
+        voiceGain.gain.exponentialRampToValueAtTime(Math.max(.001, definition.peak), now + Math.max(.001, definition.attack));
+        voiceGain.connect(masterGain);
+
+        const oscillators = [];
+        for(const part of definition.parts){
+            const osc = audioContext.createOscillator();
+            const partGain = audioContext.createGain();
+            osc.type = (instrument==="synth"||instrument==="lead") && oscillators.length===0 ? waveform : part.type;
+            osc.frequency.setValueAtTime(midiToFrequency(midi) * part.mult, now);
+            osc.detune.setValueAtTime(part.detune || 0, now);
+            partGain.gain.value = Math.max(.001, part.gain);
+            osc.connect(partGain);
+            partGain.connect(voiceGain);
+            osc.start();
+            oscillators.push(osc);
+        }
+        return { voiceGain, oscillators };
+    }
+
+    function stopVoice(voice){
+        if(!voice || !audioContext) return;
+        const now = audioContext.currentTime;
+        try{
+            voice.voiceGain.gain.cancelScheduledValues(now);
+            voice.voiceGain.gain.setTargetAtTime(.0001, now, .06);
+            for(const osc of voice.oscillators){ try{ osc.stop(now + .35); }catch(_){} }
+        }catch(_){}
+    }
+
+    function setPressed(midi, value){
+        const el = document.querySelector('[data-midi="'+midi+'"]');
+        if(el) el.classList.toggle("pressed", value);
+    }
+
+    function startNote(midi){
+        if(activeVoices.has(midi)) return;
+        const voice = createVoice(midi);
+        if(!voice) return;
+        activeVoices.set(midi, voice);
+        setPressed(midi, true);
+        info.textContent = instrument.toUpperCase() + " · " + midiToName(midi) + " · MIDI " + midi;
+    }
+
+    function stopNote(midi){
+        const voice = activeVoices.get(midi);
+        if(!voice) return;
+        stopVoice(voice);
+        activeVoices.delete(midi);
+        setPressed(midi, false);
+    }
+
+    function stopPlayback(){
+        for(const timer of playbackTimers) clearTimeout(timer);
+        playbackTimers = [];
+        for(const item of playbackVoices) stopVoice(item.voice);
+        playbackVoices.clear();
+        document.querySelectorAll(".pressed").forEach(el => el.classList.remove("pressed"));
+    }
+
+    function playPKP(text){
+        if(!text) return;
+        stopPlayback();
+
+        let baseSettings = { octave: 4, instrument: "piano" };
+        try{
+            const headerMatch = text.match(/^\{.*?\}/);
+            if(headerMatch) baseSettings = JSON.parse(headerMatch[0]);
+        }catch(_){}
+
+        if(baseSettings.octave) octave = baseSettings.octave;
+        if(baseSettings.instrument) instrument = baseSettings.instrument;
+        buildPiano();
+
+        const layerRegex = /<([^>]+)>/g;
+        let match;
+        while((match = layerRegex.exec(text)) !== null){
+            const layerContent = match[1];
+            let time = 0;
+            let i = 0;
+            while(i < layerContent.length){
+                if(layerContent[i] === "("){
+                    const end = layerContent.indexOf(")", i);
+                    if(end === -1) break;
+                    time += parseInt(layerContent.slice(i+1, end), 10) || 0;
+                    i = end + 1;
+                } else if(layerContent[i] === "["){
+                    const end = layerContent.indexOf("]", i);
+                    if(end === -1) break;
+                    const groupStr = layerContent.slice(i+1, end);
+                    const notes = groupStr.split(",").map(s=>s.trim()).filter(Boolean);
+                    
+                    notes.forEach(nStr => {
+                        const parts = nStr.split(":");
+                        const key = parts[0].toLowerCase();
+                        const dur = parseInt(parts[1], 10) || 250;
+                        if(computerNotes.has(key)){
+                            const semitone = computerNotes.get(key);
+                            const midi = BASE_MIDI + (octave - 4) * 12 + semitone;
+                            
+                            const timer = setTimeout(()=>{
+                                const voice = createVoice(midi);
+                                if(voice){
+                                    const item = { midi, voice };
+                                    playbackVoices.add(item);
+                                    setPressed(midi, true);
+                                    setTimeout(()=>{
+                                        stopVoice(voice);
+                                        playbackVoices.delete(item);
+                                        setPressed(midi, false);
+                                    }, dur);
+                                }
+                            }, time);
+                            playbackTimers.push(timer);
+                        }
+                    });
+                    i = end + 1;
+                } else {
+                    i++;
+                }
+            }
+        }
+        recordState.textContent = "Playing PKP...";
+    }
+
+    function buildPiano(){
+        whiteKeys.innerHTML = ""; blackKeys.innerHTML = "";
+        for(const [computerKey, semitone] of whiteMapping){
+            const midi = currentMidi(semitone);
+            const key = document.createElement("div");
+            key.className = "whiteKey";
+            key.dataset.midi = String(midi);
+            key.innerHTML = '<div class="note">'+midiToName(midi)+'</div><div class="computer">'+computerKey.toUpperCase()+'</div>';
+            attachPointer(key, midi);
+            whiteKeys.appendChild(key);
+        }
+        requestAnimationFrame(positionBlackKeys);
+    }
+
+    function positionBlackKeys(){
+        blackKeys.innerHTML = "";
+        const whiteElements = [...whiteKeys.querySelectorAll(".whiteKey")];
+        if(!whiteElements.length) return;
+        const pianoRect = piano.getBoundingClientRect();
+        const whiteWidth = whiteElements[0].getBoundingClientRect().width;
+
+        for(let i=0; i<blackMapping.length; i++){
+            const [computerKey, semitone] = blackMapping[i];
+            const leftWhiteIndex = whiteByBlack[i];
+            if(leftWhiteIndex >= whiteElements.length - 1) continue;
+            const leftRect = whiteElements[leftWhiteIndex].getBoundingClientRect();
+            const midi = currentMidi(semitone);
+            const key = document.createElement("div");
+            key.className = "blackKey";
+            key.dataset.midi = String(midi);
+            key.innerHTML = '<div class="note">'+midiToName(midi)+'</div><div class="computer">'+computerKey.toUpperCase()+'</div>';
+            key.style.left = (leftRect.right - pianoRect.left - whiteWidth * .305) + "px";
+            attachPointer(key, midi);
+            blackKeys.appendChild(key);
+        }
+    }
+
+    function attachPointer(element, midi){
+        let down = false;
+        element.addEventListener("pointerdown", (e)=>{
+            e.preventDefault(); down = true;
+            try{ element.setPointerCapture(e.pointerId); }catch(_){}
+            startNote(midi);
+        });
+        element.addEventListener("pointerup", (e)=>{ e.preventDefault(); if(down){ down=false; stopNote(midi); } });
+        element.addEventListener("pointercancel", ()=>{ if(down){ down=false; stopNote(midi); } });
+    }
+
+    octDown.addEventListener("click", ()=>{ octave = Math.max(1, octave - 1); buildPiano(); info.textContent = "OCTAVE " + octave; });
+    octUp.addEventListener("click", ()=>{ octave = Math.min(7, octave + 1); buildPiano(); info.textContent = "OCTAVE " + octave; });
+    sustainButton.addEventListener("click", ()=>{ sustain = !sustain; sustainButton.classList.toggle("active", sustain); });
+    instrumentControl.addEventListener("change", (e)=>{ instrument = e.target.value; });
+    wave.addEventListener("change", (e)=>{ waveform = e.target.value; });
+    volumeControl.addEventListener("input", (e)=>{ volume = parseFloat(e.target.value); if(masterGain) masterGain.gain.value = volume; });
+
+    playButton.addEventListener("click", ()=>playPKP(pkpOutput.value));
+    stopButton.addEventListener("click", stopPlayback);
+
+    window.addEventListener("keydown", (e)=>{
+        const k = e.key.toLowerCase();
+        if(e.repeat) return;
+        if(k === "["){ octave = Math.max(1, octave - 1); buildPiano(); return; }
+        if(k === "]"){ octave = Math.min(7, octave + 1); buildPiano(); return; }
+        if(computerNotes.has(k)){
+            e.preventDefault();
+            pressedPhysical.add(k);
+            startNote(currentMidi(computerNotes.get(k)));
+        }
+    });
+
+    window.addEventListener("keyup", (e)=>{
+        const k = e.key.toLowerCase();
+        if(computerNotes.has(k)){
+            pressedPhysical.delete(k);
+            stopNote(currentMidi(computerNotes.get(k)));
+        }
+    });
+
+    buildPiano();
+})();
+</script>
+</body>
+</html>
