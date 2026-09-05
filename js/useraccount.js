@@ -18,7 +18,66 @@ let authToken =
         "littlehollow.authToken"
     ) || "";
 
-let pats = [];
+let pats=[];
+
+try{
+    const stored=
+        localStorage.getItem(
+            "littlehollow.pats"
+        );
+
+    if(stored){
+        const parsed=
+            JSON.parse(
+                stored
+            );
+
+        if(
+            Array.isArray(
+                parsed
+            )
+        ){
+            pats=[
+                ...new Set(
+                    parsed
+                        .map(
+                            value =>
+                                String(
+                                    value || ""
+                                ).trim()
+                        )
+                        .filter(
+                            Boolean
+                        )
+                )
+            ];
+        }
+    }
+}catch(_){}
+
+if(!pats.length){
+    const oldPat=
+        localStorage.getItem(
+            "littlehollow.pat"
+        ) || "";
+
+    if(oldPat){
+        pats=[
+            oldPat
+        ];
+
+        localStorage.setItem(
+            "littlehollow.pats",
+            JSON.stringify(
+                pats
+            )
+        );
+
+        localStorage.removeItem(
+            "littlehollow.pat"
+        );
+    }
+}
 
 function saveUserAccount(
     values={}
@@ -29,7 +88,7 @@ function saveUserAccount(
             "username"
         )
     ){
-        username =
+        username=
             String(
                 values.username || ""
             );
@@ -41,7 +100,7 @@ function saveUserAccount(
             "github"
         )
     ){
-        github =
+        github=
             String(
                 values.github || ""
             );
@@ -53,7 +112,7 @@ function saveUserAccount(
             "gas"
         )
     ){
-        gas =
+        gas=
             String(
                 values.gas || ""
             );
@@ -65,10 +124,21 @@ function saveUserAccount(
             "authToken"
         )
     ){
-        authToken =
+        authToken=
             String(
                 values.authToken || ""
             );
+    }
+
+    if(
+        Object.prototype.hasOwnProperty.call(
+            values,
+            "pats"
+        )
+    ){
+        setPATS(
+            values.pats
+        );
     }
 
     localStorage.setItem(
@@ -96,12 +166,19 @@ function saveUserAccount(
             "littlehollow.authToken"
         );
     }
+
+    localStorage.setItem(
+        "littlehollow.pats",
+        JSON.stringify(
+            pats
+        )
+    );
 }
 
 function setAuthToken(
     value
 ){
-    authToken =
+    authToken=
         String(
             value || ""
         );
@@ -112,7 +189,7 @@ function setAuthToken(
 function setPATS(
     values
 ){
-    pats =
+    pats=
         Array.isArray(
             values
         )
@@ -132,21 +209,94 @@ function setPATS(
             ]
             :[];
 
-    return [
+    localStorage.setItem(
+        "littlehollow.pats",
+        JSON.stringify(
+            pats
+        )
+    );
+
+    return[
+        ...pats
+    ];
+}
+
+function addPAT(
+    value
+){
+    const patValue=
+        String(
+            value || ""
+        ).trim();
+
+    if(!patValue){
+        return[
+            ...pats
+        ];
+    }
+
+    if(
+        !pats.includes(
+            patValue
+        )
+    ){
+        pats.push(
+            patValue
+        );
+    }
+
+    localStorage.setItem(
+        "littlehollow.pats",
+        JSON.stringify(
+            pats
+        )
+    );
+
+    return[
+        ...pats
+    ];
+}
+
+function removePAT(
+    value
+){
+    const patValue=
+        String(
+            value || ""
+        ).trim();
+
+    pats=
+        pats.filter(
+            item =>
+                item!==patValue
+        );
+
+    localStorage.setItem(
+        "littlehollow.pats",
+        JSON.stringify(
+            pats
+        )
+    );
+
+    return[
         ...pats
     ];
 }
 
 function clearPATS(){
-    pats = [];
+    pats=[];
+
+    localStorage.removeItem(
+        "littlehollow.pats"
+    );
 }
 
 function clearUserAccount(){
-    username = "";
-    github = "";
-    gas = "";
-    authToken = "";
-    pats = [];
+    username="";
+    github="";
+    gas="";
+    authToken="";
+    pats=[];
 
     localStorage.removeItem(
         "littlehollow.username"
@@ -163,9 +313,17 @@ function clearUserAccount(){
     localStorage.removeItem(
         "littlehollow.authToken"
     );
+
+    localStorage.removeItem(
+        "littlehollow.pats"
+    );
+
+    localStorage.removeItem(
+        "littlehollow.pat"
+    );
 }
 
-window.userAccount = {
+window.userAccount={
     get username(){
         return username;
     },
@@ -183,7 +341,7 @@ window.userAccount = {
     },
 
     get pats(){
-        return [
+        return[
             ...pats
         ];
     },
@@ -200,6 +358,12 @@ window.userAccount = {
 
     setPATS:
         setPATS,
+
+    addPAT:
+        addPAT,
+
+    removePAT:
+        removePAT,
 
     clearPATS:
         clearPATS,
