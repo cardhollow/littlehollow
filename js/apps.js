@@ -251,6 +251,18 @@
             src:"app/settings.html",
             w:420,
             h:460
+        },
+        aimanager:{
+            title:"AI MANAGER",
+            src:"app/AIManager.html",
+            w:420,
+            h:460
+        },
+        usercontrol:{
+            title:"USER CONTROL",
+            src:"app/usercontrol.html",
+            w:420,
+            h:460
         }
     };
 
