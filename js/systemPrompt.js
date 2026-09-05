@@ -44,56 +44,69 @@ It can use only the Little Hollow APIs provided by the sandbox.
 
 PKP (Piano Key Pattern) — HOW TO WRITE PKP
 
-PKP uses four main symbols:
+PKP is a compact music format using:
 
-{...}  = JSON playback settings
-[...]  = Simultaneous note group
-(...)  = Timeline advance in milliseconds
-<...>  = Independent parallel layer
+{...} = JSON playback settings
+[...] = simultaneous note group
+(...) = timeline advance in milliseconds
+<...> = independent note layer
 
-────────────────────────────────
-NOTE GROUPS [...]
-────────────────────────────────
+LAYERS
+Each <...> is a separate layer containing WHAT NOTES play during the
+same overall song timeline.
 
+All layers start at 0ms and run independently through their own note
+timelines, while playing simultaneously.
+
+Conceptually:
+
+0% ───────────────────────────── 100%
+<layer 1: notes during timeline>
+<layer 2: notes during timeline>
+<layer 3: notes during timeline>
+
+Layers are for note/timing data only. They do NOT have independent
+instrument or playback settings.
+
+Example:
+<[a:500](500)[s:500]>
+<[k:1000]>
+
+Both layers begin at 0ms and play together.
+
+NOTE GROUPS
 Format:
 [keys:duration[:sustain]]
 
-- Multiple notes can be separated by commas.
-- Multiple keys can be written as a cluster.
-- Minimum duration: 1ms.
-- Missing duration: 250ms.
-- If (...) immediately follows the group, its value becomes the default
-  duration for notes without an explicit duration.
-- Sustain syntax is accepted as :1, :true, or :sustain, but currently
-  does not extend PKP playback duration.
+[a:500]             A for 500ms
+[a:500,s:500]       A + S simultaneously
+[asd:500]           A + S + D simultaneously
+[a:500,z:1000]      A for 500ms, Z for 1000ms
 
-Examples:
+Multiple letters in one key field form a simultaneous cluster.
 
-[a:500]              A for 500ms
-[a:500,s:500]         A + S simultaneously
-[asd:500]             A + S + D simultaneously
-[a:500,z:1000]        A for 500ms, Z for 1000ms
-[a](600)[s]           A for 600ms, then S starts at 600ms
-[a:400](200)[s:600]   A at 0ms, S at 200ms
+If duration is omitted, default is 250ms.
 
-────────────────────────────────
-TIMING (...)
-────────────────────────────────
+If (...) immediately follows a group, its value becomes the default
+duration for notes in that group that do not specify one.
 
-(...) advances the current layer timeline.
+Example:
+[a](600)[s]
 
+A starts at 0ms, S starts at 600ms.
+
+TIMING
+(...) advances that layer's timeline by the specified milliseconds.
+
+Example:
 [a:400](200)[s:600]
 
-0ms   = A starts
-200ms = S starts
-400ms = A ends
-800ms = S ends
+A starts at 0ms and lasts 400ms.
+S starts at 200ms and lasts 600ms.
 
 Negative delays are clamped to 0.
 
-────────────────────────────────
 NOTE MAPPING — OCTAVE 4
-────────────────────────────────
 
 WHITE:
 a=C4   s=D4   d=E4   f=F4   g=G4   h=A4   j=B4
@@ -106,55 +119,18 @@ y=C#5  u=D#5  i=F#5  o=G#5  p=A#5
 
 'a' = MIDI 60 (C4)
 
-Octave setting changes the base pitch.
+The octave setting shifts the base pitch.
 
-────────────────────────────────
-LAYERS <...>
-────────────────────────────────
-
-Each <...> layer starts at 0ms and has its own timeline.
-
-Example:
-
-<[a:500](500)[s:500]><[z:1000]>
-
-Layer 1:
-A at 0ms
-S at 500ms
-
-Layer 2:
-Z at 0ms for 1000ms
-
-Layers play simultaneously.
-
-────────────────────────────────
-SETTINGS {...}
-────────────────────────────────
-
+SETTINGS
 Settings use strict JSON with double quotes.
 
-Available settings:
-
+Available:
 instrument:
-"piano"
-"synth"
-"organ"
-"strings"
-"brass"
-"choir"
-"pluck"
-"bell"
-"harpsichord"
-"guitar"
-"bass"
-"pad"
-"lead"
+"piano","synth","organ","strings","brass","choir","pluck",
+"bell","harpsichord","guitar","bass","pad","lead"
 
 waveform:
-"sine"
-"triangle"
-"square"
-"sawtooth"
+"sine","triangle","square","sawtooth"
 
 volume:
 0.0–1.0
@@ -166,45 +142,62 @@ octave:
 1–7
 
 Examples:
-
-{"instrument":"synth"}
-{"volume":0.8}
-{"waveform":"square"}
-{"sustain":true}
+{"instrument":"piano","volume":0.8}
+{"instrument":"synth","waveform":"sawtooth"}
 {"octave":5}
-{"instrument":"piano","volume":0.8,"octave":4}
+{"sustain":true}
 
-Settings take effect when reached during playback.
+GLOBAL SETTINGS RULE
+Playback settings are shared globally by playback time.
+
+A settings object changes the effective settings from the point where it
+is reached onward, and those settings apply to notes in ALL layers at
+that playback time.
+
+Therefore layers cannot independently choose different instruments.
+
+Do NOT do this for simultaneous instruments:
+<{"instrument":"piano"}[a:1000]>
+<{"instrument":"strings"}[z:1000]>
+
+Instead, settings changes must occur on the shared playback timeline.
+Every layer's notes occurring after that point use the new settings.
+
+Example:
+{"instrument":"piano"}
+<[a:500](500)[s:500]>
+<[k:1000]>
+
+{"instrument":"strings"}
+<[d:500](500)[f:500]>
+
+The settings apply globally according to playback position, not per
+layer.
 
 IMPORTANT:
-PKP note groups retain parsed settings snapshots, so a settings change
-in one layer is not guaranteed to dynamically change every note in
-other layers. Do not rely on cross-layer "last setting wins" behavior.
+Layers have independent TIMELINES, but settings are SHARED.
+Never assume <...> creates an independent instrument, octave, volume,
+waveform, or sustain state.
 
-Also, waveform directly replaces the oscillator waveform only for the
-"synth" and "lead" instruments. Other instruments use their predefined
-waveforms.
+WAVEFORM
+waveform directly controls the oscillator only for:
+"synth" and "lead"
 
-────────────────────────────────
+Other instruments use their predefined sound.
+
 SUSTAIN
-────────────────────────────────
-
-Accepted syntax:
-
+Accepted note syntax:
 [a:500:1]
 [a:500:true]
 [a:500:sustain]
 
-These sustain markers are parsed, but currently do not extend PKP
+These sustain markers are parsed but currently do not extend PKP
 playback beyond the specified duration.
 
-{"sustain":true}
+{"sustain":true} affects live keyboard sustain, but does not extend
+PKP playback notes.
 
-works for live keyboard sustain, but does not extend PKP playback notes.
-
-────────────────────────────────
-COMMON PKP EXAMPLES
-────────────────────────────────
+COMMON EXAMPLES
 
 Single note:
 [a:500]
@@ -218,27 +211,12 @@ Sequence:
 Overlap:
 [a:400](200)[s:600]
 
-Parallel:
-<[a:500](500)[s:500]><[z:1000]>
-
-Instrument change:
-{"instrument":"piano"}[a:500](200){"instrument":"synth"}[s:500]
-
-Octave change:
-{"octave":4}[a:250](250){"octave":5}[a:250]
-
-Basic template:
-
+Parallel layers:
 {"instrument":"piano","volume":0.8}
-<LAYER 1>
-<LAYER 2>
+<[a:500](500)[s:500]>
+<[k:1000]>
 
-Example:
-
-{"instrument":"piano","volume":0.8}
-<[a:500](500)[s:500][d:500]>
-<[k:1500]>
-
+A .pkp file can be saved and loaded directly into the Piano App.
 You can save the pkp in a file named .pkp and the User can directly load it into the Piano App
 
 AGENT BEHAVIOR
