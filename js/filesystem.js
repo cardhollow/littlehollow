@@ -10,6 +10,17 @@
     };
 
     const DEVICE_PREFIX = "chxd:/device/";
+    const ROOT_PREFIXES = {
+        local: "chxd:/local/",
+        session: "chxd:/session/",
+        indexdb: "chxd:/indexdb/",
+        system: "chxd:/system/",
+        device: DEVICE_PREFIX,
+        puter: "puter:/"
+    };
+
+    const BINARY_PREFIX = "LH_BINARY_V1:";
+    const DIR_PREFIX = "LH_DIR_V1:";
 
     function normalize(path){
         let p = String(
@@ -32,11 +43,25 @@
         }
 
         if(/^puter:\//i.test(p)){
-            p = "puter:/" + p.slice(8);
+            p = "puter:/" + p.slice(7);
         }
 
         if(/^device:\//i.test(p)){
             p = "chxd:/device/" + p.slice(8);
+        }
+
+        if(
+            p === "chxd:/local" ||
+            p === "chxd:/session" ||
+            p === "chxd:/indexdb" ||
+            p === "chxd:/system" ||
+            p === "chxd:/device"
+        ){
+            p += "/";
+        }
+
+        if(p === "puter:"){
+            p = "puter:/";
         }
 
         return p;
@@ -72,8 +97,261 @@
         return null;
     }
 
-    const storageKey = path =>
-        "LH::" + normalize(path);
+    function isRoot(path){
+        path = normalize(path);
+
+        return (
+            path === "chxd:/local/" ||
+            path === "chxd:/session/" ||
+            path === "chxd:/indexdb/" ||
+            path === "chxd:/system/" ||
+            path === "chxd:/device/" ||
+            path === "puter:/"
+        );
+    }
+
+    function storageKey(path){
+        return "LH::" + normalize(path);
+    }
+
+    function dirStorageKey(path){
+        return "LH::DIR::" + normalize(path);
+    }
+
+    function childPath(parent, name, directory){
+        const base = normalize(parent).replace(/\/+$/, "");
+
+        return (
+            base +
+            "/" +
+            name +
+            (directory ? "/" : "")
+        );
+    }
+
+    function basename(path){
+        const p = normalize(path)
+            .replace(/\/+$/, "");
+
+        const i = p.lastIndexOf("/");
+
+        return i === -1
+            ? p
+            : p.slice(i + 1);
+    }
+
+    function dirname(path){
+        let p = normalize(path)
+            .replace(/\/+$/, "");
+
+        const i = p.lastIndexOf("/");
+
+        if(i === -1){
+            return "";
+        }
+
+        let result = p.slice(0, i + 1);
+
+        if(
+            result &&
+            !result.endsWith("/")
+        ){
+            result += "/";
+        }
+
+        if(
+            result === "puter:/"
+        ){
+            return result;
+        }
+
+        return result;
+    }
+
+    function ensureTrailingSlash(path){
+        path = normalize(path);
+
+        return path.endsWith("/")
+            ? path
+            : path + "/";
+    }
+
+    function sameOrInside(parent, child){
+        const a = ensureTrailingSlash(parent);
+        const b = normalize(child);
+
+        return (
+            b === a.slice(0, -1) ||
+            b.indexOf(a) === 0
+        );
+    }
+
+    function isBinaryData(value){
+        return (
+            value instanceof Blob ||
+            value instanceof ArrayBuffer ||
+            ArrayBuffer.isView(value)
+        );
+    }
+
+    function arrayBufferFrom(value){
+        if(value instanceof ArrayBuffer){
+            return Promise.resolve(value);
+        }
+
+        if(ArrayBuffer.isView(value)){
+            return Promise.resolve(
+                value.buffer.slice(
+                    value.byteOffset,
+                    value.byteOffset + value.byteLength
+                )
+            );
+        }
+
+        if(value instanceof Blob){
+            return value.arrayBuffer();
+        }
+
+        return Promise.resolve(
+            new TextEncoder().encode(
+                String(value)
+            ).buffer
+        );
+    }
+
+    function bytesToBase64(buffer){
+        const bytes = new Uint8Array(buffer);
+        const chunk = 0x8000;
+
+        let binary = "";
+
+        for(
+            let i = 0;
+            i < bytes.length;
+            i += chunk
+        ){
+            binary += String.fromCharCode(
+                ...bytes.subarray(
+                    i,
+                    Math.min(
+                        i + chunk,
+                        bytes.length
+                    )
+                )
+            );
+        }
+
+        return btoa(binary);
+    }
+
+    function base64ToBytes(base64){
+        const binary = atob(base64);
+        const bytes = new Uint8Array(
+            binary.length
+        );
+
+        for(
+            let i = 0;
+            i < binary.length;
+            i++
+        ){
+            bytes[i] =
+                binary.charCodeAt(i);
+        }
+
+        return bytes;
+    }
+
+    async function packBinary(value){
+        const buffer =
+            await arrayBufferFrom(value);
+
+        const mime =
+            value instanceof Blob
+                ? value.type
+                : "";
+
+        return (
+            BINARY_PREFIX +
+            JSON.stringify({
+                type: mime,
+                data: bytesToBase64(
+                    buffer
+                )
+            })
+        );
+    }
+
+    function unpackStored(value){
+        if(
+            typeof value !== "string"
+        ){
+            return value;
+        }
+
+        if(
+            !value.startsWith(
+                BINARY_PREFIX
+            )
+        ){
+            return value;
+        }
+
+        try{
+            const payload =
+                JSON.parse(
+                    value.slice(
+                        BINARY_PREFIX.length
+                    )
+                );
+
+            return new Blob(
+                [
+                    base64ToBytes(
+                        payload.data
+                    )
+                ],
+                {
+                    type:
+                        payload.type || ""
+                }
+            );
+        }catch(error){
+            return value;
+        }
+    }
+
+    function isStoredDirectory(value){
+        return (
+            typeof value === "string" &&
+            value.startsWith(
+                DIR_PREFIX
+            )
+        );
+    }
+
+    function makeDirectoryMarker(){
+        return DIR_PREFIX + "1";
+    }
+
+    function errorText(error){
+        return (
+            error &&
+            error.message
+                ? error.message
+                : String(error)
+        );
+    }
+
+    function isNotFoundError(error){
+        return (
+            error &&
+            (
+                error.name === "NotFoundError" ||
+                error.code === "ENOENT"
+            )
+        );
+    }
 
     let idbPromise = null;
 
@@ -87,11 +365,12 @@
                 const req =
                     indexedDB.open(
                         "littleHollowFS",
-                        2
+                        3
                     );
 
                 req.onupgradeneeded = () => {
-                    const db = req.result;
+                    const db =
+                        req.result;
 
                     if(
                         !db.objectStoreNames.contains(
@@ -115,15 +394,18 @@
                 };
 
                 req.onsuccess = () => {
-                    resolve(
-                        req.result
-                    );
+                    const db =
+                        req.result;
+
+                    db.onversionchange = () => {
+                        db.close();
+                    };
+
+                    resolve(db);
                 };
 
                 req.onerror = () => {
-                    reject(
-                        req.error
-                    );
+                    reject(req.error);
                 };
             }
         );
@@ -330,7 +612,9 @@
                                 .objectStore(
                                     "deviceMounts"
                                 )
-                                .delete(name);
+                                .delete(
+                                    name
+                                );
 
                         req.onsuccess = () =>
                             resolve(true);
@@ -379,8 +663,14 @@
             name || ""
         )
             .trim()
-            .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
-            .replace(/\.+$/g, "")
+            .replace(
+                /[<>:"/\\|?*\x00-\x1F]/g,
+                "_"
+            )
+            .replace(
+                /\.+$/g,
+                ""
+            )
             .trim();
     }
 
@@ -411,7 +701,11 @@
             i++;
         }
 
-        return base + "_" + i;
+        return (
+            base +
+            "_" +
+            i
+        );
     }
 
     async function mountDeviceFolder(){
@@ -433,7 +727,7 @@
                     }
                 );
 
-            let name =
+            const name =
                 await uniqueDeviceMountName(
                     handle.name
                 );
@@ -467,10 +761,7 @@
             return {
                 ok: false,
                 error:
-                    error &&
-                    error.message
-                        ? error.message
-                        : String(error)
+                    errorText(error)
             };
         }
     }
@@ -481,7 +772,8 @@
         if(!name){
             return {
                 ok: false,
-                error: "Invalid device folder."
+                error:
+                    "Invalid device folder."
             };
         }
 
@@ -509,7 +801,8 @@
                 mount.handle
             ){
                 result.push({
-                    name: mount.name,
+                    name:
+                        mount.name,
                     path:
                         DEVICE_PREFIX +
                         mount.name +
@@ -527,9 +820,7 @@
         handle,
         mode = "readwrite"
     ){
-        if(
-            !handle
-        ){
+        if(!handle){
             return false;
         }
 
@@ -547,8 +838,17 @@
                 }
             );
 
-        if(current === "granted"){
+        if(
+            current === "granted"
+        ){
             return true;
+        }
+
+        if(
+            typeof handle.requestPermission !==
+            "function"
+        ){
+            return false;
         }
 
         const result =
@@ -558,7 +858,9 @@
                 }
             );
 
-        return result === "granted";
+        return (
+            result === "granted"
+        );
     }
 
     function splitDevicePath(path){
@@ -608,9 +910,7 @@
         createDirectories = false
     ){
         const parts =
-            splitDevicePath(
-                path
-            );
+            splitDevicePath(path);
 
         if(!parts.length){
             return {
@@ -678,9 +978,7 @@
         path
     ){
         const parts =
-            splitDevicePath(
-                path
-            );
+            splitDevicePath(path);
 
         if(!parts.length){
             return {
@@ -768,7 +1066,8 @@
             return {
                 ok: true,
                 kind: "directory",
-                handle: directory
+                handle:
+                    directory
             };
         }catch(error){}
 
@@ -780,7 +1079,7 @@
         };
     }
 
-    async function deviceRead(path){
+    async function deviceReadBinary(path){
         const entry =
             await getDeviceEntry(
                 path
@@ -790,7 +1089,9 @@
             return entry;
         }
 
-        if(entry.kind !== "file"){
+        if(
+            entry.kind !== "file"
+        ){
             return {
                 ok: false,
                 error:
@@ -803,24 +1104,41 @@
             const file =
                 await entry.handle.getFile();
 
-            const content =
-                await file.text();
-
             return {
                 ok: true,
-                content
+                data: file,
+                kind: "file"
             };
         }catch(error){
             return {
                 ok: false,
                 error:
                     "Device read failed: " +
-                    (
-                        error &&
-                        error.message
-                            ? error.message
-                            : String(error)
-                    )
+                    errorText(error)
+            };
+        }
+    }
+
+    async function deviceRead(path){
+        const result =
+            await deviceReadBinary(path);
+
+        if(!result.ok){
+            return result;
+        }
+
+        try{
+            return {
+                ok: true,
+                content:
+                    await result.data.text()
+            };
+        }catch(error){
+            return {
+                ok: false,
+                error:
+                    "Device text read failed: " +
+                    errorText(error)
             };
         }
     }
@@ -886,29 +1204,13 @@
         for(
             const part of parts
         ){
-            try{
-                directory =
-                    await directory.getDirectoryHandle(
-                        part,
-                        {
-                            create: true
-                        }
-                    );
-            }catch(error){
-                return {
-                    ok: false,
-                    error:
-                        "Could not create directory '" +
-                        part +
-                        "': " +
-                        (
-                            error &&
-                            error.message
-                                ? error.message
-                                : String(error)
-                        )
-                };
-            }
+            directory =
+                await directory.getDirectoryHandle(
+                    part,
+                    {
+                        create: true
+                    }
+                );
         }
 
         let fileHandle;
@@ -950,14 +1252,22 @@
                 ok: false,
                 error:
                     "Device write failed: " +
-                    (
-                        error &&
-                        error.message
-                            ? error.message
-                            : String(error)
-                    )
+                    errorText(error)
             };
         }
+    }
+
+    async function deviceWriteBinary(
+        path,
+        data,
+        create = true
+    ){
+        return deviceWrite(
+            path,
+            data,
+            create,
+            true
+        );
     }
 
     async function deviceRemove(path){
@@ -1046,12 +1356,7 @@
                 ok: false,
                 error:
                     "Device delete failed: " +
-                    (
-                        error &&
-                        error.message
-                            ? error.message
-                            : String(error)
-                    )
+                    errorText(error)
             };
         }
     }
@@ -1060,35 +1365,9 @@
         const normalized =
             normalize(path);
 
-        let directory;
-
         if(
-            normalized === DEVICE_PREFIX ||
-            normalized === "chxd:/device"
+            normalized === DEVICE_PREFIX
         ){
-            directory = null;
-        }else{
-            const entry =
-                await getDeviceEntry(
-                    normalized
-                );
-
-            if(!entry.ok){
-                return [];
-            }
-
-            if(
-                entry.kind !== "directory" &&
-                entry.kind !== "root"
-            ){
-                return [];
-            }
-
-            directory =
-                entry.handle;
-        }
-
-        if(!directory){
             const mounts =
                 await getDeviceMounts();
 
@@ -1100,123 +1379,9 @@
             );
         }
 
-        const result = [];
-
-        for await(
-            const item
-            of directory.values()
-        ){
-            const child =
-                normalized.replace(
-                    /\/+$/,
-                    ""
-                ) +
-                "/" +
-                item.name;
-
-            if(
-                item.kind === "directory"
-            ){
-                result.push(
-                    child + "/"
-                );
-            }else{
-                result.push(
-                    child
-                );
-            }
-        }
-
-        return result;
-    }
-
-    async function deviceExists(path){
-        const normalized =
-            normalize(path);
-
-        if(
-            normalized === DEVICE_PREFIX ||
-            normalized === "chxd:/device"
-        ){
-            return true;
-        }
-
         const entry =
             await getDeviceEntry(
                 normalized
-            );
-
-        return !!entry.ok;
-    }
-
-    async function deviceListRecursive(path){
-        const result = [];
-
-        async function walk(
-            directory,
-            base
-        ){
-            for await(
-                const item
-                of directory.values()
-            ){
-                const child =
-                    base.replace(
-                        /\/+$/,
-                        ""
-                    ) +
-                    "/" +
-                    item.name;
-
-                if(
-                    item.kind === "directory"
-                ){
-                    result.push(
-                        child + "/"
-                    );
-
-                    await walk(
-                        item,
-                        child + "/"
-                    );
-                }else{
-                    result.push(
-                        child
-                    );
-                }
-            }
-        }
-
-        if(
-            path === DEVICE_PREFIX ||
-            path === "chxd:/device"
-        ){
-            const mounts =
-                await getDeviceMounts();
-
-            for(
-                const mount of mounts
-            ){
-                result.push(
-                    DEVICE_PREFIX +
-                    mount.name +
-                    "/"
-                );
-
-                await walk(
-                    mount.handle,
-                    DEVICE_PREFIX +
-                    mount.name +
-                    "/"
-                );
-            }
-
-            return result;
-        }
-
-        const entry =
-            await getDeviceEntry(
-                path
             );
 
         if(!entry.ok){
@@ -1230,10 +1395,20 @@
             return [];
         }
 
-        await walk(
-            entry.handle,
-            normalize(path)
-        );
+        const result = [];
+
+        for await(
+            const item
+            of entry.handle.values()
+        ){
+            result.push(
+                childPath(
+                    normalized,
+                    item.name,
+                    item.kind === "directory"
+                )
+            );
+        }
 
         return result;
     }
@@ -1241,83 +1416,77 @@
     function puterReady(){
         return !!(
             window.puter &&
-            puter.fs &&
-            typeof puter.fs.readdir ===
-                "function"
+            puter.fs
         );
     }
 
-    async function puterRead(path){
-        if(!puterReady()){
+    function puterPath(path){
+        const normalized =
+            normalize(path);
+
+        if(
+            normalized === "puter:/"
+        ){
+            return "/";
+        }
+
+        return normalized.slice(7);
+    }
+
+    async function puterReadBinary(path){
+        if(
+            !puterReady() ||
+            typeof puter.fs.read !==
+                "function"
+        ){
             return {
                 ok: false,
                 error:
-                    "Puter filesystem is unavailable."
+                    "Puter filesystem read is unavailable."
             };
         }
 
         try{
-            const p =
-                path.slice(7);
-
-            const r =
-                typeof puter.fs.read ===
-                "function"
-                    ? await puter.fs.read(p)
-                    : null;
-
-            if(r == null){
-                return {
-                    ok: false,
-                    error:
-                        "Puter filesystem read is unavailable."
-                };
-            }
-
-            if(
-                typeof r === "string"
-            ){
-                return {
-                    ok: true,
-                    content: r
-                };
-            }
-
-            if(
-                r &&
-                typeof r.text ===
-                    "function"
-            ){
-                return {
-                    ok: true,
-                    content: await r.text()
-                };
-            }
-
-            if(
-                r &&
-                r.content != null
-            ){
-                return {
-                    ok: true,
-                    content:
-                        String(
-                            r.content
-                        )
-                };
-            }
+            const blob =
+                await puter.fs.read(
+                    puterPath(path)
+                );
 
             return {
                 ok: true,
-                content:
-                    String(r)
+                data: blob,
+                kind: "file"
             };
         }catch(error){
             return {
                 ok: false,
                 error:
                     "Puter read failed: " +
-                    error.message
+                    errorText(error)
+            };
+        }
+    }
+
+    async function puterRead(path){
+        const result =
+            await puterReadBinary(path);
+
+        if(!result.ok){
+            return result;
+        }
+
+        try{
+            return {
+                ok: true,
+                content:
+                    await result.data.text()
+            };
+        }catch(error){
+            return {
+                ok: false,
+                error:
+                    "Puter text read failed: " +
+                    errorText(error)
             };
         }
     }
@@ -1326,11 +1495,11 @@
         path,
         content,
         create = true,
-        allowBinary = false
+        allowBinary = false,
+        overwrite = true
     ){
         if(
-            !window.puter ||
-            !puter.fs ||
+            !puterReady() ||
             typeof puter.fs.write !==
                 "function"
         ){
@@ -1343,10 +1512,16 @@
 
         try{
             await puter.fs.write(
-                path.slice(7),
+                puterPath(path),
                 allowBinary
                     ? content
-                    : String(content)
+                    : String(content),
+                {
+                    overwrite:
+                        overwrite,
+                    createMissingParents:
+                        true
+                }
             );
 
             return {
@@ -1357,15 +1532,14 @@
                 ok: false,
                 error:
                     "Puter write failed: " +
-                    error.message
+                    errorText(error)
             };
         }
     }
 
     async function puterRemove(path){
         if(
-            !window.puter ||
-            !puter.fs ||
+            !puterReady() ||
             typeof puter.fs.delete !==
                 "function"
         ){
@@ -1378,7 +1552,10 @@
 
         try{
             await puter.fs.delete(
-                path.slice(7)
+                puterPath(path),
+                {
+                    recursive: true
+                }
             );
 
             return {
@@ -1389,20 +1566,24 @@
                 ok: false,
                 error:
                     "Puter delete failed: " +
-                    error.message
+                    errorText(error)
             };
         }
     }
 
     async function puterList(path){
-        if(!puterReady()){
+        if(
+            !puterReady() ||
+            typeof puter.fs.readdir !==
+                "function"
+        ){
             return [];
         }
 
         try{
             const items =
                 await puter.fs.readdir(
-                    path.slice(7)
+                    puterPath(path)
                 );
 
             return (
@@ -1411,167 +1592,950 @@
                     : []
             )
                 .map(
-                    x =>
-                        typeof x === "string"
-                            ? "puter:/" + x
-                            : "puter:/" +
-                              (
-                                  x.path ||
-                                  x.name ||
-                                  ""
-                              )
+                    x => {
+                        if(
+                            typeof x === "string"
+                        ){
+                            return (
+                                "puter:/" +
+                                x.replace(
+                                    /^\/+/,
+                                    ""
+                                )
+                            );
+                        }
+
+                        const child =
+                            x.path ||
+                            x.name ||
+                            "";
+
+                        return (
+                            "puter:/" +
+                            String(child)
+                                .replace(
+                                    /^\/+/,
+                                    ""
+                                )
+                        ) +
+                        (
+                            x.isDir ||
+                            x.kind === "directory"
+                                ? "/"
+                                : ""
+                        );
+                    }
                 )
-                .filter(Boolean);
+                .filter(
+                    Boolean
+                );
         }catch(error){
             return [];
         }
     }
 
-    function exists(path){
-        path =
-            normalize(path);
+    async function puterStat(path){
+        if(
+            !puterReady() ||
+            typeof puter.fs.stat !==
+                "function"
+        ){
+            return {
+                ok: false,
+                error:
+                    "Puter filesystem stat is unavailable."
+            };
+        }
+
+        try{
+            const item =
+                await puter.fs.stat(
+                    puterPath(path)
+                );
+
+            return {
+                ok: true,
+                kind:
+                    item.isDir
+                        ? "directory"
+                        : "file",
+                name:
+                    item.name ||
+                    basename(path),
+                path:
+                    normalize(path),
+                size:
+                    item.size == null
+                        ? null
+                        : item.size,
+                raw:
+                    item
+            };
+        }catch(error){
+            return {
+                ok: false,
+                error:
+                    "Puter stat failed: " +
+                    errorText(error)
+            };
+        }
+    }
+
+    async function puterMkdir(
+        path,
+        overwrite = false
+    ){
+        if(
+            !puterReady() ||
+            typeof puter.fs.mkdir !==
+                "function"
+        ){
+            return {
+                ok: false,
+                error:
+                    "Puter mkdir is unavailable."
+            };
+        }
+
+        try{
+            await puter.fs.mkdir(
+                puterPath(path),
+                {
+                    overwrite,
+                    createMissingParents:
+                        true
+                }
+            );
+
+            return {
+                ok: true
+            };
+        }catch(error){
+            return {
+                ok: false,
+                error:
+                    "Puter mkdir failed: " +
+                    errorText(error)
+            };
+        }
+    }
+
+    async function puterCopy(
+        source,
+        destination,
+        overwrite = false
+    ){
+        if(
+            !puterReady() ||
+            typeof puter.fs.copy !==
+                "function"
+        ){
+            return {
+                ok: false,
+                error:
+                    "Puter copy is unavailable."
+            };
+        }
+
+        try{
+            await puter.fs.copy(
+                puterPath(source),
+                puterPath(destination),
+                {
+                    overwrite
+                }
+            );
+
+            return {
+                ok: true
+            };
+        }catch(error){
+            return {
+                ok: false,
+                error:
+                    "Puter copy failed: " +
+                    errorText(error)
+            };
+        }
+    }
+
+    async function puterMove(
+        source,
+        destination,
+        overwrite = false
+    ){
+        if(
+            !puterReady() ||
+            typeof puter.fs.move !==
+                "function"
+        ){
+            return {
+                ok: false,
+                error:
+                    "Puter move is unavailable."
+            };
+        }
+
+        try{
+            await puter.fs.move(
+                puterPath(source),
+                puterPath(destination),
+                {
+                    overwrite
+                }
+            );
+
+            return {
+                ok: true
+            };
+        }catch(error){
+            return {
+                ok: false,
+                error:
+                    "Puter move failed: " +
+                    errorText(error)
+            };
+        }
+    }
+
+    function localStored(path){
+        return localStorage.getItem(
+            storageKey(path)
+        );
+    }
+
+    function sessionStored(path){
+        return sessionStorage.getItem(
+            storageKey(path)
+        );
+    }
+
+    function virtualChildrenFromPaths(
+        directory,
+        paths
+    ){
+        const base =
+            ensureTrailingSlash(
+                directory
+            );
+
+        const result =
+            new Map();
+
+        for(
+            const rawPath of paths
+        ){
+            const p =
+                normalize(rawPath);
+
+            if(
+                p.indexOf(base) !== 0 ||
+                p === base
+            ){
+                continue;
+            }
+
+            const rest =
+                p.slice(
+                    base.length
+                );
+
+            if(!rest){
+                continue;
+            }
+
+            const slash =
+                rest.indexOf("/");
+
+            if(slash === -1){
+                result.set(
+                    rest,
+                    p
+                );
+                continue;
+            }
+
+            const first =
+                rest.slice(
+                    0,
+                    slash
+                );
+
+            result.set(
+                first,
+                base +
+                first +
+                "/"
+            );
+        }
+
+        return Array.from(
+            result.values()
+        );
+    }
+
+    async function listVirtualZone(
+        z,
+        directory
+    ){
+        const base =
+            ensureTrailingSlash(
+                directory ||
+                ROOT_PREFIXES[z]
+            );
+
+        if(
+            z === "local" ||
+            z === "session"
+        ){
+            const paths = [];
+
+            const storage =
+                z === "local"
+                    ? localStorage
+                    : sessionStorage;
+
+            for(
+                let i = 0;
+                i < storage.length;
+                i++
+            ){
+                const k =
+                    storage.key(i);
+
+                if(
+                    !k
+                ){
+                    continue;
+                }
+
+                if(
+                    k.indexOf(
+                        "LH::"
+                    ) !== 0
+                ){
+                    continue;
+                }
+
+                if(
+                    k.indexOf(
+                        "LH::DIR::"
+                    ) === 0
+                ){
+                    continue;
+                }
+
+                const p =
+                    k.slice(4);
+
+                if(
+                    zone(p) === z
+                ){
+                    paths.push(p);
+                }
+            }
+
+            for(
+                let i = 0;
+                i < storage.length;
+                i++
+            ){
+                const k =
+                    storage.key(i);
+
+                if(
+                    !k ||
+                    k.indexOf(
+                        "LH::DIR::"
+                    ) !== 0
+                ){
+                    continue;
+                }
+
+                const p =
+                    k.slice(
+                        "LH::DIR::".length
+                    );
+
+                if(
+                    zone(p) === z
+                ){
+                    paths.push(
+                        ensureTrailingSlash(
+                            p
+                        )
+                    );
+                }
+            }
+
+            return virtualChildrenFromPaths(
+                base,
+                paths
+            );
+        }
+
+        const keys =
+            await idbKeys();
+
+        const paths = [];
+
+        for(
+            const k of keys
+        ){
+            if(
+                typeof k !==
+                "string"
+            ){
+                continue;
+            }
+
+            if(
+                k.indexOf(
+                    "LH::"
+                ) !== 0
+            ){
+                continue;
+            }
+
+            const p =
+                k.slice(4);
+
+            if(
+                zone(p) !== z
+            ){
+                continue;
+            }
+
+            const value =
+                await idbGet(k);
+
+            if(
+                isStoredDirectory(value)
+            ){
+                paths.push(
+                    ensureTrailingSlash(
+                        p
+                    )
+                );
+            }else{
+                paths.push(p);
+            }
+        }
+
+        return virtualChildrenFromPaths(
+            base,
+            paths
+        );
+    }
+
+    async function localSessionIndexdbStat(
+        path,
+        z
+    ){
+        if(
+            z === "local" ||
+            z === "session"
+        ){
+            const storage =
+                z === "local"
+                    ? localStorage
+                    : sessionStorage;
+
+            if(
+                storage.getItem(
+                    dirStorageKey(path)
+                ) !== null
+            ){
+                return {
+                    ok: true,
+                    kind: "directory",
+                    name:
+                        basename(path),
+                    path:
+                        ensureTrailingSlash(
+                            path
+                        ),
+                    size: null
+                };
+            }
+
+            if(
+                storage.getItem(
+                    storageKey(path)
+                ) !== null
+            ){
+                const raw =
+                    storage.getItem(
+                        storageKey(path)
+                    );
+
+                let size = null;
+
+                if(
+                    typeof raw ===
+                    "string"
+                ){
+                    if(
+                        raw.startsWith(
+                            BINARY_PREFIX
+                        )
+                    ){
+                        try{
+                            const payload =
+                                JSON.parse(
+                                    raw.slice(
+                                        BINARY_PREFIX.length
+                                    )
+                                );
+
+                            size =
+                                base64ToBytes(
+                                    payload.data
+                                ).byteLength;
+                        }catch(error){
+                            size = null;
+                        }
+                    }else{
+                        size =
+                            new Blob(
+                                [raw]
+                            ).size;
+                    }
+                }
+
+                return {
+                    ok: true,
+                    kind: "file",
+                    name:
+                        basename(path),
+                    path:
+                        normalize(path),
+                    size
+                };
+            }
+
+            const prefix =
+                storageKey(
+                    ensureTrailingSlash(
+                        path
+                    )
+                );
+
+            for(
+                let i = 0;
+                i < storage.length;
+                i++
+            ){
+                const k =
+                    storage.key(i);
+
+                if(
+                    k &&
+                    (
+                        k.indexOf(prefix) === 0 ||
+                        k.indexOf(
+                            "LH::DIR::" +
+                            ensureTrailingSlash(
+                                path
+                            )
+                        ) === 0
+                    )
+                ){
+                    return {
+                        ok: true,
+                        kind: "directory",
+                        name:
+                            basename(path),
+                        path:
+                            ensureTrailingSlash(
+                                path
+                            ),
+                        size: null
+                    };
+                }
+            }
+
+            return {
+                ok: false,
+                error:
+                    "Path does not exist: " +
+                    normalize(path)
+            };
+        }
+
+        const raw =
+            await idbGet(
+                storageKey(path)
+            );
+
+        if(
+            raw !== undefined
+        ){
+            if(
+                isStoredDirectory(raw)
+            ){
+                return {
+                    ok: true,
+                    kind: "directory",
+                    name:
+                        basename(path),
+                    path:
+                        ensureTrailingSlash(
+                            path
+                        ),
+                    size: null
+                };
+            }
+
+            let size = null;
+
+            if(
+                raw instanceof Blob
+            ){
+                size = raw.size;
+            }else if(
+                raw instanceof ArrayBuffer
+            ){
+                size =
+                    raw.byteLength;
+            }else if(
+                ArrayBuffer.isView(raw)
+            ){
+                size =
+                    raw.byteLength;
+            }else{
+                size =
+                    new Blob([
+                        String(raw)
+                    ]).size;
+            }
+
+            return {
+                ok: true,
+                kind: "file",
+                name:
+                    basename(path),
+                path:
+                    normalize(path),
+                size
+            };
+        }
+
+        const prefix =
+            storageKey(
+                ensureTrailingSlash(
+                    path
+                )
+            );
+
+        const keys =
+            await idbKeys();
+
+        for(
+            const k of keys
+        ){
+            if(
+                typeof k !==
+                "string"
+            ){
+                continue;
+            }
+
+            if(
+                k.indexOf(prefix) === 0
+            ){
+                return {
+                    ok: true,
+                    kind: "directory",
+                    name:
+                        basename(path),
+                    path:
+                        ensureTrailingSlash(
+                            path
+                        ),
+                    size: null
+                };
+            }
+        }
+
+        return {
+            ok: false,
+            error:
+                "Path does not exist: " +
+                normalize(path)
+        };
+    }
+
+    async function stat(path){
+        path = normalize(path);
 
         const z =
             zone(path);
 
+        if(!z){
+            return {
+                ok: false,
+                error:
+                    "Unsupported path: " +
+                    path
+            };
+        }
+
         if(z === "system"){
-            return Promise.resolve(
+            if(
                 Object.prototype.hasOwnProperty.call(
                     SYSTEM_FILES,
                     path
                 )
-            );
+            ){
+                return {
+                    ok: true,
+                    kind: "file",
+                    name:
+                        basename(path),
+                    path,
+                    size:
+                        new Blob([
+                            SYSTEM_FILES[path]
+                        ]).size,
+                    protected: true
+                };
+            }
+
+            if(path === "chxd:/system/"){
+                return {
+                    ok: true,
+                    kind: "directory",
+                    name: "system",
+                    path,
+                    size: null,
+                    protected: true
+                };
+            }
+
+            return {
+                ok: false,
+                error:
+                    "Path does not exist: " +
+                    path
+            };
         }
 
         if(z === "device"){
-            return deviceExists(path);
+            const entry =
+                await getDeviceEntry(path);
+
+            if(!entry.ok){
+                return entry;
+            }
+
+            if(
+                entry.kind === "root"
+            ){
+                return {
+                    ok: true,
+                    kind: "directory",
+                    name: "device",
+                    path: DEVICE_PREFIX,
+                    size: null
+                };
+            }
+
+            let size = null;
+
+            if(
+                entry.kind === "file"
+            ){
+                try{
+                    size =
+                        (
+                            await entry.handle.getFile()
+                        ).size;
+                }catch(error){}
+            }
+
+            return {
+                ok: true,
+                kind:
+                    entry.kind,
+                name:
+                    basename(path),
+                path:
+                    entry.kind === "directory"
+                        ? ensureTrailingSlash(
+                            path
+                        )
+                        : path,
+                size,
+                handle:
+                    entry.handle
+            };
         }
 
         if(z === "puter"){
-            return puterRead(path)
-                .then(
-                    r => r.ok
-                );
+            if(
+                path === "puter/"
+            ){
+                path = "puter:/";
+            }
+
+            if(
+                path === "puter:/"
+            ){
+                return {
+                    ok: true,
+                    kind: "directory",
+                    name: "puter",
+                    path: "puter:/",
+                    size: null
+                };
+            }
+
+            return puterStat(path);
         }
 
-        if(z === "local"){
-            return Promise.resolve(
-                localStorage.getItem(
-                    storageKey(path)
-                ) !== null
-            );
-        }
-
-        if(z === "session"){
-            return Promise.resolve(
-                sessionStorage.getItem(
-                    storageKey(path)
-                ) !== null
-            );
-        }
-
-        if(z === "indexdb"){
-            return idbGet(
-                storageKey(path)
-            ).then(
-                v => v !== undefined
-            );
-        }
-
-        return Promise.resolve(false);
+        return localSessionIndexdbStat(
+            path,
+            z
+        );
     }
 
-    async function read(path){
-        path =
-            normalize(path);
+    async function exists(path){
+        const result =
+            await stat(path);
+
+        return !!result.ok;
+    }
+
+    async function readBinary(path){
+        path = normalize(path);
+
+        const st =
+            await stat(path);
+
+        if(!st.ok){
+            return st;
+        }
+
+        if(
+            st.kind !== "file"
+        ){
+            return {
+                ok: false,
+                error:
+                    "Path is not a file: " +
+                    path
+            };
+        }
 
         const z =
             zone(path);
 
         if(z === "system"){
-            return Object.prototype.hasOwnProperty.call(
-                SYSTEM_FILES,
-                path
-            )
-                ? {
-                    ok: true,
-                    content:
+            return {
+                ok: true,
+                data:
+                    new Blob([
                         SYSTEM_FILES[path]
-                }
-                : {
-                    ok: false,
-                    error:
-                        "File not found: " +
-                        path
-                };
+                    ]),
+                kind: "file"
+            };
         }
 
         if(z === "device"){
-            return deviceRead(path);
+            return deviceReadBinary(path);
         }
 
         if(z === "puter"){
-            return puterRead(path);
+            return puterReadBinary(path);
         }
 
-        if(z === "local"){
-            const v =
-                localStorage.getItem(
+        if(
+            z === "local" ||
+            z === "session"
+        ){
+            const storage =
+                z === "local"
+                    ? localStorage
+                    : sessionStorage;
+
+            const raw =
+                storage.getItem(
                     storageKey(path)
                 );
 
-            return v === null
-                ? {
+            if(
+                raw === null
+            ){
+                return {
                     ok: false,
                     error:
                         "File not found: " +
                         path
-                }
-                : {
-                    ok: true,
-                    content: v
                 };
-        }
+            }
 
-        if(z === "session"){
-            const v =
-                sessionStorage.getItem(
-                    storageKey(path)
-                );
+            const unpacked =
+                unpackStored(raw);
 
-            return v === null
-                ? {
-                    ok: false,
-                    error:
-                        "File not found: " +
-                        path
-                }
-                : {
-                    ok: true,
-                    content: v
-                };
+            return {
+                ok: true,
+                data:
+                    unpacked instanceof Blob
+                        ? unpacked
+                        : new Blob([
+                            String(unpacked)
+                        ]),
+                kind: "file"
+            };
         }
 
         if(z === "indexdb"){
-            const v =
+            const raw =
                 await idbGet(
                     storageKey(path)
                 );
 
-            return v === undefined
-                ? {
+            if(
+                raw === undefined ||
+                isStoredDirectory(raw)
+            ){
+                return {
                     ok: false,
                     error:
                         "File not found: " +
                         path
-                }
-                : {
-                    ok: true,
-                    content:
-                        typeof v === "string"
-                            ? v
-                            : v
                 };
+            }
+
+            if(raw instanceof Blob){
+                return {
+                    ok: true,
+                    data: raw,
+                    kind: "file"
+                };
+            }
+
+            if(
+                raw instanceof ArrayBuffer ||
+                ArrayBuffer.isView(raw)
+            ){
+                return {
+                    ok: true,
+                    data:
+                        new Blob([raw]),
+                    kind: "file"
+                };
+            }
+
+            return {
+                ok: true,
+                data:
+                    new Blob([
+                        String(raw)
+                    ]),
+                kind: "file"
+            };
         }
 
         return {
@@ -1582,17 +2546,54 @@
         };
     }
 
-    async function write(
+    async function read(path){
+        const result =
+            await readBinary(path);
+
+        if(!result.ok){
+            return result;
+        }
+
+        try{
+            return {
+                ok: true,
+                content:
+                    await result.data.text()
+            };
+        }catch(error){
+            return {
+                ok: false,
+                error:
+                    "Unable to decode file: " +
+                    errorText(error)
+            };
+        }
+    }
+
+    async function writeBinary(
         path,
-        content,
-        create = true,
-        allowBinary = false
+        data,
+        options = {}
     ){
-        path =
-            normalize(path);
+        path = normalize(path);
+
+        const create =
+            options.create !== false;
+
+        const overwrite =
+            options.overwrite !== false;
 
         const z =
             zone(path);
+
+        if(!z){
+            return {
+                ok: false,
+                error:
+                    "Unsupported path: " +
+                    path
+            };
+        }
 
         if(z === "system"){
             return {
@@ -1603,29 +2604,130 @@
             };
         }
 
+        if(isRoot(path)){
+            return {
+                ok: false,
+                error:
+                    "Cannot write to a filesystem root."
+            };
+        }
+
+        if(!overwrite){
+            const already =
+                await exists(path);
+
+            if(already){
+                return {
+                    ok: false,
+                    error:
+                        "Destination already exists: " +
+                        path
+                };
+            }
+        }
+
         if(z === "device"){
-            return deviceWrite(
+            return deviceWriteBinary(
                 path,
-                content,
-                create,
-                allowBinary
+                data,
+                create
             );
         }
 
         if(z === "puter"){
             return puterWrite(
                 path,
-                content,
+                data,
                 create,
-                allowBinary
+                true,
+                overwrite
             );
         }
+
+        if(
+            z === "local" ||
+            z === "session"
+        ){
+            const storage =
+                z === "local"
+                    ? localStorage
+                    : sessionStorage;
+
+            const packed =
+                await packBinary(
+                    data
+                );
+
+            storage.setItem(
+                storageKey(path),
+                packed
+            );
+
+            return {
+                ok: true
+            };
+        }
+
+        if(z === "indexdb"){
+            await idbSet(
+                storageKey(path),
+                data instanceof Blob
+                    ? data
+                    : new Blob([data])
+            );
+
+            return {
+                ok: true
+            };
+        }
+
+        return {
+            ok: false,
+            error:
+                "Unsupported write target: " +
+                path
+        };
+    }
+
+    async function write(
+        path,
+        content,
+        create = true,
+        allowBinary = false
+    ){
+        path = normalize(path);
+
+        if(
+            allowBinary ||
+            isBinaryData(content)
+        ){
+            return writeBinary(
+                path,
+                content,
+                {
+                    create,
+                    overwrite: true
+                }
+            );
+        }
+
+        const z =
+            zone(path);
 
         if(!z){
             return {
                 ok: false,
                 error:
                     "Unsupported path: " +
+                    path
+            };
+        }
+
+        if(z === "system"){
+            return {
+                ok: false,
+                error:
+                    "Cannot write to protected system file: " +
                     path
             };
         }
@@ -1642,37 +2744,35 @@
             };
         }
 
-        if(z === "local"){
-            if(allowBinary){
-                return {
-                    ok: false,
-                    error:
-                        "Binary writing is not supported by localStorage: " +
-                        path
-                };
-            }
-
-            localStorage.setItem(
-                storageKey(path),
-                String(content)
+        if(z === "device"){
+            return deviceWrite(
+                path,
+                content,
+                create,
+                false
             );
-
-            return {
-                ok: true
-            };
         }
 
-        if(z === "session"){
-            if(allowBinary){
-                return {
-                    ok: false,
-                    error:
-                        "Binary writing is not supported by sessionStorage: " +
-                        path
-                };
-            }
+        if(z === "puter"){
+            return puterWrite(
+                path,
+                content,
+                create,
+                false,
+                true
+            );
+        }
 
-            sessionStorage.setItem(
+        if(
+            z === "local" ||
+            z === "session"
+        ){
+            const storage =
+                z === "local"
+                    ? localStorage
+                    : sessionStorage;
+
+            storage.setItem(
                 storageKey(path),
                 String(content)
             );
@@ -1685,9 +2785,7 @@
         if(z === "indexdb"){
             await idbSet(
                 storageKey(path),
-                allowBinary
-                    ? content
-                    : String(content)
+                String(content)
             );
 
             return {
@@ -1703,30 +2801,20 @@
         };
     }
 
-    
-    async function remove(path){
-        path =
-            normalize(path);
+    async function mkdir(
+        path,
+        options = {}
+    ){
+        path = normalize(path);
+
+        if(
+            !path.endsWith("/")
+        ){
+            path += "/";
+        }
 
         const z =
             zone(path);
-
-        if(z === "system"){
-            return {
-                ok: false,
-                error:
-                    "Cannot remove protected system file: " +
-                    path
-            };
-        }
-
-        if(z === "device"){
-            return deviceRemove(path);
-        }
-
-        if(z === "puter"){
-            return puterRemove(path);
-        }
 
         if(!z){
             return {
@@ -1737,34 +2825,158 @@
             };
         }
 
-        if(
-            !(await exists(path))
-        ){
+        if(z === "system"){
             return {
                 ok: false,
                 error:
-                    "File not found: " +
-                    path
+                    "Cannot modify protected system filesystem."
             };
         }
 
-        if(z === "local"){
-            localStorage.removeItem(
-                storageKey(path)
-            );
-        }else if(z === "session"){
-            sessionStorage.removeItem(
-                storageKey(path)
-            );
-        }else if(z === "indexdb"){
-            await idbDelete(
-                storageKey(path)
+        if(z === "device"){
+            const parts =
+                splitDevicePath(path);
+
+            if(!parts.length){
+                return {
+                    ok: true
+                };
+            }
+
+            const mountName =
+                parts.shift();
+
+            const root =
+                await getDeviceRoot(
+                    mountName
+                );
+
+            if(!root){
+                return {
+                    ok: false,
+                    error:
+                        "Device folder is not mounted: " +
+                        mountName
+                };
+            }
+
+            if(
+                !(await ensurePermission(
+                    root
+                ))
+            ){
+                return {
+                    ok: false,
+                    error:
+                        "Permission denied for device folder."
+                };
+            }
+
+            let current = root;
+
+            for(
+                const part of parts
+            ){
+                current =
+                    await current.getDirectoryHandle(
+                        part,
+                        {
+                            create: true
+                        }
+                    );
+            }
+
+            return {
+                ok: true
+            };
+        }
+
+        if(z === "puter"){
+            return puterMkdir(
+                path,
+                !!options.overwrite
             );
         }
 
+        if(
+            z === "local" ||
+            z === "session"
+        ){
+            const storage =
+                z === "local"
+                    ? localStorage
+                    : sessionStorage;
+
+            storage.setItem(
+                dirStorageKey(
+                    path
+                ),
+                "1"
+            );
+
+            return {
+                ok: true
+            };
+        }
+
+        if(z === "indexdb"){
+            await idbSet(
+                storageKey(path),
+                makeDirectoryMarker()
+            );
+
+            return {
+                ok: true
+            };
+        }
+
         return {
-            ok: true
+            ok: false,
+            error:
+                "Unsupported mkdir target: " +
+                path
         };
+    }
+
+    async function listDir(path){
+        path = normalize(path);
+
+        if(
+            !path.endsWith("/")
+        ){
+            path += "/";
+        }
+
+        const z =
+            zone(path);
+
+        if(!z){
+            return [];
+        }
+
+        if(z === "system"){
+            return Object.keys(
+                SYSTEM_FILES
+            )
+                .filter(
+                    p =>
+                        dirname(p) ===
+                        path
+                );
+        }
+
+        if(z === "device"){
+            return deviceList(path);
+        }
+
+        if(z === "puter"){
+            return puterList(path);
+        }
+
+        return listVirtualZone(
+            z,
+            path
+        );
     }
 
     async function listZone(z){
@@ -1781,140 +2993,904 @@
         }
 
         if(z === "puter"){
-            return puterList(
+            return puterListRecursive(
                 "puter:/"
             );
         }
 
-        if(z === "local"){
-            const a = [];
-
-            for(
-                let i = 0;
-                i < localStorage.length;
-                i++
-            ){
-                const k =
-                    localStorage.key(i);
-
-                if(
-                    k &&
-                    k.indexOf(
-                        "LH::chxd:/local/"
-                    ) === 0
-                ){
-                    a.push(
-                        k.slice(4)
-                    );
-                }
-            }
-
-            return a;
-        }
-
-        if(z === "session"){
-            const a = [];
-
-            for(
-                let i = 0;
-                i < sessionStorage.length;
-                i++
-            ){
-                const k =
-                    sessionStorage.key(i);
-
-                if(
-                    k &&
-                    k.indexOf(
-                        "LH::chxd:/session/"
-                    ) === 0
-                ){
-                    a.push(
-                        k.slice(4)
-                    );
-                }
-            }
-
-            return a;
-        }
-
-        if(z === "indexdb"){
-            return (
-                await idbKeys()
-            )
-                .filter(
-                    k =>
-                        typeof k === "string" &&
-                        k.indexOf(
-                            "LH::chxd:/indexdb/"
-                        ) === 0
-                )
-                .map(
-                    k =>
-                        k.slice(4)
-                );
+        if(
+            z === "local" ||
+            z === "session" ||
+            z === "indexdb"
+        ){
+            return listRecursiveVirtual(
+                ROOT_PREFIXES[z]
+            );
         }
 
         return [];
     }
 
-    async function list(prefix){
-        prefix =
-            prefix
-                ? normalize(prefix)
-                : null;
+    async function listRecursiveVirtual(
+        root
+    ){
+        const result = [];
 
-        if(
-            prefix &&
-            zone(prefix) === "device"
-        ){
-            return deviceListRecursive(
-                prefix
-            );
-        }
+        async function walk(directory){
+            const children =
+                await listDir(
+                    directory
+                );
 
-        let zones = [
-            "local",
-            "session",
-            "indexdb",
-            "system",
-            "device"
-        ];
+            for(
+                const child of children
+            ){
+                result.push(child);
 
-        if(prefix){
-            const z =
-                zone(prefix);
-
-            if(z){
-                zones = [z];
+                if(
+                    child.endsWith("/")
+                ){
+                    await walk(
+                        child
+                    );
+                }
             }
         }
 
-        const all =
-            (
+        await walk(
+            ensureTrailingSlash(root)
+        );
+
+        return result;
+    }
+
+    async function puterListRecursive(
+        root
+    ){
+        const result = [];
+
+        async function walk(directory){
+            const children =
+                await puterList(
+                    directory
+                );
+
+            for(
+                const child of children
+            ){
+                result.push(child);
+
+                if(
+                    child.endsWith("/")
+                ){
+                    await walk(
+                        child
+                    );
+                }
+            }
+        }
+
+        await walk(
+            root
+        );
+
+        return result;
+    }
+
+    async function deviceListRecursive(
+        path
+    ){
+        const result = [];
+
+        async function walk(directory){
+            const children =
+                await deviceList(
+                    directory
+                );
+
+            for(
+                const child of children
+            ){
+                result.push(child);
+
+                if(
+                    child.endsWith("/")
+                ){
+                    await walk(child);
+                }
+            }
+        }
+
+        await walk(
+            path
+        );
+
+        return result;
+    }
+
+    async function list(path){
+        if(
+            path == null ||
+            path === ""
+        ){
+            const zones = [
+                "local",
+                "session",
+                "indexdb",
+                "system",
+                "device",
+                "puter"
+            ];
+
+            const all =
                 await Promise.all(
                     zones.map(
                         listZone
                     )
-                )
-            ).flat();
+                );
 
-        if(!prefix){
-            return all;
+            return all.flat();
         }
+
+        path = normalize(path);
+
+        const st =
+            await stat(path);
+
+        if(
+            st.ok &&
+            st.kind === "file"
+        ){
+            return [path];
+        }
+
+        const directory =
+            ensureTrailingSlash(
+                path
+            );
+
+        return listRecursive(
+            directory
+        );
+    }
+
+    async function listRecursive(path){
+        const result = [];
+
+        async function walk(directory){
+            const children =
+                await listDir(
+                    directory
+                );
+
+            for(
+                const child of children
+            ){
+                result.push(child);
+
+                if(
+                    child.endsWith("/")
+                ){
+                    await walk(child);
+                }
+            }
+        }
+
+        await walk(
+            ensureTrailingSlash(
+                path
+            )
+        );
+
+        return result;
+    }
+
+    async function remove(path){
+        path = normalize(path);
+
+        const z =
+            zone(path);
+
+        if(!z){
+            return {
+                ok: false,
+                error:
+                    "Unsupported path: " +
+                    path
+            };
+        }
+
+        if(z === "system"){
+            return {
+                ok: false,
+                error:
+                    "Cannot remove protected system file: " +
+                    path
+            };
+        }
+
+        if(
+            z === "device"
+        ){
+            return deviceRemove(path);
+        }
+
+        if(
+            z === "puter"
+        ){
+            return puterRemove(path);
+        }
+
+        const st =
+            await stat(path);
+
+        if(!st.ok){
+            return st;
+        }
+
+        if(
+            z === "local" ||
+            z === "session"
+        ){
+            const storage =
+                z === "local"
+                    ? localStorage
+                    : sessionStorage;
+
+            if(
+                st.kind === "directory"
+            ){
+                const prefix =
+                    storageKey(
+                        ensureTrailingSlash(
+                            path
+                        )
+                    );
+
+                const dirPrefix =
+                    "LH::DIR::" +
+                    ensureTrailingSlash(
+                        path
+                    );
+
+                const keys = [];
+
+                for(
+                    let i = 0;
+                    i < storage.length;
+                    i++
+                ){
+                    const k =
+                        storage.key(i);
+
+                    if(
+                        k &&
+                        (
+                            k.indexOf(prefix) === 0 ||
+                            k.indexOf(
+                                dirPrefix
+                            ) === 0
+                        )
+                    ){
+                        keys.push(k);
+                    }
+                }
+
+                for(
+                    const key of keys
+                ){
+                    storage.removeItem(key);
+                }
+            }else{
+                storage.removeItem(
+                    storageKey(path)
+                );
+
+                storage.removeItem(
+                    dirStorageKey(path)
+                );
+            }
+
+            return {
+                ok: true
+            };
+        }
+
+        if(z === "indexdb"){
+            if(
+                st.kind === "directory"
+            ){
+                const prefix =
+                    storageKey(
+                        ensureTrailingSlash(
+                            path
+                        )
+                    );
+
+                const keys =
+                    await idbKeys();
+
+                for(
+                    const key of keys
+                ){
+                    if(
+                        typeof key ===
+                        "string" &&
+                        (
+                            key ===
+                                storageKey(path) ||
+                            key.indexOf(prefix) === 0
+                        )
+                    ){
+                        await idbDelete(
+                            key
+                        );
+                    }
+                }
+            }else{
+                await idbDelete(
+                    storageKey(path)
+                );
+            }
+
+            return {
+                ok: true
+            };
+        }
+
+        return {
+            ok: false,
+            error:
+                "Unsupported delete target: " +
+                path
+        };
+    }
+
+    async function resolveDestination(
+        source,
+        destination
+    ){
+        source =
+            normalize(source);
+
+        destination =
+            normalize(destination);
+
+        const dstStat =
+            await stat(destination);
+
+        if(
+            dstStat.ok &&
+            dstStat.kind === "directory"
+        ){
+            return (
+                ensureTrailingSlash(
+                    destination
+                ) +
+                basename(source) +
+                (
+                    source.endsWith("/")
+                        ? "/"
+                        : ""
+                )
+            );
+        }
+
+        return destination;
+    }
+
+    async function copyFileAcross(
+        source,
+        destination,
+        overwrite
+    ){
+        const data =
+            await readBinary(source);
+
+        if(!data.ok){
+            return data;
+        }
+
+        return writeBinary(
+            destination,
+            data.data,
+            {
+                create: true,
+                overwrite
+            }
+        );
+    }
+
+    async function copyRecursive(
+        source,
+        destination,
+        overwrite = false
+    ){
+        const st =
+            await stat(source);
+
+        if(!st.ok){
+            return st;
+        }
+
+        if(
+            st.kind === "file"
+        ){
+            return copyFileAcross(
+                source,
+                destination,
+                overwrite
+            );
+        }
+
+        const made =
+            await mkdir(
+                destination,
+                {
+                    overwrite
+                }
+            );
+
+        if(
+            !made.ok
+        ){
+            if(
+                overwrite &&
+                (await exists(destination))
+            ){
+                const dst =
+                    await stat(
+                        destination
+                    );
+
+                if(
+                    !dst.ok ||
+                    dst.kind !== "directory"
+                ){
+                    return made;
+                }
+            }else{
+                return made;
+            }
+        }
+
+        const children =
+            await listDir(source);
+
+        for(
+            const child of children
+        ){
+            const childName =
+                basename(child);
+
+            const target =
+                ensureTrailingSlash(
+                    destination
+                ) +
+                childName +
+                (
+                    child.endsWith("/")
+                        ? "/"
+                        : ""
+                );
+
+            const copied =
+                await copyRecursive(
+                    child,
+                    target,
+                    overwrite
+                );
+
+            if(!copied.ok){
+                return {
+                    ok: false,
+                    error:
+                        "Copy failed at '" +
+                        child +
+                        "': " +
+                        copied.error
+                };
+            }
+        }
+
+        return {
+            ok: true
+        };
+    }
+
+    async function copy(
+        source,
+        destination,
+        options = {}
+    ){
+        source =
+            normalize(source);
+
+        destination =
+            normalize(destination);
+
+        const overwrite =
+            options.overwrite === true;
+
+        const sourceStat =
+            await stat(source);
+
+        if(!sourceStat.ok){
+            return sourceStat;
+        }
+
+        if(
+            sourceStat.kind === "directory" &&
+            sameOrInside(
+                source,
+                destination
+            )
+        ){
+            return {
+                ok: false,
+                error:
+                    "Cannot copy a directory into itself or one of its descendants."
+            };
+        }
+
+        const finalDestination =
+            await resolveDestination(
+                source,
+                destination
+            );
+
+        if(
+            normalize(finalDestination) ===
+            source
+        ){
+            return {
+                ok: false,
+                error:
+                    "Source and destination are the same."
+            };
+        }
+
+        const srcZone =
+            zone(source);
+
+        const dstZone =
+            zone(finalDestination);
+
+        if(!dstZone){
+            return {
+                ok: false,
+                error:
+                    "Unsupported destination: " +
+                    finalDestination
+            };
+        }
+
+        if(
+            srcZone === "system" ||
+            dstZone === "system"
+        ){
+            return {
+                ok: false,
+                error:
+                    "The protected system filesystem cannot participate in copy operations."
+            };
+        }
+
+        const destinationExists =
+            await exists(
+                finalDestination
+            );
+
+        if(
+            destinationExists &&
+            !overwrite
+        ){
+            return {
+                ok: false,
+                error:
+                    "Destination already exists: " +
+                    finalDestination
+            };
+        }
+
+        if(
+            srcZone === "puter" &&
+            dstZone === "puter"
+        ){
+            return puterCopy(
+                source,
+                finalDestination,
+                overwrite
+            );
+        }
+
+        if(
+            sourceStat.kind === "directory" &&
+            destinationExists &&
+            overwrite
+        ){
+            const dstStat =
+                await stat(
+                    finalDestination
+                );
+
+            if(
+                !dstStat.ok ||
+                dstStat.kind !==
+                    "directory"
+            ){
+                await remove(
+                    finalDestination
+                );
+            }
+        }else if(
+            destinationExists &&
+            overwrite
+        ){
+            await remove(
+                finalDestination
+            );
+        }
+
+        const copied =
+            await copyRecursive(
+                source,
+                finalDestination,
+                overwrite
+            );
+
+        if(!copied.ok){
+            return copied;
+        }
+
+        return {
+            ok: true,
+            source,
+            destination:
+                finalDestination,
+            kind:
+                sourceStat.kind
+        };
+    }
+
+    async function move(
+        source,
+        destination,
+        options = {}
+    ){
+        source =
+            normalize(source);
+
+        destination =
+            normalize(destination);
+
+        const overwrite =
+            options.overwrite === true;
+
+        const sourceStat =
+            await stat(source);
+
+        if(!sourceStat.ok){
+            return sourceStat;
+        }
+
+        if(
+            sourceStat.kind === "directory" &&
+            sameOrInside(
+                source,
+                destination
+            )
+        ){
+            return {
+                ok: false,
+                error:
+                    "Cannot move a directory into itself or one of its descendants."
+            };
+        }
+
+        const finalDestination =
+            await resolveDestination(
+                source,
+                destination
+            );
+
+        if(
+            finalDestination === source
+        ){
+            return {
+                ok: false,
+                error:
+                    "Source and destination are the same."
+            };
+        }
+
+        const srcZone =
+            zone(source);
+
+        const dstZone =
+            zone(finalDestination);
+
+        if(
+            !dstZone
+        ){
+            return {
+                ok: false,
+                error:
+                    "Unsupported destination: " +
+                    finalDestination
+            };
+        }
+
+        if(
+            srcZone === "system" ||
+            dstZone === "system"
+        ){
+            return {
+                ok: false,
+                error:
+                    "The protected system filesystem cannot participate in move operations."
+            };
+        }
+
+        const destinationExists =
+            await exists(
+                finalDestination
+            );
+
+        if(
+            destinationExists &&
+            !overwrite
+        ){
+            return {
+                ok: false,
+                error:
+                    "Destination already exists: " +
+                    finalDestination
+            };
+        }
+
+        if(
+            srcZone === "puter" &&
+            dstZone === "puter"
+        ){
+            const result =
+                await puterMove(
+                    source,
+                    finalDestination,
+                    overwrite
+                );
+
+            if(result.ok){
+                return {
+                    ok: true,
+                    source,
+                    destination:
+                        finalDestination,
+                    kind:
+                        sourceStat.kind
+                };
+            }
+
+            return result;
+        }
+
+        const copied =
+            await copy(
+                source,
+                finalDestination,
+                {
+                    overwrite
+                }
+            );
+
+        if(!copied.ok){
+            return copied;
+        }
+
+        const removed =
+            await remove(source);
+
+        if(!removed.ok){
+            return {
+                ok: false,
+                error:
+                    "Copied successfully, but the original could not be removed: " +
+                    removed.error,
+                copied: true,
+                source,
+                destination:
+                    finalDestination
+            };
+        }
+
+        return {
+            ok: true,
+            source,
+            destination:
+                finalDestination,
+            kind:
+                sourceStat.kind,
+            mode:
+                "copy-delete"
+        };
+    }
+
+    async function rename(
+        source,
+        newName,
+        options = {}
+    ){
+        newName =
+            cleanName(newName);
+
+        if(!newName){
+            return {
+                ok: false,
+                error:
+                    "Invalid new name."
+            };
+        }
+
+        const parent =
+            dirname(source);
+
+        if(!parent){
+            return {
+                ok: false,
+                error:
+                    "Cannot rename this path."
+            };
+        }
+
+        return move(
+            source,
+            ensureTrailingSlash(
+                parent
+            ) +
+            newName +
+            (
+                normalize(source).endsWith("/")
+                    ? "/"
+                    : ""
+            ),
+            options
+        );
+    }
+
+    async function find(pattern){
+        pattern =
+            normalize(pattern);
+
+        const z =
+            zone(pattern);
+
+        const root =
+            z
+                ? ROOT_PREFIXES[z]
+                : null;
+
+        const all =
+            root
+                ? await listRecursive(root)
+                : await list();
+
+        const re =
+            wildcardToRegex(
+                pattern
+            );
 
         return all.filter(
             p =>
-                p.indexOf(prefix) === 0
+                re.test(p)
         );
     }
 
     function wildcardToRegex(
-        p
+        pattern
     ){
         return new RegExp(
             "^" +
-            p
+            String(pattern)
                 .replace(
                     /[.+^${}()|[\]\\]/g,
                     "\\$&"
@@ -1931,46 +3907,37 @@
         );
     }
 
-    async function find(pattern){
-        pattern =
-            normalize(pattern);
-
-        const z =
-            zone(pattern);
-
-        const all =
-            await list(
-                z
-                    ? z === "device"
-                        ? DEVICE_PREFIX
-                        : z + ":/"
-                    : null
-            );
-
-        const re =
-            wildcardToRegex(
-                pattern
-            );
-
-        return all.filter(
-            p =>
-                re.test(p)
-        );
-    }
-
     window.FS = {
         normalize,
         zone,
+
         exists,
+        stat,
+
         read,
+        readBinary,
+
         write,
+        writeBinary,
+
+        mkdir,
+
         remove,
-        find,
+
         list,
+        listDir,
+        find,
+
+        copy,
+        move,
+        rename,
+
         puterReady,
+
         mountDeviceFolder,
         unmountDeviceFolder,
         getDeviceMounts,
+
         ensurePermission
     };
 })();
