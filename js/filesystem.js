@@ -3795,47 +3795,253 @@
         };
     }
 
-    async function rename(
-        source,
-        newName,
-        options = {}
-    ){
-        newName =
-            cleanName(newName);
+    async rename(oldPath,newPath){
+    try{
+        const normalizePath=p=>{
+            let s=String(p||"").trim().replace(/\\/g,"/");
+            if(!s){
+                return "";
+            }
+            s=s.replace(/\/{2,}/g,"/");
+            const m=s.match(/^([A-Za-z][\w-]*:)(\/?)(.*)$/);
+            if(!m){
+                return s;
+            }
+            const scheme=m[1];
+            const slash=m[2]==="/";
+            const parts=m[3].split("/").filter(Boolean);
+            const out=[];
+            for(const part of parts){
+                if(part==="."||part===""){
+                    continue;
+                }
+                if(part===".."){
+                    if(out.length){
+                        out.pop();
+                    }
+                    continue;
+                }
+                out.push(part);
+            }
+            return scheme+(slash?"/":"")+out.join("/")+(s.endsWith("/")?"/":"");
+        };
 
-        if(!newName){
-            return {
-                ok: false,
-                error:
-                    "Invalid new name."
+        let source=normalizePath(oldPath);
+        let target=normalizePath(newPath);
+
+        if(!source||!target){
+            return{
+                ok:false,
+                error:"Invalid rename path."
             };
         }
 
-        const parent =
-            dirname(source);
+        const sourceIsFolder=source.endsWith("/");
+        if(sourceIsFolder){
+            if(!target.endsWith("/")){
+                target+="/";
+            }
+        }else{
+            target=target.replace(/\/+$/,"");
+        }
 
-        if(!parent){
-            return {
-                ok: false,
-                error:
-                    "Cannot rename this path."
+        if(source===target){
+            return{
+                ok:true,
+                path:target
             };
         }
 
-        return move(
-            source,
-            ensureTrailingSlash(
-                parent
-            ) +
-            newName +
+        if(
+            sourceIsFolder&&
             (
-                normalize(source).endsWith("/")
-                    ? "/"
-                    : ""
-            ),
-            options
-        );
+                target.startsWith(source)||
+                target===source
+            )
+        ){
+            return{
+                ok:false,
+                error:"A folder cannot be renamed into itself."
+            };
+        }
+
+        const exists=await this.exists(source);
+        if(!exists){
+            return{
+                ok:false,
+                error:"Source does not exist: "+source
+            };
+        }
+
+        if(await this.exists(target)){
+            return{
+                ok:false,
+                error:"Destination already exists: "+target
+            };
+        }
+
+        const parentPath=p=>{
+            const clean=String(p||"").replace(/\/+$/,"");
+            const i=clean.lastIndexOf("/");
+            return i<0?"":clean.slice(0,i+1);
+        };
+
+        const ensureParent=async p=>{
+            const dir=parentPath(p);
+            if(!dir){
+                return true;
+            }
+            if(await this.exists(dir)){
+                return true;
+            }
+            if(typeof this.mkdir==="function"){
+                const r=await this.mkdir(dir);
+                if(r&&r.ok===false){
+                    throw new Error(
+                        r.error||
+                        "Could not create destination folder."
+                    );
+                }
+                return true;
+            }
+            throw new Error(
+                "Filesystem mkdir is unavailable."
+            );
+        };
+
+        if(!sourceIsFolder){
+            const r=await this.read(source);
+            if(!r||!r.ok){
+                throw new Error(
+                    r&&r.error||
+                    "Could not read "+source
+                );
+            }
+
+            await ensureParent(target);
+
+            const w=await this.write(
+                target,
+                r.content,
+                true
+            );
+
+            if(!w||!w.ok){
+                throw new Error(
+                    w&&w.error||
+                    "Could not write "+target
+                );
+            }
+
+            const removed=await this.remove(source);
+            if(!removed||!removed.ok){
+                throw new Error(
+                    removed&&removed.error||
+                    "Could not remove "+source
+                );
+            }
+
+            return{
+                ok:true,
+                path:target
+            };
+        }
+
+        const all=await this.list(source);
+        const entries=Array.isArray(all)
+            ?[...new Set(all.map(x=>String(x)))]
+            :[];
+
+        const folders=entries
+            .filter(p=>p.startsWith(source)&&p.endsWith("/"))
+            .sort((a,b)=>a.length-b.length);
+
+        const files=entries
+            .filter(p=>p.startsWith(source)&&!p.endsWith("/"))
+            .sort((a,b)=>a.length-b.length);
+
+        if(typeof this.mkdir!=="function"){
+            throw new Error(
+                "Filesystem mkdir is unavailable."
+            );
+        }
+
+        await this.mkdir(target);
+
+        for(const folder of folders){
+            const relative=
+                folder.slice(source.length);
+
+            const destination=
+                target+relative;
+
+            if(destination!==target){
+                const r=await this.mkdir(destination);
+
+                if(r&&r.ok===false){
+                    throw new Error(
+                        r.error||
+                        "Could not create "+destination
+                    );
+                }
+            }
+        }
+
+        for(const file of files){
+            const relative=
+                file.slice(source.length);
+
+            const destination=
+                target+relative;
+
+            const r=await this.read(file);
+
+            if(!r||!r.ok){
+                throw new Error(
+                    r&&r.error||
+                    "Could not read "+file
+                );
+            }
+
+            await ensureParent(destination);
+
+            const w=await this.write(
+                destination,
+                r.content,
+                true
+            );
+
+            if(!w||!w.ok){
+                throw new Error(
+                    w&&w.error||
+                    "Could not write "+destination
+                );
+            }
+        }
+
+        const removed=await this.remove(source);
+
+        if(!removed||!removed.ok){
+            throw new Error(
+                removed&&removed.error||
+                "Could not remove "+source
+            );
+        }
+
+        return{
+            ok:true,
+            path:target
+        };
+
+    }catch(err){
+        return{
+            ok:false,
+            error:err&&err.message
+                ?err.message
+                :String(err)
+        };
     }
+}
 
     async function find(pattern){
         pattern =
