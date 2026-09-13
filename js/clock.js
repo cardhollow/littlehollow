@@ -1,1134 +1,1480 @@
-(() => {
-    if (window.__CHXD_CLOCK_SERVICE__) return;
+(function(){
+    "use strict";
 
-    const SERVICE_KEY = "__CHXD_CLOCK_SERVICE__";
-    const APP_NAME = "Clock";
-    const STORAGE_KEY = "chxd:/local/Clock/state.json";
-    const ALARM_SOUND_DIR = "chxd:/local/Clock/Alarms/";
+    if(window.clockAPI && window.__CHXD_CLOCK_SERVICE__){
+        return;
+    }
 
-    const service = {
-        alarms: [],
-        timer: {
-            running: false,
-            end: 0,
-            remaining: 0,
-            sound: ""
+    const APP_NAME="Clock";
+    const STATE_PATH="chxd:/local/Clock/state.json";
+    const AUDIO_CONTEXT_KEY="__CHXD_CLOCK_AUDIO_CONTEXT__";
+
+    const state={
+        alarms:[],
+        soundPath:"",
+        timer:{
+            running:false,
+            end:0,
+            remaining:0
         },
-        audioContext: null,
-        initialized: false,
-        lastAlarmMinute: "",
-        lastTimerFire: 0,
-        fs: null
+        stopwatch:{
+            running:false,
+            started:0,
+            elapsed:0,
+            laps:[]
+        },
+        lastAlarmMinute:"",
+        lastTimerEnd:0,
+        audioContext:null
     };
 
-    window[SERVICE_KEY] = service;
-    window.__CHXD_CLOCK_SERVICE__ = service;
+    window.__CHXD_CLOCK_SERVICE__=state;
 
-    function getFS() {
-        return (
-            service.fs ||
-            window.host?.FS ||
-            window.CHXD?.FS ||
-            window.parent?.host?.FS ||
-            null
-        );
+    function getFS(){
+        return window.FS||null;
     }
 
-    async function readFile(path) {
-        const fs = getFS();
+    async function loadState(){
+        let loaded=false;
 
-        if (!fs?.read) {
-            throw new Error("FS.read unavailable");
-        }
+        try{
+            const raw=localStorage.getItem("chxd_clock_state");
 
-        return await fs.read(path);
-    }
+            if(raw){
+                const data=JSON.parse(raw);
 
-    async function writeFile(path, data) {
-        const fs = getFS();
-
-        if (!fs?.write) {
-            throw new Error("FS.write unavailable");
-        }
-
-        return await fs.write(path, data, true, true);
-    }
-
-    function normalizeAlarm(alarm) {
-        return {
-            id: Number(alarm.id) || Date.now(),
-            time: String(alarm.time || "00:00"),
-            label: String(alarm.label || "Alarm"),
-            active: alarm.active !== false,
-            soundPath: String(alarm.soundPath || ""),
-            lastFired: String(alarm.lastFired || "")
-        };
-    }
-
-    async function loadState() {
-        let loaded = false;
-
-        try {
-            const raw = localStorage.getItem("chxd_clock_state_v1");
-
-            if (raw) {
-                const data = JSON.parse(raw);
-
-                if (Array.isArray(data.alarms)) {
-                    service.alarms = data.alarms.map(normalizeAlarm);
+                if(Array.isArray(data.alarms)){
+                    state.alarms=data.alarms;
                 }
 
-                if (data.timer && typeof data.timer === "object") {
-                    service.timer = {
-                        running: !!data.timer.running,
-                        end: Number(data.timer.end) || 0,
-                        remaining: Number(data.timer.remaining) || 0,
-                        sound: String(data.timer.sound || "")
+                state.soundPath=
+                    typeof data.soundPath==="string"
+                        ?data.soundPath
+                        :"";
+
+                if(data.timer){
+                    state.timer={
+                        running:!!data.timer.running,
+                        end:Number(data.timer.end)||0,
+                        remaining:Number(data.timer.remaining)||0
                     };
                 }
 
-                loaded = true;
-            }
-        } catch {}
-
-        if (loaded) return;
-
-        try {
-            const raw = await readFile(STORAGE_KEY);
-
-            if (typeof raw === "string") {
-                const data = JSON.parse(raw);
-
-                if (Array.isArray(data.alarms)) {
-                    service.alarms = data.alarms.map(normalizeAlarm);
-                }
-
-                if (data.timer && typeof data.timer === "object") {
-                    service.timer = {
-                        running: !!data.timer.running,
-                        end: Number(data.timer.end) || 0,
-                        remaining: Number(data.timer.remaining) || 0,
-                        sound: String(data.timer.sound || "")
+                if(data.stopwatch){
+                    state.stopwatch={
+                        running:!!data.stopwatch.running,
+                        started:Number(data.stopwatch.started)||0,
+                        elapsed:Number(data.stopwatch.elapsed)||0,
+                        laps:Array.isArray(data.stopwatch.laps)
+                            ?data.stopwatch.laps
+                            :[]
                     };
                 }
+
+                loaded=true;
             }
-        } catch {}
-    }
+        }catch(_){}
 
-    async function saveState() {
-        const data = {
-            alarms: service.alarms,
-            timer: service.timer
-        };
-
-        try {
-            localStorage.setItem(
-                "chxd_clock_state_v1",
-                JSON.stringify(data)
-            );
-        } catch {}
-
-        try {
-            await writeFile(
-                STORAGE_KEY,
-                JSON.stringify(data)
-            );
-        } catch {}
-    }
-
-    function getAudioContext() {
-        if (service.audioContext) return service.audioContext;
-
-        const AudioContextClass =
-            window.AudioContext ||
-            window.webkitAudioContext;
-
-        if (!AudioContextClass) return null;
-
-        try {
-            service.audioContext = new AudioContextClass();
-        } catch {
-            service.audioContext = null;
-        }
-
-        return service.audioContext;
-    }
-
-    function unlockAudio() {
-        const context = getAudioContext();
-
-        if (!context) return;
-
-        if (context.state === "suspended") {
-            context.resume().catch(() => {});
-        }
-    }
-
-    document.addEventListener("pointerdown", unlockAudio, true);
-    document.addEventListener("touchstart", unlockAudio, true);
-    document.addEventListener("keydown", unlockAudio, true);
-
-    function playOscillator() {
-        const context = getAudioContext();
-
-        if (!context) return;
-
-        if (context.state === "suspended") {
-            context.resume().catch(() => {});
-        }
-
-        const start = context.currentTime;
-
-        for (let i = 0; i < 4; i++) {
-            const oscillator = context.createOscillator();
-            const gain = context.createGain();
-
-            const frequency =
-                i % 2 === 0
-                    ? 880
-                    : 660;
-
-            oscillator.type = i === 3 ? "square" : "sine";
-
-            oscillator.frequency.setValueAtTime(
-                frequency,
-                start
-            );
-
-            oscillator.frequency.setValueAtTime(
-                frequency === 880 ? 988 : 740,
-                start + 0.2
-            );
-
-            gain.gain.setValueAtTime(
-                0.0001,
-                start
-            );
-
-            gain.gain.exponentialRampToValueAtTime(
-                0.3,
-                start + 0.02
-            );
-
-            gain.gain.exponentialRampToValueAtTime(
-                0.0001,
-                start + 0.55
-            );
-
-            oscillator.connect(gain);
-            gain.connect(context.destination);
-
-            oscillator.start(start);
-            oscillator.stop(start + 0.6);
-        }
-    }
-
-    async function normalizeAudioData(data) {
-        if (data instanceof Blob) {
-            return await data.arrayBuffer();
-        }
-
-        if (data instanceof ArrayBuffer) {
-            return data;
-        }
-
-        if (ArrayBuffer.isView(data)) {
-            return data.buffer.slice(
-                data.byteOffset,
-                data.byteOffset + data.byteLength
-            );
-        }
-
-        if (typeof data === "string") {
-            if (data.startsWith("data:")) {
-                const comma = data.indexOf(",");
-
-                if (comma !== -1) {
-                    const meta = data.slice(0, comma);
-                    const body = data.slice(comma + 1);
-
-                    if (meta.includes(";base64")) {
-                        const binary = atob(body);
-                        const bytes =
-                            new Uint8Array(binary.length);
-
-                        for (let i = 0; i < binary.length; i++) {
-                            bytes[i] =
-                                binary.charCodeAt(i);
-                        }
-
-                        return bytes.buffer;
-                    }
-
-                    return new TextEncoder().encode(
-                        decodeURIComponent(body)
-                    ).buffer;
-                }
-            }
-
-            try {
-                const binary = atob(data);
-                const bytes =
-                    new Uint8Array(binary.length);
-
-                for (let i = 0; i < binary.length; i++) {
-                    bytes[i] =
-                        binary.charCodeAt(i);
-                }
-
-                return bytes.buffer;
-            } catch {
-                throw new Error("Invalid audio data");
-            }
-        }
-
-        if (data && typeof data === "object") {
-            if (data.data !== undefined) {
-                return normalizeAudioData(data.data);
-            }
-
-            if (data.buffer !== undefined) {
-                return normalizeAudioData(data.buffer);
-            }
-
-            if (data.content !== undefined) {
-                return normalizeAudioData(data.content);
-            }
-
-            if (data.file !== undefined) {
-                return normalizeAudioData(data.file);
-            }
-        }
-
-        throw new Error("Unsupported audio data");
-    }
-
-    async function playCustomSound(path) {
-        if (!path) {
-            playOscillator();
+        if(loaded){
             return;
         }
 
-        try {
-            const raw = await readFile(path);
-            const arrayBuffer =
-                await normalizeAudioData(raw);
+        try{
+            const fs=getFS();
 
-            const context = getAudioContext();
+            if(
+                fs&&
+                typeof fs.read==="function"
+            ){
+                const result=
+                    await fs.read(STATE_PATH);
 
-            if (!context) {
-                playOscillator();
-                return;
+                if(result&&result.ok){
+                    const data=
+                        JSON.parse(
+                            String(result.content||"")
+                        );
+
+                    if(Array.isArray(data.alarms)){
+                        state.alarms=data.alarms;
+                    }
+
+                    state.soundPath=
+                        typeof data.soundPath==="string"
+                            ?data.soundPath
+                            :"";
+
+                    if(data.timer){
+                        state.timer={
+                            running:!!data.timer.running,
+                            end:Number(data.timer.end)||0,
+                            remaining:Number(data.timer.remaining)||0
+                        };
+                    }
+
+                    if(data.stopwatch){
+                        state.stopwatch={
+                            running:!!data.stopwatch.running,
+                            started:Number(data.stopwatch.started)||0,
+                            elapsed:Number(data.stopwatch.elapsed)||0,
+                            laps:Array.isArray(data.stopwatch.laps)
+                                ?data.stopwatch.laps
+                                :[]
+                        };
+                    }
+                }
+            }
+        }catch(_){}
+    }
+
+    async function saveState(){
+        const data={
+            alarms:state.alarms,
+            soundPath:state.soundPath,
+            timer:state.timer,
+            stopwatch:state.stopwatch
+        };
+
+        try{
+            localStorage.setItem(
+                "chxd_clock_state",
+                JSON.stringify(data)
+            );
+        }catch(_){}
+
+        try{
+            const fs=getFS();
+
+            if(
+                fs&&
+                typeof fs.write==="function"
+            ){
+                await fs.mkdir?.(
+                    "chxd:/local/Clock/",
+                    {overwrite:true}
+                ).catch?.(()=>{});
+
+                await fs.write(
+                    STATE_PATH,
+                    JSON.stringify(data),
+                    true
+                );
+            }
+        }catch(_){}
+    }
+
+    function getAudioContext(){
+        if(
+            state.audioContext&&
+            state.audioContext.state!=="closed"
+        ){
+            return state.audioContext;
+        }
+
+        const AudioContextClass=
+            window[AUDIO_CONTEXT_KEY]||
+            window.AudioContext||
+            window.webkitAudioContext;
+
+        if(!AudioContextClass){
+            return null;
+        }
+
+        try{
+            state.audioContext=
+                new AudioContextClass();
+
+            return state.audioContext;
+        }catch(_){
+            return null;
+        }
+    }
+
+    function wakeAudio(){
+        const ctx=getAudioContext();
+
+        if(!ctx){
+            return null;
+        }
+
+        if(ctx.state==="suspended"){
+            ctx.resume().catch(()=>{});
+        }
+
+        return ctx;
+    }
+
+    function playOscillator(){
+        const ctx=wakeAudio();
+
+        if(!ctx){
+            return false;
+        }
+
+        const now=ctx.currentTime;
+
+        const frequencies=[
+            880,
+            988,
+            880,
+            660
+        ];
+
+        frequencies.forEach(
+            (frequency,index)=>{
+                const start=
+                    now+
+                    index*
+                    0.32;
+
+                const osc=
+                    ctx.createOscillator();
+
+                const gain=
+                    ctx.createGain();
+
+                osc.type=
+                    index===3
+                        ?"square"
+                        :"sine";
+
+                osc.frequency.setValueAtTime(
+                    frequency,
+                    start
+                );
+
+                osc.frequency.setValueAtTime(
+                    frequency*0.95,
+                    start+0.18
+                );
+
+                gain.gain.setValueAtTime(
+                    0.0001,
+                    start
+                );
+
+                gain.gain.exponentialRampToValueAtTime(
+                    0.32,
+                    start+0.02
+                );
+
+                gain.gain.exponentialRampToValueAtTime(
+                    0.0001,
+                    start+0.24
+                );
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start(start);
+                osc.stop(start+0.26);
+            }
+        );
+
+        return true;
+    }
+
+    async function playCustom(path){
+        if(!path){
+            return playOscillator();
+        }
+
+        try{
+            const fs=getFS();
+
+            if(
+                !fs||
+                typeof fs.readBinary!=="function"
+            ){
+                return playOscillator();
             }
 
-            if (context.state === "suspended") {
-                await context.resume();
+            const result=
+                await fs.readBinary(path);
+
+            if(!result||!result.ok){
+                return playOscillator();
             }
 
-            const buffer =
-                await context.decodeAudioData(
+            const data=result.data;
+
+            let arrayBuffer;
+
+            if(data instanceof Blob){
+                arrayBuffer=
+                    await data.arrayBuffer();
+            }else if(
+                data instanceof ArrayBuffer
+            ){
+                arrayBuffer=data;
+            }else if(
+                ArrayBuffer.isView(data)
+            ){
+                arrayBuffer=
+                    data.buffer.slice(
+                        data.byteOffset,
+                        data.byteOffset+
+                        data.byteLength
+                    );
+            }else{
+                return playOscillator();
+            }
+
+            const ctx=wakeAudio();
+
+            if(!ctx){
+                return playOscillator();
+            }
+
+            const decoded=
+                await ctx.decodeAudioData(
                     arrayBuffer.slice(0)
                 );
 
-            const source =
-                context.createBufferSource();
+            const source=
+                ctx.createBufferSource();
 
-            const gain =
-                context.createGain();
+            const gain=
+                ctx.createGain();
 
-            source.buffer = buffer;
-            gain.gain.value = 1;
+            source.buffer=decoded;
+            gain.gain.value=1;
 
             source.connect(gain);
-            gain.connect(context.destination);
+            gain.connect(ctx.destination);
 
             source.start();
 
-            return;
-        } catch {
-            playOscillator();
+            return true;
+        }catch(_){
+            return playOscillator();
         }
     }
 
-    async function playSound(path) {
-        if (path) {
-            await playCustomSound(path);
-            return;
-        }
-
-        playOscillator();
-    }
-
-    function todayKey() {
-        const now = new Date();
-
-        return [
-            now.getFullYear(),
-            String(now.getMonth() + 1).padStart(2, "0"),
-            String(now.getDate()).padStart(2, "0")
-        ].join("-");
-    }
-
-    function openClock() {
-        try {
-            if (window.Apps?.openApp) {
-                const result =
-                    window.Apps.openApp(APP_NAME);
-
-                if (result?.catch) {
-                    result.catch(() => {});
-                }
-            }
-        } catch {}
-
-        try {
-            window.dispatchEvent(
-                new CustomEvent("chxd-open-app", {
-                    detail: {
-                        appId: APP_NAME,
-                        name: APP_NAME
-                    }
-                })
+    async function playSound(){
+        if(state.soundPath){
+            return playCustom(
+                state.soundPath
             );
-        } catch {}
+        }
 
-        try {
-            for (const frame of Array.from(window.frames)) {
-                frame.postMessage(
+        return playOscillator();
+    }
+
+    function openClock(){
+        try{
+            if(
+                window.Apps&&
+                typeof window.Apps.openApp==="function"
+            ){
+                const result=
+                    window.Apps.openApp(
+                        APP_NAME,
+                        {
+                            allowMultiple:false
+                        }
+                    );
+
+                if(
+                    result&&
+                    typeof result.catch==="function"
+                ){
+                    result.catch(()=>{});
+                }
+            }
+        }catch(_){}
+
+        try{
+            window.dispatchEvent(
+                new CustomEvent(
+                    "chxd-clock-open",
                     {
-                        type: "chxd-open-clock"
-                    },
-                    "*"
-                );
-            }
-        } catch {}
-    }
-
-    async function fireAlarm(alarm) {
-        const key = todayKey();
-
-        if (alarm.lastFired === key) return;
-
-        alarm.lastFired = key;
-
-        await saveState();
-
-        openClock();
-
-        await playSound(alarm.soundPath);
-
-        setTimeout(() => {
-            playSound(alarm.soundPath);
-        }, 1200);
-
-        setTimeout(() => {
-            playSound(alarm.soundPath);
-        }, 2400);
-
-        notifyFrames({
-            type: "chxd-clock-alarm-fired",
-            alarm
-        });
-    }
-
-    function fireTimer() {
-        if (service.lastTimerFire === service.timer.end) {
-            return;
-        }
-
-        service.lastTimerFire = service.timer.end;
-        service.timer.running = false;
-        service.timer.remaining = 0;
-
-        saveState();
-
-        openClock();
-
-        playSound(service.timer.sound);
-
-        setTimeout(() => {
-            playSound(service.timer.sound);
-        }, 1200);
-
-        setTimeout(() => {
-            playSound(service.timer.sound);
-        }, 2400);
-
-        notifyFrames({
-            type: "chxd-clock-timer-fired"
-        });
-    }
-
-    function normalizeTime(time) {
-        const parts =
-            String(time)
-                .split(":")
-                .map(Number);
-
-        if (parts.length !== 2) {
-            return null;
-        }
-
-        if (
-            !Number.isFinite(parts[0]) ||
-            !Number.isFinite(parts[1])
-        ) {
-            return null;
-        }
-
-        return {
-            hour: Math.max(
-                0,
-                Math.min(23, parts[0])
-            ),
-            minute: Math.max(
-                0,
-                Math.min(59, parts[1])
-            )
-        };
-    }
-
-    function checkAlarms() {
-        const now = new Date();
-
-        const currentMinute =
-            String(now.getHours()).padStart(2, "0") +
-            ":" +
-            String(now.getMinutes()).padStart(2, "0");
-
-        if (service.lastAlarmMinute !== currentMinute) {
-            service.lastAlarmMinute =
-                currentMinute;
-
-            for (const alarm of service.alarms) {
-                if (!alarm.active) continue;
-
-                const parsed =
-                    normalizeTime(alarm.time);
-
-                if (!parsed) continue;
-
-                if (
-                    parsed.hour === now.getHours() &&
-                    parsed.minute === now.getMinutes()
-                ) {
-                    fireAlarm(alarm);
-                }
-
-                if (
-                    alarm.lastFired === todayKey()
-                ) {
-                    if (
-                        now.getHours() < parsed.hour ||
-                        (
-                            now.getHours() === parsed.hour &&
-                            now.getMinutes() < parsed.minute
-                        )
-                    ) {
-                        alarm.lastFired = "";
+                        detail:{
+                            app:APP_NAME
+                        }
                     }
-                }
-            }
-
-            saveState();
-        }
-    }
-
-    function checkTimer() {
-        if (!service.timer.running) return;
-
-        const remaining =
-            service.timer.end - Date.now();
-
-        if (remaining <= 0) {
-            fireTimer();
-            return;
-        }
-
-        service.timer.remaining = remaining;
-
-        notifyFrames({
-            type: "chxd-clock-timer-state",
-            timer: getTimerState()
-        });
-    }
-
-    function getTimerState() {
-        return {
-            running: service.timer.running,
-            end: service.timer.end,
-            remaining: service.timer.running
-                ? Math.max(
-                    0,
-                    service.timer.end - Date.now()
                 )
-                : service.timer.remaining,
-            sound: service.timer.sound
-        };
+            );
+        }catch(_){}
     }
 
-    function notifyFrames(message) {
-        try {
+    function notify(){
+        const message={
+            type:"chxd-clock-state",
+            state:getPublicState()
+        };
+
+        try{
             window.postMessage(
                 message,
                 "*"
             );
-        } catch {}
+        }catch(_){}
 
-        try {
-            for (const frame of Array.from(window.frames)) {
+        try{
+            for(
+                const frame of Array.from(window.frames)
+            ){
                 frame.postMessage(
                     message,
                     "*"
                 );
             }
-        } catch {}
+        }catch(_){}
     }
 
-    function sendState(source) {
-        if (!source?.postMessage) return;
-
-        source.postMessage(
-            {
-                type: "chxd-clock-state",
-                alarms: service.alarms,
-                timer: getTimerState()
+    function getPublicState(){
+        return{
+            alarms:state.alarms.map(
+                alarm=>({
+                    id:alarm.id,
+                    time:alarm.time,
+                    label:alarm.label,
+                    active:alarm.active
+                })
+            ),
+            soundPath:state.soundPath,
+            timer:{
+                running:state.timer.running,
+                end:state.timer.end,
+                remaining:
+                    state.timer.running
+                        ?Math.max(
+                            0,
+                            state.timer.end-
+                            Date.now()
+                        )
+                        :state.timer.remaining
             },
-            "*"
-        );
-    }
-
-    async function openFileSelector() {
-        const parent = window;
-
-        const candidates = [
-            parent.CHXD?.FileSelector?.open,
-            parent.CHXD?.FilePicker?.open,
-            parent.LittleHollow?.FileSelector?.open,
-            parent.LittleHollow?.FilePicker?.open,
-            parent.Apps?.selectFile,
-            parent.Apps?.pickFile,
-            parent.selectChxdFile,
-            parent.openFileSelector
-        ];
-
-        for (const candidate of candidates) {
-            if (typeof candidate !== "function") {
-                continue;
+            stopwatch:{
+                running:state.stopwatch.running,
+                elapsed:
+                    state.stopwatch.running
+                        ?state.stopwatch.elapsed+
+                         (
+                            Date.now()-
+                            state.stopwatch.started
+                         )
+                        :state.stopwatch.elapsed,
+                laps:state.stopwatch.laps.slice()
             }
-
-            try {
-                const result =
-                    await candidate({
-                        type: "audio",
-                        accept: "audio/*",
-                        multiple: false
-                    });
-
-                const selected =
-                    Array.isArray(result)
-                        ? result[0]
-                        : result;
-
-                if (selected) {
-                    return normalizeSelectedFile(
-                        selected
-                    );
-                }
-            } catch {}
-        }
-
-        if (typeof window.showOpenFilePicker === "function") {
-            try {
-                const handles =
-                    await window.showOpenFilePicker({
-                        multiple: false,
-                        types: [
-                            {
-                                description:
-                                    "Audio",
-                                accept: {
-                                    "audio/*": [
-                                        ".mp3",
-                                        ".wav",
-                                        ".ogg",
-                                        ".oga",
-                                        ".m4a",
-                                        ".aac",
-                                        ".flac",
-                                        ".webm",
-                                        ".opus"
-                                    ]
-                                }
-                            }
-                        ]
-                    });
-
-                if (handles?.[0]) {
-                    const file =
-                        await handles[0].getFile();
-
-                    return {
-                        file,
-                        path: "",
-                        name: file.name,
-                        type: file.type
-                    };
-                }
-            } catch {}
-        }
-
-        throw new Error(
-            "No Little Hollow file selector is available"
-        );
-    }
-
-    async function normalizeSelectedFile(value) {
-        if (value instanceof File) {
-            return {
-                file: value,
-                path: "",
-                name: value.name,
-                type: value.type
-            };
-        }
-
-        if (value instanceof Blob) {
-            return {
-                file: value,
-                path: "",
-                name: "alarm",
-                type: value.type
-            };
-        }
-
-        if (typeof value === "string") {
-            return {
-                file: null,
-                path: value,
-                name: value.split("/").pop(),
-                type: "audio/*"
-            };
-        }
-
-        if (value && typeof value === "object") {
-            return {
-                file:
-                    value.file ||
-                    value.blob ||
-                    null,
-                path:
-                    value.path ||
-                    value.chxdPath ||
-                    value.url ||
-                    "",
-                name:
-                    value.name ||
-                    value.fileName ||
-                    "alarm",
-                type:
-                    value.type ||
-                    "audio/*"
-            };
-        }
-
-        throw new Error("Invalid selected file");
-    }
-
-    async function importSelectedSound() {
-        const selected =
-            await openFileSelector();
-
-        if (!selected) {
-            throw new Error("No sound selected");
-        }
-
-        if (selected.path?.startsWith("chxd:")) {
-            return {
-                path: selected.path,
-                name: selected.name
-            };
-        }
-
-        if (!selected.file) {
-            throw new Error(
-                "Selected item has no readable file"
-            );
-        }
-
-        const file =
-            selected.file instanceof File
-                ? selected.file
-                : new File(
-                    [selected.file],
-                    selected.name || "alarm",
-                    {
-                        type:
-                            selected.type ||
-                            selected.file.type ||
-                            "audio/*"
-                    }
-                );
-
-        const safeName =
-            file.name
-                .replace(
-                    /[^a-zA-Z0-9._-]/g,
-                    "_"
-                )
-                .replace(
-                    /^[-.]+/,
-                    ""
-                ) ||
-            "alarm";
-
-        const path =
-            ALARM_SOUND_DIR +
-            Date.now() +
-            "_" +
-            safeName;
-
-        const data =
-            await file.arrayBuffer();
-
-        await writeFile(path, data);
-
-        return {
-            path,
-            name: file.name
         };
     }
 
-    async function addAlarm(data) {
-        const alarm = normalizeAlarm(data);
+    function alarmTodayKey(){
+        const now=new Date();
 
-        service.alarms.push(alarm);
-
-        await saveState();
-
-        return alarm;
+        return[
+            now.getFullYear(),
+            String(
+                now.getMonth()+1
+            ).padStart(2,"0"),
+            String(
+                now.getDate()
+            ).padStart(2,"0")
+        ].join("-");
     }
 
-    async function updateAlarm(id, changes) {
-        const alarm =
-            service.alarms.find(
-                item => item.id === Number(id)
-            );
+    function currentAlarmTime(){
+        const now=new Date();
 
-        if (!alarm) return null;
+        return[
+            String(
+                now.getHours()
+            ).padStart(2,"0"),
+            String(
+                now.getMinutes()
+            ).padStart(2,"0")
+        ].join(":");
+    }
 
-        Object.assign(
-            alarm,
-            changes || {}
-        );
+    async function fireAlarm(
+        alarm
+    ){
+        const key=
+            alarmTodayKey();
 
-        if (changes?.active === true) {
-            alarm.lastFired = "";
+        if(
+            alarm.lastFired===key
+        ){
+            return;
         }
 
-        await saveState();
-
-        return alarm;
-    }
-
-    async function deleteAlarm(id) {
-        service.alarms =
-            service.alarms.filter(
-                alarm =>
-                    alarm.id !== Number(id)
-            );
-
-        await saveState();
-    }
-
-    async function startTimer(duration, sound) {
-        const ms =
-            Math.max(
-                0,
-                Number(duration) || 0
-            );
-
-        if (ms <= 0) return;
-
-        service.timer.running = true;
-        service.timer.end =
-            Date.now() + ms;
-        service.timer.remaining = ms;
-        service.timer.sound =
-            String(sound || "");
-
-        service.lastTimerFire = 0;
+        alarm.lastFired=key;
 
         await saveState();
 
         openClock();
 
-        notifyFrames({
-            type: "chxd-clock-timer-state",
-            timer: getTimerState()
-        });
+        await playSound();
+
+        setTimeout(
+            ()=>{
+                playSound();
+            },
+            1200
+        );
+
+        setTimeout(
+            ()=>{
+                playSound();
+            },
+            2400
+        );
+
+        notify();
     }
 
-    async function pauseTimer() {
-        if (!service.timer.running) return;
-
-        service.timer.remaining =
-            Math.max(
-                0,
-                service.timer.end -
-                Date.now()
-            );
-
-        service.timer.running = false;
-
-        await saveState();
-
-        notifyFrames({
-            type: "chxd-clock-timer-state",
-            timer: getTimerState()
-        });
-    }
-
-    async function resumeTimer() {
-        if (service.timer.running) return;
-
-        if (
-            service.timer.remaining <= 0
-        ) {
+    async function fireTimer(){
+        if(
+            state.lastTimerEnd===
+            state.timer.end
+        ){
             return;
         }
 
-        service.timer.end =
-            Date.now() +
-            service.timer.remaining;
+        state.lastTimerEnd=
+            state.timer.end;
 
-        service.timer.running = true;
-
-        await saveState();
-
-        notifyFrames({
-            type: "chxd-clock-timer-state",
-            timer: getTimerState()
-        });
-    }
-
-    async function resetTimer() {
-        service.timer.running = false;
-        service.timer.end = 0;
-        service.timer.remaining = 0;
+        state.timer.running=false;
+        state.timer.remaining=0;
 
         await saveState();
 
-        notifyFrames({
-            type: "chxd-clock-timer-state",
-            timer: getTimerState()
+        openClock();
+
+        await playSound();
+
+        setTimeout(
+            ()=>{
+                playSound();
+            },
+            1200
+        );
+
+        setTimeout(
+            ()=>{
+                playSound();
+            },
+            2400
+        );
+
+        notify();
+    }
+
+    function checkAlarms(){
+        const minute=
+            currentAlarmTime();
+
+        if(
+            minute===
+            state.lastAlarmMinute
+        ){
+            return;
+        }
+
+        state.lastAlarmMinute=
+            minute;
+
+        const today=
+            alarmTodayKey();
+
+        for(
+            const alarm of state.alarms
+        ){
+            if(!alarm.active){
+                continue;
+            }
+
+            if(
+                alarm.time===
+                minute
+            ){
+                fireAlarm(alarm);
+            }
+
+            if(
+                alarm.lastFired===
+                today
+            ){
+                const now=new Date();
+                const parts=
+                    String(alarm.time)
+                        .split(":")
+                        .map(Number);
+
+                if(
+                    now.getHours()<
+                    parts[0]||
+                    (
+                        now.getHours()===
+                        parts[0]&&
+                        now.getMinutes()<
+                        parts[1]
+                    )
+                ){
+                    alarm.lastFired="";
+                }
+            }
+        }
+
+        saveState();
+    }
+
+    function checkTimer(){
+        if(!state.timer.running){
+            return;
+        }
+
+        if(
+            state.timer.end<=
+            Date.now()
+        ){
+            fireTimer();
+        }
+    }
+
+    function normalizeDuration(args){
+        if(
+            typeof args==="number"
+        ){
+            return Math.max(
+                0,
+                args
+            );
+        }
+
+        args=args||{};
+
+        if(
+            args.duration!=null
+        ){
+            return Math.max(
+                0,
+                Number(args.duration)||
+                0
+            );
+        }
+
+        if(
+            args.ms!=null
+        ){
+            return Math.max(
+                0,
+                Number(args.ms)||
+                0
+            );
+        }
+
+        const hours=
+            Number(args.hours)||0;
+
+        const minutes=
+            Number(args.minutes)||0;
+
+        const seconds=
+            Number(args.seconds)||0;
+
+        return Math.max(
+            0,
+            (
+                hours*3600000+
+                minutes*60000+
+                seconds*1000
+            )
+        );
+    }
+
+    async function setTimer(
+        args
+    ){
+        const duration=
+            normalizeDuration(args);
+
+        if(duration<=0){
+            return{
+                ok:false,
+                error:"Timer duration must be greater than zero."
+            };
+        }
+
+        state.timer.running=true;
+        state.timer.end=
+            Date.now()+
+            duration;
+        state.timer.remaining=
+            duration;
+        state.lastTimerEnd=0;
+
+        await saveState();
+        openClock();
+        notify();
+
+        return{
+            ok:true,
+            duration,
+            end:state.timer.end
+        };
+    }
+
+    async function pauseTimer(){
+        if(state.timer.running){
+            state.timer.remaining=
+                Math.max(
+                    0,
+                    state.timer.end-
+                    Date.now()
+                );
+
+            state.timer.running=false;
+
+            await saveState();
+            notify();
+        }
+
+        return{
+            ok:true,
+            timer:getPublicState().timer
+        };
+    }
+
+    async function resumeTimer(){
+        if(
+            state.timer.running
+        ){
+            return{
+                ok:true,
+                timer:getPublicState().timer
+            };
+        }
+
+        if(
+            state.timer.remaining<=0
+        ){
+            return{
+                ok:false,
+                error:"No paused timer exists."
+            };
+        }
+
+        state.timer.end=
+            Date.now()+
+            state.timer.remaining;
+
+        state.timer.running=true;
+
+        await saveState();
+        notify();
+
+        return{
+            ok:true,
+            timer:getPublicState().timer
+        };
+    }
+
+    async function resetTimer(){
+        state.timer.running=false;
+        state.timer.end=0;
+        state.timer.remaining=0;
+        state.lastTimerEnd=0;
+
+        await saveState();
+        notify();
+
+        return{
+            ok:true
+        };
+    }
+
+    async function setSound(
+        args
+    ){
+        args=args||{};
+
+        const path=
+            String(
+                args.path||
+                args.soundPath||
+                ""
+            ).trim();
+
+        if(path){
+            const fs=getFS();
+
+            if(
+                !fs||
+                typeof fs.stat!=="function"
+            ){
+                return{
+                    ok:false,
+                    error:"Filesystem unavailable."
+                };
+            }
+
+            const result=
+                await fs.stat(path);
+
+            if(
+                !result||
+                !result.ok||
+                result.kind!=="file"
+            ){
+                return{
+                    ok:false,
+                    error:
+                        "Sound file does not exist: "+
+                        path
+                };
+            }
+        }
+
+        state.soundPath=path;
+
+        await saveState();
+        notify();
+
+        return{
+            ok:true,
+            soundPath:state.soundPath
+        };
+    }
+
+    async function testSound(){
+        await playSound();
+
+        return{
+            ok:true,
+            soundPath:state.soundPath
+        };
+    }
+
+    async function selectSound(){
+        if(
+            !window.Apps||
+            typeof window.Apps.openApp!=="function"
+        ){
+            return{
+                ok:false,
+                error:"File Manager is unavailable."
+            };
+        }
+
+        try{
+            const result=
+                await window.Apps.openApp(
+                    "File Manager",
+                    {
+                        selectMode:true,
+                        allowMultiple:false
+                    }
+                );
+
+            if(
+                !result||
+                !result.ok
+            ){
+                return{
+                    ok:false,
+                    error:
+                        result&&result.error||
+                        "Could not open File Manager."
+                };
+            }
+
+            return{
+                ok:true,
+                waiting:true
+            };
+        }catch(error){
+            return{
+                ok:false,
+                error:
+                    error&&error.message||
+                    String(error)
+            };
+        }
+    }
+
+    async function addAlarm(
+        args
+    ){
+        args=args||{};
+
+        const time=
+            String(args.time||"");
+
+        if(!/^\d{2}:\d{2}$/.test(time)){
+            return{
+                ok:false,
+                error:"Alarm time must use HH:MM."
+            };
+        }
+
+        const parts=
+            time.split(":").map(Number);
+
+        if(
+            parts[0]>23||
+            parts[1]>59
+        ){
+            return{
+                ok:false,
+                error:"Invalid alarm time."
+            };
+        }
+
+        const alarm={
+            id:
+                Number(args.id)||
+                Date.now(),
+            time,
+            label:
+                String(
+                    args.label||
+                    "Alarm"
+                ),
+            active:
+                args.active!==false,
+            lastFired:""
+        };
+
+        state.alarms.push(alarm);
+
+        await saveState();
+        notify();
+
+        return{
+            ok:true,
+            alarm
+        };
+    }
+
+    async function updateAlarm(
+        args
+    ){
+        args=args||{};
+
+        const id=
+            Number(args.id);
+
+        const alarm=
+            state.alarms.find(
+                item=>item.id===id
+            );
+
+        if(!alarm){
+            return{
+                ok:false,
+                error:"Alarm not found."
+            };
+        }
+
+        if(args.time!=null){
+            const time=
+                String(args.time);
+
+            if(
+                !/^\d{2}:\d{2}$/.test(time)
+            ){
+                return{
+                    ok:false,
+                    error:"Invalid alarm time."
+                };
+            }
+
+            alarm.time=time;
+            alarm.lastFired="";
+        }
+
+        if(args.label!=null){
+            alarm.label=
+                String(args.label);
+        }
+
+        if(args.active!=null){
+            alarm.active=
+                !!args.active;
+
+            if(alarm.active){
+                alarm.lastFired="";
+            }
+        }
+
+        await saveState();
+        notify();
+
+        return{
+            ok:true,
+            alarm
+        };
+    }
+
+    async function removeAlarm(
+        args
+    ){
+        args=args||{};
+
+        const id=
+            Number(
+                args.id
+            );
+
+        const before=
+            state.alarms.length;
+
+        state.alarms=
+            state.alarms.filter(
+                alarm=>alarm.id!==id
+            );
+
+        if(
+            state.alarms.length===
+            before
+        ){
+            return{
+                ok:false,
+                error:"Alarm not found."
+            };
+        }
+
+        await saveState();
+        notify();
+
+        return{
+            ok:true
+        };
+    }
+
+    async function clearAlarms(){
+        state.alarms=[];
+
+        await saveState();
+        notify();
+
+        return{
+            ok:true
+        };
+    }
+
+    async function enableAlarm(
+        args,
+        active
+    ){
+        return updateAlarm({
+            id:args&&args.id,
+            active
         });
     }
+
+    async function startStopwatch(){
+        if(
+            !state.stopwatch.running
+        ){
+            state.stopwatch.running=true;
+            state.stopwatch.started=
+                Date.now();
+        }
+
+        await saveState();
+        openClock();
+        notify();
+
+        return{
+            ok:true,
+            stopwatch:
+                getPublicState().stopwatch
+        };
+    }
+
+    async function pauseStopwatch(){
+        if(
+            state.stopwatch.running
+        ){
+            state.stopwatch.elapsed+=
+                Date.now()-
+                state.stopwatch.started;
+
+            state.stopwatch.running=false;
+            state.stopwatch.started=0;
+
+            await saveState();
+            notify();
+        }
+
+        return{
+            ok:true,
+            stopwatch:
+                getPublicState().stopwatch
+        };
+    }
+
+    async function resetStopwatch(){
+        state.stopwatch.running=false;
+        state.stopwatch.started=0;
+        state.stopwatch.elapsed=0;
+        state.stopwatch.laps=[];
+
+        await saveState();
+        notify();
+
+        return{
+            ok:true
+        };
+    }
+
+    async function lapStopwatch(){
+        const total=
+            state.stopwatch.running
+                ?state.stopwatch.elapsed+
+                 (
+                    Date.now()-
+                    state.stopwatch.started
+                 )
+                :state.stopwatch.elapsed;
+
+        const previous=
+            state.stopwatch.laps.length
+                ?state.stopwatch.laps[
+                    state.stopwatch.laps.length-1
+                  ].total
+                :0;
+
+        const lap={
+            id:Date.now(),
+            total,
+            diff:
+                total-
+                previous
+        };
+
+        state.stopwatch.laps.push(lap);
+
+        await saveState();
+        notify();
+
+        return{
+            ok:true,
+            lap
+        };
+    }
+
+    async function getState(){
+        return{
+            ok:true,
+            state:getPublicState()
+        };
+    }
+
+    const actions={
+        getState,
+        open:async()=>{
+            openClock();
+            return{
+                ok:true
+            };
+        },
+        setSound,
+        selectSound,
+        testSound,
+        addAlarm,
+        setAlarm:addAlarm,
+        updateAlarm,
+        removeAlarm,
+        deleteAlarm:removeAlarm,
+        enableAlarm:args=>enableAlarm(args,true),
+        disableAlarm:args=>enableAlarm(args,false),
+        clearAlarms,
+        setTimer,
+        pauseTimer,
+        resumeTimer,
+        resetTimer,
+        startStopwatch,
+        pauseStopwatch,
+        resetStopwatch,
+        lapStopwatch
+    };
+
+    async function runAction(
+        name,
+        args
+    ){
+        const fn=actions[name];
+
+        if(
+            typeof fn!=="function"
+        ){
+            return{
+                ok:false,
+                error:
+                    "Unknown Clock action: "+
+                    name
+            };
+        }
+
+        try{
+            return await fn(args||{});
+        }catch(error){
+            return{
+                ok:false,
+                error:
+                    error&&error.message||
+                    String(error)
+            };
+        }
+    }
+
+    window.clockAPI={
+        action:async function(batch){
+            if(
+                !batch||
+                typeof batch!=="object"||
+                Array.isArray(batch)
+            ){
+                return{
+                    ok:false,
+                    error:"clockAPI.action() requires an object."
+                };
+            }
+
+            const entries=
+                Object.entries(batch);
+
+            const results=
+                await Promise.all(
+                    entries.map(
+                        async([name,args])=>[
+                            name,
+                            await runAction(
+                                name,
+                                Array.isArray(args)
+                                    ?args
+                                    :args||{}
+                            )
+                        ]
+                    )
+                );
+
+            const output={};
+
+            for(
+                const [name,result]
+                of results
+            ){
+                output[name]=result;
+            }
+
+            return{
+                ok:
+                    results.every(
+                        ([,result])=>
+                            result&&
+                            result.ok!==false
+                    ),
+                results:output,
+                state:getPublicState()
+            };
+        },
+
+        getState:getState,
+
+        setTimer:args=>
+            runAction("setTimer",args),
+
+        setAlarm:args=>
+            runAction("setAlarm",args),
+
+        addAlarm:args=>
+            runAction("addAlarm",args),
+
+        updateAlarm:args=>
+            runAction("updateAlarm",args),
+
+        removeAlarm:args=>
+            runAction("removeAlarm",args),
+
+        deleteAlarm:args=>
+            runAction("deleteAlarm",args),
+
+        enableAlarm:args=>
+            runAction("enableAlarm",args),
+
+        disableAlarm:args=>
+            runAction("disableAlarm",args),
+
+        clearAlarms:()=>
+            runAction("clearAlarms",{}),
+
+        pauseTimer:()=>
+            runAction("pauseTimer",{}),
+
+        resumeTimer:()=>
+            runAction("resumeTimer",{}),
+
+        resetTimer:()=>
+            runAction("resetTimer",{}),
+
+        setSound:args=>
+            runAction("setSound",args),
+
+        selectSound:()=>
+            runAction("selectSound",{}),
+
+        testSound:()=>
+            runAction("testSound",{}),
+
+        open:()=>
+            runAction("open",{}),
+
+        startStopwatch:()=>
+            runAction(
+                "startStopwatch",
+                {}
+            ),
+
+        pauseStopwatch:()=>
+            runAction(
+                "pauseStopwatch",
+                {}
+            ),
+
+        resetStopwatch:()=>
+            runAction(
+                "resetStopwatch",
+                {}
+            ),
+
+        lapStopwatch:()=>
+            runAction(
+                "lapStopwatch",
+                {}
+            )
+    };
 
     window.addEventListener(
         "message",
-        async event => {
-            const data = event.data;
+        async function(event){
+            const data=
+                event.data;
 
-            if (
-                !data ||
-                typeof data !== "object"
-            ) {
+            if(
+                !data||
+                typeof data!=="object"
+            ){
                 return;
             }
 
-            try {
-                if (
-                    data.type ===
-                    "chxd-clock-ready"
-                ) {
-                    sendState(
-                        event.source
+            if(
+                data.type===
+                "LH_FILE_SELECTED"
+            ){
+                const paths=
+                    Array.isArray(data.paths)
+                        ?data.paths
+                        :data.path
+                            ?[data.path]
+                            :[];
+
+                const path=
+                    paths.find(
+                        item=>
+                            typeof item==="string"&&
+                            item.length>0&&
+                            !item.endsWith("/")
                     );
-                    return;
+
+                if(path){
+                    await setSound({
+                        path
+                    });
+
+                    notify();
                 }
 
-                if (
-                    data.type ===
-                    "chxd-clock-add-alarm"
-                ) {
-                    await addAlarm(data.alarm);
-                    sendState(
-                        event.source
-                    );
-                    return;
-                }
+                return;
+            }
 
-                if (
-                    data.type ===
-                    "chxd-clock-update-alarm"
-                ) {
-                    await updateAlarm(
-                        data.id,
-                        data.changes
-                    );
-
-                    sendState(
-                        event.source
-                    );
-                    return;
-                }
-
-                if (
-                    data.type ===
-                    "chxd-clock-delete-alarm"
-                ) {
-                    await deleteAlarm(
-                        data.id
-                    );
-
-                    sendState(
-                        event.source
-                    );
-                    return;
-                }
-
-                if (
-                    data.type ===
-                    "chxd-clock-start-timer"
-                ) {
-                    await startTimer(
-                        data.duration,
-                        data.sound
-                    );
-
-                    sendState(
-                        event.source
-                    );
-                    return;
-                }
-
-                if (
-                    data.type ===
-                    "chxd-clock-pause-timer"
-                ) {
-                    await pauseTimer();
-
-                    sendState(
-                        event.source
-                    );
-                    return;
-                }
-
-                if (
-                    data.type ===
-                    "chxd-clock-resume-timer"
-                ) {
-                    await resumeTimer();
-
-                    sendState(
-                        event.source
-                    );
-                    return;
-                }
-
-                if (
-                    data.type ===
-                    "chxd-clock-reset-timer"
-                ) {
-                    await resetTimer();
-
-                    sendState(
-                        event.source
-                    );
-                    return;
-                }
-
-                if (
-                    data.type ===
-                    "chxd-clock-select-sound"
-                ) {
-                    const selected =
-                        await importSelectedSound();
-
-                    if (
-                        event.source?.postMessage
-                    ) {
-                        event.source.postMessage(
-                            {
-                                type:
-                                    "chxd-clock-selected-sound",
-                                soundPath:
-                                    selected.path,
-                                name:
-                                    selected.name
-                            },
-                            "*"
-                        );
-                    }
-
-                    return;
-                }
-
-                if (
-                    data.type ===
-                    "chxd-clock-test-sound"
-                ) {
-                    await playSound(
-                        data.soundPath || ""
-                    );
-                    return;
-                }
-
-                if (
-                    data.type ===
-                    "chxd-clock-open"
-                ) {
-                    openClock();
-                    return;
-                }
-            } catch (error) {
-                try {
+            if(
+                data.type===
+                "chxd-clock-ready"
+            ){
+                try{
                     event.source?.postMessage(
                         {
-                            type:
-                                "chxd-clock-error",
-                            message:
-                                error?.message ||
-                                "Clock error"
+                            type:"chxd-clock-state",
+                            state:getPublicState()
                         },
                         "*"
                     );
-                } catch {}
+                }catch(_){}
+
+                return;
+            }
+
+            if(
+                data.type===
+                "chxd-clock-action"
+            ){
+                const batch=
+                    data.action||{};
+
+                const result=
+                    await window.clockAPI.action(
+                        batch
+                    );
+
+                try{
+                    event.source?.postMessage(
+                        {
+                            type:
+                                "chxd-clock-action-result",
+                            result
+                        },
+                        "*"
+                    );
+                }catch(_){}
+
+                return;
             }
         }
     );
 
-    window.addEventListener(
-        "beforeunload",
-        () => {
-            saveState();
-        }
+    document.addEventListener(
+        "pointerdown",
+        wakeAudio,
+        true
     );
 
-    async function initialize() {
-        if (service.initialized) return;
+    document.addEventListener(
+        "keydown",
+        wakeAudio,
+        true
+    );
 
-        service.initialized = true;
-
-        await loadState();
-
-        if (
-            service.timer.running &&
-            service.timer.end <= Date.now()
-        ) {
-            fireTimer();
-        }
-
-        setInterval(() => {
+    setInterval(
+        ()=>{
             checkAlarms();
             checkTimer();
-        }, 250);
+        },
+        250
+    );
 
-        setInterval(() => {
+    setInterval(
+        ()=>{
             saveState();
-        }, 5000);
-    }
+        },
+        5000
+    );
 
-    initialize();
+    loadState().then(
+        ()=>{
+            if(
+                state.timer.running&&
+                state.timer.end<=Date.now()
+            ){
+                fireTimer();
+            }
+
+            notify();
+        }
+    );
 })();
