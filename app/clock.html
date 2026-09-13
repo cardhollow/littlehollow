@@ -41,6 +41,7 @@ body{
     box-shadow:inset 0 0 30px var(--cyan-faint);
     backdrop-filter:blur(12px);
     -webkit-backdrop-filter:blur(12px);
+    position:relative;
 }
 .content{
     position:relative;
@@ -63,6 +64,75 @@ body{
     opacity:1;
     pointer-events:auto;
     transform:none;
+}
+.top-menu{
+    position:absolute;
+    top:8px;
+    right:8px;
+    z-index:15;
+}
+.menu-button{
+    width:38px;
+    height:38px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,20,20,.75);
+    border:1px solid var(--cyan-dim);
+    border-radius:8px;
+    color:var(--cyan);
+    font:700 22px var(--font);
+    line-height:1;
+    text-shadow:var(--text-glow);
+    box-shadow:var(--glow);
+}
+.menu-button:active{
+    transform:scale(.94);
+}
+.settings-panel{
+    position:absolute;
+    top:46px;
+    right:0;
+    width:280px;
+    max-width:calc(100vw - 28px);
+    padding:16px;
+    border:1px solid var(--cyan);
+    border-radius:10px;
+    background:#001414;
+    box-shadow:var(--glow);
+    opacity:0;
+    pointer-events:none;
+    transform:translateY(-6px);
+    transition:.18s;
+}
+.settings-panel.open{
+    opacity:1;
+    pointer-events:auto;
+    transform:none;
+}
+.settings-title{
+    font-size:14px;
+    font-weight:bold;
+    text-align:center;
+    text-shadow:var(--text-glow);
+    margin-bottom:14px;
+}
+.settings-label{
+    color:var(--cyan-dim);
+    font-size:10px;
+    text-transform:uppercase;
+    margin-bottom:6px;
+}
+.sound-box{
+    width:100%;
+    min-height:38px;
+    padding:9px;
+    border:1px dashed var(--cyan-dim);
+    color:var(--cyan-dim);
+    font-size:10px;
+    word-break:break-all;
+    border-radius:6px;
+    margin-bottom:10px;
 }
 .nav{
     display:flex;
@@ -98,6 +168,9 @@ body{
 }
 .btn:active{
     transform:scale(.96);
+}
+.small-btn{
+    width:100%;
 }
 .controls{
     display:flex;
@@ -170,12 +243,6 @@ canvas{
     color:#ff00ff;
     font-size:10px;
     margin-top:3px;
-}
-.sound-current{
-    color:var(--cyan-dim);
-    font-size:9px;
-    margin-top:2px;
-    word-break:break-all;
 }
 .row{
     display:flex;
@@ -260,14 +327,6 @@ canvas{
     color:var(--cyan);
     font:14px var(--font);
 }
-.sound-box{
-    padding:9px;
-    min-height:36px;
-    border:1px dashed var(--cyan-dim);
-    color:var(--cyan-dim);
-    font-size:10px;
-    word-break:break-all;
-}
 .timer-center,
 .stopwatch-center{
     align-items:center;
@@ -330,95 +389,229 @@ canvas{
 <body>
 
 <div class="app">
+
+    <div class="top-menu">
+        <button class="menu-button" onclick="toggleSettings()">⋮</button>
+
+        <div id="settingsPanel" class="settings-panel">
+            <div class="settings-title">CLOCK SETTINGS</div>
+
+            <div class="settings-label">
+                Alarm / Timer Sound
+            </div>
+
+            <div id="settingsSound" class="sound-box">
+                Built-in Oscillator
+            </div>
+
+            <button
+                class="btn small-btn"
+                onclick="selectSound()">
+                SELECT SOUND
+            </button>
+
+            <button
+                class="btn small-btn"
+                style="margin-top:8px"
+                onclick="testCurrentSound()">
+                TEST SOUND
+            </button>
+
+            <button
+                class="btn small-btn"
+                style="margin-top:8px"
+                onclick="clearSound()">
+                USE OSCILLATOR
+            </button>
+        </div>
+    </div>
+
     <div class="content">
 
-        <section id="clockView" class="view clock-view active">
+        <section
+            id="clockView"
+            class="view clock-view active">
+
             <div class="digital">
                 <h1 id="time">--:--:--</h1>
                 <p id="date">---</p>
             </div>
+
             <div class="canvas-wrap">
                 <canvas id="face"></canvas>
             </div>
         </section>
 
-        <section id="alarmView" class="view">
-            <div class="alarm-list" id="alarmList"></div>
-
-            <div class="controls">
-                <button class="btn" onclick="openAlarmModal()">ADD ALARM</button>
-                <button class="btn" onclick="selectSound()">SELECT SOUND</button>
-                <button class="btn" onclick="testCurrentSound()">TEST SOUND</button>
-            </div>
+        <section
+            id="alarmView"
+            class="view">
 
             <div
-                id="currentSound"
-                style="text-align:center;color:var(--cyan-dim);font-size:9px;margin-top:8px;word-break:break-all;">
-                Sound: Built-in Oscillator
+                class="alarm-list"
+                id="alarmList">
+            </div>
+
+            <div class="controls">
+                <button
+                    class="btn"
+                    onclick="openAlarmModal()">
+                    ADD ALARM
+                </button>
             </div>
         </section>
 
-        <section id="timerView" class="view timer-center">
+        <section
+            id="timerView"
+            class="view timer-center">
+
             <div id="timerSetup">
+
                 <div class="timer-inputs">
+
                     <div>
-                        <input id="th" type="number" min="0" max="99" value="00">
+                        <input
+                            id="th"
+                            type="number"
+                            min="0"
+                            max="99"
+                            value="00">
+
                         <label>HRS</label>
                     </div>
 
                     <div>:</div>
 
                     <div>
-                        <input id="tm" type="number" min="0" max="59" value="05">
+                        <input
+                            id="tm"
+                            type="number"
+                            min="0"
+                            max="59"
+                            value="05">
+
                         <label>MIN</label>
                     </div>
 
                     <div>:</div>
 
                     <div>
-                        <input id="ts" type="number" min="0" max="59" value="00">
+                        <input
+                            id="ts"
+                            type="number"
+                            min="0"
+                            max="59"
+                            value="00">
+
                         <label>SEC</label>
                     </div>
+
                 </div>
+
             </div>
 
-            <div id="timerActive" style="display:none">
-                <div class="timer-display" id="timerDisplay">
+            <div
+                id="timerActive"
+                style="display:none">
+
+                <div
+                    class="timer-display"
+                    id="timerDisplay">
                     00:00:00
                 </div>
+
             </div>
 
             <div class="controls">
-                <button class="btn" onclick="timerReset()">RESET</button>
-                <button class="btn" id="timerButton" onclick="timerToggle()">START</button>
+
+                <button
+                    class="btn"
+                    onclick="timerReset()">
+                    RESET
+                </button>
+
+                <button
+                    class="btn"
+                    id="timerButton"
+                    onclick="timerToggle()">
+                    START
+                </button>
+
             </div>
+
         </section>
 
-        <section id="stopwatchView" class="view stopwatch-center">
-            <div class="sw-display" id="swDisplay">
+        <section
+            id="stopwatchView"
+            class="view stopwatch-center">
+
+            <div
+                class="sw-display"
+                id="swDisplay">
                 00:00:00<span class="sw-ms">.00</span>
             </div>
 
             <div class="controls">
-                <button class="btn" id="swSecondary" onclick="swSecondary()">LAP</button>
-                <button class="btn" id="swPrimary" onclick="swToggle()">START</button>
+
+                <button
+                    class="btn"
+                    id="swSecondary"
+                    onclick="swSecondary()">
+                    LAP
+                </button>
+
+                <button
+                    class="btn"
+                    id="swPrimary"
+                    onclick="swToggle()">
+                    START
+                </button>
+
             </div>
 
-            <div class="laps" id="laps"></div>
+            <div
+                class="laps"
+                id="laps">
+            </div>
+
         </section>
 
     </div>
 
     <nav class="nav">
-        <button id="navClock" class="active" onclick="showView('clock')">CLOCK</button>
-        <button id="navAlarm" onclick="showView('alarm')">ALARM</button>
-        <button id="navTimer" onclick="showView('timer')">TIMER</button>
-        <button id="navStopwatch" onclick="showView('stopwatch')">STOPWATCH</button>
+
+        <button
+            id="navClock"
+            class="active"
+            onclick="showView('clock')">
+            CLOCK
+        </button>
+
+        <button
+            id="navAlarm"
+            onclick="showView('alarm')">
+            ALARM
+        </button>
+
+        <button
+            id="navTimer"
+            onclick="showView('timer')">
+            TIMER
+        </button>
+
+        <button
+            id="navStopwatch"
+            onclick="showView('stopwatch')">
+            STOPWATCH
+        </button>
+
     </nav>
+
 </div>
 
 <div id="alarmModal" class="modal">
+
     <div class="modal-card">
+
         <h2>NEW ALARM</h2>
 
         <input
@@ -433,1430 +626,1521 @@ canvas{
             value="Alarm"
             placeholder="Alarm Label">
 
-        <div class="sound-box" id="alarmSoundBox">
-            Built-in Oscillator
+        <div class="controls">
+
+            <button
+                class="btn"
+                onclick="closeAlarmModal()">
+                CANCEL
+            </button>
+
+            <button
+                class="btn"
+                onclick="saveAlarm()">
+                SAVE
+            </button>
+
         </div>
 
-        <div class="controls">
-            <button class="btn" onclick="selectSound()">SELECT SOUND</button>
-            <button class="btn" onclick="testCurrentSound()">TEST</button>
-        </div>
-
-        <div class="controls">
-            <button class="btn" onclick="closeAlarmModal()">CANCEL</button>
-            <button class="btn" onclick="saveAlarm()">SAVE</button>
-        </div>
     </div>
+
 </div>
 
 <script>
-(function(){
 
-    const state={
-        alarms:[],
-        soundPath:"",
-        timer:{
-            running:false,
-            end:0,
-            remaining:0
-        },
-        stopwatch:{
-            running:false,
-            elapsed:0,
-            laps:[]
-        }
-    };
-
-    let serviceReady=false;
-
-    function parentWindow(){
-        try{
-            return window.parent||window;
-        }catch(_){
-            return window;
-        }
+const state={
+    alarms:[],
+    soundPath:"",
+    timer:{
+        running:false,
+        end:0,
+        remaining:0
+    },
+    stopwatch:{
+        running:false,
+        started:0,
+        elapsed:0,
+        laps:[]
     }
+};
 
-    function clockService(){
-        try{
-            return parentWindow().__CHXD_CLOCK_SERVICE__;
-        }catch(_){
-            return null;
-        }
+function parentWindow(){
+    try{
+        return window.parent||window;
+    }catch(_){
+        return window;
     }
+}
 
-    function parentClockAPI(){
-        try{
-            return parentWindow().clockAPI;
-        }catch(_){
-            return null;
-        }
-    }
-
-    function serviceScriptURL(){
-        return new URL(
-            "../js/clock.js",
-            window.location.href
-        ).href;
-    }
-
-    function ensureParentClockService(){
-        const parent=
-            parentWindow();
-
-        try{
-            if(
-                parent.clockAPI&&
-                parent.__CHXD_CLOCK_SERVICE__
-            ){
-                serviceReady=true;
-                requestState();
-                return;
-            }
-        }catch(_){}
-
-        try{
-            if(
-                parent.__CHXD_CLOCK_LOADING__
-            ){
-                setTimeout(
-                    ensureParentClockService,
-                    50
-                );
-                return;
-            }
-
-            parent.__CHXD_CLOCK_LOADING__=true;
-
-            const script=
-                parent.document.createElement(
-                    "script"
-                );
-
-            script.src=
-                serviceScriptURL();
-
-            script.onload=()=>{
-                try{
-                    delete parent.__CHXD_CLOCK_LOADING__;
-                }catch(_){}
-
-                serviceReady=true;
-                requestState();
-            };
-
-            script.onerror=()=>{
-                try{
-                    delete parent.__CHXD_CLOCK_LOADING__;
-                }catch(_){}
-            };
-
-            parent.document.head.appendChild(
-                script
-            );
-        }catch(_){
-            setTimeout(
-                ensureParentClockService,
-                250
-            );
-        }
-    }
-
-    function requestState(){
-        send({
-            type:"chxd-clock-ready"
-        });
-    }
-
-    function send(message){
-        try{
-            parentWindow().postMessage(
-                message,
-                "*"
-            );
-        }catch(_){}
-    }
-
-    async function apiAction(batch){
-        const api=
-            parentClockAPI();
-
-        if(
-            api&&
-            typeof api.action==="function"
-        ){
-            return await api.action(batch);
-        }
-
-        send({
-            type:
-                "chxd-clock-action",
-            action:batch
-        });
-
+function parentClockAPI(){
+    try{
+        return parentWindow().clockAPI||null;
+    }catch(_){
         return null;
     }
+}
 
-    window.addEventListener(
-        "message",
-        event=>{
-            const data=
-                event.data;
+function send(message){
+    try{
+        parentWindow().postMessage(
+            message,
+            "*"
+        );
+    }catch(_){}
+}
+
+async function apiAction(batch){
+    const api=
+        parentClockAPI();
+
+    if(
+        api&&
+        typeof api.action==="function"
+    ){
+        return await api.action(batch);
+    }
+
+    send({
+        type:"chxd-clock-action",
+        action:batch
+    });
+
+    return null;
+}
+
+function requestState(){
+    send({
+        type:"chxd-clock-ready"
+    });
+}
+
+window.addEventListener(
+    "message",
+    event=>{
+        const data=
+            event.data;
+
+        if(
+            !data||
+            typeof data!=="object"
+        ){
+            return;
+        }
+
+        if(
+            data.type===
+            "chxd-clock-state"
+        ){
+            const source=
+                data.state||
+                data;
 
             if(
-                !data||
-                typeof data!=="object"
+                Array.isArray(
+                    source.alarms
+                )
             ){
-                return;
+                state.alarms=
+                    source.alarms;
             }
 
-            if(
-                data.type===
-                "chxd-clock-state"
-            ){
-                const source=
-                    data.state||
-                    data;
+            state.soundPath=
+                source.soundPath||
+                "";
 
-                if(
-                    Array.isArray(
-                        source.alarms
-                    )
-                ){
-                    state.alarms=
-                        source.alarms;
-                }
-
-                state.soundPath=
-                    source.soundPath||
-                    "";
-
-                if(source.timer){
-                    state.timer=
-                        source.timer;
-                }
-
-                if(source.stopwatch){
-                    state.stopwatch=
-                        source.stopwatch;
-                }
-
-                renderAll();
+            if(source.timer){
+                state.timer=
+                    source.timer;
             }
 
-            if(
-                data.type===
-                "chxd-clock-action-result"
-            ){
-                const result=
-                    data.result;
+            if(source.stopwatch){
+                state.stopwatch=
+                    source.stopwatch;
+            }
 
-                if(
-                    result&&
+            renderAll();
+        }
+
+        if(
+            data.type===
+            "chxd-clock-action-result"
+        ){
+            const result=
+                data.result;
+
+            if(
+                result&&
+                result.state
+            ){
+                applyState(
                     result.state
-                ){
-                    applyState(
-                        result.state
-                    );
-                }
+                );
             }
         }
+
+        if(
+            data.type===
+            "LH_FILE_SELECTED"
+        ){
+            const paths=
+                Array.isArray(data.paths)
+                    ?data.paths
+                    :data.path
+                        ?[data.path]
+                        :[];
+
+            const path=
+                paths.find(
+                    value=>
+                        typeof value==="string"&&
+                        value.length>0&&
+                        !value.endsWith("/")
+                );
+
+            if(path){
+                setSoundPath(path);
+            }
+        }
+
+        if(
+            data.type===
+            "chxd-clock-open"
+        ){
+            showView("clock");
+        }
+    }
+);
+
+function applyState(source){
+    if(!source){
+        return;
+    }
+
+    if(
+        Array.isArray(
+            source.alarms
+        )
+    ){
+        state.alarms=
+            source.alarms;
+    }
+
+    if(
+        typeof source.soundPath===
+        "string"
+    ){
+        state.soundPath=
+            source.soundPath;
+    }
+
+    if(source.timer){
+        state.timer=
+            source.timer;
+    }
+
+    if(source.stopwatch){
+        state.stopwatch=
+            source.stopwatch;
+    }
+
+    renderAll();
+}
+
+function toggleSettings(){
+    document.getElementById(
+        "settingsPanel"
+    ).classList.toggle(
+        "open"
+    );
+}
+
+window.toggleSettings=
+    toggleSettings;
+
+document.addEventListener(
+    "click",
+    event=>{
+        const panel=
+            document.getElementById(
+                "settingsPanel"
+            );
+
+        const menu=
+            document.querySelector(
+                ".top-menu"
+            );
+
+        if(
+            panel.classList.contains("open")&&
+            !menu.contains(event.target)
+        ){
+            panel.classList.remove("open");
+        }
+    }
+);
+
+function showView(name){
+    document.querySelectorAll(
+        ".view"
+    ).forEach(
+        element=>
+            element.classList.remove(
+                "active"
+            )
     );
 
-    function applyState(source){
-        if(!source) return;
-
-        if(
-            Array.isArray(
-                source.alarms
+    document.querySelectorAll(
+        ".nav button"
+    ).forEach(
+        element=>
+            element.classList.remove(
+                "active"
             )
-        ){
-            state.alarms=
-                source.alarms;
-        }
+    );
 
-        if(
-            typeof source.soundPath===
-            "string"
-        ){
-            state.soundPath=
-                source.soundPath;
-        }
+    document.getElementById(
+        name+"View"
+    ).classList.add(
+        "active"
+    );
 
-        if(source.timer){
-            state.timer=
-                source.timer;
-        }
+    document.getElementById(
+        "nav"+
+        name.charAt(0).toUpperCase()+
+        name.slice(1)
+    ).classList.add(
+        "active"
+    );
 
-        if(source.stopwatch){
-            state.stopwatch=
-                source.stopwatch;
-        }
+    if(
+        name==="clock"
+    ){
+        resizeCanvas();
+    }
+}
 
-        renderAll();
+window.showView=
+    showView;
+
+function setSoundPath(path){
+    state.soundPath=
+        path||"";
+
+    document.getElementById(
+        "settingsSound"
+    ).textContent=
+        state.soundPath||
+        "Built-in Oscillator";
+
+    document.getElementById(
+        "settingsPanel"
+    ).classList.add(
+        "open"
+    );
+
+    const api=
+        parentClockAPI();
+
+    if(
+        api&&
+        typeof api.setSound==="function"
+    ){
+        api.setSound({
+            path:state.soundPath
+        });
+    }else{
+        apiAction({
+            setSound:{
+                path:state.soundPath
+            }
+        });
     }
 
-    function showView(name){
-        document.querySelectorAll(
-            ".view"
-        ).forEach(
-            el=>
-                el.classList.remove(
-                    "active"
-                )
-        );
+    renderAll();
+}
 
-        document.querySelectorAll(
-            ".nav button"
-        ).forEach(
-            el=>
-                el.classList.remove(
-                    "active"
-                )
-        );
+async function selectSound(){
+    const api=
+        parentClockAPI();
 
-        document.getElementById(
-            name+"View"
-        ).classList.add("active");
-
-        document.getElementById(
-            "nav"+
-            name.charAt(0).toUpperCase()+
-            name.slice(1)
-        ).classList.add("active");
-
-        if(
-            name==="clock"
-        ){
-            resizeCanvas();
-        }
+    if(
+        api&&
+        typeof api.selectSound==="function"
+    ){
+        await api.selectSound();
+        return;
     }
 
-    window.showView=
-        showView;
+    await apiAction({
+        selectSound:{}
+    });
+}
 
-    function nowHHMM(){
-        const d=
-            new Date();
+window.selectSound=
+    selectSound;
 
-        return(
-            String(
-                d.getHours()
-            ).padStart(2,"0")+
-            ":"+
-            String(
-                d.getMinutes()
-            ).padStart(2,"0")
-        );
+async function testCurrentSound(){
+    const api=
+        parentClockAPI();
+
+    if(
+        api&&
+        typeof api.testSound==="function"
+    ){
+        await api.testSound();
+        return;
     }
 
-    function openAlarmModal(){
+    await apiAction({
+        testSound:{}
+    });
+}
+
+window.testCurrentSound=
+    testCurrentSound;
+
+async function clearSound(){
+    const api=
+        parentClockAPI();
+
+    if(
+        api&&
+        typeof api.setSound==="function"
+    ){
+        await api.setSound({
+            path:""
+        });
+    }else{
+        await apiAction({
+            setSound:{
+                path:""
+            }
+        });
+    }
+
+    state.soundPath="";
+
+    renderAll();
+}
+
+window.clearSound=
+    clearSound;
+
+function nowHHMM(){
+    const d=
+        new Date();
+
+    return(
+        String(
+            d.getHours()
+        ).padStart(2,"0")+
+        ":"+
+        String(
+            d.getMinutes()
+        ).padStart(2,"0")
+    );
+}
+
+function openAlarmModal(){
+    document.getElementById(
+        "alarmTime"
+    ).value=
+        nowHHMM();
+
+    document.getElementById(
+        "alarmLabel"
+    ).value=
+        "Alarm";
+
+    document.getElementById(
+        "alarmModal"
+    ).classList.add(
+        "open"
+    );
+}
+
+window.openAlarmModal=
+    openAlarmModal;
+
+function closeAlarmModal(){
+    document.getElementById(
+        "alarmModal"
+    ).classList.remove(
+        "open"
+    );
+}
+
+window.closeAlarmModal=
+    closeAlarmModal;
+
+async function saveAlarm(){
+    const time=
         document.getElementById(
             "alarmTime"
-        ).value=
-            nowHHMM();
+        ).value;
 
+    const label=
         document.getElementById(
             "alarmLabel"
-        ).value=
-            "Alarm";
+        ).value.trim()||
+        "Alarm";
 
-        document.getElementById(
-            "alarmSoundBox"
-        ).textContent=
-            state.soundPath||
-            "Built-in Oscillator";
-
-        document.getElementById(
-            "alarmModal"
-        ).classList.add("open");
+    if(!time){
+        return;
     }
 
-    window.openAlarmModal=
-        openAlarmModal;
-
-    function closeAlarmModal(){
-        document.getElementById(
-            "alarmModal"
-        ).classList.remove("open");
-    }
-
-    window.closeAlarmModal=
-        closeAlarmModal;
-
-    async function selectSound(){
-        const api=
-            parentClockAPI();
-
-        if(
-            api&&
-            typeof api.selectSound==="function"
-        ){
-            await api.selectSound();
-            return;
-        }
-
+    const result=
         await apiAction({
-            selectSound:{}
+            addAlarm:{
+                time,
+                label,
+                active:true
+            }
         });
+
+    if(result){
+        applyState(
+            result.state
+        );
     }
 
-    window.selectSound=
-        selectSound;
+    closeAlarmModal();
+}
 
-    async function testCurrentSound(){
-        const api=
-            parentClockAPI();
+window.saveAlarm=
+    saveAlarm;
 
-        if(
-            api&&
-            typeof api.testSound==="function"
-        ){
-            await api.testSound();
-            return;
-        }
+async function toggleAlarm(index){
+    const alarm=
+        state.alarms[index];
 
+    if(!alarm){
+        return;
+    }
+
+    const result=
         await apiAction({
-            testSound:{}
+            updateAlarm:{
+                id:alarm.id,
+                active:!alarm.active
+            }
         });
+
+    if(result){
+        applyState(
+            result.state
+        );
+    }
+}
+
+window.toggleAlarm=
+    toggleAlarm;
+
+async function deleteAlarm(index){
+    const alarm=
+        state.alarms[index];
+
+    if(!alarm){
+        return;
     }
 
-    window.testCurrentSound=
-        testCurrentSound;
+    const result=
+        await apiAction({
+            deleteAlarm:{
+                id:alarm.id
+            }
+        });
 
-    async function saveAlarm(){
-        const time=
-            document.getElementById(
-                "alarmTime"
-            ).value;
+    if(result){
+        applyState(
+            result.state
+        );
+    }
+}
 
-        const label=
-            document.getElementById(
-                "alarmLabel"
-            ).value.trim()||
-            "Alarm";
+window.deleteAlarm=
+    deleteAlarm;
 
-        if(!time){
-            return;
-        }
+function nextAlarmDate(time){
+    const parts=
+        String(time)
+            .split(":")
+            .map(Number);
 
-        const result=
-            await apiAction({
-                setAlarm:{
-                    time,
-                    label,
-                    active:true
-                }
-            });
+    const now=
+        new Date();
 
-        if(result){
-            applyState(
-                result.state
-            );
-        }
+    const target=
+        new Date(now);
 
-        closeAlarmModal();
+    target.setHours(
+        parts[0]||0,
+        parts[1]||0,
+        0,
+        0
+    );
+
+    if(
+        target<=now
+    ){
+        target.setDate(
+            target.getDate()+1
+        );
     }
 
-    window.saveAlarm=
-        saveAlarm;
+    return target;
+}
 
-    async function toggleAlarm(index){
-        const alarm=
-            state.alarms[index];
-
-        if(!alarm){
-            return;
-        }
-
-        const result=
-            await apiAction({
-                updateAlarm:{
-                    id:alarm.id,
-                    active:!alarm.active
-                }
-            });
-
-        if(result){
-            applyState(
-                result.state
-            );
-        }
-    }
-
-    window.toggleAlarm=
-        toggleAlarm;
-
-    async function deleteAlarm(index){
-        const alarm=
-            state.alarms[index];
-
-        if(!alarm){
-            return;
-        }
-
-        const result=
-            await apiAction({
-                deleteAlarm:{
-                    id:alarm.id
-                }
-            });
-
-        if(result){
-            applyState(
-                result.state
-            );
-        }
-    }
-
-    window.deleteAlarm=
-        deleteAlarm;
-
-    function nextAlarmDate(time){
-        const parts=
-            String(time)
-                .split(":")
-                .map(Number);
-
-        const now=
-            new Date();
-
-        const target=
-            new Date(now);
-
-        target.setHours(
-            parts[0]||0,
-            parts[1]||0,
+function remainingText(ms){
+    let seconds=
+        Math.max(
             0,
-            0
+            Math.floor(ms/1000)
         );
 
-        if(
-            target<=now
-        ){
-            target.setDate(
-                target.getDate()+1
-            );
-        }
+    const days=
+        Math.floor(
+            seconds/86400
+        );
 
-        return target;
-    }
+    seconds%=86400;
 
-    function remainingText(ms){
-        let seconds=
-            Math.max(
-                0,
-                Math.floor(
-                    ms/1000
-                )
-            );
+    const hours=
+        Math.floor(
+            seconds/3600
+        );
 
-        const days=
-            Math.floor(
-                seconds/86400
-            );
+    seconds%=3600;
 
-        seconds%=86400;
+    const mins=
+        Math.floor(
+            seconds/60
+        );
 
-        const hours=
-            Math.floor(
-                seconds/3600
-            );
+    const secs=
+        seconds%60;
 
-        seconds%=3600;
+    const parts=[];
 
-        const mins=
-            Math.floor(
-                seconds/60
-            );
-
-        const secs=
-            seconds%60;
-
-        const parts=[];
-
-        if(days){
-            parts.push(
-                days+"d"
-            );
-        }
-
-        if(
-            hours||
-            days
-        ){
-            parts.push(
-                hours+"h"
-            );
-        }
-
-        if(
-            mins||
-            hours||
-            days
-        ){
-            parts.push(
-                mins+"m"
-            );
-        }
-
+    if(days){
         parts.push(
-            secs+"s"
-        );
-
-        return(
-            "Alarm in "+
-            parts.join(" ")
+            days+"d"
         );
     }
 
-    function renderAlarms(){
-        const list=
-            document.getElementById(
-                "alarmList"
-            );
+    if(
+        hours||
+        days
+    ){
+        parts.push(
+            hours+"h"
+        );
+    }
 
-        if(
-            !state.alarms.length
-        ){
-            list.innerHTML=
-                `
-                <div style="
-                    text-align:center;
-                    color:var(--cyan-dim);
-                    padding:30px;
-                ">
-                    NO ALARMS
+    if(
+        mins||
+        hours||
+        days
+    ){
+        parts.push(
+            mins+"m"
+        );
+    }
+
+    parts.push(
+        secs+"s"
+    );
+
+    return(
+        "Alarm in "+
+        parts.join(" ")
+    );
+}
+
+function renderAlarms(){
+    const list=
+        document.getElementById(
+            "alarmList"
+        );
+
+    if(!state.alarms.length){
+        list.innerHTML=
+            `
+            <div style="
+                text-align:center;
+                color:var(--cyan-dim);
+                padding:30px;
+            ">
+                NO ALARMS
+            </div>
+            `;
+
+        return;
+    }
+
+    const now=
+        Date.now();
+
+    list.innerHTML=
+        state.alarms.map(
+            (alarm,index)=>{
+                const target=
+                    nextAlarmDate(
+                        alarm.time
+                    );
+
+                return`
+                <div class="alarm-card ${alarm.active?"":"off"}">
+
+                    <div class="alarm-main">
+
+                        <div class="alarm-time">
+                            ${escapeHTML(
+                                alarm.time
+                            )}
+                        </div>
+
+                        <div class="alarm-label">
+                            ${escapeHTML(
+                                alarm.label
+                            )}
+                        </div>
+
+                        <div
+                            class="alarm-countdown"
+                            id="alarmCount${alarm.id}">
+                            ${alarm.active
+                                ?remainingText(
+                                    target.getTime()-
+                                    now
+                                )
+                                :"Alarm Off"}
+                        </div>
+
+                    </div>
+
+                    <div class="row">
+
+                        <button
+                            class="btn"
+                            style="
+                                padding:5px 7px;
+                                font-size:9px;
+                            "
+                            onclick="deleteAlarm(${index})">
+                            X
+                        </button>
+
+                        <label class="switch">
+
+                            <input
+                                type="checkbox"
+                                ${alarm.active?"checked":""}
+                                onchange="toggleAlarm(${index})">
+
+                            <span class="slider"></span>
+
+                        </label>
+
+                    </div>
+
                 </div>
                 `;
-        }else{
-            const now=
-                Date.now();
-
-            list.innerHTML=
-                state.alarms.map(
-                    (alarm,index)=>{
-                        const target=
-                            nextAlarmDate(
-                                alarm.time
-                            );
-
-                        const remaining=
-                            target.getTime()-
-                            now;
-
-                        return`
-                        <div class="alarm-card ${alarm.active?"":"off"}">
-                            <div class="alarm-main">
-                                <div class="alarm-time">
-                                    ${escapeHTML(alarm.time)}
-                                </div>
-
-                                <div class="alarm-label">
-                                    ${escapeHTML(alarm.label)}
-                                </div>
-
-                                <div
-                                    class="alarm-countdown"
-                                    id="alarmCount${alarm.id}">
-                                    ${alarm.active
-                                        ?remainingText(remaining)
-                                        :"Alarm Off"}
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <button
-                                    class="btn"
-                                    style="padding:5px 7px;font-size:9px"
-                                    onclick="deleteAlarm(${index})">
-                                    X
-                                </button>
-
-                                <label class="switch">
-                                    <input
-                                        type="checkbox"
-                                        ${alarm.active?"checked":""}
-                                        onchange="toggleAlarm(${index})">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-                        `;
-                    }
-                ).join("");
-        }
-
-        document.getElementById(
-            "currentSound"
-        ).textContent=
-            "Sound: "+
-            (
-                state.soundPath||
-                "Built-in Oscillator"
-            );
-
-        document.getElementById(
-            "alarmSoundBox"
-        ).textContent=
-            state.soundPath||
-            "Built-in Oscillator";
-    }
-
-    function updateAlarmCountdowns(){
-        const now=
-            Date.now();
-
-        for(
-            const alarm of state.alarms
-        ){
-            const element=
-                document.getElementById(
-                    "alarmCount"+
-                    alarm.id
-                );
-
-            if(!element){
-                continue;
             }
+        ).join("");
+}
 
-            const target=
-                nextAlarmDate(
-                    alarm.time
-                );
+function updateAlarmCountdowns(){
+    const now=
+        Date.now();
 
-            element.textContent=
-                alarm.active
-                    ?remainingText(
-                        target.getTime()-
-                        now
-                    )
-                    :"Alarm Off";
-        }
-    }
-
-    async function timerStart(){
-        const h=
-            Number(
-                document.getElementById(
-                    "th"
-                ).value
-            )||0;
-
-        const m=
-            Number(
-                document.getElementById(
-                    "tm"
-                ).value
-            )||0;
-
-        const s=
-            Number(
-                document.getElementById(
-                    "ts"
-                ).value
-            )||0;
-
-        const duration=
-            h*3600000+
-            m*60000+
-            s*1000;
-
-        if(
-            duration<=0
-        ){
-            return;
-        }
-
-        const result=
-            await apiAction({
-                setTimer:{
-                    duration
-                }
-            });
-
-        if(result){
-            applyState(
-                result.state
-            );
-        }
-    }
-
-    async function timerToggle(){
-        if(
-            state.timer.running
-        ){
-            const result=
-                await apiAction({
-                    pauseTimer:{}
-                });
-
-            if(result){
-                applyState(
-                    result.state
-                );
-            }
-
-            return;
-        }
-
-        if(
-            Number(
-                state.timer.remaining
-            )>0
-        ){
-            const result=
-                await apiAction({
-                    resumeTimer:{}
-                });
-
-            if(result){
-                applyState(
-                    result.state
-                );
-            }
-
-            return;
-        }
-
-        await timerStart();
-    }
-
-    window.timerToggle=
-        timerToggle;
-
-    async function timerReset(){
-        const result=
-            await apiAction({
-                resetTimer:{}
-            });
-
-        if(result){
-            applyState(
-                result.state
-            );
-        }
-    }
-
-    window.timerReset=
-        timerReset;
-
-    function renderTimer(){
-        const setup=
+    for(
+        const alarm of state.alarms
+    ){
+        const element=
             document.getElementById(
-                "timerSetup"
+                "alarmCount"+
+                alarm.id
             );
 
-        const active=
-            document.getElementById(
-                "timerActive"
-            );
-
-        const button=
-            document.getElementById(
-                "timerButton"
-            );
-
-        if(
-            state.timer.running||
-            state.timer.remaining>0
-        ){
-            setup.style.display=
-                "none";
-
-            active.style.display=
-                "block";
-        }else{
-            setup.style.display=
-                "block";
-
-            active.style.display=
-                "none";
+        if(!element){
+            continue;
         }
 
-        if(
-            state.timer.running
-        ){
-            button.textContent=
-                "PAUSE";
-        }else if(
-            state.timer.remaining>0
-        ){
-            button.textContent=
-                "RESUME";
-        }else{
-            button.textContent=
-                "START";
-        }
+        const target=
+            nextAlarmDate(
+                alarm.time
+            );
 
-        const remaining=
-            state.timer.running
-                ?Math.max(
-                    0,
-                    state.timer.end-
-                    Date.now()
+        element.textContent=
+            alarm.active
+                ?remainingText(
+                    target.getTime()-now
                 )
-                :state.timer.remaining;
+                :"Alarm Off";
+    }
+}
 
-        let seconds=
-            Math.ceil(
-                remaining/1000
+async function timerStart(){
+    const h=
+        Number(
+            document.getElementById(
+                "th"
+            ).value
+        )||0;
+
+    const m=
+        Number(
+            document.getElementById(
+                "tm"
+            ).value
+        )||0;
+
+    const s=
+        Number(
+            document.getElementById(
+                "ts"
+            ).value
+        )||0;
+
+    const duration=
+        h*3600000+
+        m*60000+
+        s*1000;
+
+    if(
+        duration<=0
+    ){
+        return;
+    }
+
+    const result=
+        await apiAction({
+            setTimer:{
+                duration
+            }
+        });
+
+    if(result){
+        applyState(
+            result.state
+        );
+    }
+}
+
+async function timerToggle(){
+    if(
+        state.timer.running
+    ){
+        const result=
+            await apiAction({
+                pauseTimer:{}
+            });
+
+        if(result){
+            applyState(
+                result.state
             );
+        }
 
-        const h=
-            Math.floor(
-                seconds/3600
+        return;
+    }
+
+    if(
+        state.timer.remaining>0
+    ){
+        const result=
+            await apiAction({
+                resumeTimer:{}
+            });
+
+        if(result){
+            applyState(
+                result.state
             );
+        }
 
-        seconds%=3600;
+        return;
+    }
 
-        const m=
-            Math.floor(
-                seconds/60
-            );
+    await timerStart();
+}
 
-        const s=
-            seconds%60;
+window.timerToggle=
+    timerToggle;
 
+async function timerReset(){
+    const result=
+        await apiAction({
+            resetTimer:{}
+        });
+
+    if(result){
+        applyState(
+            result.state
+        );
+    }
+}
+
+window.timerReset=
+    timerReset;
+
+function renderTimer(){
+    const setup=
         document.getElementById(
-            "timerDisplay"
-        ).textContent=
+            "timerSetup"
+        );
+
+    const active=
+        document.getElementById(
+            "timerActive"
+        );
+
+    const button=
+        document.getElementById(
+            "timerButton"
+        );
+
+    if(
+        state.timer.running||
+        state.timer.remaining>0
+    ){
+        setup.style.display=
+            "none";
+
+        active.style.display=
+            "block";
+    }else{
+        setup.style.display=
+            "block";
+
+        active.style.display=
+            "none";
+    }
+
+    if(
+        state.timer.running
+    ){
+        button.textContent=
+            "PAUSE";
+    }else if(
+        state.timer.remaining>0
+    ){
+        button.textContent=
+            "RESUME";
+    }else{
+        button.textContent=
+            "START";
+    }
+
+    const remaining=
+        state.timer.running
+            ?Math.max(
+                0,
+                state.timer.end-
+                Date.now()
+            )
+            :state.timer.remaining;
+
+    let seconds=
+        Math.ceil(
+            remaining/1000
+        );
+
+    const h=
+        Math.floor(
+            seconds/3600
+        );
+
+    seconds%=3600;
+
+    const m=
+        Math.floor(
+            seconds/60
+        );
+
+    const s=
+        seconds%60;
+
+    document.getElementById(
+        "timerDisplay"
+    ).textContent=
+        String(h).padStart(2,"0")+
+        ":"+
+        String(m).padStart(2,"0")+
+        ":"+
+        String(s).padStart(2,"0");
+}
+
+async function swToggle(){
+    const result=
+        await apiAction({
+            [state.stopwatch.running
+                ?"pauseStopwatch"
+                :"startStopwatch"]:{}
+        });
+
+    if(result){
+        applyState(
+            result.state
+        );
+    }
+}
+
+window.swToggle=
+    swToggle;
+
+async function swSecondary(){
+    if(
+        state.stopwatch.running
+    ){
+        const result=
+            await apiAction({
+                lapStopwatch:{}
+            });
+
+        if(result){
+            applyState(
+                result.state
+            );
+        }
+
+        return;
+    }
+
+    const result=
+        await apiAction({
+            resetStopwatch:{}
+        });
+
+    if(result){
+        applyState(
+            result.state
+        );
+    }
+}
+
+window.swSecondary=
+    swSecondary;
+
+function formatLap(ms){
+    const cs=
+        Math.floor(
+            ms%1000/10
+        );
+
+    const s=
+        Math.floor(
+            ms/1000%60
+        );
+
+    const m=
+        Math.floor(
+            ms/60000%60
+        );
+
+    return(
+        String(m).padStart(
+            2,
+            "0"
+        )+
+        ":"+
+        String(s).padStart(
+            2,
+            "0"
+        )+
+        "."+
+        String(cs).padStart(
+            2,
+            "0"
+        )
+    );
+}
+
+function renderStopwatch(){
+    const total=
+        state.stopwatch.running
+            ?state.stopwatch.elapsed+
+             (
+                Date.now()-
+                state.stopwatch.started
+             )
+            :state.stopwatch.elapsed;
+
+    const cs=
+        Math.floor(
+            total%1000/10
+        );
+
+    const s=
+        Math.floor(
+            total/1000%60
+        );
+
+    const m=
+        Math.floor(
+            total/60000%60
+        );
+
+    const h=
+        Math.floor(
+            total/3600000
+        );
+
+    let text="";
+
+    if(h){
+        text+=
             String(h).padStart(
                 2,
                 "0"
             )+
-            ":"+
-            String(m).padStart(
-                2,
-                "0"
-            )+
-            ":"+
-            String(s).padStart(
-                2,
-                "0"
-            );
+            ":";
     }
 
-    async function swToggle(){
-        const result=
-            await apiAction({
-                [state.stopwatch.running
-                    ?"pauseStopwatch"
-                    :"startStopwatch"]:{}
-            });
-
-        if(result){
-            applyState(
-                result.state
-            );
-        }
-    }
-
-    window.swToggle=
-        swToggle;
-
-    async function swSecondary(){
-        if(
-            state.stopwatch.running
-        ){
-            const result=
-                await apiAction({
-                    lapStopwatch:{}
-                });
-
-            if(result){
-                applyState(
-                    result.state
-                );
-            }
-
-            return;
-        }
-
-        const result=
-            await apiAction({
-                resetStopwatch:{}
-            });
-
-        if(result){
-            applyState(
-                result.state
-            );
-        }
-    }
-
-    window.swSecondary=
-        swSecondary;
-
-    function formatLap(ms){
-        const cs=
-            Math.floor(
-                ms%1000/10
-            );
-
-        const s=
-            Math.floor(
-                ms/1000%60
-            );
-
-        const m=
-            Math.floor(
-                ms/60000%60
-            );
-
-        return(
-            String(m).padStart(2,"0")+
-            ":"+
-            String(s).padStart(2,"0")+
-            "."+
-            String(cs).padStart(2,"0")
+    text+=
+        String(m).padStart(
+            2,
+            "0"
+        )+
+        ":"+
+        String(s).padStart(
+            2,
+            "0"
         );
-    }
 
-    function renderStopwatch(){
-        const total=
-            state.stopwatch.running
-                ?state.stopwatch.elapsed+
-                 (
-                    Date.now()-
-                    (
-                        state.stopwatch.started||
-                        Date.now()
-                    )
-                 )
-                :state.stopwatch.elapsed;
+    document.getElementById(
+        "swDisplay"
+    ).innerHTML=
+        text+
+        `<span class="sw-ms">.${String(cs).padStart(2,"0")}</span>`;
 
-        const cs=
-            Math.floor(
-                total%1000/10
+    document.getElementById(
+        "swPrimary"
+    ).textContent=
+        state.stopwatch.running
+            ?"PAUSE"
+            :(
+                state.stopwatch.elapsed>0
+                    ?"RESUME"
+                    :"START"
             );
 
-        const s=
-            Math.floor(
-                total/1000%60
-            );
+    document.getElementById(
+        "swSecondary"
+    ).textContent=
+        state.stopwatch.running
+            ?"LAP"
+            :"RESET";
 
-        const m=
-            Math.floor(
-                total/60000%60
-            );
+    document.getElementById(
+        "laps"
+    ).innerHTML=
+        state.stopwatch.laps
+            .map(
+                (lap,index)=>`
+                <div class="lap">
+                    <span>
+                        Lap ${index+1}
+                    </span>
+                    <span>
+                        +${formatLap(lap.diff)}
+                    </span>
+                    <span>
+                        ${formatLap(lap.total)}
+                    </span>
+                </div>
+                `
+            ).join("");
+}
 
-        const h=
-            Math.floor(
-                total/3600000
-            );
+function renderAll(){
+    renderAlarms();
+    renderTimer();
+    renderStopwatch();
 
-        let text="";
+    document.getElementById(
+        "settingsSound"
+    ).textContent=
+        state.soundPath||
+        "Built-in Oscillator";
 
-        if(h){
-            text+=
-                String(h).padStart(
-                    2,
-                    "0"
-                )+
-                ":";
-        }
+    document.getElementById(
+        "alarmSoundBox"
+    ).textContent=
+        state.soundPath||
+        "Built-in Oscillator";
+}
 
-        text+=
-            String(m).padStart(
-                2,
-                "0"
-            )+
-            ":"+
-            String(s).padStart(
-                2,
-                "0"
-            );
-
-        document.getElementById(
-            "swDisplay"
-        ).innerHTML=
-            text+
-            `<span class="sw-ms">.${String(cs).padStart(2,"0")}</span>`;
-
-        document.getElementById(
-            "swPrimary"
-        ).textContent=
-            state.stopwatch.running
-                ?"PAUSE"
-                :(
-                    state.stopwatch.elapsed>0
-                        ?"RESUME"
-                        :"START"
-                );
-
-        document.getElementById(
-            "swSecondary"
-        ).textContent=
-            state.stopwatch.running
-                ?"LAP"
-                :"RESET";
-
-        document.getElementById(
-            "laps"
-        ).innerHTML=
-            state.stopwatch.laps
-                .map(
-                    (lap,index)=>`
-                    <div class="lap">
-                        <span>
-                            Lap ${index+1}
-                        </span>
-
-                        <span>
-                            +${formatLap(lap.diff)}
-                        </span>
-
-                        <span>
-                            ${formatLap(lap.total)}
-                        </span>
-                    </div>
-                    `
-                ).join("");
-    }
-
-    function renderAll(){
-        renderAlarms();
-        renderTimer();
-        renderStopwatch();
-    }
-
-    function escapeHTML(value){
-        return String(value)
-            .replaceAll(
-                "&",
-                "&amp;"
-            )
-            .replaceAll(
-                "<",
-                "&lt;"
-            )
-            .replaceAll(
-                ">",
-                "&gt;"
-            )
-            .replaceAll(
-                '"',
-                "&quot;"
-            )
-            .replaceAll(
-                "'",
-                "&#039;"
-            );
-    }
-
-    setInterval(
-        ()=>{
-            updateAlarmCountdowns();
-            renderTimer();
-
-            if(
-                state.stopwatch.running
-            ){
-                renderStopwatch();
-            }
-        },
-        100
+const canvas=
+    document.getElementById(
+        "face"
     );
 
-    const canvas=
-        document.getElementById(
-            "face"
-        );
+const ctx=
+    canvas.getContext(
+        "2d"
+    );
 
-    const ctx=
-        canvas.getContext(
-            "2d"
-        );
+let size=240;
+let cx=120;
+let cy=120;
+let radius=110;
 
-    let size=240;
-    let cx=120;
-    let cy=120;
-    let radius=110;
+function resizeCanvas(){
+    const rect=
+        canvas.parentElement
+            .getBoundingClientRect();
 
-    function resizeCanvas(){
-        const rect=
-            canvas.parentElement
-                .getBoundingClientRect();
-
-        if(
-            rect.width<=0||
-            rect.height<=0
-        ){
-            return;
-        }
-
-        size=
-            Math.min(
-                rect.width,
-                rect.height
-            );
-
-        const dpr=
-            window.devicePixelRatio||
-            1;
-
-        canvas.width=
-            Math.floor(
-                size*dpr
-            );
-
-        canvas.height=
-            Math.floor(
-                size*dpr
-            );
-
-        canvas.style.width=
-            size+"px";
-
-        canvas.style.height=
-            size+"px";
-
-        ctx.setTransform(
-            dpr,
-            0,
-            0,
-            dpr,
-            0,
-            0
-        );
-
-        cx=
-            size/2;
-
-        cy=
-            size/2;
-
-        radius=
-            Math.max(
-                10,
-                size/2-10
-            );
+    if(
+        rect.width<=0||
+        rect.height<=0
+    ){
+        return;
     }
 
-    window.resizeCanvas=
-        resizeCanvas;
+    size=
+        Math.min(
+            rect.width,
+            rect.height
+        );
 
-    function hand(
-        angle,
-        length,
-        width,
-        color
+    const dpr=
+        window.devicePixelRatio||
+        1;
+
+    canvas.width=
+        Math.floor(
+            size*dpr
+        );
+
+    canvas.height=
+        Math.floor(
+            size*dpr
+        );
+
+    canvas.style.width=
+        size+"px";
+
+    canvas.style.height=
+        size+"px";
+
+    ctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0
+    );
+
+    cx=
+        size/2;
+
+    cy=
+        size/2;
+
+    radius=
+        Math.max(
+            10,
+            size/2-10
+        );
+}
+
+function hand(
+    angle,
+    length,
+    width,
+    color
+){
+    ctx.strokeStyle=
+        color;
+
+    ctx.lineWidth=
+        width;
+
+    ctx.lineCap=
+        "round";
+
+    ctx.shadowBlur=
+        8;
+
+    ctx.shadowColor=
+        color;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        cx-Math.sin(angle)*12,
+        cy+Math.cos(angle)*12
+    );
+
+    ctx.lineTo(
+        cx+Math.sin(angle)*length,
+        cy-Math.cos(angle)*length
+    );
+
+    ctx.stroke();
+
+    ctx.shadowBlur=0;
+}
+
+function drawClock(){
+    const now=
+        new Date();
+
+    const h=
+        now.getHours();
+
+    const m=
+        now.getMinutes();
+
+    const s=
+        now.getSeconds();
+
+    const ms=
+        now.getMilliseconds();
+
+    document.getElementById(
+        "time"
+    ).textContent=
+        String(h).padStart(2,"0")+
+        ":"+
+        String(m).padStart(2,"0")+
+        ":"+
+        String(s).padStart(2,"0");
+
+    document.getElementById(
+        "date"
+    ).textContent=
+        now.toLocaleDateString(
+            "en-US",
+            {
+                weekday:"short",
+                year:"numeric",
+                month:"short",
+                day:"2-digit"
+            }
+        );
+
+    ctx.clearRect(
+        0,
+        0,
+        size,
+        size
+    );
+
+    ctx.strokeStyle=
+        "rgba(0,255,255,.3)";
+
+    ctx.lineWidth=2;
+
+    ctx.beginPath();
+
+    ctx.arc(
+        cx,
+        cy,
+        radius,
+        0,
+        Math.PI*2
+    );
+
+    ctx.stroke();
+
+    for(
+        let i=0;
+        i<60;
+        i++
     ){
+        const angle=
+            i/60*
+            Math.PI*
+            2;
+
+        const isHour=
+            i%5===0;
+
+        const inner=
+            isHour
+                ?radius-12
+                :radius-6;
+
         ctx.strokeStyle=
-            color;
+            isHour
+                ?"#00ffff"
+                :"rgba(0,255,255,.4)";
 
         ctx.lineWidth=
-            width;
-
-        ctx.lineCap=
-            "round";
-
-        ctx.shadowBlur=
-            8;
-
-        ctx.shadowColor=
-            color;
+            isHour
+                ?2.5
+                :1;
 
         ctx.beginPath();
 
         ctx.moveTo(
-            cx-Math.sin(angle)*12,
-            cy+Math.cos(angle)*12
+            cx+
+            Math.sin(angle)*
+            inner,
+            cy-
+            Math.cos(angle)*
+            inner
         );
 
         ctx.lineTo(
-            cx+Math.sin(angle)*length,
-            cy-Math.cos(angle)*length
-        );
-
-        ctx.stroke();
-
-        ctx.shadowBlur=0;
-    }
-
-    function drawClock(){
-        const now=
-            new Date();
-
-        const h=
-            now.getHours();
-
-        const m=
-            now.getMinutes();
-
-        const s=
-            now.getSeconds();
-
-        const ms=
-            now.getMilliseconds();
-
-        document.getElementById(
-            "time"
-        ).textContent=
-            String(h).padStart(2,"0")+
-            ":"+
-            String(m).padStart(2,"0")+
-            ":"+
-            String(s).padStart(2,"0");
-
-        document.getElementById(
-            "date"
-        ).textContent=
-            now.toLocaleDateString(
-                "en-US",
-                {
-                    weekday:"short",
-                    year:"numeric",
-                    month:"short",
-                    day:"2-digit"
-                }
-            );
-
-        ctx.clearRect(
-            0,
-            0,
-            size,
-            size
-        );
-
-        ctx.strokeStyle=
-            "rgba(0,255,255,.3)";
-
-        ctx.lineWidth=2;
-
-        ctx.beginPath();
-
-        ctx.arc(
-            cx,
-            cy,
+            cx+
+            Math.sin(angle)*
             radius,
-            0,
-            Math.PI*2
+            cy-
+            Math.cos(angle)*
+            radius
         );
 
         ctx.stroke();
-
-        for(
-            let i=0;
-            i<60;
-            i++
-        ){
-            const angle=
-                i/60*
-                Math.PI*
-                2;
-
-            const isHour=
-                i%5===0;
-
-            const inner=
-                isHour
-                    ?radius-12
-                    :radius-6;
-
-            ctx.strokeStyle=
-                isHour
-                    ?" #00ffff".trim()
-                    :"rgba(0,255,255,.4)";
-
-            ctx.lineWidth=
-                isHour
-                    ?2.5
-                    :1;
-
-            ctx.beginPath();
-
-            ctx.moveTo(
-                cx+
-                Math.sin(angle)*
-                inner,
-                cy-
-                Math.cos(angle)*
-                inner
-            );
-
-            ctx.lineTo(
-                cx+
-                Math.sin(angle)*
-                radius,
-                cy-
-                Math.cos(angle)*
-                radius
-            );
-
-            ctx.stroke();
-        }
-
-        const smoothSeconds=
-            s+
-            ms/1000;
-
-        const smoothMinutes=
-            m+
-            smoothSeconds/60;
-
-        const smoothHours=
-            h%12+
-            smoothMinutes/60;
-
-        hand(
-            smoothHours/12*
-            Math.PI*2,
-            radius*.5,
-            5,
-            "rgba(255,255,255,.9)"
-        );
-
-        hand(
-            smoothMinutes/60*
-            Math.PI*2,
-            radius*.75,
-            3.5,
-            "rgba(255,255,255,.9)"
-        );
-
-        hand(
-            smoothSeconds/60*
-            Math.PI*2,
-            radius*.85,
-            1.5,
-            "#00ffff"
-        );
-
-        ctx.beginPath();
-
-        ctx.arc(
-            cx,
-            cy,
-            5,
-            0,
-            Math.PI*2
-        );
-
-        ctx.fillStyle="#000";
-        ctx.fill();
-
-        ctx.strokeStyle="#00ffff";
-        ctx.lineWidth=1.5;
-        ctx.stroke();
-
-        requestAnimationFrame(
-            drawClock
-        );
     }
 
-    window.addEventListener(
-        "resize",
-        resizeCanvas
+    const smoothSeconds=
+        s+
+        ms/1000;
+
+    const smoothMinutes=
+        m+
+        smoothSeconds/60;
+
+    const smoothHours=
+        h%12+
+        smoothMinutes/60;
+
+    hand(
+        smoothHours/12*
+        Math.PI*2,
+        radius*.5,
+        5,
+        "rgba(255,255,255,.9)"
     );
 
-    resizeCanvas();
-    drawClock();
-    renderAll();
-    ensureParentClockService();
+    hand(
+        smoothMinutes/60*
+        Math.PI*2,
+        radius*.75,
+        3.5,
+        "rgba(255,255,255,.9)"
+    );
 
-})();
+    hand(
+        smoothSeconds/60*
+        Math.PI*2,
+        radius*.85,
+        1.5,
+        "#00ffff"
+    );
+
+    ctx.beginPath();
+
+    ctx.arc(
+        cx,
+        cy,
+        5,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fillStyle="#000";
+    ctx.fill();
+
+    ctx.strokeStyle="#00ffff";
+    ctx.lineWidth=1.5;
+    ctx.stroke();
+
+    requestAnimationFrame(
+        drawClock
+    );
+}
+
+window.addEventListener(
+    "resize",
+    resizeCanvas
+);
+
+setInterval(
+    ()=>{
+        updateAlarmCountdowns();
+        renderTimer();
+
+        if(
+            state.stopwatch.running
+        ){
+            renderStopwatch();
+        }
+    },
+    100
+);
+
+resizeCanvas();
+drawClock();
+renderAll();
+ensureParentClockService();
+
+function ensureParentClockService(){
+    const parent=
+        parentWindow();
+
+    try{
+        if(
+            parent.clockAPI
+        ){
+            requestState();
+            return;
+        }
+
+        if(
+            parent.__CHXD_CLOCK_LOADING__
+        ){
+            setTimeout(
+                ensureParentClockService,
+                100
+            );
+            return;
+        }
+
+        parent.__CHXD_CLOCK_LOADING__=
+            true;
+
+        const script=
+            parent.document.createElement(
+                "script"
+            );
+
+        script.src=
+            new URL(
+                "../js/clock.js",
+                window.location.href
+            ).href;
+
+        script.onload=()=>{
+            try{
+                delete parent.__CHXD_CLOCK_LOADING__;
+            }catch(_){}
+
+            requestState();
+        };
+
+        script.onerror=()=>{
+            try{
+                delete parent.__CHXD_CLOCK_LOADING__;
+            }catch(_){}
+        };
+
+        parent.document.head.appendChild(
+            script
+        );
+    }catch(_){
+        setTimeout(
+            ensureParentClockService,
+            500
+        );
+    }
+}
+
 </script>
 
 </body>
