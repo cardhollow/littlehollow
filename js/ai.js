@@ -153,9 +153,12 @@
         const file = PROVIDER_FILES[providerName];
         if (!file) throw new Error(`Unsupported AI provider: ${providerName}`);
 
-        await loadScript(file);
         const registry = window.LittleHollowAIProviders || {};
-        const provider = registry[providerName];
+        if (!registry[providerName]) {
+            await loadScript(file);
+        }
+        const refreshedRegistry = window.LittleHollowAIProviders || {};
+        const provider = refreshedRegistry[providerName];
 
         if (!provider || typeof provider.chat !== "function") {
             throw new Error(`AI provider module did not register correctly: ${providerName}`);
