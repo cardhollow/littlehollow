@@ -1,2477 +1,1613 @@
-<!doctype html>
-
+<!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Little Hollow — Settings</title>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./public/ai.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CHXD</title>
     <style>
-        :root {
-            color-scheme: dark;
-            --bg: #071216;
-            --panel: #0b1a20;
-            --panel2: #0e232a;
-            --panel3: #102b33;
-            --line: #1c6670;
-            --line2: rgba(28,102,112,.4);
-            --text: #d9ffff;
-            --muted: #78a9ad;
-            --accent: #31f4ff;
-            --good: #63ffb1;
-            --danger: #ff708c;
-            --shadow: rgba(0,0,0,.35);
-        }    * {
-        box-sizing: border-box;
-    }
-
-    html,
-    body {
-        margin: 0;
-        width: 100%;
-        min-height: 100%;
-    }
-
-    body {
-        min-height: 100vh;
-        background:
-            radial-gradient(circle at 10% 0%, rgba(49,244,255,.08), transparent 32%),
-            radial-gradient(circle at 95% 100%, rgba(99,255,177,.05), transparent 35%),
-            var(--bg);
-        color: var(--text);
-        font-family:
-            ui-monospace,
-            SFMono-Regular,
-            Menlo,
-            Consolas,
-            monospace;
-    }
-
-    button,
-    input,
-    select {
-        font: inherit;
-    }
-
-    .shell {
-        width: min(960px, 100%);
-        margin: 0 auto;
-        padding: 20px;
-    }
-
-    .topbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 18px;
-        padding: 18px 20px;
-        margin-bottom: 16px;
-        background: rgba(11,26,32,.9);
-        border: 1px solid var(--line);
-        box-shadow: 0 14px 36px var(--shadow);
-    }
-
-    .brand {
-        min-width: 0;
-    }
-
-    .brand-title {
-        font-size: 18px;
-        font-weight: 700;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-    }
-
-    .brand-subtitle {
-        margin-top: 6px;
-        font-size: 10px;
-        color: var(--muted);
-        line-height: 1.5;
-    }
-
-    .provider-badge {
-        flex: 0 0 auto;
-        padding: 7px 10px;
-        border: 1px solid var(--line);
-        background: var(--panel2);
-        color: var(--accent);
-        font-size: 10px;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-    }
-
-    .layout {
-        display: grid;
-        grid-template-columns: 190px minmax(0, 1fr);
-        gap: 16px;
-        align-items: start;
-    }
-
-    .nav {
-        position: sticky;
-        top: 16px;
-        background: rgba(11,26,32,.86);
-        border: 1px solid var(--line);
-        padding: 8px;
-    }
-
-    .nav button {
-        display: block;
-        width: 100%;
-        padding: 11px 12px;
-        text-align: left;
-        border: 1px solid transparent;
-        background: transparent;
-        color: var(--muted);
-        cursor: pointer;
-        font-size: 11px;
-    }
-
-    .nav button:hover {
-        color: var(--text);
-        background: rgba(49,244,255,.04);
-    }
-
-    .nav button.active {
-        color: var(--accent);
-        border-color: var(--line);
-        background: var(--panel2);
-    }
-
-    .content {
-        min-width: 0;
-    }
-
-    .page {
-        display: none;
-    }
-
-    .page.active {
-        display: block;
-    }
-
-    .section {
-        margin-bottom: 16px;
-        background: rgba(11,26,32,.86);
-        border: 1px solid var(--line);
-        padding: 16px;
-    }
-
-    .section:last-child {
-        margin-bottom: 0;
-    }
-
-    .section h2 {
-        margin: 0 0 14px;
-        color: var(--accent);
-        font-size: 13px;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-    }
-
-    .section-note {
-        margin: -4px 0 14px;
-        color: var(--muted);
-        font-size: 10px;
-        line-height: 1.6;
-    }
-
-    .row {
-        display: grid;
-        grid-template-columns: minmax(170px, 1fr) minmax(220px, 1.2fr);
-        gap: 16px;
-        align-items: center;
-        padding: 12px 0;
-        border-top: 1px solid var(--line2);
-    }
-
-    .row:first-of-type {
-        border-top: 0;
-    }
-
-    .label {
-        display: block;
-        font-size: 12px;
-    }
-
-    .desc {
-        margin-top: 4px;
-        color: var(--muted);
-        font-size: 10px;
-        line-height: 1.55;
-    }
-
-    input,
-    select {
-        width: 100%;
-        min-width: 0;
-        padding: 10px 11px;
-        border: 1px solid var(--line);
-        outline: none;
-        background: var(--panel2);
-        color: var(--text);
-        font-size: 12px;
-    }
-
-    input:focus,
-    select:focus {
-        border-color: var(--accent);
-        box-shadow: 0 0 0 1px rgba(49,244,255,.16);
-    }
-
-    input::placeholder {
-        color: #557b80;
-    }
-
-    .toggle {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-    }
-
-    .toggle input {
-        width: 19px;
-        height: 19px;
-        accent-color: var(--accent);
-    }
-
-    .provider-panel {
-        display: none;
-    }
-
-    .provider-panel.active {
-        display: block;
-    }
-
-    .info-box {
-        margin-top: 14px;
-        padding: 11px 12px;
-        border-left: 2px solid var(--accent);
-        background: rgba(49,244,255,.025);
-        color: var(--muted);
-        font-size: 10px;
-        line-height: 1.6;
-    }
-
-    .actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 16px;
-    }
-
-    button.action {
-        padding: 10px 14px;
-        border: 1px solid var(--line);
-        background: var(--panel2);
-        color: var(--text);
-        cursor: pointer;
-        font-size: 11px;
-    }
-
-    button.action:hover {
-        border-color: var(--accent);
-    }
-
-    button.action.primary {
-        border-color: var(--accent);
-        color: var(--accent);
-    }
-
-    button.action.good {
-        border-color: var(--good);
-        color: var(--good);
-    }
-
-    button.action.danger {
-        border-color: var(--danger);
-        color: var(--danger);
-    }
-
-    button.action:disabled {
-        opacity: .45;
-        cursor: not-allowed;
-    }
-
-    .runtime-box {
-        margin-top: 14px;
-        padding: 12px;
-        border: 1px solid var(--line2);
-        background: rgba(14,35,42,.7);
-    }
-
-    .runtime-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 9px;
-    }
-
-    .runtime-name {
-        color: var(--accent);
-        font-size: 11px;
-    }
-
-    .runtime-state {
-        font-size: 10px;
-        color: var(--muted);
-        text-transform: uppercase;
-        text-align: right;
-    }
-
-    .progress {
-        width: 100%;
-        height: 9px;
-        border: 1px solid var(--line);
-        background: #061014;
-        overflow: hidden;
-        position: relative;
-    }
-
-    .progress-bar {
-        width: 0%;
-        height: 100%;
-        background: var(--accent);
-        transition: width .18s ease;
-    }
-
-    .progress.indeterminate .progress-bar {
-        width: 35%;
-        animation: progressMove 1.15s linear infinite;
-    }
-
-    @keyframes progressMove {
-        from {
-            transform: translateX(-120%);
-        }
-        to {
-            transform: translateX(300%);
-        }
-    }
-
-    .runtime-message {
-        margin-top: 8px;
-        font-size: 10px;
-        color: var(--muted);
-        line-height: 1.5;
-        word-break: break-word;
-    }
-
-    #status {
-        min-height: 18px;
-        margin-top: 12px;
-        font-size: 11px;
-        color: var(--muted);
-        line-height: 1.5;
-    }
-
-    #status.good {
-        color: var(--good);
-    }
-
-    #status.bad {
-        color: var(--danger);
-    }
-
-    code {
-        color: var(--accent);
-    }
-
-    .hidden {
-        display: none !important;
-    }
-
-    @media (max-width: 760px) {
-        .layout {
-            grid-template-columns: 1fr;
-        }
-
-        .nav {
-            position: static;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 6px;
-        }
-
-        .nav button {
-            text-align: center;
-        }
-    }
-
-    @media (max-width: 600px) {
-        .shell {
-            padding: 12px;
-        }
-
-        .topbar {
-            padding: 14px;
-        }
-
-        .provider-badge {
-            display: none;
-        }
-
-        .row {
-            grid-template-columns: 1fr;
-            gap: 9px;
-        }
-
-        .toggle {
-            justify-content: flex-start;
-        }
-
-        .nav {
-            grid-template-columns: 1fr 1fr 1fr;
-        }
-
-        .runtime-head {
-            align-items: flex-start;
-            flex-direction: column;
-        }
-
-        .runtime-state {
-            text-align: left;
-        }
-    }
-</style>
-
-</head>
-<body>
-    <main class="shell">
-        <header class="topbar">
-            <div class="brand">
-                <div class="brand-title">Little Hollow / Settings</div>
-                <div class="brand-subtitle">
-                    AI provider, agent, and live-mode configuration
+      :root {
+          font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+          line-height: 1.5;
+          font-weight: 400;
+          color: #f0f0f0;
+          background-color: #1e1e1e;
+
+          font-synthesis: none;
+          text-rendering: optimizeLegibility;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+          margin: 0;
+          display: flex;
+          place-items: center;
+          min-width: 320px;
+          min-height: 100vh;
+          background-color: #1e1e1e;
+          color: #f0f0f0;
+      }
+
+      h1 {
+          font-size: 3.2em;
+          line-height: 1;
+      }
+
+      h1,
+      h2 {
+          margin: 8px;
+          color: #ffffff;
+      }
+
+      select {
+          padding: 0.3em;
+          cursor: pointer;
+      }
+
+      textarea {
+          padding: 0.6em;
+      }
+
+      button {
+          padding: 0.6em 1.2em;
+          cursor: pointer;
+          font-weight: 500;
+          background-color: #2d2d2d;
+          color: #f0f0f0;
+      }
+
+      button[disabled] {
+          cursor: not-allowed;
+          background-color: #444;
+          color: #aaa;
+      }
+
+      select,
+      textarea,
+      button,
+      input[type="number"],
+      input[type="text"] {
+          border-radius: 8px;
+          border: 1px solid transparent;
+          font-size: 1em;
+          font-family: inherit;
+          background-color: #2d2d2d;
+          color: #f0f0f0;
+          transition: border-color 0.25s, background-color 0.25s;
+      }
+
+      select:not([disabled]):hover,
+      button:not([disabled]):hover,
+      input:not([disabled]):hover,
+      textarea:not([disabled]):hover {
+          border-color: #66d9ef;
+      }
+
+      select:focus,
+      select:focus-visible,
+      textarea:focus,
+      textarea:focus-visible,
+      button:focus,
+      button:focus-visible,
+      input:focus,
+      input:focus-visible {
+          outline: 4px auto #66d9ef;
+      }
+
+      a {
+          color: #66d9ef;
+          text-decoration: none;
+          transition: color 0.25s ease;
+      }
+
+      a:hover {
+          color: #9beeff;
+          text-decoration: underline;
+      }
+
+      input[type="range"] {
+          -webkit-appearance: none;
+          padding: 0.3em;
+          cursor: pointer;
+          background: transparent;
+      }
+
+      input[type="range"]::-webkit-slider-runnable-track {
+          height: 10px;
+          background: #2d2d2d;
+          border-radius: 4px;
+          transition: box-shadow 0.25s;
+      }
+
+      input[type="range"]::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          width: 20px;
+          height: 20px;
+          background: #f0f0f0;
+          border-radius: 50%;
+          border: 2px solid transparent;
+          margin-top: -4px;
+          transition: border-color 0.25s, background-color 0.25s;
+      }
+
+      input[type="range"]:hover:not([disabled])::-webkit-slider-thumb {
+          border-color: #66d9ef;
+      }
+
+      input[type="range"]:not([disabled]):hover::-webkit-slider-runnable-track {
+          height: 10px;
+          box-shadow: 0 0 0 1px #66d9ef;
+      }
+
+      input[type="range"]::-moz-range-track {
+          height: 10px;
+          background: #2d2d2d;
+          border-radius: 4px;
+          transition: box-shadow 0.25s;
+      }
+
+      input[type="range"]::-moz-range-thumb {
+          width: 16px;
+          height: 16px;
+          background: #f0f0f0;
+          border-radius: 50%;
+          border: 2px solid transparent;
+          cursor: pointer;
+          transition: border-color 0.25s, background-color 0.25s;
+      }
+
+      input[type="range"][disabled]::-moz-range-thumb {
+          cursor: not-allowed;
+          background-color: #444;
+      }
+
+      input[type="range"]:not([disabled]):hover::-moz-range-thumb {
+          border-color: #66d9ef;
+      }
+
+      input[type="range"]:not([disabled]):hover::-moz-range-track {
+          box-shadow: 0 0 0 1px #66d9ef;
+      }
+
+      input[type="range"][disabled]::-webkit-slider-thumb {
+          cursor: not-allowed;
+          background-color: #444;
+      }
+
+      input[type="range"][disabled]::-moz-range-thumb {
+          cursor: not-allowed;
+          background-color: #444;
+      }
+
+      input[type="checkbox"] {
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          appearance: none;
+          padding: 0.3em;
+          border-radius: 50%;
+          background-color: #2d2d2d;
+          border: 2px solid transparent;
+          cursor: pointer;
+          position: relative;
+          transition: border-color 0.25s, background-color 0.25s;
+      }
+
+      input[type="checkbox"][disabled] {
+          cursor: not-allowed;
+          background-color: #444;
+      }
+
+      input[type="checkbox"]:not([disabled]):hover {
+          border-color: #66d9ef;
+      }
+
+      input[type="checkbox"]:checked {
+          background-color: #f0f0f0;
+      }
+
+      input[type="checkbox"][disabled] {
+          background-color: #444;
+      }
+
+      input[type="checkbox"]::after {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 6px;
+          height: 10px;
+          border: solid #2d2d2d;
+          border-width: 0 2px 2px 0;
+          transform: translate(-50%, -60%) rotate(45deg);
+          opacity: 0;
+          transition: opacity 0.2s ease-in-out;
+      }
+
+      input[type="checkbox"]:checked::after {
+          opacity: 1;
+      }
+
+      #root {
+          width: 100%;
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 2rem;
+          text-align: center;
+          box-sizing: border-box;
+      }
+
+      .app-shell {
+          width: 100%;
+      }
+
+      .top-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          width: 100%;
+          margin-bottom: 16px;
+      }
+
+      .top-bar-title {
+          margin: 0;
+          font-size: 1.35rem;
+          color: #ffffff;
+      }
+
+      .classic-chat-hidden {
+          display: none;
+      }
+
+      .chat-shell {
+          width: min(900px, 100%);
+          margin: 0 auto;
+          text-align: left;
+      }
+
+      .chat-container {
+          width: 100%;
+          min-height: 65vh;
+          max-height: 70vh;
+          overflow-y: auto;
+          padding: 10px;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+      }
+
+      .chat-empty {
+          flex: 1;
+          min-height: 55vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #888;
+          text-align: center;
+      }
+
+      #chat-messages {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+          width: 100%;
+      }
+
+      .message-row {
+          display: flex;
+          width: 100%;
+      }
+
+      .message-row.user {
+          justify-content: flex-end;
+      }
+
+      .message-row.assistant {
+          justify-content: flex-start;
+      }
+
+      .message {
+          width: fit-content;
+          max-width: min(760px, 82%);
+          padding: 12px 14px;
+          border-radius: 14px;
+          white-space: pre-wrap;
+          overflow-wrap: anywhere;
+      }
+
+      .message.user {
+          background-color: #2c4a52;
+          border: 1px solid #3e626c;
+      }
+
+      .message.assistant {
+          background-color: #2a2a2a;
+          border: 1px solid #3b3b3b;
+      }
+
+      .message-role {
+          display: block;
+          margin-bottom: 4px;
+          color: #8f8f8f;
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+      }
+
+      .chat-composer {
+          display: flex;
+          gap: 10px;
+          align-items: flex-end;
+          margin-top: 10px;
+      }
+
+      .chat-input {
+          flex: 1;
+          min-height: 58px;
+          max-height: 180px;
+          resize: vertical;
+          box-sizing: border-box;
+      }
+
+      .chat-actions {
+          display: flex;
+          gap: 10px;
+      }
+
+      .chat-status {
+          margin-top: 8px;
+          color: #8f8f8f;
+          font-size: 13px;
+          text-align: center;
+      }
+
+      .settings-modal {
+          display: none;
+          position: fixed;
+          inset: 0;
+          z-index: 100;
+          padding: 20px;
+          box-sizing: border-box;
+          background-color: rgba(0, 0, 0, 0.72);
+          align-items: center;
+          justify-content: center;
+      }
+
+      .settings-modal.open {
+          display: flex;
+      }
+
+      .settings-dialog {
+          width: min(1000px, 100%);
+          max-height: 92vh;
+          overflow-y: auto;
+          background-color: #202020;
+          border: 1px solid #444;
+          border-radius: 14px;
+          box-shadow: 0 20px 70px rgba(0, 0, 0, 0.55);
+          padding: 20px;
+          box-sizing: border-box;
+          text-align: left;
+      }
+
+      .settings-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 18px;
+      }
+
+      .settings-header h2 {
+          margin: 0;
+      }
+
+      .settings-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 14px;
+      }
+
+      .setting-card {
+          background-color: #272727;
+          border: 1px solid #3b3b3b;
+          border-radius: 10px;
+          padding: 14px;
+      }
+
+      .setting-card.full {
+          grid-column: 1 / -1;
+      }
+
+      .setting-card .selector,
+      .setting-card .range,
+      .setting-card .check {
+          width: 100%;
+          box-sizing: border-box;
+      }
+
+      .setting-card .selector {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+      }
+
+      .setting-card .selector>select {
+          width: 100%;
+          box-sizing: border-box;
+      }
+
+      .setting-card .range {
+          flex-wrap: wrap;
+      }
+
+      .setting-card .range>input[type="range"] {
+          flex: 1;
+          min-width: 120px;
+      }
+
+      .settings-actions {
+          display: flex;
+          justify-content: center;
+          gap: 12px;
+          margin-top: 16px;
+      }
+
+      .settings-status {
+          margin-top: 16px;
+          padding: 10px 12px;
+          border-radius: 8px;
+          background-color: #2c2c2c;
+          color: #cfcfcf;
+          font-size: 14px;
+      }
+
+      .progress-bars-container {
+          margin-top: 14px;
+          padding: 8px;
+          max-height: 180px;
+          overflow-y: auto;
+          border-radius: 8px;
+          background-color: #232323;
+      }
+
+      .progress-container {
+          position: relative;
+          font-size: 13px;
+          line-height: 24px;
+          color: #2c2c2c;
+          background-color: #2c2c2c;
+          border: solid 1px #444;
+          border-radius: 8px;
+          text-align: left;
+          overflow: hidden;
+          height: 24px;
+          margin-bottom: 4px;
+      }
+
+      .progress-bar {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 0%;
+          height: 100%;
+          padding: 0 4px;
+          box-sizing: border-box;
+          line-height: 24px;
+          overflow: hidden;
+          background-color: #66d9ef;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+      }
+
+      .progress-text {
+          z-index: 2;
+          position: relative;
+          padding: 0 4px;
+          color: #f0f0f0;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+      }
+
+      .tooltip {
+          text-align: start;
+          position: relative;
+          display: inline-block;
+          color: #808080;
+          font-size: 14px;
+      }
+
+      .tooltiptext {
+          text-align: start;
+          font-size: 16px;
+      }
+
+      .tooltip .tooltiptext {
+          visibility: hidden;
+          color: #f0f0f0;
+          background-color: #2c2c2c;
+          position: absolute;
+          min-width: 120px;
+          max-width: 360px;
+          width: max-content;
+          left: 50%;
+          bottom: 100%;
+          z-index: 10;
+          border-radius: 8px;
+          padding: 8px;
+          word-wrap: break-word;
+          transform: translateX(-50%) translateY(115%);
+          opacity: 0;
+          transition: opacity 0.25s;
+      }
+
+      .tooltip:hover .tooltiptext {
+          visibility: visible;
+          opacity: 1;
+      }
+
+      @media (max-width: 900px) {
+          #root {
+              width: 100%;
+              box-sizing: border-box;
+              padding: 1rem;
+          }
+
+          .settings-grid {
+              grid-template-columns: 1fr;
+          }
+
+          .setting-card.full {
+              grid-column: auto;
+          }
+
+          .chat-container {
+              max-height: 65vh;
+          }
+      }
+
+      @media (max-width: 520px) {
+          h1 {
+              font-size: 2.2em;
+          }
+
+          h2 {
+              font-size: 1.25em;
+          }
+
+          .chat-composer {
+              flex-direction: column;
+              align-items: stretch;
+          }
+
+          .chat-actions {
+              justify-content: stretch;
+          }
+
+          .chat-actions button {
+              flex: 1;
+          }
+
+          .message {
+              max-width: 92%;
+          }
+
+          .settings-actions {
+              flex-direction: column;
+          }
+
+          .settings-actions button {
+              width: 100%;
+          }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div id="app-shell" class="app-shell">
+        <div id="top-bar" class="top-bar">
+          <div id="top-bar-title" class="top-bar-title">CHXD</div>
+          <button id="settings-button">Settings</button>
+        </div>
+
+        <div id="classic-chat" class="chat-shell classic-chat-hidden">
+          <div id="chat-container" class="chat-container">
+            <div id="chat-empty" class="chat-empty">
+              Start a conversation.
+            </div>
+            <div id="chat-messages"></div>
+          </div>
+
+          <div id="chat-composer" class="chat-composer">
+            <textarea id="chat-input" class="chat-input highlight" spellcheck="true"></textarea>
+            <div id="chat-actions" class="chat-actions">
+              <button id="chat-generate">Send</button>
+            </div>
+          </div>
+
+          <div id="chat-status" class="chat-status"></div>
+        </div>
+
+        <div id="settings-modal" class="settings-modal">
+          <div id="settings-dialog" class="settings-dialog">
+            <div id="settings-header" class="settings-header">
+              <h2>Settings</h2>
+              <button id="settings-close">Close</button>
+            </div>
+
+            <div id="settings-grid" class="settings-grid">
+              <div class="setting-card">
+                <div class="selector">
+                  <label>Model<span class="tooltip">&nbsp;ⓘ&nbsp;<span class="tooltiptext"><code>Larger models with more parameters (e.g., B for billion and M for million) typically offer better performance by capturing complex patterns but require more memory and are slower in generating responses. Smaller models, on the other hand, are faster and more efficient but may compromise accuracy or depth in understanding.</code></span></span>:</label>
+                  <select id="model"></select>
                 </div>
+              </div>
+
+              <div class="setting-card">
+                <div class="selector">
+                  <label>Device<span class="tooltip">&nbsp;ⓘ&nbsp;<span class="tooltiptext"><code>Some models are optimized for WASM and/or WebGPU due to their compatibility with the required APIs or hardware acceleration, allowing efficient execution on supported devices. Some models may be less efficient or incompatible on some platforms.</code></span></span>:</label>
+                  <select id="device"></select>
+                </div>
+              </div>
+
+              <div class="setting-card">
+                <div class="selector">
+                  <label>System role<span class="tooltip">&nbsp;ⓘ&nbsp;<span class="tooltiptext"><code>The system role in a chat template sets the behavior, tone, and boundaries for the assistant throughout the conversation. It acts as an initial instruction to guide how the model should interpret and respond to the user's prompts.</code></span></span>:</label>
+                  <select id="system-role"></select>
+                </div>
+              </div>
+
+              <div class="setting-card">
+                <div class="selector">
+                  <label>Data type<span class="tooltip">&nbsp;ⓘ&nbsp;<span class="tooltiptext"><code>Implementations specifies the data type used for computations and memory storage. Choosing the right dtype affects model performance, precision, and efficiency—lower precision types can speed up inference and reduce memory usage at the cost of numerical accuracy.</code></span></span>:</label>
+                  <select id="dtype"></select>
+                </div>
+              </div>
+
+              <div class="setting-card">
+                <div class="range">
+                  <label>Max new tokens<span class="tooltip">&nbsp;ⓘ&nbsp;<span class="tooltiptext"><code>This sets the maximum number of tokens (words, characters, or subwords) the model can generate in its output. For example, limiting this ensures concise responses.</code></span></span></label>
+                  <input id="max-new-tokens" type="range" min="256" max="4096" step="64">
+                  <code id="max-new-tokens-value"></code>
+                </div>
+              </div>
+
+              <div class="setting-card">
+                <div class="range">
+                  <label>Temperature<span class="tooltip">&nbsp;ⓘ&nbsp;<span class="tooltiptext"><code>This controls randomness in the model's output. A low temperature (e.g., 0.2) makes the responses more deterministic and focused, while a high temperature (e.g., 1.0) increases creativity and variability.</code></span></span></label>
+                  <input id="temperature" type="range" min="0.0" max="1.0" step="0.05">
+                  <code id="temperature-value"></code>
+                </div>
+              </div>
+
+              <div class="setting-card">
+                <div class="range">
+                  <label>Repetition penalty<span class="tooltip">&nbsp;ⓘ&nbsp;<span class="tooltiptext"><code>This reduces redundancy by penalizing repetitive sequences or words. For instance, setting it to 1.2 encourages the model to generate varied responses instead of repeating itself.</code></span></span></label>
+                  <input id="repetition-penalty" type="range" min="1.0" max="1.6" step="0.05">
+                  <code id="repetition-penalty-value"></code>
+                </div>
+              </div>
+
+              <div class="setting-card">
+                <div class="range">
+                  <label>Top P<span class="tooltip">&nbsp;ⓘ&nbsp;<span class="tooltiptext"><code>Also called nucleus sampling, this adjusts the probability distribution of tokens. The model considers tokens until the cumulative probability reaches the specified value (e.g., 0.95), creating more focused and realistic outputs.</code></span></span></label>
+                  <input id="top-p" type="range" min="0.0" max="1.0" step="0.05">
+                  <code id="top-p-value"></code>
+                </div>
+              </div>
+
+              <div class="setting-card">
+                <div class="check">
+                  <label>Do sample<span class="tooltip">&nbsp;ⓘ&nbsp;<span class="tooltiptext"><code>When enabled (set to True), the model samples tokens from the probability distribution, making responses more creative and less predictable. If set to False, the output becomes more deterministic and does not affected by Temperature, Top P and Top K.</code></span></span></label>
+                  <input id="do-sample" type="checkbox">
+                </div>
+              </div>
+
+              <div class="setting-card">
+                <div class="range">
+                  <label>Top K<span class="tooltip">&nbsp;ⓘ&nbsp;<span class="tooltiptext"><code>This limits the model's token selection to the top k most probable choices. For example, if top_k = 30, the model will only consider the 30 most likely tokens, encouraging diversity.</code></span></span></label>
+                  <input id="top-k" type="range" min="1" max="60" step="1">
+                  <code id="top-k-value"></code>
+                </div>
+              </div>
+
+              <div class="setting-card">
+                <div class="selector">
+                  <label>JavaScript tools:</label>
+                  <div style="padding: 9px 11px; border-radius: 8px; background:#202020; border:1px solid #3b3b3b;">
+                    <strong>get_current_time</strong>
+                    <div style="margin-top:4px; color:#999; font-size:13px;">Returns the live browser date/time and supports IANA timezones.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="setting-card full">
+                <div id="settings-actions" class="settings-actions">
+                  <button id="generate">Load Model</button>
+                  <button id="unload">Unload Model</button>
+                </div>
+
+                <div id="settings-status" class="settings-status"></div>
+
+                <div id="progress-bars-container" class="progress-bars-container">
+                  <div id="status-text"></div>
+                  <div id="progress-items"></div>
+                </div>
+              </div>
             </div>
-            <div class="provider-badge" id="providerBadge">PUTER</div>
-        </header>    <div class="layout">
-        <nav class="nav">
-            <button class="nav-btn active" data-page="providers">Providers</button>
-            <button class="nav-btn" data-page="agent">Agent</button>
-            <button class="nav-btn" data-page="live">Live Mode</button>
-        </nav>
-
-        <section class="content">
-            <div class="page active" id="page-providers">
-                <section class="section">
-                    <h2>Active Provider</h2>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="provider">Provider</label>
-                            <div class="desc">
-                                Select which AI provider Little Hollow uses for new conversations.
-                            </div>
-                        </div>
-
-                        <select id="provider">
-                            <option value="puter">Puter</option>
-                            <option value="onnx">ONNX (local)</option>
-                            <option value="gguf">GGUF (local)</option>
-                            <option value="gemini">Google Gemini</option>
-                        </select>
-                    </div>
-                </section>
-
-                <section class="section provider-panel" id="panel-puter">
-                    <h2>Puter</h2>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="puterModel">Model</label>
-                            <div class="desc">
-                                Model identifier passed to the Puter provider.
-                            </div>
-                        </div>
-
-                        <input
-                            id="puterModel"
-                            type="text"
-                            spellcheck="false"
-                            placeholder="mistralai/ministral-3b-2512"
-                        >
-                    </div>
-
-                    <div class="info-box">
-                        Puter configuration is kept separately from Gemini, ONNX, and GGUF settings.
-                    </div>
-                </section>
-
-                <section class="section provider-panel" id="panel-onnx">
-                    <h2>ONNX</h2>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="onnxModel">Model</label>
-                            <div class="desc">
-                                Hugging Face ONNX model identifier used by the local provider.
-                            </div>
-                        </div>
-
-                        <input
-                            id="onnxModel"
-                            type="text"
-                            spellcheck="false"
-                            placeholder="onnx-community/Qwen2.5-0.5B-Instruct"
-                        >
-                    </div>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="onnxDevice">Device</label>
-                            <div class="desc">
-                                Hardware backend used by the local runtime.
-                            </div>
-                        </div>
-
-                        <select id="onnxDevice">
-                            <option value="webgpu">WebGPU</option>
-                            <option value="wasm">WASM</option>
-                        </select>
-                    </div>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="onnxDtype">Data type</label>
-                            <div class="desc">
-                                Quantization / precision selected for the local model.
-                            </div>
-                        </div>
-
-                        <input
-                            id="onnxDtype"
-                            type="text"
-                            spellcheck="false"
-                            placeholder="q4"
-                        >
-                    </div>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="onnxMaxNewTokens">Max new tokens</label>
-                            <div class="desc">
-                                Maximum number of tokens produced by the local model.
-                            </div>
-                        </div>
-
-                        <input
-                            id="onnxMaxNewTokens"
-                            type="number"
-                            min="1"
-                            max="32768"
-                            step="1"
-                        >
-                    </div>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="onnxTemperature">Temperature</label>
-                            <div class="desc">
-                                Controls randomness for ONNX generation.
-                            </div>
-                        </div>
-
-                        <input
-                            id="onnxTemperature"
-                            type="number"
-                            min="0"
-                            max="2"
-                            step="0.1"
-                        >
-                    </div>
-
-                    <div class="actions">
-                        <button class="action good" id="onnxLoadBtn" type="button">
-                            LOAD ONNX
-                        </button>
-
-                        <button class="action danger" id="onnxUnloadBtn" type="button">
-                            UNLOAD ONNX
-                        </button>
-                    </div>
-
-                    <div class="runtime-box">
-                        <div class="runtime-head">
-                            <div class="runtime-name">ONNX RUNTIME</div>
-                            <div class="runtime-state" id="onnxState">NOT LOADED</div>
-                        </div>
-
-                        <div class="progress" id="onnxProgressTrack">
-                            <div class="progress-bar" id="onnxProgressBar"></div>
-                        </div>
-
-                        <div class="runtime-message" id="onnxRuntimeMessage">
-                            ONNX model is not loaded.
-                        </div>
-                    </div>
-                </section>
-
-                <section class="section provider-panel" id="panel-gguf">
-                    <h2>GGUF</h2>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="ggufModel">Model</label>
-                            <div class="desc">
-                                GGUF model path, URL, or identifier used by the local runtime.
-                            </div>
-                        </div>
-
-                        <input
-                            id="ggufModel"
-                            type="text"
-                            spellcheck="false"
-                            placeholder="model.gguf"
-                        >
-                    </div>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="ggufContext">Context</label>
-                            <div class="desc">
-                                Context window used by the GGUF runtime.
-                            </div>
-                        </div>
-
-                        <input
-                            id="ggufContext"
-                            type="number"
-                            min="256"
-                            max="131072"
-                            step="256"
-                        >
-                    </div>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="ggufThreads">Threads</label>
-                            <div class="desc">
-                                CPU threads allocated to the local runtime.
-                            </div>
-                        </div>
-
-                        <input
-                            id="ggufThreads"
-                            type="number"
-                            min="1"
-                            max="64"
-                            step="1"
-                        >
-                    </div>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="ggufMaxNewTokens">Max new tokens</label>
-                            <div class="desc">
-                                Maximum tokens generated per response.
-                            </div>
-                        </div>
-
-                        <input
-                            id="ggufMaxNewTokens"
-                            type="number"
-                            min="1"
-                            max="32768"
-                            step="1"
-                        >
-                    </div>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="ggufTemperature">Temperature</label>
-                            <div class="desc">
-                                Controls randomness for GGUF generation.
-                            </div>
-                        </div>
-
-                        <input
-                            id="ggufTemperature"
-                            type="number"
-                            min="0"
-                            max="2"
-                            step="0.1"
-                        >
-                    </div>
-
-                    <div class="actions">
-                        <button class="action good" id="ggufLoadBtn" type="button">
-                            LOAD GGUF
-                        </button>
-
-                        <button class="action danger" id="ggufUnloadBtn" type="button">
-                            UNLOAD GGUF
-                        </button>
-                    </div>
-
-                    <div class="runtime-box">
-                        <div class="runtime-head">
-                            <div class="runtime-name">GGUF RUNTIME</div>
-                            <div class="runtime-state" id="ggufState">NOT LOADED</div>
-                        </div>
-
-                        <div class="progress" id="ggufProgressTrack">
-                            <div class="progress-bar" id="ggufProgressBar"></div>
-                        </div>
-
-                        <div class="runtime-message" id="ggufRuntimeMessage">
-                            GGUF model is not loaded.
-                        </div>
-                    </div>
-                </section>
-
-                <section class="section provider-panel" id="panel-gemini">
-                    <h2>Google Gemini</h2>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="apiKey">API key</label>
-                            <div class="desc">
-                                Stored locally in this browser under
-                                <code>littlehollow.ai.settings</code>.
-                            </div>
-                        </div>
-
-                        <input
-                            id="apiKey"
-                            type="password"
-                            autocomplete="off"
-                            spellcheck="false"
-                            placeholder="AIza..."
-                        >
-                    </div>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="model">Model</label>
-                            <div class="desc">
-                                Gemini model identifier used by the provider.
-                            </div>
-                        </div>
-
-                        <input
-                            id="model"
-                            type="text"
-                            spellcheck="false"
-                            placeholder="gemini-3.5-flash"
-                        >
-                    </div>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="pythonTool">Python Tool</label>
-                            <div class="desc">
-                                Enables Google's managed code-execution capability.
-                            </div>
-                        </div>
-
-                        <div class="toggle">
-                            <input id="pythonTool" type="checkbox">
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="maxOutputTokens">Max output tokens</label>
-                            <div class="desc">
-                                Stored as the Gemini output-token preference.
-                            </div>
-                        </div>
-
-                        <input
-                            id="maxOutputTokens"
-                            type="number"
-                            min="1"
-                            max="65000"
-                            step="1"
-                        >
-                    </div>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="temperature">Temperature</label>
-                            <div class="desc">
-                                Gemini generation temperature preference.
-                            </div>
-                        </div>
-
-                        <input
-                            id="temperature"
-                            type="number"
-                            min="0"
-                            max="2"
-                            step="0.1"
-                        >
-                    </div>
-
-                    <div class="info-box">
-                        Gemini tool calls use Little Hollow's existing
-                        <code>Tools.execute()</code> system.
-                    </div>
-                </section>
-            </div>
-
-            <div class="page" id="page-agent">
-                <section class="section">
-                    <h2>Agent</h2>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="maxToolRounds">Maximum tool rounds</label>
-                            <div class="desc">
-                                Maximum number of tool-call cycles the agent can perform during one turn.
-                            </div>
-                        </div>
-
-                        <input
-                            id="maxToolRounds"
-                            type="number"
-                            min="1"
-                            max="32"
-                            step="1"
-                        >
-                    </div>
-
-                    <div class="info-box">
-                        Agent mode is global to Little Hollow.
-                    </div>
-                </section>
-            </div>
-
-            <div class="page" id="page-live">
-                <section class="section">
-                    <h2>Live Mode</h2>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="liveEnabled">Enable live AI</label>
-                            <div class="desc">
-                                Enables the existing debounced live-mode API.
-                            </div>
-                        </div>
-
-                        <div class="toggle">
-                            <input id="liveEnabled" type="checkbox">
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="debounceMs">Debounce</label>
-                            <div class="desc">
-                                Time to wait before starting a live turn after input changes.
-                            </div>
-                        </div>
-
-                        <input
-                            id="debounceMs"
-                            type="number"
-                            min="0"
-                            step="50"
-                        >
-                    </div>
-
-                    <div class="row">
-                        <div>
-                            <label class="label" for="minIntervalMs">Minimum interval</label>
-                            <div class="desc">
-                                Minimum delay between live AI turns.
-                            </div>
-                        </div>
-
-                        <input
-                            id="minIntervalMs"
-                            type="number"
-                            min="0"
-                            step="50"
-                        >
-                    </div>
-
-                    <div class="info-box">
-                        Live mode is global and is handled by <code>ai.js</code>.
-                    </div>
-                </section>
-            </div>
-
-            <div class="actions">
-                <button class="action primary" id="saveBtn" type="button">
-                    SAVE SETTINGS
-                </button>
-
-                <button class="action" id="testBtn" type="button">
-                    TEST GEMINI
-                </button>
-
-                <button class="action" id="resetBtn" type="button">
-                    RESET GEMINI
-                </button>
-            </div>
-
-            <div id="status" aria-live="polite"></div>
-        </section>
+          </div>
+        </div>
+      </div>
     </div>
-</main>
+    <script type="module">
+      const TRANSFORMERS_URL = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/+esm';
 
-<script>
-    (() => {
-        "use strict";
+      const Config = {
+        "models": {
+          "SmolLM2-135M-Instruct": "HuggingFaceTB/SmolLM2-135M-Instruct",
+          "SmolLM2-360M-Instruct": "HuggingFaceTB/SmolLM2-360M-Instruct",
+          "Qwen2.5-0.5B-Instruct": "Mozilla/Qwen2.5-0.5B-Instruct",
+          "Qwen3-0.6B": "onnx-community/Qwen3-0.6B-ONNX",
+          "Gemma-3-1B-It": "onnx-community/gemma-3-1b-it-ONNX",
+          "Falcon3-1B-Instruct": "onnx-community/Falcon3-1B-Instruct",
+          "SmolLM2-1.7B-Instruct": "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+          "Phi-3-mini-4k-Instruct (3.8B)": "Xenova/Phi-3-mini-4k-instruct"
+        },
+        "system_roles": {
+          "None (no chat template)": "",
+          "Helpful assistant": "You are a helpful, concise, and accurate assistant.",
+          "Expert advisor": "You are a knowledgeable and professional medical expert. Provide clear, evidence-based answers.",
+          "Socratic guide": "You are a Socratic tutor. Ask thoughtful questions to guide the user to their own conclusions.",
+          "Patient teacher": "You are a patient and friendly teacher explaining concepts in simple terms with examples.",
+          "Quiz generator": "You are a quiz master. Generate multiple-choice questions to test knowledge of a topic.",
+          "Code assistant": "You are a skilled software engineer. Help the user write clean, efficient code.",
+          "Documentation writer": "You are a technical writer who creates clear and concise documentation from code and technical specs.",
+          "Data analyst": "You are a data analyst. Interpret data clearly, with charts or summaries if needed.",
+          "Storyteller": "You are a creative and engaging storyteller. Write vivid and original fiction.",
+          "Poet": "You are a poetic wordsmith. Craft expressive and emotionally resonant poetry.",
+          "Motivational coach": "You are a motivational coach. Offer practical advice and encouragement.",
+          "Friendly companion": "You are a kind and empathetic companion. Listen and respond warmly."
+        },
+        "devices": {
+          "Auto": "auto",
+          "WASM": "wasm",
+          "WebGPU": "webgpu"
+        },
+        "dtypes": {
+          "Auto": "auto",
+          "fp32": "fp32",
+          "fp16": "fp16",
+          "int8": "int8",
+          "uint8": "uint8",
+          "q4": "q4",
+          "bnb4": "bnb4",
+          "q4f16": "q4f16"
+        },
+        "defaults": {
+          "model": "SmolLM2-360M-Instruct",
+          "system_role": "Helpful assistant",
+          "task": "text-generation",
+          "device": "WASM",
+          "dtype": "Auto",
+          "prompt": "What is the current time?",
+          "config": {
+            "max_new_tokens": 1024,
+            "temperature": 0.2,
+            "top_p": 0.95,
+            "top_k": 30,
+            "repetition_penalty": 1.05,
+            "do_sample": true
+          }
+        }
+      };
 
-        const SETTINGS_KEY = "littlehollow.ai.settings";
-
-        const DEFAULTS = {
-            provider: "puter",
-            mode: "interactive",
-            puter: {
-                model: "mistralai/ministral-3b-2512"
-            },
-            onnx: {
-                model: "onnx-community/Qwen2.5-0.5B-Instruct",
-                device: "webgpu",
-                dtype: "q4",
-                maxNewTokens: 256,
-                temperature: 0.7
-            },
-            gguf: {
-                model: "",
-                context: 8192,
-                threads: 4,
-                maxNewTokens: 512,
-                temperature: 0.7
-            },
-            gemini: {
-                apiKey: "",
-                model: "gemini-3.5-flash",
-                pythonTool: false,
-                maxOutputTokens: 4096,
-                temperature: 0.7
-            },
-            live: {
-                enabled: false,
-                debounceMs: 1800,
-                minIntervalMs: 2500
-            },
-            agent: {
-                maxToolRounds: 8
+      const Tools = {
+        definitions: [
+          {
+            type: 'function',
+            function: {
+              name: 'get_current_time',
+              description: 'Get the current local date and time. Use this when the user asks what time or date it is.',
+              parameters: {
+                type: 'object',
+                properties: {
+                  timezone: {
+                    type: 'string',
+                    description: 'Optional IANA timezone such as Asia/Manila, America/New_York, or UTC. Leave empty to use the browser local timezone.'
+                  }
+                },
+                additionalProperties: false
+              }
             }
+          }
+        ],
+
+        async execute(name, args = {}) {
+          switch (name) {
+            case 'get_current_time': {
+              const timezone = String(args.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
+
+              let date;
+              try {
+                date = new Intl.DateTimeFormat('en-US', {
+                  timeZone: timezone,
+                  dateStyle: 'full',
+                  timeStyle: 'long'
+                }).format(new Date());
+              } catch {
+                return {
+                  ok: false,
+                  error: `Invalid timezone: ${timezone}`
+                };
+              }
+
+              return {
+                ok: true,
+                timezone,
+                iso: new Date().toISOString(),
+                formatted: date
+              };
+            }
+
+            default:
+              return {
+                ok: false,
+                error: `Unknown tool: ${name}`
+              };
+          }
+        }
+      };
+
+      window.Tools = Tools;
+
+      const TOOL_INSTRUCTIONS = [
+        'You have access to JavaScript tools.',
+        'Use a tool when it can provide information that should come from the live browser instead of your training data.',
+        'For the current date or time, ALWAYS use get_current_time instead of guessing.',
+        'When a tool is needed, output ONLY one tool call in this exact format:',
+        '<tool_call>{"name":"get_current_time","arguments":{}}</tool_call>',
+        'Do not add markdown fences around a tool call.',
+        'After a tool result is provided, answer the user normally and do not output another tool call unless another live lookup is actually required.'
+      ].join('\\n');
+
+      const state = {
+        input: {
+          text: Config.defaults.prompt,
+          model: Config.models[Config.defaults.model],
+          task: Config.defaults.task,
+          system_role: Config.system_roles[Config.defaults.system_role],
+          device: Config.devices[Config.defaults.device],
+          dtype: Config.dtypes[Config.defaults.dtype],
+          parameters: { ...Config.defaults.config }
+        },
+        output: '',
+        status: {
+          ready: false,
+          disabled: false,
+          modelDisabled: false,
+          statusText: ''
+        },
+        progressItems: [],
+        history: [],
+        runtime: {
+          messages: [],
+          toolRounds: 0,
+          activeUserText: ''
+        },
+        settingsOpen: true
+      };
+
+      const root = document.getElementById('root');
+      if (!root) throw new Error('App root element not found.');
+
+      const elements = {
+        settingsButton: document.getElementById('settings-button'),
+        settingsModal: document.getElementById('settings-modal'),
+        settingsClose: document.getElementById('settings-close'),
+        settingsStatus: document.getElementById('settings-status'),
+        model: document.getElementById('model'),
+        device: document.getElementById('device'),
+        systemRole: document.getElementById('system-role'),
+        dtype: document.getElementById('dtype'),
+        maxNewTokens: document.getElementById('max-new-tokens'),
+        maxNewTokensValue: document.getElementById('max-new-tokens-value'),
+        temperature: document.getElementById('temperature'),
+        temperatureValue: document.getElementById('temperature-value'),
+        repetitionPenalty: document.getElementById('repetition-penalty'),
+        repetitionPenaltyValue: document.getElementById('repetition-penalty-value'),
+        topP: document.getElementById('top-p'),
+        topPValue: document.getElementById('top-p-value'),
+        doSample: document.getElementById('do-sample'),
+        topK: document.getElementById('top-k'),
+        topKValue: document.getElementById('top-k-value'),
+        classicChat: document.getElementById('classic-chat'),
+        chatContainer: document.getElementById('chat-container'),
+        chatMessages: document.getElementById('chat-messages'),
+        chatEmpty: document.getElementById('chat-empty'),
+        chatInput: document.getElementById('chat-input'),
+        chatGenerate: document.getElementById('chat-generate'),
+        chatStatus: document.getElementById('chat-status'),
+        generate: document.getElementById('generate'),
+        unload: document.getElementById('unload'),
+        statusText: document.getElementById('status-text'),
+        progressItems: document.getElementById('progress-items')
+      };
+
+      let worker = null;
+      let workerUrl = null;
+
+      const escapeHtml = (value) => String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+
+      const formatBytes = (bytes) => {
+        const value = Number(bytes);
+        if (!Number.isFinite(value) || value < 0) return '';
+        if (value === 0) return '0 B';
+        const units = ['B', 'KB', 'MB', 'GB'];
+        const exponent = Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1);
+        const scaled = value / Math.pow(1024, exponent);
+        return `${scaled.toFixed(scaled >= 100 || exponent === 0 ? 0 : 2)} ${units[exponent]}`;
+      };
+
+      const setSelectOptions = (element, items, value) => {
+        if (!element) return;
+
+        element.innerHTML = Object.entries(items).map(([key, itemValue]) => `
+          <option value="${escapeHtml(itemValue)}" ${itemValue === value ? 'selected' : ''}>${escapeHtml(key)}</option>
+        `).join('');
+      };
+
+      const setInputValue = (key, value) => {
+        state.input[key] = value;
+      };
+
+      const setParameter = (key, value) => {
+        state.input.parameters[key] = value;
+      };
+
+      const createProgressItem = (item) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'progress-container';
+        wrapper.dataset.file = item?.file ?? '';
+
+        const bar = document.createElement('div');
+        bar.className = 'progress-bar';
+
+        const text = document.createElement('div');
+        text.className = 'progress-text';
+
+        wrapper.appendChild(bar);
+        wrapper.appendChild(text);
+        elements.progressItems.appendChild(wrapper);
+
+        return wrapper;
+      };
+
+      const updateProgressElement = (wrapper, item) => {
+        if (!wrapper) return;
+
+        const percentage = Number(item?.progress ?? 0);
+        const loaded = item?.loaded !== undefined ? formatBytes(item.loaded) : '';
+        const total = item?.total !== undefined ? formatBytes(item.total) : '';
+        const sizeText = loaded && total ? ` — ${loaded} / ${total}` : (total ? ` — ${total}` : (loaded ? ` — ${loaded}` : ''));
+
+        const bar = wrapper.querySelector('.progress-bar');
+        const text = wrapper.querySelector('.progress-text');
+
+        if (bar) {
+          bar.style.width = `${Math.max(0, Math.min(100, percentage))}%`;
+        }
+
+        if (text) {
+          text.textContent = `(${percentage.toFixed(2)}%) ${item?.file ?? ''}${sizeText}`;
+        }
+      };
+
+      const clearProgressItems = () => {
+        state.progressItems = [];
+        elements.progressItems.replaceChildren();
+      };
+
+      const renderChat = () => {
+        elements.chatMessages.replaceChildren();
+
+        state.history.forEach((turn) => {
+          const row = document.createElement('div');
+          row.className = `message-row ${turn.role === 'user' ? 'user' : 'assistant'}`;
+
+          const message = document.createElement('div');
+          message.className = `message ${turn.role === 'user' ? 'user' : 'assistant'}`;
+
+          const role = document.createElement('span');
+          role.className = 'message-role';
+          role.textContent = turn.role === 'user' ? 'You' : 'Assistant';
+
+          const content = document.createElement('div');
+          content.textContent = turn.content;
+
+          message.appendChild(role);
+          message.appendChild(content);
+          row.appendChild(message);
+          elements.chatMessages.appendChild(row);
+        });
+
+        if (state.output) {
+          const row = document.createElement('div');
+          row.className = 'message-row assistant';
+
+          const message = document.createElement('div');
+          message.className = 'message assistant';
+          message.id = 'live-assistant-message';
+
+          const role = document.createElement('span');
+          role.className = 'message-role';
+          role.textContent = 'Assistant';
+
+          const content = document.createElement('div');
+          content.textContent = state.output;
+          content.id = 'live-assistant-content';
+
+          message.appendChild(role);
+          message.appendChild(content);
+          row.appendChild(message);
+          elements.chatMessages.appendChild(row);
+        }
+
+        elements.chatEmpty.style.display = state.history.length === 0 && !state.output ? 'flex' : 'none';
+
+        requestAnimationFrame(() => {
+          elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+        });
+      };
+
+      const render = () => {
+        const { input, status } = state;
+
+        setSelectOptions(elements.model, Config.models, input.model);
+        setSelectOptions(elements.device, Config.devices, input.device);
+        setSelectOptions(elements.systemRole, Config.system_roles, input.system_role);
+        setSelectOptions(elements.dtype, Config.dtypes, input.dtype);
+
+        elements.model.value = input.model;
+        elements.device.value = input.device;
+        elements.systemRole.value = input.system_role;
+        elements.dtype.value = input.dtype;
+
+        elements.maxNewTokens.value = input.parameters.max_new_tokens;
+        elements.maxNewTokensValue.textContent = `(${input.parameters.max_new_tokens})`;
+
+        elements.temperature.value = input.parameters.temperature;
+        elements.temperatureValue.textContent = `(${input.parameters.temperature})`;
+
+        elements.repetitionPenalty.value = input.parameters.repetition_penalty;
+        elements.repetitionPenaltyValue.textContent = `(${input.parameters.repetition_penalty})`;
+
+        elements.topP.value = input.parameters.top_p;
+        elements.topPValue.textContent = `(${input.parameters.top_p})`;
+
+        elements.doSample.checked = input.parameters.do_sample;
+
+        elements.topK.value = input.parameters.top_k;
+        elements.topKValue.textContent = `(${input.parameters.top_k})`;
+
+        elements.model.disabled = status.modelDisabled;
+        elements.device.disabled = status.modelDisabled;
+        elements.systemRole.disabled = status.disabled;
+        elements.dtype.disabled = status.modelDisabled;
+        elements.maxNewTokens.disabled = status.disabled;
+        elements.temperature.disabled = status.disabled || !input.parameters.do_sample;
+        elements.repetitionPenalty.disabled = status.disabled;
+        elements.topP.disabled = status.disabled || !input.parameters.do_sample;
+        elements.doSample.disabled = status.disabled;
+        elements.topK.disabled = status.disabled || !input.parameters.do_sample;
+
+        elements.generate.disabled = status.disabled;
+        elements.generate.textContent = status.disabled
+          ? (status.ready ? 'Generating...' : 'Waiting...')
+          : (status.ready ? 'Generate' : 'Load Model');
+
+        elements.unload.disabled = !status.ready || status.disabled;
+
+        elements.chatGenerate.disabled = status.disabled || !status.ready;
+        elements.chatGenerate.textContent = 'Send';
+
+        elements.statusText.textContent = status.statusText;
+        elements.chatStatus.textContent = status.statusText;
+        elements.settingsStatus.textContent = status.statusText || (status.ready ? 'Model loaded and ready.' : 'Select a model and use Load Model.');
+
+        elements.settingsModal.classList.toggle('open', state.settingsOpen);
+        elements.classicChat.classList.toggle('classic-chat-hidden', !status.ready);
+
+        if (status.ready) {
+          elements.chatInput.disabled = status.disabled;
+        }
+
+        renderChat();
+      };
+
+      const openSettings = () => {
+        state.settingsOpen = true;
+        render();
+      };
+
+      const closeSettings = () => {
+        state.settingsOpen = false;
+        render();
+      };
+
+      const bindEvents = () => {
+        elements.settingsButton.addEventListener('click', openSettings);
+        elements.settingsClose.addEventListener('click', closeSettings);
+
+        elements.settingsModal.addEventListener('click', (event) => {
+          if (event.target === elements.settingsModal) closeSettings();
+        });
+
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape' && state.settingsOpen) {
+            closeSettings();
+          }
+        });
+
+        elements.model.addEventListener('change', (event) => {
+          setInputValue('model', event.target.value);
+        });
+
+        elements.device.addEventListener('change', (event) => {
+          setInputValue('device', event.target.value);
+        });
+
+        elements.systemRole.addEventListener('change', (event) => {
+          setInputValue('system_role', event.target.value);
+        });
+
+        elements.dtype.addEventListener('change', (event) => {
+          setInputValue('dtype', event.target.value);
+        });
+
+        const bindRange = (element, valueElement, key) => {
+          element.addEventListener('input', (event) => {
+            setParameter(key, Number(event.target.value));
+            valueElement.textContent = `(${event.target.value})`;
+          });
         };
 
-        const $ = id => document.getElementById(id);
+        bindRange(elements.maxNewTokens, elements.maxNewTokensValue, 'max_new_tokens');
+        bindRange(elements.temperature, elements.temperatureValue, 'temperature');
+        bindRange(elements.repetitionPenalty, elements.repetitionPenaltyValue, 'repetition_penalty');
+        bindRange(elements.topP, elements.topPValue, 'top_p');
+        bindRange(elements.topK, elements.topKValue, 'top_k');
 
-        const runtime = {
-            onnx: {
-                state: "not_loaded",
-                progress: 0,
-                message: "ONNX model is not loaded."
-            },
-            gguf: {
-                state: "not_loaded",
-                progress: 0,
-                message: "GGUF model is not loaded."
-            }
+        elements.doSample.addEventListener('change', (event) => {
+          setParameter('do_sample', event.target.checked);
+          render();
+        });
+
+        const submitChatInput = () => {
+          if (elements.chatInput.value.trim()) {
+            state.input.text = elements.chatInput.value;
+          }
+          generate();
         };
 
-        function clone(value) {
-            try {
-                return JSON.parse(JSON.stringify(value));
-            } catch (_) {
-                return value;
+        elements.chatInput.addEventListener('input', (event) => {
+          state.input.text = event.target.value;
+        });
+
+        elements.chatInput.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            submitChatInput();
+          }
+        });
+
+        elements.generate.addEventListener('click', generate);
+        elements.chatGenerate.addEventListener('click', submitChatInput);
+        elements.unload.addEventListener('click', unloadModel);
+      };
+
+      const cleanToolArguments = (value) => {
+        if (value === undefined || value === null || value === '') return {};
+        if (typeof value === 'object') return value;
+
+        try {
+          return JSON.parse(String(value));
+        } catch {
+          return {};
+        }
+      };
+
+      const extractToolCall = (text) => {
+        const source = String(text || '');
+
+        const taggedMatch = source.match(/<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/i);
+        if (taggedMatch) {
+          try {
+            const parsed = JSON.parse(taggedMatch[1]);
+            if (parsed && typeof parsed.name === 'string') {
+              return {
+                name: parsed.name,
+                arguments: cleanToolArguments(parsed.arguments),
+                raw: taggedMatch[0]
+              };
             }
+          } catch {
+          }
         }
 
-        function merge(base, extra) {
-            const out =
-                base &&
-                typeof base === "object" &&
-                !Array.isArray(base)
-                    ? clone(base)
-                    : {};
-
-            if (
-                extra &&
-                typeof extra === "object" &&
-                !Array.isArray(extra)
-            ) {
-                for (const [key, value] of Object.entries(extra)) {
-                    if (
-                        value &&
-                        typeof value === "object" &&
-                        !Array.isArray(value) &&
-                        out[key] &&
-                        typeof out[key] === "object" &&
-                        !Array.isArray(out[key])
-                    ) {
-                        out[key] = merge(out[key], value);
-                    } else {
-                        out[key] = value;
-                    }
-                }
-            }
-
-            return out;
+        const jsonMatch = source.match(/\{\s*"name"\s*:\s*"([^"]+)"\s*,\s*"arguments"\s*:\s*(\{[\s\S]*?\})\s*\}/);
+        if (jsonMatch) {
+          try {
+            return {
+              name: jsonMatch[1],
+              arguments: cleanToolArguments(jsonMatch[2]),
+              raw: jsonMatch[0]
+            };
+          } catch {
+          }
         }
 
-        function getParent() {
-            try {
-                if (window.parent && window.parent !== window) {
-                    return window.parent;
-                }
-            } catch (_) {}
+        return null;
+      };
 
-            return window;
+      const stripToolCall = (text, raw) => {
+        if (!raw) return String(text || '').trim();
+        return String(text || '').replace(raw, '').trim();
+      };
+
+      const createToolInstructionMessage = () => ({
+        role: 'system',
+        content: TOOL_INSTRUCTIONS
+      });
+
+      const buildMessages = () => {
+        const messages = [];
+
+        if (state.input.system_role) {
+          messages.push({ role: 'system', content: state.input.system_role });
         }
 
-        function readLocal(source) {
-            try {
-                const raw = source.localStorage.getItem(SETTINGS_KEY);
+        messages.push(createToolInstructionMessage());
+        messages.push(...state.history);
+        messages.push({ role: 'user', content: state.input.text });
 
-                if (!raw) {
-                    return clone(DEFAULTS);
-                }
+        return messages;
+      };
 
-                return merge(DEFAULTS, JSON.parse(raw));
-            } catch (_) {
-                return clone(DEFAULTS);
-            }
-        }
+      const executeToolCall = async (toolCall) => {
+        if (!toolCall) return null;
 
-        function requestParentSettings() {
-            return new Promise(resolve => {
-                const parent = getParent();
-
-                if (parent === window) {
-                    resolve(null);
-                    return;
-                }
-
-                let finished = false;
-                let timer = null;
-
-                const done = value => {
-                    if (finished) return;
-
-                    finished = true;
-
-                    window.removeEventListener(
-                        "message",
-                        onMessage
-                    );
-
-                    clearTimeout(timer);
-                    resolve(value);
-                };
-
-                const onMessage = event => {
-                    if (
-                        event.source !== parent ||
-                        !event.data
-                    ) {
-                        return;
-                    }
-
-                    if (
-                        event.data.type ===
-                        "LH_SETTINGS_RESPONSE"
-                    ) {
-                        done(event.data.settings || null);
-                    }
-                };
-
-                timer = setTimeout(
-                    () => done(null),
-                    900
-                );
-
-                window.addEventListener(
-                    "message",
-                    onMessage
-                );
-
-                try {
-                    parent.postMessage(
-                        {
-                            type:
-                                "LH_SETTINGS_REQUEST"
-                        },
-                        "*"
-                    );
-                } catch (_) {
-                    done(null);
-                }
-            });
-        }
-
-        async function readSettings() {
-            const parent = getParent();
-
-            try {
-                if (
-                    parent !== window &&
-                    parent.AI &&
-                    typeof parent.AI.getSettings === "function"
-                ) {
-                    const result = parent.AI.getSettings();
-
-                    if (
-                        result &&
-                        typeof result.then === "function"
-                    ) {
-                        return merge(
-                            DEFAULTS,
-                            await result
-                        );
-                    }
-
-                    return merge(
-                        DEFAULTS,
-                        result
-                    );
-                }
-            } catch (_) {}
-
-            try {
-                const requested =
-                    await requestParentSettings();
-
-                if (requested) {
-                    return merge(
-                        DEFAULTS,
-                        requested
-                    );
-                }
-            } catch (_) {}
-
-            return readLocal(parent);
-        }
-
-        async function writeParentSettings(settings) {
-            const parent = getParent();
-
-            try {
-                if (
-                    parent !== window &&
-                    parent.AI &&
-                    typeof parent.AI.setSettings ===
-                        "function"
-                ) {
-                    const result =
-                        parent.AI.setSettings(settings);
-
-                    if (
-                        result &&
-                        typeof result.then === "function"
-                    ) {
-                        await result;
-                    }
-
-                    try {
-                        parent.postMessage(
-                            {
-                                type:
-                                    "LH_SETTINGS_SAVED",
-                                settings:
-                                    clone(settings)
-                            },
-                            "*"
-                        );
-                    } catch (_) {}
-
-                    return true;
-                }
-            } catch (_) {}
-
-            try {
-                if (parent !== window) {
-                    parent.postMessage(
-                        {
-                            type:
-                                "LH_SETTINGS_SET",
-                            settings:
-                                clone(settings)
-                        },
-                        "*"
-                    );
-
-                    try {
-                        parent.localStorage.setItem(
-                            SETTINGS_KEY,
-                            JSON.stringify(settings)
-                        );
-                    } catch (_) {}
-
-                    return true;
-                }
-            } catch (_) {}
-
-            return false;
-        }
-
-        async function saveSettings(settings) {
-            const throughParent =
-                await writeParentSettings(settings);
-
-            if (!throughParent) {
-                try {
-                    localStorage.setItem(
-                        SETTINGS_KEY,
-                        JSON.stringify(settings)
-                    );
-                } catch (_) {}
-            }
-
-            return settings;
-        }
-
-        function setStatus(message, kind) {
-            $("status").textContent =
-                message || "";
-
-            $("status").className =
-                kind || "";
-        }
-
-        function showProvider(provider) {
-            const value =
-                provider || "puter";
-
-            $("provider").value =
-                value;
-
-            $("providerBadge").textContent =
-                value === "gemini"
-                    ? "GOOGLE GEMINI"
-                    : value.toUpperCase();
-
-            document
-                .querySelectorAll(".provider-panel")
-                .forEach(panel => {
-                    panel.classList.toggle(
-                        "active",
-                        panel.id ===
-                        "panel-" + value
-                    );
-                });
-        }
-
-        function fill(settings) {
-            const puter =
-                settings.puter ||
-                DEFAULTS.puter;
-
-            const onnx =
-                settings.onnx ||
-                DEFAULTS.onnx;
-
-            const gguf =
-                settings.gguf ||
-                DEFAULTS.gguf;
-
-            const gemini =
-                settings.gemini ||
-                DEFAULTS.gemini;
-
-            const live =
-                settings.live ||
-                DEFAULTS.live;
-
-            const agent =
-                settings.agent ||
-                DEFAULTS.agent;
-
-            showProvider(
-                settings.provider ||
-                DEFAULTS.provider
-            );
-
-            $("puterModel").value =
-                puter.model ||
-                DEFAULTS.puter.model;
-
-            $("onnxModel").value =
-                onnx.model ||
-                DEFAULTS.onnx.model;
-
-            $("onnxDevice").value =
-                onnx.device ||
-                DEFAULTS.onnx.device;
-
-            $("onnxDtype").value =
-                onnx.dtype ||
-                DEFAULTS.onnx.dtype;
-
-            $("onnxMaxNewTokens").value =
-                Number(
-                    onnx.maxNewTokens ||
-                    DEFAULTS.onnx.maxNewTokens
-                );
-
-            $("onnxTemperature").value =
-                Number(
-                    onnx.temperature ??
-                    DEFAULTS.onnx.temperature
-                );
-
-            $("ggufModel").value =
-                gguf.model ||
-                "";
-
-            $("ggufContext").value =
-                Number(
-                    gguf.context ||
-                    DEFAULTS.gguf.context
-                );
-
-            $("ggufThreads").value =
-                Number(
-                    gguf.threads ||
-                    DEFAULTS.gguf.threads
-                );
-
-            $("ggufMaxNewTokens").value =
-                Number(
-                    gguf.maxNewTokens ||
-                    DEFAULTS.gguf.maxNewTokens
-                );
-
-            $("ggufTemperature").value =
-                Number(
-                    gguf.temperature ??
-                    DEFAULTS.gguf.temperature
-                );
-
-            $("apiKey").value =
-                gemini.apiKey ||
-                "";
-
-            $("model").value =
-                gemini.model ||
-                DEFAULTS.gemini.model;
-
-            $("pythonTool").checked =
-                Boolean(
-                    gemini.pythonTool
-                );
-
-            $("maxOutputTokens").value =
-                Number(
-                    gemini.maxOutputTokens ||
-                    DEFAULTS.gemini.maxOutputTokens
-                );
-
-            $("temperature").value =
-                Number(
-                    gemini.temperature ??
-                    DEFAULTS.gemini.temperature
-                );
-
-            $("maxToolRounds").value =
-                Number(
-                    agent.maxToolRounds ||
-                    DEFAULTS.agent.maxToolRounds
-                );
-
-            $("liveEnabled").checked =
-                Boolean(
-                    live.enabled
-                );
-
-            $("debounceMs").value =
-                Number(
-                    live.debounceMs ??
-                    DEFAULTS.live.debounceMs
-                );
-
-            $("minIntervalMs").value =
-                Number(
-                    live.minIntervalMs ??
-                    DEFAULTS.live.minIntervalMs
-                );
-        }
-
-        async function collect() {
-            const current =
-                await readSettings();
-
-            return merge(
-                current,
-                {
-                    provider:
-                        $("provider").value,
-
-                    puter:
-                    {
-                        model:
-                            $("puterModel")
-                                .value
-                                .trim() ||
-                            DEFAULTS.puter.model
-                    },
-
-                    onnx:
-                    {
-                        model:
-                            $("onnxModel")
-                                .value
-                                .trim() ||
-                            DEFAULTS.onnx.model,
-
-                        device:
-                            $("onnxDevice")
-                                .value,
-
-                        dtype:
-                            $("onnxDtype")
-                                .value
-                                .trim() ||
-                            DEFAULTS.onnx.dtype,
-
-                        maxNewTokens:
-                            Math.max(
-                                1,
-                                Number(
-                                    $("onnxMaxNewTokens")
-                                        .value
-                                ) ||
-                                DEFAULTS.onnx.maxNewTokens
-                            ),
-
-                        temperature:
-                            Math.max(
-                                0,
-                                Number(
-                                    $("onnxTemperature")
-                                        .value
-                                ) || 0
-                            )
-                    },
-
-                    gguf:
-                    {
-                        model:
-                            $("ggufModel")
-                                .value
-                                .trim(),
-
-                        context:
-                            Math.max(
-                                256,
-                                Number(
-                                    $("ggufContext")
-                                        .value
-                                ) ||
-                                DEFAULTS.gguf.context
-                            ),
-
-                        threads:
-                            Math.max(
-                                1,
-                                Number(
-                                    $("ggufThreads")
-                                        .value
-                                ) ||
-                                DEFAULTS.gguf.threads
-                            ),
-
-                        maxNewTokens:
-                            Math.max(
-                                1,
-                                Number(
-                                    $("ggufMaxNewTokens")
-                                        .value
-                                ) ||
-                                DEFAULTS.gguf.maxNewTokens
-                            ),
-
-                        temperature:
-                            Math.max(
-                                0,
-                                Number(
-                                    $("ggufTemperature")
-                                        .value
-                                ) || 0
-                            )
-                    },
-
-                    gemini:
-                    {
-                        apiKey:
-                            $("apiKey")
-                                .value
-                                .trim(),
-
-                        model:
-                            $("model")
-                                .value
-                                .trim() ||
-                            DEFAULTS.gemini.model,
-
-                        pythonTool:
-                            $("pythonTool")
-                                .checked,
-
-                        maxOutputTokens:
-                            Math.max(
-                                1,
-                                Number(
-                                    $("maxOutputTokens")
-                                        .value
-                                ) ||
-                                DEFAULTS.gemini.maxOutputTokens
-                            ),
-
-                        temperature:
-                            Math.max(
-                                0,
-                                Number(
-                                    $("temperature")
-                                        .value
-                                ) || 0
-                            )
-                    },
-
-                    agent:
-                    {
-                        maxToolRounds:
-                            Math.max(
-                                1,
-                                Math.min(
-                                    32,
-                                    Number(
-                                        $("maxToolRounds")
-                                            .value
-                                    ) ||
-                                    DEFAULTS.agent.maxToolRounds
-                                )
-                            )
-                    },
-
-                    live:
-                    {
-                        enabled:
-                            $("liveEnabled")
-                                .checked,
-
-                        debounceMs:
-                            Math.max(
-                                0,
-                                Number(
-                                    $("debounceMs")
-                                        .value
-                                ) || 0
-                            ),
-
-                        minIntervalMs:
-                            Math.max(
-                                0,
-                                Number(
-                                    $("minIntervalMs")
-                                        .value
-                                ) || 0
-                            )
-                    }
-                }
-            );
-        }
-
-        function setRuntimeUI(type, patch) {
-            runtime[type] =
-                Object.assign(
-                    {},
-                    runtime[type],
-                    patch || {}
-                );
-
-            const state =
-                runtime[type];
-
-            const prefix =
-                type === "onnx"
-                    ? "onnx"
-                    : "gguf";
-
-            const stateEl =
-                $(prefix + "State");
-
-            const bar =
-                $(prefix + "ProgressBar");
-
-            const track =
-                $(prefix + "ProgressTrack");
-
-            const message =
-                $(prefix + "RuntimeMessage");
-
-            stateEl.textContent =
-                String(
-                    state.state || "not_loaded"
-                )
-                .replaceAll("_", " ")
-                .toUpperCase();
-
-            message.textContent =
-                state.message ||
-                "";
-
-            const progress =
-                Math.max(
-                    0,
-                    Math.min(
-                        100,
-                        Number(state.progress) || 0
-                    )
-                );
-
-            bar.style.width =
-                progress + "%";
-
-            track.classList.toggle(
-                "indeterminate",
-                state.state === "loading" ||
-                state.state === "starting" ||
-                state.state === "downloading"
-            );
-
-            const loading =
-                state.state === "loading" ||
-                state.state === "starting" ||
-                state.state === "downloading";
-
-            $(prefix + "LoadBtn").disabled =
-                loading ||
-                state.state === "ready";
-
-            $(prefix + "UnloadBtn").disabled =
-                loading ||
-                state.state === "not_loaded";
-        }
-
-        async function getParentProvider(name) {
-            const parent =
-                getParent();
-
-            if (
-                parent === window
-            ) {
-                throw new Error(
-                    "AI runtime is not running in a parent page."
-                );
-            }
-
-            if (
-                !parent.AI ||
-                typeof parent.AI.getProvider !==
-                    "function"
-            ) {
-                throw new Error(
-                    "Little Hollow parent AI runtime is unavailable."
-                );
-            }
-
-            return parent.AI.getProvider(name);
-        }
-
-        async function loadONNX() {
-            const settings =
-                await collect();
-
-            await saveSettings(settings);
-
-            setRuntimeUI(
-                "onnx",
-                {
-                    state: "starting",
-                    progress: 0,
-                    message:
-                        "Starting ONNX runtime..."
-                }
-            );
-
-            setStatus(
-                "Loading ONNX in the Little Hollow parent runtime..."
-            );
-
-            try {
-                const provider =
-                    await getParentProvider("onnx");
-
-                if (
-                    !provider ||
-                    typeof provider.prepare !==
-                        "function"
-                ) {
-                    throw new Error(
-                        "ONNX provider does not support loading."
-                    );
-                }
-
-                const result =
-                    await provider.prepare(
-                        settings
-                    );
-
-                const status =
-                    result?.status ||
-                    provider.getStatus?.() ||
-                    {};
-
-                setRuntimeUI(
-                    "onnx",
-                    {
-                        state:
-                            status.state ||
-                            "ready",
-
-                        progress:
-                            Number(
-                                status.progress
-                            ) || 100,
-
-                        message:
-                            status.message ||
-                            "ONNX model is ready."
-                    }
-                );
-
-                setStatus(
-                    "ONNX model loaded in the parent runtime.",
-                    "good"
-                );
-            } catch (error) {
-                setRuntimeUI(
-                    "onnx",
-                    {
-                        state: "error",
-                        progress: 0,
-                        message:
-                            error?.message ||
-                            String(error)
-                    }
-                );
-
-                setStatus(
-                    "ONNX load failed: " +
-                    (
-                        error?.message ||
-                        String(error)
-                    ),
-                    "bad"
-                );
-            }
-        }
-
-        async function unloadONNX() {
-            setStatus(
-                "Unloading ONNX..."
-            );
-
-            try {
-                const provider =
-                    await getParentProvider("onnx");
-
-                if (
-                    !provider ||
-                    typeof provider.unload !==
-                        "function"
-                ) {
-                    throw new Error(
-                        "ONNX provider does not support unloading."
-                    );
-                }
-
-                provider.unload();
-
-                setRuntimeUI(
-                    "onnx",
-                    {
-                        state: "not_loaded",
-                        progress: 0,
-                        message:
-                            "ONNX runtime unloaded."
-                    }
-                );
-
-                setStatus(
-                    "ONNX model unloaded from the parent runtime.",
-                    "good"
-                );
-            } catch (error) {
-                setStatus(
-                    "ONNX unload failed: " +
-                    (
-                        error?.message ||
-                        String(error)
-                    ),
-                    "bad"
-                );
-            }
-        }
-
-        async function loadGGUF() {
-            const settings =
-                await collect();
-
-            await saveSettings(settings);
-
-            if (
-                !String(
-                    settings.gguf?.model || ""
-                ).trim()
-            ) {
-                setStatus(
-                    "Enter a GGUF model path or identifier first.",
-                    "bad"
-                );
-                return;
-            }
-
-            setRuntimeUI(
-                "gguf",
-                {
-                    state: "loading",
-                    progress: 5,
-                    message:
-                        "Starting GGUF runtime..."
-                }
-            );
-
-            setStatus(
-                "Loading GGUF in the Little Hollow parent runtime..."
-            );
-
-            try {
-                const provider =
-                    await getParentProvider("gguf");
-
-                if (
-                    !provider ||
-                    typeof provider.prepare !==
-                        "function"
-                ) {
-                    throw new Error(
-                        "GGUF provider does not support loading."
-                    );
-                }
-
-                setRuntimeUI(
-                    "gguf",
-                    {
-                        state: "loading",
-                        progress: 15,
-                        message:
-                            "Preparing GGUF model..."
-                    }
-                );
-
-                const result =
-                    await provider.prepare(
-                        settings
-                    );
-
-                const status =
-                    typeof provider.getStatus ===
-                        "function"
-                        ? provider.getStatus()
-                        : {};
-
-                setRuntimeUI(
-                    "gguf",
-                    {
-                        state:
-                            status?.state ||
-                            (status?.ready
-                                ? "ready"
-                                : "ready"),
-
-                        progress:
-                            Number(
-                                status?.progress
-                            ) || 100,
-
-                        message:
-                            status?.message ||
-                            "GGUF model is ready."
-                    }
-                );
-
-                if (
-                    result &&
-                    result.state ===
-                        "error"
-                ) {
-                    throw new Error(
-                        result.message ||
-                        "GGUF runtime failed to load."
-                    );
-                }
-
-                setStatus(
-                    "GGUF model loaded in the parent runtime.",
-                    "good"
-                );
-            } catch (error) {
-                setRuntimeUI(
-                    "gguf",
-                    {
-                        state: "error",
-                        progress: 0,
-                        message:
-                            error?.message ||
-                            String(error)
-                    }
-                );
-
-                setStatus(
-                    "GGUF load failed: " +
-                    (
-                        error?.message ||
-                        String(error)
-                    ),
-                    "bad"
-                );
-            }
-        }
-
-        async function unloadGGUF() {
-            setStatus(
-                "Unloading GGUF..."
-            );
-
-            try {
-                const parent =
-                    getParent();
-
-                const provider =
-                    await getParentProvider("gguf");
-
-                if (
-                    provider &&
-                    typeof provider.unload ===
-                        "function"
-                ) {
-                    await provider.unload();
-                } else if (
-                    parent.LittleHollowGGUF &&
-                    typeof parent.LittleHollowGGUF.unload ===
-                        "function"
-                ) {
-                    await parent.LittleHollowGGUF.unload();
-                } else if (
-                    parent.LittleHollowGGUF &&
-                    typeof parent.LittleHollowGGUF.close ===
-                        "function"
-                ) {
-                    await parent.LittleHollowGGUF.close();
-                } else {
-                    throw new Error(
-                        "The installed GGUF runtime does not expose an unload function."
-                    );
-                }
-
-                setRuntimeUI(
-                    "gguf",
-                    {
-                        state: "not_loaded",
-                        progress: 0,
-                        message:
-                            "GGUF runtime unloaded."
-                    }
-                );
-
-                setStatus(
-                    "GGUF model unloaded from the parent runtime.",
-                    "good"
-                );
-            } catch (error) {
-                setStatus(
-                    "GGUF unload failed: " +
-                    (
-                        error?.message ||
-                        String(error)
-                    ),
-                    "bad"
-                );
-            }
-        }
-
-        function handleRuntimeMessage(event) {
-            if (
-                !event.data ||
-                typeof event.data !== "object"
-            ) {
-                return;
-            }
-
-            const type =
-                String(
-                    event.data.type || ""
-                ).toUpperCase();
-
-            const status =
-                event.data.status ||
-                event.data;
-
-            if (
-                type.includes("ONNX")
-            ) {
-                if (
-                    type.includes("PROGRESS") ||
-                    type.includes("STATUS")
-                ) {
-                    setRuntimeUI(
-                        "onnx",
-                        {
-                            state:
-                                status.state ||
-                                "loading",
-                            progress:
-                                Number(
-                                    status.progress
-                                ) || 0,
-                            message:
-                                status.message ||
-                                "Loading ONNX..."
-                        }
-                    );
-                }
-
-                return;
-            }
-
-            if (
-                type.includes("GGUF")
-            ) {
-                if (
-                    type.includes("PROGRESS") ||
-                    type.includes("STATUS")
-                ) {
-                    setRuntimeUI(
-                        "gguf",
-                        {
-                            state:
-                                status.state ||
-                                (
-                                    Number(
-                                        status.progress
-                                    ) >= 100
-                                        ? "ready"
-                                        : "loading"
-                                ),
-                            progress:
-                                Number(
-                                    status.progress
-                                ) || 0,
-                            message:
-                                status.message ||
-                                "Loading GGUF..."
-                        }
-                    );
-                }
-            }
-        }
-
-        async function syncRuntimeStatus() {
-            try {
-                const onnxProvider =
-                    await getParentProvider("onnx");
-
-                if (
-                    onnxProvider &&
-                    typeof onnxProvider.getStatus ===
-                        "function"
-                ) {
-                    const status =
-                        onnxProvider.getStatus();
-
-                    if (
-                        status
-                    ) {
-                        setRuntimeUI(
-                            "onnx",
-                            status
-                        );
-                    }
-                }
-            } catch (_) {}
-
-            try {
-                const ggufProvider =
-                    await getParentProvider("gguf");
-
-                if (
-                    ggufProvider &&
-                    typeof ggufProvider.getStatus ===
-                        "function"
-                ) {
-                    const status =
-                        ggufProvider.getStatus();
-
-                    if (
-                        status
-                    ) {
-                        setRuntimeUI(
-                            "gguf",
-                            {
-                                state:
-                                    status.state ||
-                                    (
-                                        status.ready
-                                            ? "ready"
-                                            : "not_loaded"
-                                    ),
-                                progress:
-                                    Number(
-                                        status.progress
-                                    ) ||
-                                    (
-                                        status.ready
-                                            ? 100
-                                            : 0
-                                    ),
-                                message:
-                                    status.message ||
-                                    (
-                                        status.ready
-                                            ? "GGUF model is ready."
-                                            : "GGUF model is not loaded."
-                                    )
-                            }
-                        );
-                    }
-                }
-            } catch (_) {}
-        }
-
-        async function initialize() {
-            const settings =
-                await readSettings();
-
-            fill(settings);
-
-            setRuntimeUI(
-                "onnx",
-                runtime.onnx
-            );
-
-            setRuntimeUI(
-                "gguf",
-                runtime.gguf
-            );
-
-            await syncRuntimeStatus();
-        }
-
-        document
-            .querySelectorAll(".nav-btn")
-            .forEach(button => {
-                button.addEventListener(
-                    "click",
-                    () => {
-                        const page =
-                            button.dataset.page;
-
-                        document
-                            .querySelectorAll(
-                                ".nav-btn"
-                            )
-                            .forEach(
-                                x =>
-                                    x.classList.toggle(
-                                        "active",
-                                        x === button
-                                    )
-                            );
-
-                        document
-                            .querySelectorAll(
-                                ".page"
-                            )
-                            .forEach(
-                                x =>
-                                    x.classList.toggle(
-                                        "active",
-                                        x.id ===
-                                        "page-" +
-                                        page
-                                    )
-                            );
-                    }
-                );
-            });
-
-        $("provider")
-            .addEventListener(
-                "change",
-                async () => {
-                    showProvider(
-                        $("provider").value
-                    );
-
-                    try {
-                        const settings =
-                            await collect();
-
-                        await saveSettings(
-                            settings
-                        );
-
-                        setStatus(
-                            "Provider saved."
-                        );
-                    } catch (_) {}
-                }
-            );
-
-        $("saveBtn")
-            .addEventListener(
-                "click",
-                async () => {
-                    try {
-                        const settings =
-                            await collect();
-
-                        await saveSettings(
-                            settings
-                        );
-
-                        setStatus(
-                            "Settings saved.",
-                            "good"
-                        );
-                    } catch (error) {
-                        setStatus(
-                            "Save failed: " +
-                            (
-                                error?.message ||
-                                String(error)
-                            ),
-                            "bad"
-                        );
-                    }
-                }
-            );
-
-        $("onnxLoadBtn")
-            .addEventListener(
-                "click",
-                loadONNX
-            );
-
-        $("onnxUnloadBtn")
-            .addEventListener(
-                "click",
-                unloadONNX
-            );
-
-        $("ggufLoadBtn")
-            .addEventListener(
-                "click",
-                loadGGUF
-            );
-
-        $("ggufUnloadBtn")
-            .addEventListener(
-                "click",
-                unloadGGUF
-            );
-
-        $("testBtn")
-            .addEventListener(
-                "click",
-                async () => {
-                    const key =
-                        $("apiKey")
-                            .value
-                            .trim();
-
-                    const model =
-                        $("model")
-                            .value
-                            .trim() ||
-                        DEFAULTS.gemini.model;
-
-                    if (!key) {
-                        setStatus(
-                            "Enter a Gemini API key first.",
-                            "bad"
-                        );
-                        return;
-                    }
-
-                    setStatus(
-                        "Testing Gemini..."
-                    );
-
-                    try {
-                        const response =
-                            await fetch(
-                                "https://generativelanguage.googleapis.com/v1beta/models/" +
-                                encodeURIComponent(
-                                    model
-                                ) +
-                                ":generateContent?key=" +
-                                encodeURIComponent(
-                                    key
-                                ),
-                                {
-                                    method:
-                                        "POST",
-                                    headers:
-                                    {
-                                        "Content-Type":
-                                            "application/json"
-                                    },
-                                    body:
-                                        JSON.stringify(
-                                        {
-                                            contents:
-                                            [
-                                                {
-                                                    role:
-                                                        "user",
-                                                    parts:
-                                                    [
-                                                        {
-                                                            text:
-                                                                "Reply with exactly: LITTLE HOLLOW GEMINI OK"
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        }
-                                        )
-                                }
-                            );
-
-                        const data =
-                            await response.json();
-
-                        if (!response.ok) {
-                            throw new Error(
-                                data?.error?.message ||
-                                "HTTP " +
-                                response.status
-                            );
-                        }
-
-                        const settings =
-                            await collect();
-
-                        settings.provider =
-                            "gemini";
-
-                        await saveSettings(
-                            settings
-                        );
-
-                        showProvider(
-                            "gemini"
-                        );
-
-                        setStatus(
-                            "Gemini connection OK.",
-                            "good"
-                        );
-                    } catch (error) {
-                        setStatus(
-                            "Gemini test failed: " +
-                            (
-                                error?.message ||
-                                String(error)
-                            ),
-                            "bad"
-                        );
-                    }
-                }
-            );
-
-        $("resetBtn")
-            .addEventListener(
-                "click",
-                async () => {
-                    try {
-                        const settings =
-                            await readSettings();
-
-                        settings.gemini =
-                            clone(
-                                DEFAULTS.gemini
-                            );
-
-                        await saveSettings(
-                            settings
-                        );
-
-                        fill(settings);
-
-                        setStatus(
-                            "Gemini settings reset.",
-                            "good"
-                        );
-                    } catch (error) {
-                        setStatus(
-                            "Reset failed: " +
-                            (
-                                error?.message ||
-                                String(error)
-                            ),
-                            "bad"
-                        );
-                    }
-                }
-            );
-
-        window.addEventListener(
-            "message",
-            handleRuntimeMessage
+        const definition = Tools.definitions.find(
+          (item) => item?.function?.name === toolCall.name
         );
 
-        window.addEventListener(
-            "message",
-            event => {
-                if (
-                    !event.data ||
-                    !event.data.type
-                ) {
-                    return;
-                }
+        if (!definition) {
+          return {
+            ok: false,
+            error: `Tool "${toolCall.name}" is not available.`
+          };
+        }
 
-                if (
-                    event.data.type ===
-                    "LH_SETTINGS_PUSH"
-                ) {
-                    if (
-                        event.data.settings
-                    ) {
-                        fill(
-                            merge(
-                                DEFAULTS,
-                                event.data.settings
-                            )
-                        );
-                    }
-                }
+        try {
+          return await Tools.execute(toolCall.name, toolCall.arguments);
+        } catch (error) {
+          return {
+            ok: false,
+            error: error instanceof Error ? error.message : String(error)
+          };
+        }
+      };
 
-                if (
-                    event.data.type ===
-                    "LH_SETTINGS_RESPONSE"
-                ) {
-                    if (
-                        event.data.settings
-                    ) {
-                        fill(
-                            merge(
-                                DEFAULTS,
-                                event.data.settings
-                            )
-                        );
-                    }
-                }
+      const continueAfterToolCall = async (toolCall) => {
+        if (!toolCall) return false;
+
+        if (state.runtime.toolRounds >= 4) {
+          state.output = 'I reached the tool-call limit for this response.';
+          updateStatus({
+            disabled: false,
+            modelDisabled: false,
+            statusText: 'Tool-call limit reached.'
+          });
+          render();
+          return true;
+        }
+
+        state.runtime.toolRounds += 1;
+        updateStatus({
+          disabled: true,
+          modelDisabled: true,
+          statusText: `Running tool: ${toolCall.name}...`
+        });
+        render();
+
+        const result = await executeToolCall(toolCall);
+
+        const toolCallMessage = {
+          role: 'assistant',
+          content: toolCall.raw
+        };
+
+        const toolResultMessage = {
+          role: 'user',
+          content: `<tool_result name="${toolCall.name}">${JSON.stringify(result)}</tool_result>\nUse this live tool result to answer the original user request.`
+        };
+
+        state.runtime.messages.push(toolCallMessage, toolResultMessage);
+        state.output = '';
+        render();
+
+        createWorker().postMessage({
+          ...state.input,
+          messages: state.runtime.messages
+        });
+
+        return true;
+      };
+
+      const createWorker = () => {
+        if (worker) return worker;
+
+        const workerSource = `
+          import { env, pipeline, TextStreamer } from '${TRANSFORMERS_URL}';
+
+          let generatorPromise;
+
+          async function getInstance(parameters) {
+            env.allowRemoteModels = true;
+            env.allowLocalModels = false;
+            env.useBrowserCache = true;
+            env.useCustomCache = false;
+
+            generatorPromise ??= pipeline(
+              parameters.task,
+              parameters.model,
+              {
+                device: parameters.device,
+                dtype: parameters.dtype,
+                progress_callback: (x) => self.postMessage(x),
+              }
+            );
+
+            return generatorPromise;
+          }
+
+          self.addEventListener('message', async (event) => {
+            const input = event.data;
+
+            try {
+              const generator = await getInstance(input);
+              const streamer = new TextStreamer(generator.tokenizer, {
+                skip_prompt: true,
+                skip_special_tokens: true,
+                callback_function: (text) => {
+                  self.postMessage({ status: 'update', output: text });
+                },
+              });
+
+              const message = input.messages && input.messages.length
+                ? input.messages
+                : (input.text || '');
+
+              await generator(message, {
+                ...input.parameters,
+                return_full_text: false,
+                streamer,
+              });
+
+              self.postMessage({ status: 'complete' });
+            } catch (error) {
+              const message = error instanceof Error ? error.message : String(error);
+              self.postMessage({ status: 'error', output: message });
             }
-        );
+          });
+        `;
 
-        initialize();
-    })();
-</script>
+        workerUrl = URL.createObjectURL(new Blob([workerSource], { type: 'text/javascript' }));
+        worker = new Worker(workerUrl, { type: 'module' });
+        worker.addEventListener('message', onWorkerMessage);
+        worker.addEventListener('error', (error) => {
+          state.status = {
+            ...state.status,
+            disabled: false,
+            statusText: `Worker error (${new Date().toLocaleString('en-us')})`
+          };
+          clearProgressItems();
+          state.output = error.message || 'Unknown worker error';
+          render();
+        });
 
-</body>
+        return worker;
+      };
+
+      const updateStatus = (patch) => {
+        state.status = { ...state.status, ...patch };
+      };
+
+      const onWorkerMessage = (event) => {
+        const data = event.data || {};
+
+        switch (data.status) {
+          case 'initiate':
+            updateStatus({ ready: false, statusText: 'Downloading model...' });
+
+            const progressItem = {
+              ...data,
+              progress: Number(data?.progress ?? 0),
+              loaded: data?.loaded,
+              total: data?.total
+            };
+
+            state.progressItems = [...state.progressItems, progressItem];
+            const progressElement = createProgressItem(progressItem);
+            updateProgressElement(progressElement, progressItem);
+            render();
+
+            break;
+
+          case 'progress':
+            state.progressItems = state.progressItems.map((item) =>
+              item?.file === data?.file
+                ? {
+                    ...item,
+                    progress: Number(data?.progress ?? item?.progress ?? 0),
+                    loaded: data?.loaded !== undefined ? data.loaded : item.loaded,
+                    total: data?.total !== undefined ? data.total : item.total
+                  }
+                : item
+            );
+
+            state.progressItems.forEach((item) => {
+              if (item?.file === data?.file) {
+                const wrapper = Array.from(elements.progressItems.children)
+                  .find((child) => child.dataset.file === data.file);
+                updateProgressElement(wrapper, item);
+              }
+            });
+
+            render();
+            break;
+
+          case 'done':
+            state.progressItems = state.progressItems.filter((item) => item?.file !== data?.file);
+
+            Array.from(elements.progressItems.children)
+              .filter((child) => child.dataset.file === data?.file)
+              .forEach((child) => child.remove());
+
+            render();
+            break;
+
+          case 'ready':
+            updateStatus({ ready: true, statusText: 'Download completed, awating response...' });
+            state.settingsOpen = false;
+            render();
+            break;
+
+          case 'update':
+            if (data?.output) {
+              state.output += data.output;
+
+              let liveMessage = document.getElementById('live-assistant-content');
+
+              if (!liveMessage) {
+                renderChat();
+                liveMessage = document.getElementById('live-assistant-content');
+              }
+
+              if (liveMessage) {
+                liveMessage.textContent = state.output;
+              }
+
+              requestAnimationFrame(() => {
+                elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+              });
+            }
+
+            updateStatus({ statusText: 'Model inferencing...' });
+            elements.chatStatus.textContent = state.status.statusText;
+            break;
+
+          case 'complete': {
+            const toolCall = extractToolCall(state.output);
+
+            if (toolCall) {
+              continueAfterToolCall(toolCall);
+              break;
+            }
+
+            const finalOutput = stripToolCall(state.output);
+
+            state.history = [
+              ...state.history,
+              { role: 'user', content: state.runtime.activeUserText || state.input.text },
+              { role: 'assistant', content: finalOutput }
+            ];
+
+            state.output = '';
+            state.runtime.messages = [];
+            state.runtime.toolRounds = 0;
+            state.runtime.activeUserText = '';
+            clearProgressItems();
+            updateStatus({
+              disabled: false,
+              modelDisabled: false,
+              statusText: `Task completed (${new Date().toLocaleString('en-us')})`
+            });
+            elements.chatInput.value = '';
+            render();
+            break;
+          }
+
+          case 'error':
+            clearProgressItems();
+            updateStatus({
+              disabled: false,
+              modelDisabled: false,
+              statusText: `${state.status.ready ? 'Model error' : 'Download error'} (${new Date().toLocaleString('en-us')})`
+            });
+            state.output = data?.output || 'Unknown error';
+            state.runtime.messages = [];
+            state.runtime.toolRounds = 0;
+            state.runtime.activeUserText = '';
+            render();
+            break;
+        }
+      };
+
+      const generate = () => {
+        if (!state.input.text || !state.input.text.trim()) {
+          alert('Please provide some prompt for the model!');
+          return;
+        }
+
+        state.runtime.activeUserText = state.input.text;
+        state.runtime.toolRounds = 0;
+        state.runtime.messages = buildMessages();
+
+        updateStatus({ disabled: true, modelDisabled: true, statusText: '' });
+        state.output = '';
+        render();
+        createWorker().postMessage({
+          ...state.input,
+          messages: state.runtime.messages
+        });
+      };
+
+      const unloadModel = () => {
+        if (worker) {
+          worker.terminate();
+          worker = null;
+        }
+        if (workerUrl) {
+          URL.revokeObjectURL(workerUrl);
+          workerUrl = null;
+        }
+        clearProgressItems();
+        updateStatus({
+          ready: false,
+          disabled: false,
+          modelDisabled: false,
+          statusText: `Model unloaded (${new Date().toLocaleString('en-us')})`
+        });
+        state.settingsOpen = true;
+        render();
+      };
+
+      window.addEventListener('beforeunload', () => {
+        if (worker) worker.terminate();
+        if (workerUrl) URL.revokeObjectURL(workerUrl);
+      });
+
+      bindEvents();
+      render();
+    </script>
+  </body>
 </html>
