@@ -1,15 +1,18 @@
 (function(){
     "use strict";
 
-    if(window.clockAPI && window.__CHXD_CLOCK_SERVICE__){
+    if(window.__CHXD_CLOCK_SERVICE__){
+        window.clockAPI=window.__CHXD_CLOCK_SERVICE__.api;
         return;
     }
 
     const APP_NAME="Clock";
+    const PIANO_APP_NAME="piano";
+    const STATE_KEY="chxd_clock_state_v5";
     const STATE_PATH="chxd:/local/Clock/state.json";
-    const AUDIO_CONTEXT_KEY="__CHXD_CLOCK_AUDIO_CONTEXT__";
+    const SNOOZE_MINUTES=5;
 
-    const state={
+    const service={
         alarms:[],
         soundPath:"",
         timer:{
@@ -23,53 +26,110 @@
             elapsed:0,
             laps:[]
         },
+        ring:{
+            active:false,
+            kind:"",
+            id:0,
+            snoozeCount:0,
+            timerId:0,
+            repeatTimer:0
+        },
         lastAlarmMinute:"",
         lastTimerEnd:0,
-        audioContext:null
+        audioContext:null,
+        audioBuffer:null,
+        audioSource:null,
+        audioGain:null,
+        initialized:false
     };
 
-    window.__CHXD_CLOCK_SERVICE__=state;
+    window.__CHXD_CLOCK_SERVICE__=service;
 
     function getFS(){
         return window.FS||null;
+    }
+
+    function safeNumber(value,fallback=0){
+        const n=Number(value);
+        return Number.isFinite(n)?n:fallback;
+    }
+
+    function safeBool(value){
+        return !!value;
+    }
+
+    function normalizeAlarm(value){
+        const alarm=value||{};
+
+        return{
+            id:safeNumber(alarm.id,Date.now()),
+            time:String(alarm.time||"00:00"),
+            label:String(alarm.label||"Alarm"),
+            active:alarm.active!==false,
+            lastFired:String(alarm.lastFired||"")
+        };
+    }
+
+    function normalizeState(value){
+        const data=value||{};
+
+        service.alarms=
+            Array.isArray(data.alarms)
+                ?data.alarms.map(normalizeAlarm)
+                :[];
+
+        service.soundPath=
+            typeof data.soundPath==="string"
+                ?data.soundPath
+                :"";
+
+        const timer=data.timer||{};
+
+        service.timer={
+            running:safeBool(timer.running),
+            end:safeNumber(timer.end),
+            remaining:safeNumber(timer.remaining)
+        };
+
+        const stopwatch=data.stopwatch||{};
+
+        service.stopwatch={
+            running:safeBool(stopwatch.running),
+            started:safeNumber(stopwatch.started),
+            elapsed:safeNumber(stopwatch.elapsed),
+            laps:
+                Array.isArray(stopwatch.laps)
+                    ?stopwatch.laps.map(
+                        lap=>({
+                            id:safeNumber(
+                                lap&&lap.id,
+                                Date.now()
+                            ),
+                            total:safeNumber(
+                                lap&&lap.total
+                            ),
+                            diff:safeNumber(
+                                lap&&lap.diff
+                            )
+                        })
+                    )
+                    :[]
+        };
     }
 
     async function loadState(){
         let loaded=false;
 
         try{
-            const raw=localStorage.getItem("chxd_clock_state");
+            const raw=
+                localStorage.getItem(
+                    STATE_KEY
+                );
 
             if(raw){
-                const data=JSON.parse(raw);
-
-                if(Array.isArray(data.alarms)){
-                    state.alarms=data.alarms;
-                }
-
-                state.soundPath=
-                    typeof data.soundPath==="string"
-                        ?data.soundPath
-                        :"";
-
-                if(data.timer){
-                    state.timer={
-                        running:!!data.timer.running,
-                        end:Number(data.timer.end)||0,
-                        remaining:Number(data.timer.remaining)||0
-                    };
-                }
-
-                if(data.stopwatch){
-                    state.stopwatch={
-                        running:!!data.stopwatch.running,
-                        started:Number(data.stopwatch.started)||0,
-                        elapsed:Number(data.stopwatch.elapsed)||0,
-                        laps:Array.isArray(data.stopwatch.laps)
-                            ?data.stopwatch.laps
-                            :[]
-                    };
-                }
+                normalizeState(
+                    JSON.parse(raw)
+                );
 
                 loaded=true;
             }
@@ -87,41 +147,22 @@
                 typeof fs.read==="function"
             ){
                 const result=
-                    await fs.read(STATE_PATH);
+                    await fs.read(
+                        STATE_PATH
+                    );
 
-                if(result&&result.ok){
-                    const data=
+                if(
+                    result&&
+                    result.ok
+                ){
+                    normalizeState(
                         JSON.parse(
-                            String(result.content||"")
-                        );
-
-                    if(Array.isArray(data.alarms)){
-                        state.alarms=data.alarms;
-                    }
-
-                    state.soundPath=
-                        typeof data.soundPath==="string"
-                            ?data.soundPath
-                            :"";
-
-                    if(data.timer){
-                        state.timer={
-                            running:!!data.timer.running,
-                            end:Number(data.timer.end)||0,
-                            remaining:Number(data.timer.remaining)||0
-                        };
-                    }
-
-                    if(data.stopwatch){
-                        state.stopwatch={
-                            running:!!data.stopwatch.running,
-                            started:Number(data.stopwatch.started)||0,
-                            elapsed:Number(data.stopwatch.elapsed)||0,
-                            laps:Array.isArray(data.stopwatch.laps)
-                                ?data.stopwatch.laps
-                                :[]
-                        };
-                    }
+                            String(
+                                result.content||
+                                ""
+                            )
+                        )
+                    );
                 }
             }
         }catch(_){}
@@ -129,15 +170,15 @@
 
     async function saveState(){
         const data={
-            alarms:state.alarms,
-            soundPath:state.soundPath,
-            timer:state.timer,
-            stopwatch:state.stopwatch
+            alarms:service.alarms,
+            soundPath:service.soundPath,
+            timer:service.timer,
+            stopwatch:service.stopwatch
         };
 
         try{
             localStorage.setItem(
-                "chxd_clock_state",
+                STATE_KEY,
                 JSON.stringify(data)
             );
         }catch(_){}
@@ -149,11 +190,6 @@
                 fs&&
                 typeof fs.write==="function"
             ){
-                await fs.mkdir?.(
-                    "chxd:/local/Clock/",
-                    {overwrite:true}
-                ).catch?.(()=>{});
-
                 await fs.write(
                     STATE_PATH,
                     JSON.stringify(data),
@@ -165,171 +201,262 @@
 
     function getAudioContext(){
         if(
-            state.audioContext&&
-            state.audioContext.state!=="closed"
+            service.audioContext&&
+            service.audioContext.state!=="closed"
         ){
-            return state.audioContext;
+            return service.audioContext;
         }
 
-        const AudioContextClass=
-            window[AUDIO_CONTEXT_KEY]||
+        const C=
             window.AudioContext||
             window.webkitAudioContext;
 
-        if(!AudioContextClass){
+        if(!C){
             return null;
         }
 
         try{
-            state.audioContext=
-                new AudioContextClass();
+            service.audioContext=
+                new C();
 
-            return state.audioContext;
+            return service.audioContext;
         }catch(_){
             return null;
         }
     }
 
     function wakeAudio(){
-        const ctx=getAudioContext();
+        const ctx=
+            getAudioContext();
 
         if(!ctx){
             return null;
         }
 
-        if(ctx.state==="suspended"){
+        if(
+            ctx.state==="suspended"
+        ){
             ctx.resume().catch(()=>{});
         }
 
         return ctx;
     }
 
+    document.addEventListener(
+        "pointerdown",
+        wakeAudio,
+        true
+    );
+
+    document.addEventListener(
+        "touchstart",
+        wakeAudio,
+        true
+    );
+
+    document.addEventListener(
+        "keydown",
+        wakeAudio,
+        true
+    );
+
+    function stopAudio(){
+        if(
+            service.audioSource
+        ){
+            try{
+                service.audioSource.stop();
+            }catch(_){}
+        }
+
+        if(
+            service.audioGain
+        ){
+            try{
+                service.audioGain.disconnect();
+            }catch(_){}
+        }
+
+        service.audioSource=null;
+        service.audioGain=null;
+    }
+
     function playOscillator(){
-        const ctx=wakeAudio();
+        const ctx=
+            wakeAudio();
 
         if(!ctx){
             return false;
         }
 
-        const now=ctx.currentTime;
+        stopAudio();
 
-        const frequencies=[
-            880,
-            988,
-            880,
-            660
+        const start=
+            ctx.currentTime;
+
+        const notes=[
+            [880,0],
+            [988,.28],
+            [880,.56],
+            [660,.84],
+            [880,1.12],
+            [988,1.40],
+            [880,1.68],
+            [660,1.96]
         ];
 
-        frequencies.forEach(
-            (frequency,index)=>{
-                const start=
-                    now+
-                    index*
-                    0.32;
+        const output=
+            ctx.createGain();
 
-                const osc=
-                    ctx.createOscillator();
+        output.gain.value=.95;
 
-                const gain=
-                    ctx.createGain();
-
-                osc.type=
-                    index===3
-                        ?"square"
-                        :"sine";
-
-                osc.frequency.setValueAtTime(
-                    frequency,
-                    start
-                );
-
-                osc.frequency.setValueAtTime(
-                    frequency*0.95,
-                    start+0.18
-                );
-
-                gain.gain.setValueAtTime(
-                    0.0001,
-                    start
-                );
-
-                gain.gain.exponentialRampToValueAtTime(
-                    0.32,
-                    start+0.02
-                );
-
-                gain.gain.exponentialRampToValueAtTime(
-                    0.0001,
-                    start+0.24
-                );
-
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-
-                osc.start(start);
-                osc.stop(start+0.26);
-            }
+        output.connect(
+            ctx.destination
         );
+
+        for(
+            const [frequency,offset]
+            of notes
+        ){
+            const osc=
+                ctx.createOscillator();
+
+            const gain=
+                ctx.createGain();
+
+            const t=
+                start+offset;
+
+            osc.type=
+                "sine";
+
+            osc.frequency.setValueAtTime(
+                frequency,
+                t
+            );
+
+            gain.gain.setValueAtTime(
+                .0001,
+                t
+            );
+
+            gain.gain.exponentialRampToValueAtTime(
+                .32,
+                t+.018
+            );
+
+            gain.gain.exponentialRampToValueAtTime(
+                .0001,
+                t+.23
+            );
+
+            osc.connect(gain);
+            gain.connect(output);
+
+            osc.start(t);
+            osc.stop(t+.25);
+        }
+
+        service.audioSource={
+            stop:()=>{}
+        };
 
         return true;
     }
 
-    async function playCustom(path){
-        if(!path){
-            return playOscillator();
+    async function loadCustomAudio(path){
+        if(
+            service.audioBuffer&&
+            service.soundPath===path
+        ){
+            return service.audioBuffer;
+        }
+
+        const fs=
+            getFS();
+
+        if(
+            !fs||
+            typeof fs.readBinary!=="function"
+        ){
+            return null;
+        }
+
+        const result=
+            await fs.readBinary(path);
+
+        if(
+            !result||
+            !result.ok||
+            !result.data
+        ){
+            return null;
+        }
+
+        let raw=result.data;
+
+        if(raw instanceof Blob){
+            raw=
+                await raw.arrayBuffer();
+        }
+
+        if(
+            ArrayBuffer.isView(raw)
+        ){
+            raw=
+                raw.buffer.slice(
+                    raw.byteOffset,
+                    raw.byteOffset+
+                    raw.byteLength
+                );
+        }
+
+        if(
+            !(raw instanceof ArrayBuffer)
+        ){
+            return null;
+        }
+
+        const ctx=
+            wakeAudio();
+
+        if(!ctx){
+            return null;
+        }
+
+        const decoded=
+            await ctx.decodeAudioData(
+                raw.slice(0)
+            );
+
+        service.audioBuffer=
+            decoded;
+
+        service.soundPath=
+            path;
+
+        return decoded;
+    }
+
+    async function startLoopedCustomAudio(path){
+        const ctx=
+            wakeAudio();
+
+        if(!ctx){
+            return false;
         }
 
         try{
-            const fs=getFS();
-
-            if(
-                !fs||
-                typeof fs.readBinary!=="function"
-            ){
-                return playOscillator();
-            }
-
-            const result=
-                await fs.readBinary(path);
-
-            if(!result||!result.ok){
-                return playOscillator();
-            }
-
-            const data=result.data;
-
-            let arrayBuffer;
-
-            if(data instanceof Blob){
-                arrayBuffer=
-                    await data.arrayBuffer();
-            }else if(
-                data instanceof ArrayBuffer
-            ){
-                arrayBuffer=data;
-            }else if(
-                ArrayBuffer.isView(data)
-            ){
-                arrayBuffer=
-                    data.buffer.slice(
-                        data.byteOffset,
-                        data.byteOffset+
-                        data.byteLength
-                    );
-            }else{
-                return playOscillator();
-            }
-
-            const ctx=wakeAudio();
-
-            if(!ctx){
-                return playOscillator();
-            }
-
-            const decoded=
-                await ctx.decodeAudioData(
-                    arrayBuffer.slice(0)
+            const buffer=
+                await loadCustomAudio(
+                    path
                 );
+
+            if(!buffer){
+                return false;
+            }
+
+            stopAudio();
 
             const source=
                 ctx.createBufferSource();
@@ -337,73 +464,298 @@
             const gain=
                 ctx.createGain();
 
-            source.buffer=decoded;
-            gain.gain.value=1;
+            source.buffer=
+                buffer;
+
+            source.loop=true;
+
+            gain.gain.value=
+                .95;
 
             source.connect(gain);
             gain.connect(ctx.destination);
 
             source.start();
 
+            service.audioSource=
+                source;
+
+            service.audioGain=
+                gain;
+
             return true;
         }catch(_){
-            return playOscillator();
+            return false;
         }
     }
 
-    async function playSound(){
-        if(state.soundPath){
-            return playCustom(
-                state.soundPath
-            );
+    function extension(path){
+        const clean=
+            String(path||"")
+                .split("?")[0]
+                .split("#")[0];
+
+        const file=
+            clean
+                .split("/")
+                .pop()||
+            "";
+
+        const dot=
+            file.lastIndexOf(".");
+
+        if(dot<0){
+            return "";
         }
 
-        return playOscillator();
+        return file
+            .slice(dot+1)
+            .toLowerCase();
     }
 
-    function openClock(){
+    function isPKP(path){
+        return extension(path)==="pkp";
+    }
+
+    async function readText(path){
+        const fs=
+            getFS();
+
+        if(
+            !fs||
+            typeof fs.read!=="function"
+        ){
+            return null;
+        }
+
         try{
+            const result=
+                await fs.read(path);
+
             if(
-                window.Apps&&
-                typeof window.Apps.openApp==="function"
+                !result||
+                !result.ok
             ){
-                const result=
-                    window.Apps.openApp(
-                        APP_NAME,
-                        {
-                            allowMultiple:false
-                        }
-                    );
+                return null;
+            }
+
+            return String(
+                result.content||
+                ""
+            );
+        }catch(_){
+            return null;
+        }
+    }
+
+    async function playPKPInPiano(path){
+        const value=
+            await readText(path);
+
+        if(
+            !value||
+            !value.trim()
+        ){
+            return false;
+        }
+
+        stopRing();
+
+        let opened=null;
+
+        try{
+            opened=
+                await window.Apps.openApp(
+                    PIANO_APP_NAME,
+                    {
+                        allowMultiple:false
+                    }
+                );
+        }catch(_){
+            opened=null;
+        }
+
+        const sendToWindow=
+            win=>{
+                if(
+                    !win
+                ){
+                    return false;
+                }
+
+                const iframe=
+                    win.el&&
+                    win.el.querySelector
+                        ?win.el.querySelector(
+                            "iframe"
+                        )
+                        :null;
 
                 if(
-                    result&&
-                    typeof result.catch==="function"
+                    iframe&&
+                    iframe.contentWindow
                 ){
-                    result.catch(()=>{});
-                }
-            }
-        }catch(_){}
+                    try{
+                        iframe.contentWindow.postMessage(
+                            {
+                                type:"pkp",
+                                value:value.trim()
+                            },
+                            "*"
+                        );
 
-        try{
-            window.dispatchEvent(
-                new CustomEvent(
-                    "chxd-clock-open",
-                    {
-                        detail:{
-                            app:APP_NAME
-                        }
-                    }
+                        return true;
+                    }catch(_){}
+                }
+
+                try{
+                    win.postMessage?.(
+                        {
+                            type:"pkp",
+                            value:value.trim()
+                        },
+                        "*"
+                    );
+
+                    return true;
+                }catch(_){}
+
+                return false;
+            };
+
+        if(
+            opened&&
+            opened.win
+        ){
+            if(
+                sendToWindow(
+                    opened.win
                 )
-            );
-        }catch(_){}
+            ){
+                return true;
+            }
+        }
+
+        if(
+            opened&&
+            sendToWindow(opened)
+        ){
+            return true;
+        }
+
+        let attempts=0;
+
+        const retry=
+            ()=>{
+                attempts++;
+
+                try{
+                    if(
+                        window.Apps&&
+                        typeof window.Apps.openApp==="function"
+                    ){
+                        window.Apps.openApp(
+                            PIANO_APP_NAME,
+                            {
+                                allowMultiple:false
+                            }
+                        ).then(
+                            result=>{
+                                sendToWindow(
+                                    result&&
+                                    result.win
+                                        ?result.win
+                                        :result
+                                );
+                            }
+                        ).catch(()=>{});
+                    }
+                }catch(_){}
+
+                if(
+                    attempts<12
+                ){
+                    setTimeout(
+                        retry,
+                        300
+                    );
+                }
+            };
+
+        retry();
+
+        return true;
     }
 
-    function notify(){
-        const message={
-            type:"chxd-clock-state",
-            state:getPublicState()
-        };
+    function stopRing(){
+        if(
+            service.ring.timerId
+        ){
+            clearTimeout(
+                service.ring.timerId
+            );
+        }
 
+        if(
+            service.ring.repeatTimer
+        ){
+            clearTimeout(
+                service.ring.repeatTimer
+            );
+        }
+
+        service.ring.timerId=0;
+        service.ring.repeatTimer=0;
+        service.ring.active=false;
+        service.ring.kind="";
+        service.ring.id=0;
+
+        stopAudio();
+    }
+
+    async function startNormalRing(){
+        service.ring.active=true;
+
+        if(
+            service.soundPath
+        ){
+            const ok=
+                await startLoopedCustomAudio(
+                    service.soundPath
+                );
+
+            if(ok){
+                return;
+            }
+        }
+
+        playOscillator();
+
+        const repeat=
+            ()=>{
+                if(
+                    !service.ring.active
+                ){
+                    return;
+                }
+
+                playOscillator();
+
+                service.ring.repeatTimer=
+                    setTimeout(
+                        repeat,
+                        2500
+                    );
+            };
+
+        service.ring.repeatTimer=
+            setTimeout(
+                repeat,
+                2500
+            );
+    }
+
+    function postToClock(message){
         try{
             window.postMessage(
                 message,
@@ -413,7 +765,9 @@
 
         try{
             for(
-                const frame of Array.from(window.frames)
+                const frame of Array.from(
+                    window.frames
+                )
             ){
                 frame.postMessage(
                     message,
@@ -423,198 +777,300 @@
         }catch(_){}
     }
 
-    function getPublicState(){
-        return{
-            alarms:state.alarms.map(
-                alarm=>({
-                    id:alarm.id,
-                    time:alarm.time,
-                    label:alarm.label,
-                    active:alarm.active
-                })
-            ),
-            soundPath:state.soundPath,
-            timer:{
-                running:state.timer.running,
-                end:state.timer.end,
-                remaining:
-                    state.timer.running
-                        ?Math.max(
-                            0,
-                            state.timer.end-
-                            Date.now()
-                        )
-                        :state.timer.remaining
-            },
-            stopwatch:{
-                running:state.stopwatch.running,
-                elapsed:
-                    state.stopwatch.running
-                        ?state.stopwatch.elapsed+
-                         (
-                            Date.now()-
-                            state.stopwatch.started
-                         )
-                        :state.stopwatch.elapsed,
-                laps:state.stopwatch.laps.slice()
-            }
-        };
-    }
-
-    function alarmTodayKey(){
-        const now=new Date();
-
-        return[
-            now.getFullYear(),
-            String(
-                now.getMonth()+1
-            ).padStart(2,"0"),
-            String(
-                now.getDate()
-            ).padStart(2,"0")
-        ].join("-");
-    }
-
-    function currentAlarmTime(){
-        const now=new Date();
-
-        return[
-            String(
-                now.getHours()
-            ).padStart(2,"0"),
-            String(
-                now.getMinutes()
-            ).padStart(2,"0")
-        ].join(":");
-    }
-
-    async function fireAlarm(
-        alarm
-    ){
-        const key=
-            alarmTodayKey();
-
+    function sendState(source){
         if(
-            alarm.lastFired===key
+            !source||
+            typeof source.postMessage!=="function"
         ){
             return;
         }
 
-        alarm.lastFired=key;
+        try{
+            source.postMessage(
+                {
+                    type:"chxd-clock-state",
+                    state:getPublicState()
+                },
+                "*"
+            );
+        }catch(_){}
+    }
+
+    function getPublicState(){
+        return{
+            alarms:
+                service.alarms.map(
+                    alarm=>({
+                        id:alarm.id,
+                        time:alarm.time,
+                        label:alarm.label,
+                        active:alarm.active,
+                        lastFired:alarm.lastFired
+                    })
+                ),
+            soundPath:
+                service.soundPath,
+
+            timer:{
+                running:
+                    service.timer.running,
+                end:
+                    service.timer.end,
+                remaining:
+                    service.timer.running
+                        ?Math.max(
+                            0,
+                            service.timer.end-
+                            Date.now()
+                        )
+                        :service.timer.remaining
+            },
+
+            stopwatch:{
+                running:
+                    service.stopwatch.running,
+
+                started:
+                    service.stopwatch.started,
+
+                elapsed:
+                    service.stopwatch.running
+                        ?safeNumber(
+                            service.stopwatch.elapsed
+                        )+
+                        Math.max(
+                            0,
+                            Date.now()-
+                            safeNumber(
+                                service.stopwatch.started
+                            )
+                        )
+                        :safeNumber(
+                            service.stopwatch.elapsed
+                        ),
+
+                laps:
+                    service.stopwatch.laps
+                        .map(
+                            lap=>({
+                                id:lap.id,
+                                total:safeNumber(
+                                    lap.total
+                                ),
+                                diff:safeNumber(
+                                    lap.diff
+                                )
+                            })
+                        )
+            },
+
+            ring:{
+                active:
+                    service.ring.active,
+                kind:
+                    service.ring.kind,
+                id:
+                    service.ring.id
+            }
+        };
+    }
+
+    function openClock(){
+        try{
+            if(
+                window.Apps&&
+                typeof window.Apps.openApp==="function"
+            ){
+                window.Apps.openApp(
+                    APP_NAME,
+                    {
+                        allowMultiple:false
+                    }
+                ).catch?.(()=>{});
+            }
+        }catch(_){}
+
+        try{
+            window.dispatchEvent(
+                new CustomEvent(
+                    "chxd-clock-open"
+                )
+            );
+        }catch(_){}
+    }
+
+    function triggerRingModal(kind,id,label){
+        openClock();
+
+        postToClock({
+            type:
+                "chxd-clock-ring",
+            ring:{
+                kind,
+                id,
+                label:
+                    label||
+                    (
+                        kind==="timer"
+                            ?"Timer Complete"
+                            :"Alarm"
+                    )
+            }
+        });
+    }
+
+    async function triggerAlarm(alarm){
+        const today=
+            [
+                new Date().getFullYear(),
+                String(
+                    new Date().getMonth()+1
+                ).padStart(2,"0"),
+                String(
+                    new Date().getDate()
+                ).padStart(2,"0")
+            ].join("-");
+
+        if(
+            alarm.lastFired===today
+        ){
+            return;
+        }
+
+        alarm.lastFired=
+            today;
 
         await saveState();
 
-        openClock();
+        service.ring.active=true;
+        service.ring.kind="alarm";
+        service.ring.id=alarm.id;
 
-        await playSound();
+        if(
+            isPKP(service.soundPath)
+        ){
+            await playPKPInPiano(
+                service.soundPath
+            );
+            notify();
+            return;
+        }
 
-        setTimeout(
-            ()=>{
-                playSound();
-            },
-            1200
-        );
+        await startNormalRing();
 
-        setTimeout(
-            ()=>{
-                playSound();
-            },
-            2400
+        triggerRingModal(
+            "alarm",
+            alarm.id,
+            alarm.label
         );
 
         notify();
     }
 
-    async function fireTimer(){
+    async function triggerTimer(){
         if(
-            state.lastTimerEnd===
-            state.timer.end
+            service.lastTimerEnd===
+            service.timer.end
         ){
             return;
         }
 
-        state.lastTimerEnd=
-            state.timer.end;
+        service.lastTimerEnd=
+            service.timer.end;
 
-        state.timer.running=false;
-        state.timer.remaining=0;
+        service.timer.running=false;
+        service.timer.remaining=0;
 
         await saveState();
 
-        openClock();
+        service.ring.active=true;
+        service.ring.kind="timer";
+        service.ring.id=
+            service.timer.end;
 
-        await playSound();
+        if(
+            isPKP(service.soundPath)
+        ){
+            await playPKPInPiano(
+                service.soundPath
+            );
+            notify();
+            return;
+        }
 
-        setTimeout(
-            ()=>{
-                playSound();
-            },
-            1200
-        );
+        await startNormalRing();
 
-        setTimeout(
-            ()=>{
-                playSound();
-            },
-            2400
+        triggerRingModal(
+            "timer",
+            service.timer.end,
+            "Timer Complete"
         );
 
         notify();
     }
 
     function checkAlarms(){
-        const minute=
-            currentAlarmTime();
+        const now=
+            new Date();
+
+        const current=
+            String(
+                now.getHours()
+            ).padStart(2,"0")+
+            ":"+
+            String(
+                now.getMinutes()
+            ).padStart(2,"0");
 
         if(
-            minute===
-            state.lastAlarmMinute
+            current===
+            service.lastAlarmMinute
         ){
             return;
         }
 
-        state.lastAlarmMinute=
-            minute;
+        service.lastAlarmMinute=
+            current;
 
         const today=
-            alarmTodayKey();
+            [
+                now.getFullYear(),
+                String(
+                    now.getMonth()+1
+                ).padStart(2,"0"),
+                String(
+                    now.getDate()
+                ).padStart(2,"0")
+            ].join("-");
 
         for(
-            const alarm of state.alarms
+            const alarm of service.alarms
         ){
-            if(!alarm.active){
+            if(
+                !alarm.active||
+                alarm.time!==current
+            ){
+                continue;
+            }
+
+            triggerAlarm(
+                alarm
+            );
+        }
+
+        for(
+            const alarm of service.alarms
+        ){
+            if(
+                !alarm.lastFired
+            ){
                 continue;
             }
 
             if(
-                alarm.time===
-                minute
+                alarm.lastFired!==today
             ){
-                fireAlarm(alarm);
-            }
-
-            if(
-                alarm.lastFired===
-                today
-            ){
-                const now=new Date();
-                const parts=
-                    String(alarm.time)
-                        .split(":")
-                        .map(Number);
-
-                if(
-                    now.getHours()<
-                    parts[0]||
-                    (
-                        now.getHours()===
-                        parts[0]&&
-                        now.getMinutes()<
-                        parts[1]
-                    )
-                ){
-                    alarm.lastFired="";
-                }
+                alarm.lastFired="";
             }
         }
 
@@ -622,89 +1078,83 @@
     }
 
     function checkTimer(){
-        if(!state.timer.running){
+        if(
+            !service.timer.running
+        ){
             return;
         }
 
         if(
-            state.timer.end<=
+            service.timer.end<=
             Date.now()
         ){
-            fireTimer();
+            triggerTimer();
         }
     }
 
-    function normalizeDuration(args){
-        if(
-            typeof args==="number"
-        ){
-            return Math.max(
-                0,
-                args
-            );
-        }
+    function timerState(){
+        return{
+            running:
+                service.timer.running,
+            end:
+                service.timer.end,
+            remaining:
+                service.timer.running
+                    ?Math.max(
+                        0,
+                        service.timer.end-
+                        Date.now()
+                    )
+                    :service.timer.remaining
+        };
+    }
 
+    async function setTimer(args){
         args=args||{};
 
-        if(
-            args.duration!=null
-        ){
-            return Math.max(
-                0,
-                Number(args.duration)||
-                0
+        let duration=
+            safeNumber(
+                args.duration
             );
+
+        if(
+            duration<=0
+        ){
+            duration=
+                safeNumber(
+                    args.ms
+                );
         }
 
         if(
-            args.ms!=null
+            duration<=0
         ){
-            return Math.max(
-                0,
-                Number(args.ms)||
-                0
-            );
+            duration=
+                safeNumber(args.hours)*3600000+
+                safeNumber(args.minutes)*60000+
+                safeNumber(args.seconds)*1000;
         }
 
-        const hours=
-            Number(args.hours)||0;
-
-        const minutes=
-            Number(args.minutes)||0;
-
-        const seconds=
-            Number(args.seconds)||0;
-
-        return Math.max(
-            0,
-            (
-                hours*3600000+
-                minutes*60000+
-                seconds*1000
-            )
-        );
-    }
-
-    async function setTimer(
-        args
-    ){
-        const duration=
-            normalizeDuration(args);
-
-        if(duration<=0){
+        if(
+            duration<=0
+        ){
             return{
                 ok:false,
-                error:"Timer duration must be greater than zero."
+                error:
+                    "Timer duration must be greater than zero."
             };
         }
 
-        state.timer.running=true;
-        state.timer.end=
+        stopRing();
+
+        service.timer.running=true;
+        service.timer.end=
             Date.now()+
             duration;
-        state.timer.remaining=
+        service.timer.remaining=
             duration;
-        state.lastTimerEnd=0;
+
+        service.lastTimerEnd=0;
 
         await saveState();
         openClock();
@@ -712,21 +1162,22 @@
 
         return{
             ok:true,
-            duration,
-            end:state.timer.end
+            state:getPublicState()
         };
     }
 
     async function pauseTimer(){
-        if(state.timer.running){
-            state.timer.remaining=
+        if(
+            service.timer.running
+        ){
+            service.timer.remaining=
                 Math.max(
                     0,
-                    state.timer.end-
+                    service.timer.end-
                     Date.now()
                 );
 
-            state.timer.running=false;
+            service.timer.running=false;
 
             await saveState();
             notify();
@@ -734,61 +1185,65 @@
 
         return{
             ok:true,
-            timer:getPublicState().timer
+            state:getPublicState()
         };
     }
 
     async function resumeTimer(){
         if(
-            state.timer.running
+            service.timer.running
         ){
             return{
                 ok:true,
-                timer:getPublicState().timer
+                state:getPublicState()
             };
         }
 
         if(
-            state.timer.remaining<=0
+            service.timer.remaining<=0
         ){
             return{
                 ok:false,
-                error:"No paused timer exists."
+                error:
+                    "No paused timer exists."
             };
         }
 
-        state.timer.end=
+        service.timer.end=
             Date.now()+
-            state.timer.remaining;
+            service.timer.remaining;
 
-        state.timer.running=true;
+        service.timer.running=true;
+
+        service.lastTimerEnd=0;
 
         await saveState();
         notify();
 
         return{
             ok:true,
-            timer:getPublicState().timer
+            state:getPublicState()
         };
     }
 
     async function resetTimer(){
-        state.timer.running=false;
-        state.timer.end=0;
-        state.timer.remaining=0;
-        state.lastTimerEnd=0;
+        service.timer.running=false;
+        service.timer.end=0;
+        service.timer.remaining=0;
+        service.lastTimerEnd=0;
+
+        stopRing();
 
         await saveState();
         notify();
 
         return{
-            ok:true
+            ok:true,
+            state:getPublicState()
         };
     }
 
-    async function setSound(
-        args
-    ){
+    async function setSound(args){
         args=args||{};
 
         const path=
@@ -807,7 +1262,8 @@
             ){
                 return{
                     ok:false,
-                    error:"Filesystem unavailable."
+                    error:
+                        "Filesystem unavailable."
                 };
             }
 
@@ -822,91 +1278,107 @@
                 return{
                     ok:false,
                     error:
-                        "Sound file does not exist: "+
-                        path
+                        "Sound file not found."
                 };
             }
         }
 
-        state.soundPath=path;
+        service.soundPath=
+            path;
+
+        service.audioBuffer=null;
 
         await saveState();
         notify();
 
         return{
             ok:true,
-            soundPath:state.soundPath
-        };
-    }
-
-    async function testSound(){
-        await playSound();
-
-        return{
-            ok:true,
-            soundPath:state.soundPath
+            soundPath:path,
+            state:getPublicState()
         };
     }
 
     async function selectSound(){
-        if(
-            !window.Apps||
-            typeof window.Apps.openApp!=="function"
-        ){
-            return{
-                ok:false,
-                error:"File Manager is unavailable."
-            };
-        }
-
         try{
             const result=
                 await window.Apps.openApp(
                     "File Manager",
                     {
                         selectMode:true,
-                        allowMultiple:false
+                        allowMultiple:false,
+                        title:"SELECT CLOCK SOUND"
                     }
                 );
 
-            if(
-                !result||
-                !result.ok
-            ){
-                return{
-                    ok:false,
-                    error:
-                        result&&result.error||
-                        "Could not open File Manager."
-                };
-            }
-
             return{
-                ok:true,
+                ok:!!(
+                    result&&
+                    result.ok
+                ),
                 waiting:true
             };
         }catch(error){
             return{
                 ok:false,
                 error:
-                    error&&error.message||
-                    String(error)
+                    error&&
+                    error.message
+                        ?error.message
+                        :"Could not open File Manager."
             };
         }
     }
 
-    async function addAlarm(
-        args
-    ){
+    async function testSound(){
+        if(
+            isPKP(service.soundPath)
+        ){
+            await playPKPInPiano(
+                service.soundPath
+            );
+
+            return{
+                ok:true,
+                type:"pkp"
+            };
+        }
+
+        await startNormalRing();
+
+        setTimeout(
+            ()=>{
+                stopRing();
+            },
+            6000
+        );
+
+        return{
+            ok:true,
+            type:
+                service.soundPath
+                    ?"audio"
+                    :"oscillator"
+        };
+    }
+
+    async function addAlarm(args){
         args=args||{};
 
         const time=
-            String(args.time||"");
+            String(
+                args.time||
+                ""
+            );
 
-        if(!/^\d{2}:\d{2}$/.test(time)){
+        if(
+            !/^\d{2}:\d{2}$/.test(
+                time
+            )
+        ){
             return{
                 ok:false,
-                error:"Alarm time must use HH:MM."
+                error:
+                    "Alarm time must be HH:MM."
             };
         }
 
@@ -919,14 +1391,17 @@
         ){
             return{
                 ok:false,
-                error:"Invalid alarm time."
+                error:
+                    "Invalid alarm time."
             };
         }
 
         const alarm={
             id:
-                Number(args.id)||
-                Date.now(),
+                safeNumber(
+                    args.id,
+                    Date.now()
+                ),
             time,
             label:
                 String(
@@ -938,47 +1413,54 @@
             lastFired:""
         };
 
-        state.alarms.push(alarm);
+        service.alarms.push(
+            alarm
+        );
 
         await saveState();
         notify();
 
         return{
             ok:true,
-            alarm
+            alarm,
+            state:getPublicState()
         };
     }
 
-    async function updateAlarm(
-        args
-    ){
+    async function updateAlarm(args){
         args=args||{};
 
         const id=
-            Number(args.id);
+            safeNumber(args.id);
 
         const alarm=
-            state.alarms.find(
+            service.alarms.find(
                 item=>item.id===id
             );
 
         if(!alarm){
             return{
                 ok:false,
-                error:"Alarm not found."
+                error:
+                    "Alarm not found."
             };
         }
 
-        if(args.time!=null){
+        if(
+            args.time!=null
+        ){
             const time=
                 String(args.time);
 
             if(
-                !/^\d{2}:\d{2}$/.test(time)
+                !/^\d{2}:\d{2}$/.test(
+                    time
+                )
             ){
                 return{
                     ok:false,
-                    error:"Invalid alarm time."
+                    error:
+                        "Invalid alarm time."
                 };
             }
 
@@ -986,16 +1468,24 @@
             alarm.lastFired="";
         }
 
-        if(args.label!=null){
+        if(
+            args.label!=null
+        ){
             alarm.label=
-                String(args.label);
+                String(
+                    args.label
+                );
         }
 
-        if(args.active!=null){
+        if(
+            args.active!=null
+        ){
             alarm.active=
                 !!args.active;
 
-            if(alarm.active){
+            if(
+                alarm.active
+            ){
                 alarm.lastFired="";
             }
         }
@@ -1005,75 +1495,78 @@
 
         return{
             ok:true,
-            alarm
+            alarm,
+            state:getPublicState()
         };
     }
 
-    async function removeAlarm(
-        args
-    ){
+    async function deleteAlarm(args){
         args=args||{};
 
         const id=
-            Number(
-                args.id
-            );
+            safeNumber(args.id);
 
-        const before=
-            state.alarms.length;
+        const length=
+            service.alarms.length;
 
-        state.alarms=
-            state.alarms.filter(
+        service.alarms=
+            service.alarms.filter(
                 alarm=>alarm.id!==id
             );
 
         if(
-            state.alarms.length===
-            before
+            length===
+            service.alarms.length
         ){
             return{
                 ok:false,
-                error:"Alarm not found."
+                error:
+                    "Alarm not found."
             };
+        }
+
+        if(
+            service.ring.id===id&&
+            service.ring.kind==="alarm"
+        ){
+            stopRing();
         }
 
         await saveState();
         notify();
 
         return{
-            ok:true
+            ok:true,
+            state:getPublicState()
         };
     }
 
     async function clearAlarms(){
-        state.alarms=[];
+        service.alarms=[];
+        stopRing();
 
         await saveState();
         notify();
 
         return{
-            ok:true
+            ok:true,
+            state:getPublicState()
         };
-    }
-
-    async function enableAlarm(
-        args,
-        active
-    ){
-        return updateAlarm({
-            id:args&&args.id,
-            active
-        });
     }
 
     async function startStopwatch(){
         if(
-            !state.stopwatch.running
+            service.stopwatch.running
         ){
-            state.stopwatch.running=true;
-            state.stopwatch.started=
-                Date.now();
+            return{
+                ok:true,
+                state:getPublicState()
+            };
         }
+
+        service.stopwatch.running=true;
+        service.stopwatch.started=
+            Date.now();
 
         await saveState();
         openClock();
@@ -1081,21 +1574,28 @@
 
         return{
             ok:true,
-            stopwatch:
-                getPublicState().stopwatch
+            state:getPublicState()
         };
     }
 
     async function pauseStopwatch(){
         if(
-            state.stopwatch.running
+            service.stopwatch.running
         ){
-            state.stopwatch.elapsed+=
-                Date.now()-
-                state.stopwatch.started;
+            service.stopwatch.elapsed=
+                safeNumber(
+                    service.stopwatch.elapsed
+                )+
+                Math.max(
+                    0,
+                    Date.now()-
+                    safeNumber(
+                        service.stopwatch.started
+                    )
+                );
 
-            state.stopwatch.running=false;
-            state.stopwatch.started=0;
+            service.stopwatch.running=false;
+            service.stopwatch.started=0;
 
             await saveState();
             notify();
@@ -1103,40 +1603,49 @@
 
         return{
             ok:true,
-            stopwatch:
-                getPublicState().stopwatch
+            state:getPublicState()
         };
     }
 
     async function resetStopwatch(){
-        state.stopwatch.running=false;
-        state.stopwatch.started=0;
-        state.stopwatch.elapsed=0;
-        state.stopwatch.laps=[];
+        service.stopwatch.running=false;
+        service.stopwatch.started=0;
+        service.stopwatch.elapsed=0;
+        service.stopwatch.laps=[];
 
         await saveState();
         notify();
 
         return{
-            ok:true
+            ok:true,
+            state:getPublicState()
         };
     }
 
     async function lapStopwatch(){
         const total=
-            state.stopwatch.running
-                ?state.stopwatch.elapsed+
-                 (
+            service.stopwatch.running
+                ?safeNumber(
+                    service.stopwatch.elapsed
+                )+
+                Math.max(
+                    0,
                     Date.now()-
-                    state.stopwatch.started
-                 )
-                :state.stopwatch.elapsed;
+                    safeNumber(
+                        service.stopwatch.started
+                    )
+                )
+                :safeNumber(
+                    service.stopwatch.elapsed
+                );
 
         const previous=
-            state.stopwatch.laps.length
-                ?state.stopwatch.laps[
-                    state.stopwatch.laps.length-1
-                  ].total
+            service.stopwatch.laps.length
+                ?safeNumber(
+                    service.stopwatch.laps[
+                        service.stopwatch.laps.length-1
+                    ].total
+                )
                 :0;
 
         const lap={
@@ -1147,58 +1656,180 @@
                 previous
         };
 
-        state.stopwatch.laps.push(lap);
+        service.stopwatch.laps.push(
+            lap
+        );
 
         await saveState();
         notify();
 
         return{
             ok:true,
-            lap
+            lap,
+            state:getPublicState()
         };
     }
 
-    async function getState(){
+    async function snooze(){
+        if(
+            !service.ring.active
+        ){
+            return{
+                ok:false,
+                error:
+                    "No active alarm."
+            };
+        }
+
+        const kind=
+            service.ring.kind;
+
+        const id=
+            service.ring.id;
+
+        stopRing();
+
+        if(
+            kind==="alarm"
+        ){
+            const alarm=
+                service.alarms.find(
+                    item=>item.id===id
+                );
+
+            if(alarm){
+                alarm.lastFired="";
+            }
+
+            await saveState();
+
+            const timeout=
+                setTimeout(
+                    ()=>{
+                        const alarmAgain=
+                            service.alarms.find(
+                                item=>
+                                    item.id===
+                                    id
+                            );
+
+                        if(
+                            alarmAgain&&
+                            alarmAgain.active
+                        ){
+                            triggerAlarm(
+                                alarmAgain
+                            );
+                        }
+                    },
+                    SNOOZE_MINUTES*
+                    60000
+                );
+
+            service.ring.timerId=
+                timeout;
+        }else{
+            service.timer.running=false;
+            service.timer.remaining=0;
+            service.timer.end=0;
+
+            await saveState();
+
+            const timeout=
+                setTimeout(
+                    ()=>{
+                        triggerTimer();
+                    },
+                    SNOOZE_MINUTES*
+                    60000
+                );
+
+            service.ring.timerId=
+                timeout;
+        }
+
+        postToClock({
+            type:
+                "chxd-clock-ring-stopped"
+        });
+
+        notify();
+
+        return{
+            ok:true,
+            snoozeMinutes:
+                SNOOZE_MINUTES,
+            state:getPublicState()
+        };
+    }
+
+    async function dismiss(){
+        stopRing();
+
+        postToClock({
+            type:
+                "chxd-clock-ring-stopped"
+        });
+
+        notify();
+
         return{
             ok:true,
             state:getPublicState()
         };
     }
 
-    const actions={
-        getState,
-        open:async()=>{
-            openClock();
-            return{
-                ok:true
-            };
-        },
-        setSound,
-        selectSound,
-        testSound,
-        addAlarm,
-        setAlarm:addAlarm,
-        updateAlarm,
-        removeAlarm,
-        deleteAlarm:removeAlarm,
-        enableAlarm:args=>enableAlarm(args,true),
-        disableAlarm:args=>enableAlarm(args,false),
-        clearAlarms,
-        setTimer,
-        pauseTimer,
-        resumeTimer,
-        resetTimer,
-        startStopwatch,
-        pauseStopwatch,
-        resetStopwatch,
-        lapStopwatch
-    };
+    function notify(){
+        postToClock({
+            type:
+                "chxd-clock-state",
+            state:
+                getPublicState()
+        });
+    }
 
     async function runAction(
         name,
         args
     ){
-        const fn=actions[name];
+        const actionMap={
+            getState:
+                async()=>({
+                    ok:true,
+                    state:
+                        getPublicState()
+                }),
+            open:
+                async()=>{
+                    openClock();
+
+                    return{
+                        ok:true
+                    };
+                },
+            setSound,
+            selectSound,
+            testSound,
+            addAlarm,
+            setAlarm:addAlarm,
+            updateAlarm,
+            deleteAlarm,
+            removeAlarm:deleteAlarm,
+            clearAlarms,
+            setTimer,
+            pauseTimer,
+            resumeTimer,
+            resetTimer,
+            startStopwatch,
+            pauseStopwatch,
+            resetStopwatch,
+            lapStopwatch,
+            snooze,
+            dismiss
+        };
+
+        const fn=
+            actionMap[name];
 
         if(
             typeof fn!=="function"
@@ -1212,19 +1843,24 @@
         }
 
         try{
-            return await fn(args||{});
+            return await fn(
+                args||{}
+            );
         }catch(error){
             return{
                 ok:false,
                 error:
-                    error&&error.message||
-                    String(error)
+                    error&&
+                    error.message
+                        ?error.message
+                        :String(error)
             };
         }
     }
 
-    window.clockAPI={
-        action:async function(batch){
+    service.api={
+
+        action:async(batch)=>{
             if(
                 !batch||
                 typeof batch!=="object"||
@@ -1232,127 +1868,181 @@
             ){
                 return{
                     ok:false,
-                    error:"clockAPI.action() requires an object."
+                    error:
+                        "clockAPI.action() requires an object."
                 };
             }
 
             const entries=
                 Object.entries(batch);
 
-            const results=
-                await Promise.all(
-                    entries.map(
-                        async([name,args])=>[
-                            name,
-                            await runAction(
-                                name,
-                                Array.isArray(args)
-                                    ?args
-                                    :args||{}
-                            )
-                        ]
-                    )
-                );
-
-            const output={};
+            const results={};
+            let allOk=true;
 
             for(
-                const [name,result]
-                of results
+                const [
+                    name,
+                    args
+                ]
+                of entries
             ){
-                output[name]=result;
+                const result=
+                    await runAction(
+                        name,
+                        args
+                    );
+
+                results[name]=result;
+
+                if(
+                    !result||
+                    result.ok===false
+                ){
+                    allOk=false;
+                }
             }
 
             return{
-                ok:
-                    results.every(
-                        ([,result])=>
-                            result&&
-                            result.ok!==false
-                    ),
-                results:output,
-                state:getPublicState()
+                ok:allOk,
+                results,
+                state:
+                    getPublicState()
             };
         },
 
-        getState:getState,
+        getState:
+            ()=>runAction(
+                "getState",
+                {}
+            ),
 
-        setTimer:args=>
-            runAction("setTimer",args),
+        open:
+            ()=>runAction(
+                "open",
+                {}
+            ),
 
-        setAlarm:args=>
-            runAction("setAlarm",args),
+        setSound:
+            args=>runAction(
+                "setSound",
+                args
+            ),
 
-        addAlarm:args=>
-            runAction("addAlarm",args),
+        selectSound:
+            ()=>runAction(
+                "selectSound",
+                {}
+            ),
 
-        updateAlarm:args=>
-            runAction("updateAlarm",args),
+        testSound:
+            ()=>runAction(
+                "testSound",
+                {}
+            ),
 
-        removeAlarm:args=>
-            runAction("removeAlarm",args),
+        addAlarm:
+            args=>runAction(
+                "addAlarm",
+                args
+            ),
 
-        deleteAlarm:args=>
-            runAction("deleteAlarm",args),
+        setAlarm:
+            args=>runAction(
+                "setAlarm",
+                args
+            ),
 
-        enableAlarm:args=>
-            runAction("enableAlarm",args),
+        updateAlarm:
+            args=>runAction(
+                "updateAlarm",
+                args
+            ),
 
-        disableAlarm:args=>
-            runAction("disableAlarm",args),
+        deleteAlarm:
+            args=>runAction(
+                "deleteAlarm",
+                args
+            ),
 
-        clearAlarms:()=>
-            runAction("clearAlarms",{}),
+        removeAlarm:
+            args=>runAction(
+                "removeAlarm",
+                args
+            ),
 
-        pauseTimer:()=>
-            runAction("pauseTimer",{}),
+        clearAlarms:
+            ()=>runAction(
+                "clearAlarms",
+                {}
+            ),
 
-        resumeTimer:()=>
-            runAction("resumeTimer",{}),
+        setTimer:
+            args=>runAction(
+                "setTimer",
+                args
+            ),
 
-        resetTimer:()=>
-            runAction("resetTimer",{}),
+        pauseTimer:
+            ()=>runAction(
+                "pauseTimer",
+                {}
+            ),
 
-        setSound:args=>
-            runAction("setSound",args),
+        resumeTimer:
+            ()=>runAction(
+                "resumeTimer",
+                {}
+            ),
 
-        selectSound:()=>
-            runAction("selectSound",{}),
+        resetTimer:
+            ()=>runAction(
+                "resetTimer",
+                {}
+            ),
 
-        testSound:()=>
-            runAction("testSound",{}),
-
-        open:()=>
-            runAction("open",{}),
-
-        startStopwatch:()=>
-            runAction(
+        startStopwatch:
+            ()=>runAction(
                 "startStopwatch",
                 {}
             ),
 
-        pauseStopwatch:()=>
-            runAction(
+        pauseStopwatch:
+            ()=>runAction(
                 "pauseStopwatch",
                 {}
             ),
 
-        resetStopwatch:()=>
-            runAction(
+        resetStopwatch:
+            ()=>runAction(
                 "resetStopwatch",
                 {}
             ),
 
-        lapStopwatch:()=>
-            runAction(
+        lapStopwatch:
+            ()=>runAction(
                 "lapStopwatch",
+                {}
+            ),
+
+        snooze:
+            ()=>runAction(
+                "snooze",
+                {}
+            ),
+
+        dismiss:
+            ()=>runAction(
+                "dismiss",
                 {}
             )
     };
 
+    window.clockAPI=
+        service.api;
+
     window.addEventListener(
         "message",
-        async function(event){
+        async event=>{
             const data=
                 event.data;
 
@@ -1367,22 +2057,20 @@
                 data.type===
                 "LH_FILE_SELECTED"
             ){
-                const paths=
-                    Array.isArray(data.paths)
-                        ?data.paths
-                        :data.path
-                            ?[data.path]
-                            :[];
-
                 const path=
-                    paths.find(
-                        item=>
-                            typeof item==="string"&&
-                            item.length>0&&
-                            !item.endsWith("/")
+                    data.path||
+                    (
+                        Array.isArray(
+                            data.paths
+                        )
+                            ?data.paths[0]
+                            :""
                     );
 
-                if(path){
+                if(
+                    typeof path==="string"&&
+                    path
+                ){
                     await setSound({
                         path
                     });
@@ -1397,15 +2085,9 @@
                 data.type===
                 "chxd-clock-ready"
             ){
-                try{
-                    event.source?.postMessage(
-                        {
-                            type:"chxd-clock-state",
-                            state:getPublicState()
-                        },
-                        "*"
-                    );
-                }catch(_){}
+                sendState(
+                    event.source
+                );
 
                 return;
             }
@@ -1414,12 +2096,9 @@
                 data.type===
                 "chxd-clock-action"
             ){
-                const batch=
-                    data.action||{};
-
                 const result=
-                    await window.clockAPI.action(
-                        batch
+                    await service.api.action(
+                        data.action||{}
                     );
 
                 try{
@@ -1435,46 +2114,68 @@
 
                 return;
             }
-        }
-    );
 
-    document.addEventListener(
-        "pointerdown",
-        wakeAudio,
-        true
-    );
-
-    document.addEventListener(
-        "keydown",
-        wakeAudio,
-        true
-    );
-
-    setInterval(
-        ()=>{
-            checkAlarms();
-            checkTimer();
-        },
-        250
-    );
-
-    setInterval(
-        ()=>{
-            saveState();
-        },
-        5000
-    );
-
-    loadState().then(
-        ()=>{
             if(
-                state.timer.running&&
-                state.timer.end<=Date.now()
+                data.type===
+                "chxd-clock-snooze"
             ){
-                fireTimer();
+                await snooze();
+                return;
             }
 
-            notify();
+            if(
+                data.type===
+                "chxd-clock-dismiss"
+            ){
+                await dismiss();
+                return;
+            }
+
+            if(
+                data.type===
+                "chxd-clock-test-sound"
+            ){
+                await testSound();
+                return;
+            }
         }
     );
+
+    async function initialize(){
+        if(
+            service.initialized
+        ){
+            return;
+        }
+
+        service.initialized=true;
+
+        await loadState();
+
+        if(
+            service.timer.running&&
+            service.timer.end<=Date.now()
+        ){
+            triggerTimer();
+        }
+
+        setInterval(
+            ()=>{
+                checkAlarms();
+                checkTimer();
+            },
+            250
+        );
+
+        setInterval(
+            ()=>{
+                saveState();
+            },
+            5000
+        );
+
+        notify();
+    }
+
+    initialize();
 })();
