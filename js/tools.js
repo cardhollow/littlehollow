@@ -2595,7 +2595,7 @@ const lh =
     try
     {
       opened =
-        Apps.openApp(
+        await Apps.openApp(
           appName,
           {
             allowMultiple:
@@ -4120,7 +4120,7 @@ const lh =
         .length > 0;
 
     const result =
-      Apps.openApp(
+      await Apps.openApp(
         "Piano",
         {
           path:
@@ -4237,7 +4237,7 @@ const lh =
         !!args.select;
 
       const result =
-        Apps.openApp(
+        await Apps.openApp(
           args.name,
           {
             src:
@@ -4297,7 +4297,7 @@ const lh =
     )
     {
       const result =
-        Apps.openApp(
+        await Apps.openApp(
           "Notepad",
           {
             path:
@@ -4348,7 +4348,7 @@ const lh =
     )
     {
       const result =
-        Apps.openApp(
+        await Apps.openApp(
           "Paint",
           {
             painting:
@@ -4392,7 +4392,7 @@ const lh =
     )
     {
       const result =
-        Apps.openApp(
+        await Apps.openApp(
           "Calculator",
           {
             equation:
@@ -4454,7 +4454,7 @@ const lh =
     )
     {
       const result =
-        Apps.openApp(
+        await Apps.openApp(
           "File Manager",
           {
             selectMode:
@@ -4517,7 +4517,7 @@ const lh =
       )
       {
         const result =
-          Apps.openApp(
+          await Apps.openApp(
             "imageViewer",
             {
               src:
@@ -4557,7 +4557,7 @@ const lh =
       )
       {
         const result =
-          Apps.openApp(
+          await Apps.openApp(
             "videoPlayer",
             {
               src:
@@ -4597,7 +4597,7 @@ const lh =
       )
       {
         const result =
-          Apps.openApp(
+          await Apps.openApp(
             "audioPlayer",
             {
               src:
@@ -4636,7 +4636,7 @@ const lh =
       )
       {
         const result =
-          Apps.openApp(
+          await Apps.openApp(
             "Piano",
             {
               path:
@@ -4670,7 +4670,7 @@ const lh =
       }
 
       const result =
-        Apps.openApp(
+        await Apps.openApp(
           "Notepad",
           {
             path:
