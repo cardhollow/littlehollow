@@ -1,264 +1,72 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Little Hollow — AI Manager</title>
+<title>Little Hollow — Settings</title>
 <style>
-:root{
-color-scheme:dark;
---bg:#071216;
---panel:#0b1a20;
---panel2:#0e232a;
---panel3:#102b33;
---line:#1c6670;
---line2:rgba(28,102,112,.4);
---text:#d9ffff;
---muted:#78a9ad;
---accent:#31f4ff;
---good:#63ffb1;
---danger:#ff708c;
---shadow:rgba(0,0,0,.35);
-}
-*{box-sizing:border-box}
-html,body{margin:0;width:100%;min-height:100%}
-body{
-min-height:100vh;background:
-radial-gradient(circle at 10% 0%,rgba(49,244,255,.08),transparent 32%),
-radial-gradient(circle at 95% 100%,rgba(99,255,177,.05),transparent 35%),var(--bg);
-color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-font-size:12px;
-}
-button,input,select{font:inherit}
-.shell{width:min(900px,100%);margin:0 auto;padding:16px}
-.topbar{padding:16px 18px;margin-bottom:14px;background:rgba(11,26,32,.9);border:1px solid var(--line);box-shadow:0 14px 36px var(--shadow)}
-.brand-title{font-size:17px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-.brand-subtitle{margin-top:5px;font-size:10px;color:var(--muted);line-height:1.5}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.card{background:rgba(11,26,32,.86);border:1px solid var(--line);padding:14px}
-.card.full{grid-column:1/-1}
-.title{margin:0 0 12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
-.field{display:grid;gap:6px;margin-bottom:12px}
-.field:last-child{margin-bottom:0}
-label{font-size:10px;color:var(--muted)}
-select,input[type="range"]{
-width:100%;color:var(--text);background:var(--panel2);border:1px solid var(--line2);border-radius:4px;padding:9px;
-}
-select:hover,input[type="range"]:hover{border-color:var(--accent)}
-.row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
-.range-value{min-width:58px;text-align:right;color:var(--accent);font-size:10px}
-.check-row{display:flex;align-items:center;gap:8px;color:var(--text)}
-input[type="checkbox"]{accent-color:var(--accent)}
-.actions{display:flex;flex-wrap:wrap;gap:8px}
-button{
-padding:9px 13px;border:1px solid var(--line);background:var(--panel2);color:var(--text);cursor:pointer;border-radius:4px;
-}
-button:hover{border-color:var(--accent);background:rgba(49,244,255,.05)}
-button.primary{border-color:var(--accent);color:var(--accent)}
-button.danger{border-color:var(--danger);color:var(--danger)}
-button:disabled{opacity:.45;cursor:not-allowed}
-.status{margin-top:10px;min-height:16px;color:var(--muted);line-height:1.5}
-.status.good{color:var(--good)}
-.status.bad{color:var(--danger)}
-.progress{margin-top:12px;padding:8px;background:#08171c;border:1px solid var(--line2);max-height:180px;overflow:auto}
-.progress-item{position:relative;height:22px;margin-bottom:5px;border:1px solid #154b53;background:#0a2026;overflow:hidden}
-.progress-bar{position:absolute;inset:0 auto 0 0;width:0;background:rgba(49,244,255,.23)}
-.progress-text{position:relative;z-index:1;padding:3px 6px;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.info{padding:10px;background:var(--panel2);border:1px solid var(--line2);color:var(--muted);font-size:10px;line-height:1.55}
-@media(max-width:700px){.grid{grid-template-columns:1fr}.card.full{grid-column:auto}.shell{padding:12px}}
+:root{color-scheme:dark;--bg:#071216;--panel:#0b1a20;--panel2:#0e232a;--line:#1c6670;--line2:rgba(28,102,112,.4);--text:#d9ffff;--muted:#78a9ad;--accent:#31f4ff;--good:#63ffb1;--danger:#ff708c;--shadow:rgba(0,0,0,.35)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;min-height:100%}body{min-height:100vh;background:radial-gradient(circle at 10% 0%,rgba(49,244,255,.08),transparent 32%),radial-gradient(circle at 95% 100%,rgba(99,255,177,.05),transparent 35%),var(--bg);color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}button,input,select{font:inherit}.shell{width:min(980px,100%);margin:0 auto;padding:20px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 20px;margin-bottom:16px;background:rgba(11,26,32,.9);border:1px solid var(--line);box-shadow:0 14px 36px var(--shadow)}.brand-title{font-size:18px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.brand-subtitle{margin-top:6px;font-size:10px;color:var(--muted);line-height:1.5}.provider-badge{padding:7px 10px;border:1px solid var(--line);background:var(--panel2);color:var(--accent);font-size:10px;letter-spacing:.08em;text-transform:uppercase}.layout{display:grid;grid-template-columns:190px minmax(0,1fr);gap:16px;align-items:start}.nav{position:sticky;top:16px;background:rgba(11,26,32,.86);border:1px solid var(--line);padding:8px}.nav button{display:block;width:100%;padding:11px 12px;text-align:left;border:1px solid transparent;background:transparent;color:var(--muted);cursor:pointer;font-size:11px}.nav button:hover{color:var(--text);background:rgba(49,244,255,.04)}.nav button.active{color:var(--accent);border-color:var(--line);background:var(--panel2)}.page{display:none}.page.active{display:block}.section{margin-bottom:16px;background:rgba(11,26,32,.86);border:1px solid var(--line);padding:16px}.section h2{margin:0 0 14px;color:var(--accent);font-size:13px;letter-spacing:.08em;text-transform:uppercase}.section-note{margin:-4px 0 14px;color:var(--muted);font-size:10px;line-height:1.6}.row{display:grid;grid-template-columns:minmax(170px,1fr) minmax(220px,1.2fr);gap:16px;align-items:center;padding:12px 0;border-top:1px solid var(--line2)}.row:first-of-type{border-top:0}.label{display:block;font-size:12px}.desc{margin-top:4px;color:var(--muted);font-size:10px;line-height:1.55}input,select{width:100%;min-width:0;padding:10px 11px;border:1px solid var(--line);outline:none;background:var(--panel2);color:var(--text);font-size:12px}input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 1px rgba(49,244,255,.16)}input::placeholder{color:#557b80}.toggle{display:flex;justify-content:flex-end;align-items:center}.toggle input{width:19px;height:19px;accent-color:var(--accent)}.provider-panel{display:none}.provider-panel.active{display:block}.info-box{margin-top:14px;padding:11px 12px;border-left:2px solid var(--accent);background:rgba(49,244,255,.025);color:var(--muted);font-size:10px;line-height:1.6}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}button.action{padding:10px 14px;border:1px solid var(--line);background:var(--panel2);color:var(--text);cursor:pointer;font-size:11px}button.action:hover{border-color:var(--accent)}button.action.primary{border-color:var(--accent);color:var(--accent)}button.action.good{border-color:var(--good);color:var(--good)}button.action.danger{border-color:var(--danger);color:var(--danger)}button.action:disabled{opacity:.45;cursor:not-allowed}.runtime-box{margin-top:14px;padding:12px;border:1px solid var(--line2);background:rgba(14,35,42,.7)}.runtime-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:9px}.runtime-name{color:var(--accent);font-size:11px}.runtime-state{font-size:10px;color:var(--muted);text-transform:uppercase;text-align:right}.progress{width:100%;height:9px;border:1px solid var(--line);background:#061014;overflow:hidden;position:relative}.progress-bar{width:0%;height:100%;background:var(--accent);transition:width .18s ease}.progress.indeterminate .progress-bar{width:35%;animation:progressMove 1.15s linear infinite}@keyframes progressMove{from{transform:translateX(-120%)}to{transform:translateX(300%)}}.runtime-message{margin-top:8px;font-size:10px;color:var(--muted);line-height:1.5;word-break:break-word}#status{min-height:18px;margin-top:12px;font-size:11px;color:var(--muted);line-height:1.5}#status.good{color:var(--good)}#status.bad{color:var(--danger)}code{color:var(--accent)}.hidden{display:none!important}
+@media(max-width:760px){.layout{grid-template-columns:1fr}.nav{position:static;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.nav button{text-align:center}}@media(max-width:600px){.shell{padding:12px}.topbar{padding:14px}.provider-badge{display:none}.row{grid-template-columns:1fr;gap:9px}.toggle{justify-content:flex-start}.nav{grid-template-columns:1fr 1fr 1fr}.runtime-head{align-items:flex-start;flex-direction:column}.runtime-state{text-align:left}}
 </style>
 </head>
 <body>
 <main class="shell">
-<header class="topbar">
-<div class="brand-title">Little Hollow / AI Manager</div>
-<div class="brand-subtitle">Local Transformers.js model configuration and runtime control</div>
-</header>
-
-<section class="grid">
-<div class="card">
-<h2 class="title">Model</h2>
-<div class="field"><label for="model">Model</label><select id="model"></select></div>
-<div class="field"><label for="device">Device</label><select id="device"></select></div>
-<div class="field"><label for="dtype">Data type</label><select id="dtype"></select></div>
+<header class="topbar"><div><div class="brand-title">Little Hollow / Settings</div><div class="brand-subtitle">AI provider, local-model, agent, and live-mode configuration</div></div><div class="provider-badge" id="providerBadge">PUTER</div></header>
+<div class="layout"><nav class="nav"><button class="nav-btn active" data-page="providers">Providers</button><button class="nav-btn" data-page="onnx">ONNX</button><button class="nav-btn" data-page="agent">Agent</button><button class="nav-btn" data-page="live">Live Mode</button></nav>
+<section class="content">
+<div class="page active" id="page-providers">
+<section class="section"><h2>Active Provider</h2><div class="row"><div><label class="label" for="provider">Provider</label><div class="desc">Choose which existing Little Hollow provider handles new conversations. Puter.js and Gemini remain available alongside local ONNX/GGUF.</div></div><select id="provider"><option value="puter">Puter</option><option value="onnx">ONNX (local)</option><option value="gguf">GGUF (local)</option><option value="gemini">Google Gemini</option></select></div></section>
+<section class="section provider-panel" id="panel-puter"><h2>Puter.js</h2><div class="row"><div><label class="label" for="puterModel">Model</label><div class="desc">Model identifier passed to the existing Puter provider.</div></div><input id="puterModel" type="text" spellcheck="false" placeholder="mistralai/ministral-3b-2512"></div><div class="info-box">Puter.js is still handled by Little Hollow's existing <code>js/aiPuter.js</code>. This manager only edits its settings.</div></section>
+<section class="section provider-panel" id="panel-gemini"><h2>Google Gemini</h2><div class="row"><div><label class="label" for="apiKey">API key</label><div class="desc">Stored locally in <code>littlehollow.ai.settings</code>.</div></div><input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="AIza..."></div><div class="row"><div><label class="label" for="geminiModel">Model</label><div class="desc">Gemini model identifier used by the existing Gemini provider.</div></div><input id="geminiModel" type="text" spellcheck="false" placeholder="gemini-3.5-flash"></div><div class="row"><div><label class="label" for="pythonTool">Python Tool</label><div class="desc">Enables Gemini's managed code-execution capability.</div></div><div class="toggle"><input id="pythonTool" type="checkbox"></div></div><div class="row"><div><label class="label" for="maxOutputTokens">Max output tokens</label><div class="desc">Gemini output-token preference.</div></div><input id="maxOutputTokens" type="number" min="1" max="65000" step="1"></div><div class="row"><div><label class="label" for="geminiTemperature">Temperature</label><div class="desc">Gemini generation temperature preference.</div></div><input id="geminiTemperature" type="number" min="0" max="2" step="0.05"></div></section>
+<section class="section provider-panel" id="panel-gguf"><h2>GGUF</h2><div class="row"><div><label class="label" for="ggufModel">Model</label><div class="desc">GGUF model path, URL, or identifier.</div></div><input id="ggufModel" type="text" spellcheck="false" placeholder="model.gguf"></div><div class="row"><div><label class="label" for="ggufContext">Context</label></div><input id="ggufContext" type="number" min="256" max="131072" step="256"></div><div class="row"><div><label class="label" for="ggufThreads">Threads</label></div><input id="ggufThreads" type="number" min="1" max="64" step="1"></div><div class="row"><div><label class="label" for="ggufMaxNewTokens">Max new tokens</label></div><input id="ggufMaxNewTokens" type="number" min="1" max="32768" step="1"></div><div class="row"><div><label class="label" for="ggufTemperature">Temperature</label></div><input id="ggufTemperature" type="number" min="0" max="2" step="0.05"></div><div class="info-box">GGUF continues to use Little Hollow's existing <code>js/aiGGUF.js</code>.</div></section>
 </div>
-
-<div class="card">
-<h2 class="title">Behavior</h2>
-<div class="field"><label for="systemRole">System role</label><select id="systemRole"></select></div>
-<div class="field"><label for="maxNewTokens">Max new tokens</label><div class="row"><input id="maxNewTokens" type="range" min="256" max="4096" step="64"><span id="maxNewTokensValue" class="range-value"></span></div></div>
-<div class="field"><label for="temperature">Temperature</label><div class="row"><input id="temperature" type="range" min="0" max="1" step="0.05"><span id="temperatureValue" class="range-value"></span></div></div>
-<div class="field"><label for="repetitionPenalty">Repetition penalty</label><div class="row"><input id="repetitionPenalty" type="range" min="1" max="1.6" step="0.05"><span id="repetitionPenaltyValue" class="range-value"></span></div></div>
-</div>
-
-<div class="card">
-<h2 class="title">Sampling</h2>
-<div class="field"><label for="topP">Top P</label><div class="row"><input id="topP" type="range" min="0" max="1" step="0.05"><span id="topPValue" class="range-value"></span></div></div>
-<div class="field"><label for="topK">Top K</label><div class="row"><input id="topK" type="range" min="1" max="60" step="1"><span id="topKValue" class="range-value"></span></div></div>
-<div class="field"><label>Sampling</label><label class="check-row"><input id="doSample" type="checkbox"> Do sample</label></div>
-</div>
-
-<div class="card">
-<h2 class="title">Tools</h2>
-<div class="info"><strong>get_current_time</strong><br>Returns the live browser date/time and supports IANA timezones. The parent Little Hollow AI runtime can also expose the application's registered tools to the model.</div>
-</div>
-
-<div class="card full">
-<h2 class="title">Runtime</h2>
-<div class="actions">
-<button id="save" class="primary">Save Settings</button>
-<button id="load" class="primary">Load Model</button>
-<button id="unload" class="danger">Unload Model</button>
-</div>
-<div id="status" class="status"></div>
-<div id="progress" class="progress"></div>
-</div>
-</section>
-</main>
-
+<div class="page" id="page-onnx">
+<section class="section"><h2>ONNX / Transformers.js</h2><div class="section-note">These controls are the settings from the working Transformers.js implementation, moved into Little Hollow's Settings manager. The actual runtime is owned by <code>js/aiOnnx.js</code> in the parent page.</div>
+<div class="row"><div><label class="label" for="onnxModel">Model</label><div class="desc">Hugging Face Transformers.js / ONNX model repository.</div></div><select id="onnxModel"></select></div>
+<div class="row"><div><label class="label" for="onnxDevice">Device</label><div class="desc">WASM is the safest fallback; WebGPU uses supported GPU hardware.</div></div><select id="onnxDevice"><option value="auto">Auto</option><option value="wasm">WASM</option><option value="webgpu">WebGPU</option></select></div>
+<div class="row"><div><label class="label" for="onnxDtype">Data type</label><div class="desc">Precision / quantization passed to Transformers.js.</div></div><select id="onnxDtype"><option value="auto">Auto</option><option value="fp32">fp32</option><option value="fp16">fp16</option><option value="int8">int8</option><option value="uint8">uint8</option><option value="q4">q4</option><option value="bnb4">bnb4</option><option value="q4f16">q4f16</option></select></div>
+<div class="row"><div><label class="label" for="systemRole">System role</label><div class="desc">Initial behavior instruction used by the local model.</div></div><select id="systemRole"></select></div>
+<div class="row"><div><label class="label" for="maxNewTokens">Max new tokens</label></div><input id="maxNewTokens" type="number" min="1" max="4096" step="64"></div>
+<div class="row"><div><label class="label" for="temperature">Temperature</label></div><input id="temperature" type="number" min="0" max="2" step="0.05"></div>
+<div class="row"><div><label class="label" for="repetitionPenalty">Repetition penalty</label></div><input id="repetitionPenalty" type="number" min="1" max="1.6" step="0.05"></div>
+<div class="row"><div><label class="label" for="topP">Top P</label></div><input id="topP" type="number" min="0" max="1" step="0.05"></div>
+<div class="row"><div><label class="label" for="doSample">Do sample</label></div><div class="toggle"><input id="doSample" type="checkbox"></div></div>
+<div class="row"><div><label class="label" for="topK">Top K</label></div><input id="topK" type="number" min="1" max="60" step="1"></div>
+<div class="row"><div><label class="label">JavaScript tools</label><div class="desc"><code>get_current_time</code> remains available through the existing Little Hollow Tools system.</div></div><div class="info-box">The ONNX provider is instructed to emit <code>&lt;tool_call&gt;</code> blocks when a live browser tool is needed.</div></div>
+<div class="actions"><button class="action good" id="onnxLoadBtn" type="button">LOAD ONNX</button><button class="action danger" id="onnxUnloadBtn" type="button">UNLOAD ONNX</button></div>
+<div class="runtime-box"><div class="runtime-head"><div class="runtime-name">ONNX RUNTIME</div><div class="runtime-state" id="onnxState">NOT LOADED</div></div><div class="progress" id="onnxProgressTrack"><div class="progress-bar" id="onnxProgressBar"></div></div><div class="runtime-message" id="onnxRuntimeMessage">ONNX model is not loaded.</div></div>
+</section></div>
+<div class="page" id="page-agent"><section class="section"><h2>Agent</h2><div class="row"><div><label class="label" for="maxToolRounds">Maximum tool rounds</label><div class="desc">Maximum tool-call cycles during one Little Hollow turn.</div></div><input id="maxToolRounds" type="number" min="1" max="32" step="1"></div><div class="info-box">Agent/tool execution remains owned by the parent <code>ai.js</code> runtime.</div></section></div>
+<div class="page" id="page-live"><section class="section"><h2>Live Mode</h2><div class="row"><div><label class="label" for="liveEnabled">Enable live AI</label><div class="desc">Enables the existing debounced live-mode API.</div></div><div class="toggle"><input id="liveEnabled" type="checkbox"></div></div><div class="row"><div><label class="label" for="debounceMs">Debounce</label></div><input id="debounceMs" type="number" min="0" step="50"></div><div class="row"><div><label class="label" for="minIntervalMs">Minimum interval</label></div><input id="minIntervalMs" type="number" min="0" step="50"></div></section></div>
+<div class="actions"><button class="action primary" id="saveBtn">SAVE SETTINGS</button><button class="action" id="testBtn">TEST GEMINI</button><button class="action" id="resetBtn">RESET GEMINI</button></div><div id="status" aria-live="polite"></div>
+</section></div></div></main>
 <script>
-(() => {
-"use strict";
-
-const TRANSFORMERS_URL="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/+esm";
-
-const CONFIG={
-models:{
-"SmolLM2-135M-Instruct":"HuggingFaceTB/SmolLM2-135M-Instruct",
-"SmolLM2-360M-Instruct":"HuggingFaceTB/SmolLM2-360M-Instruct",
-"Qwen2.5-0.5B-Instruct":"Mozilla/Qwen2.5-0.5B-Instruct",
-"Qwen3-0.6B":"onnx-community/Qwen3-0.6B-ONNX",
-"Gemma-3-1B-It":"onnx-community/gemma-3-1b-it-ONNX",
-"Falcon3-1B-Instruct":"onnx-community/Falcon3-1B-Instruct",
-"SmolLM2-1.7B-Instruct":"HuggingFaceTB/SmolLM2-1.7B-Instruct",
-"Phi-3-mini-4k-Instruct (3.8B)":"Xenova/Phi-3-mini-4k-instruct"
-},
-system_roles:{
-"None (no chat template)":"",
-"Helpful assistant":"You are a helpful, concise, and accurate assistant.",
-"Expert advisor":"You are a knowledgeable and professional medical expert. Provide clear, evidence-based answers.",
-"Socratic guide":"You are a Socratic tutor. Ask thoughtful questions to guide the user to their own conclusions.",
-"Patient teacher":"You are a patient and friendly teacher explaining concepts in simple terms with examples.",
-"Quiz generator":"You are a quiz master. Generate multiple-choice questions to test knowledge of a topic.",
-"Code assistant":"You are a skilled software engineer. Help the user write clean, efficient code.",
-"Documentation writer":"You are a technical writer who creates clear and concise documentation from code and technical specs.",
-"Data analyst":"You are a data analyst. Interpret data clearly, with charts or summaries if needed.",
-"Storyteller":"You are a creative and engaging storyteller. Write vivid and original fiction.",
-"Poet":"You are a poetic wordsmith. Craft expressive and emotionally resonant poetry.",
-"Motivational coach":"You are a motivational coach. Offer practical advice and encouragement.",
-"Friendly companion":"You are a kind and empathetic companion. Listen and respond warmly."
-},
-devices:{Auto:"auto",WASM:"wasm",WebGPU:"webgpu"},
-dtypes:{Auto:"auto",fp32:"fp32",fp16:"fp16",int8:"int8",uint8:"uint8",q4:"q4",bnb4:"bnb4",q4f16:"q4f16"}
-};
-const DEFAULT={
-model:CONFIG.models["SmolLM2-360M-Instruct"],
-system_role:CONFIG.system_roles["Helpful assistant"],
-task:"text-generation",
-device:"wasm",
-dtype:"auto",
-parameters:{max_new_tokens:1024,temperature:.2,top_p:.95,top_k:30,repetition_penalty:1.05,do_sample:true}
-};
+(()=>{"use strict";
 const KEY="littlehollow.ai.settings";
-const $=id=>document.getElementById(id);
-const parentWindow=()=>{try{return window.parent&&window.parent!==window?window.parent:window}catch(_){return window}};
-const loadLocal=()=>{try{const raw=localStorage.getItem(KEY);return raw?merge(DEFAULT,JSON.parse(raw)):clone(DEFAULT)}catch(_){return clone(DEFAULT)}};
-const clone=v=>{try{return JSON.parse(JSON.stringify(v))}catch(_){return v}};
-function merge(base,extra){const out=clone(base);if(!extra||typeof extra!=="object")return out;for(const k of Object.keys(extra)){if(extra[k]&&typeof extra[k]==="object"&&!Array.isArray(extra[k]))out[k]=Object.assign({},out[k]||{},extra[k]);else out[k]=extra[k]}return out}
-function getAI(){const p=parentWindow();return p&&p.LittleHollowAI?p.LittleHollowAI:null}
-function provider(){const p=parentWindow();return p&&p.LittleHollowAIProviders?p.LittleHollowAIProviders.onnx:null}
-function setStatus(text,kind){$("status").textContent=text||"";$("status").className="status"+(kind?" "+kind:"")}
-function fill(sel,items,value){sel.innerHTML="";for(const [name,val] of Object.entries(items)){const o=document.createElement("option");o.textContent=name;o.value=val;sel.appendChild(o)}sel.value=value;if(sel.value!==value&&sel.options.length)sel.selectedIndex=0}
-function sync(){
-const s=loadLocal(),p=s.onnx||DEFAULT;
-fill($("model"),CONFIG.models,p.model);
-fill($("device"),CONFIG.devices,p.device||"wasm");
-fill($("systemRole"),CONFIG.system_roles,p.system_role??DEFAULT.system_role);
-fill($("dtype"),CONFIG.dtypes,p.dtype||"auto");
-const q=p.parameters||{};
-$("maxNewTokens").value=q.max_new_tokens??1024;
-$("temperature").value=q.temperature??.2;
-$("repetitionPenalty").value=q.repetition_penalty??1.05;
-$("topP").value=q.top_p??.95;
-$("topK").value=q.top_k??30;
-$("doSample").checked=q.do_sample!==false;
-updateLabels();
-}
-function updateLabels(){
-$("maxNewTokensValue").textContent=$("maxNewTokens").value;
-$("temperatureValue").textContent=Number($("temperature").value).toFixed(2);
-$("repetitionPenaltyValue").textContent=Number($("repetitionPenalty").value).toFixed(2);
-$("topPValue").textContent=Number($("topP").value).toFixed(2);
-$("topKValue").textContent=$("topK").value;
-}
-function settingsFromUI(){
-const all=loadLocal();
-all.provider="onnx";
-all.onnx={
-model:$("model").value,
-device:$("device").value,
-dtype:$("dtype").value,
-system_role:$("systemRole").value,
-task:"text-generation",
-parameters:{
-max_new_tokens:Number($("maxNewTokens").value),
-temperature:Number($("temperature").value),
-top_p:Number($("topP").value),
-top_k:Number($("topK").value),
-repetition_penalty:Number($("repetitionPenalty").value),
-do_sample:$("doSample").checked
-}
-};
-return all;
-}
-async function save(){
-const ai=getAI();
-const next=settingsFromUI();
-try{
-if(ai&&typeof ai.setSettings==="function")ai.setSettings(next);else localStorage.setItem(KEY,JSON.stringify(next));
-window.dispatchEvent(new CustomEvent("littlehollow:ai-settings-changed",{detail:clone(next)}));
-setStatus("Settings saved.","good");
-}catch(e){setStatus(e?.message||String(e),"bad")}
-}
-async function loadModel(){
-await save();
-const p=provider();
-if(!p||typeof p.load!=="function"){setStatus("ONNX provider is not available in the parent page yet.","bad");return}
-try{
-setStatus("Loading model...");
-$("load").disabled=true;
-await p.load(settingsFromUI(),message=>renderProgress(message));
-setStatus("Model loaded and ready.","good");
-}catch(e){setStatus(e?.message||String(e),"bad")}
-finally{$("load").disabled=false}
-}
-async function unload(){
-const p=provider();
-try{
-if(p&&typeof p.unload==="function")await p.unload();
-setStatus("Model unloaded.","good");
-$("progress").innerHTML="";
-}catch(e){setStatus(e?.message||String(e),"bad")}
-}
-function renderProgress(data){
-if(!data)return;
-const file=String(data.file||"model");
-let el=[...$("progress").children].find(x=>x.dataset.file===file);
-if(!el){el=document.createElement("div");el.className="progress-item";el.dataset.file=file;el.innerHTML='<div class="progress-bar"></div><div class="progress-text"></div>';$("progress").appendChild(el)}
-const pct=Math.max(0,Math.min(100,Number(data.progress||0)));
-el.querySelector(".progress-bar").style.width=pct+"%";
-const loaded=data.loaded!=null?formatBytes(data.loaded):"";
-const total=data.total!=null?formatBytes(data.total):"";
-el.querySelector(".progress-text").textContent=`${pct.toFixed(1)}% ${file}${loaded&&total?" — "+loaded+" / "+total:""}`;
-}
-function formatBytes(n){n=Number(n);if(!Number.isFinite(n)||n<0)return"";if(!n)return"0 B";const u=["B","KB","MB","GB"];const e=Math.min(Math.floor(Math.log(n)/Math.log(1024)),u.length-1);const v=n/Math.pow(1024,e);return v.toFixed(e?2:0)+" "+u[e]}
-for(const id of ["maxNewTokens","temperature","repetitionPenalty","topP","topK"])$(id).addEventListener("input",updateLabels);
-$("doSample").addEventListener("change",updateLabels);
-$("save").addEventListener("click",save);
-$("load").addEventListener("click",loadModel);
-$("unload").addEventListener("click",unload);
-window.addEventListener("storage",sync);
-sync();
+const MODELS={"SmolLM2-135M-Instruct":"HuggingFaceTB/SmolLM2-135M-Instruct","SmolLM2-360M-Instruct":"HuggingFaceTB/SmolLM2-360M-Instruct","Qwen2.5-0.5B-Instruct":"onnx-community/Qwen2.5-0.5B-Instruct","Qwen3-0.6B":"onnx-community/Qwen3-0.6B-ONNX","Gemma-3-1B-It":"onnx-community/gemma-3-1b-it-ONNX","Falcon3-1B-Instruct":"onnx-community/Falcon3-1B-Instruct","SmolLM2-1.7B-Instruct":"HuggingFaceTB/SmolLM2-1.7B-Instruct","Phi-3-mini-4k-Instruct (3.8B)":"Xenova/Phi-3-mini-4k-instruct"};
+const ROLES={"None (no chat template)":"","Helpful assistant":"You are a helpful, concise, and accurate assistant.","Expert advisor":"You are a knowledgeable and professional expert. Provide clear, evidence-based answers.","Socratic guide":"You are a Socratic tutor. Ask thoughtful questions to guide the user to their own conclusions.","Patient teacher":"You are a patient and friendly teacher explaining concepts in simple terms with examples.","Quiz generator":"You are a quiz master. Generate multiple-choice questions to test knowledge of a topic.","Code assistant":"You are a skilled software engineer. Help the user write clean, efficient code.","Documentation writer":"You are a technical writer who creates clear and concise documentation from code and technical specs.","Data analyst":"You are a data analyst. Interpret data clearly, with charts or summaries if needed.","Storyteller":"You are a creative and engaging storyteller. Write vivid and original fiction.","Poet":"You are a poetic wordsmith. Craft expressive and emotionally resonant poetry.","Motivational coach":"You are a motivational coach. Offer practical advice and encouragement.","Friendly companion":"You are a kind and empathetic companion. Listen and respond warmly."};
+const DEFAULTS={provider:"puter",puter:{model:"mistralai/ministral-3b-2512"},onnx:{model:MODELS["Qwen2.5-0.5B-Instruct"],device:"wasm",dtype:"q4",maxNewTokens:1024,temperature:.2,repetitionPenalty:1.05,topP:.95,topK:30,doSample:true},systemRole:ROLES["Helpful assistant"],gguf:{model:"",context:8192,threads:4,maxNewTokens:512,temperature:.7},gemini:{apiKey:"",model:"gemini-3.5-flash",pythonTool:false,maxOutputTokens:4096,temperature:.7},live:{enabled:false,debounceMs:1800,minIntervalMs:2500},agent:{maxToolRounds:8}};
+const $=id=>document.getElementById(id); const parent=()=>{try{return window.parent&&window.parent!==window?window.parent:window}catch(_){return window}};
+function clone(v){try{return JSON.parse(JSON.stringify(v))}catch(_){return v}} function merge(a,b){const o=clone(a); if(!b||typeof b!=="object")return o; for(const[k,v]of Object.entries(b)){if(v&&typeof v==="object"&&!Array.isArray(v)&&o[k]&&typeof o[k]==="object"&&!Array.isArray(o[k]))o[k]=merge(o[k],v);else o[k]=v}return o}
+function read(){try{const p=parent();if(p!==window&&p.AI&&typeof p.AI.getSettings==="function")return merge(DEFAULTS,p.AI.getSettings());const raw=(p.localStorage||localStorage).getItem(KEY);return raw?merge(DEFAULTS,JSON.parse(raw)):clone(DEFAULTS)}catch(_){return clone(DEFAULTS)}}
+async function write(s){s=merge(DEFAULTS,s);const p=parent();try{if(p!==window&&p.AI&&typeof p.AI.setSettings==="function"){await p.AI.setSettings(s);return s}}catch(_){}try{(p.localStorage||localStorage).setItem(KEY,JSON.stringify(s))}catch(_){}try{if(p!==window)p.postMessage({type:"LH_SETTINGS_SET",settings:s},"*")}catch(_){}return s}
+function fillSelect(el,obj,val){el.innerHTML=Object.entries(obj).map(([k,v])=>`<option value="${String(v).replaceAll('"','&quot;')}">${k}</option>`).join('');el.value=val}
+function showProvider(v){$('provider').value=v;$('providerBadge').textContent=v==='gemini'?"GOOGLE GEMINI":v.toUpperCase();document.querySelectorAll('.provider-panel').forEach(x=>x.classList.toggle('active',x.id==='panel-'+v));}
+function setStatus(s,c=''){$('status').textContent=s;$('status').className=c}
+function runtime(p){const st=p?.status||p||{};$('onnxState').textContent=String(st.state||'not_loaded').replaceAll('_',' ').toUpperCase();$('onnxProgressBar').style.width=Math.max(0,Math.min(100,Number(st.progress)||0))+'%';$('onnxProgressTrack').classList.toggle('indeterminate',['starting','loading','downloading'].includes(st.state));$('onnxRuntimeMessage').textContent=st.message||'';}
+function fill(s){s=merge(DEFAULTS,s);showProvider(s.provider);fillSelect($('onnxModel'),MODELS,s.onnx.model);fillSelect($('systemRole'),ROLES,s.systemRole);Object.assign($('onnxDevice'),{value:s.onnx.device});$('onnxDtype').value=s.onnx.dtype;$('maxNewTokens').value=s.onnx.maxNewTokens;$('temperature').value=s.onnx.temperature;$('repetitionPenalty').value=s.onnx.repetitionPenalty;$('topP').value=s.onnx.topP;$('topK').value=s.onnx.topK;$('doSample').checked=!!s.onnx.doSample;$('puterModel').value=s.puter.model;$('apiKey').value=s.gemini.apiKey;$('geminiModel').value=s.gemini.model;$('pythonTool').checked=!!s.gemini.pythonTool;$('maxOutputTokens').value=s.gemini.maxOutputTokens;$('geminiTemperature').value=s.gemini.temperature;$('ggufModel').value=s.gguf.model;$('ggufContext').value=s.gguf.context;$('ggufThreads').value=s.gguf.threads;$('ggufMaxNewTokens').value=s.gguf.maxNewTokens;$('ggufTemperature').value=s.gguf.temperature;$('maxToolRounds').value=s.agent.maxToolRounds;$('liveEnabled').checked=!!s.live.enabled;$('debounceMs').value=s.live.debounceMs;$('minIntervalMs').value=s.live.minIntervalMs;}
+function collect(){const s=read();s.provider=$('provider').value;s.systemRole=$('systemRole').value;s.onnx={model:$('onnxModel').value,device:$('onnxDevice').value,dtype:$('onnxDtype').value,maxNewTokens:Math.max(1,Number($('maxNewTokens').value)||1024),temperature:Math.max(0,Number($('temperature').value)||0),repetitionPenalty:Math.max(1,Number($('repetitionPenalty').value)||1.05),topP:Math.max(0,Math.min(1,Number($('topP').value)||.95)),topK:Math.max(1,Number($('topK').value)||30),doSample:$('doSample').checked};s.puter={model:$('puterModel').value.trim()||DEFAULTS.puter.model};s.gemini={apiKey:$('apiKey').value.trim(),model:$('geminiModel').value.trim()||DEFAULTS.gemini.model,pythonTool:$('pythonTool').checked,maxOutputTokens:Math.max(1,Number($('maxOutputTokens').value)||4096),temperature:Math.max(0,Number($('geminiTemperature').value)||0)};s.gguf={model:$('ggufModel').value.trim(),context:Math.max(256,Number($('ggufContext').value)||8192),threads:Math.max(1,Number($('ggufThreads').value)||4),maxNewTokens:Math.max(1,Number($('ggufMaxNewTokens').value)||512),temperature:Math.max(0,Number($('ggufTemperature').value)||.7)};s.agent={maxToolRounds:Math.max(1,Math.min(32,Number($('maxToolRounds').value)||8))};s.live={enabled:$('liveEnabled').checked,debounceMs:Math.max(0,Number($('debounceMs').value)||0),minIntervalMs:Math.max(0,Number($('minIntervalMs').value)||0)};return s}
+async function provider(){const p=parent();if(p===window||!p.AI||typeof p.AI.getProvider!=="function")throw Error('Little Hollow parent AI runtime is unavailable.');return p.AI.getProvider('onnx')}
+$('onnxLoadBtn').onclick=async()=>{try{const s=collect();await write(s);setStatus('Loading ONNX in the Little Hollow parent runtime...');runtime({state:'starting',progress:0,message:'Starting ONNX runtime...'});const r=await(await provider()).prepare(s);runtime(r);setStatus('ONNX model loaded in the parent runtime.','good')}catch(e){runtime({state:'error',progress:0,message:e?.message||String(e)});setStatus('ONNX load failed: '+(e?.message||String(e)),'bad')}};
+$('onnxUnloadBtn').onclick=async()=>{try{await(await provider()).unload();runtime({state:'not_loaded',progress:0,message:'ONNX runtime unloaded.'});setStatus('ONNX model unloaded.','good')}catch(e){setStatus('ONNX unload failed: '+(e?.message||String(e)),'bad')}};
+$('saveBtn').onclick=async()=>{try{await write(collect());setStatus('Settings saved.','good')}catch(e){setStatus('Save failed: '+(e?.message||String(e)),'bad')}};
+$('provider').onchange=async()=>{showProvider($('provider').value);try{await write(collect());setStatus('Provider saved.','good')}catch(_){}};
+$('testBtn').onclick=async()=>{const s=collect();if(!s.gemini.apiKey){setStatus('Enter a Gemini API key first.','bad');return}setStatus('Testing Gemini...');try{const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(s.gemini.model)+':generateContent?key='+encodeURIComponent(s.gemini.apiKey),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:'Reply with exactly: LITTLE HOLLOW GEMINI OK'}]}]})});const d=await r.json();if(!r.ok)throw Error(d?.error?.message||'HTTP '+r.status);s.provider='gemini';await write(s);fill(s);setStatus('Gemini connection OK.','good')}catch(e){setStatus('Gemini test failed: '+(e?.message||String(e)),'bad')}};
+$('resetBtn').onclick=async()=>{const s=read();s.gemini=clone(DEFAULTS.gemini);await write(s);fill(s);setStatus('Gemini settings reset.','good')};
+document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+b.dataset.page))});
+window.addEventListener('message',e=>{if(e.data?.type==='LH_SETTINGS_PUSH'||e.data?.type==='LH_SETTINGS_RESPONSE')fill(merge(DEFAULTS,e.data.settings||{}));if(e.data?.type?.includes?.('ONNX'))runtime(e.data.status||e.data)});
+(async()=>{fill(await read());try{const p=await provider();if(p?.getStatus)runtime(p.getStatus())}catch(_){} })();
 })();
 </script>
 </body>
