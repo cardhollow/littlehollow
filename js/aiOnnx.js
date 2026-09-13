@@ -21,7 +21,8 @@
             message: "ONNX model is not loaded.",
             model: "HuggingFaceTB/SmolLM2-360M-Instruct",
             device: "wasm",
-            dtype: "auto"
+            dtype: "auto",
+            files: []
         }
     };
 
@@ -56,6 +57,13 @@
             total: data && data.total,
             status: data && data.status || "progress"
         };
+        const files = Array.isArray(provider.status.files) ? [...provider.status.files] : [];
+        const index = files.findIndex(x => x.file === item.file);
+        if (index >= 0) files[index] = Object.assign({}, files[index], item);
+        else files.push(item);
+        const active = files.filter(x => x.file);
+        const overall = active.length ? active.reduce((sum, x) => sum + (Number(x.progress) || 0), 0) / active.length : item.progress;
+        setStatus({ files, progress: overall });
         emit("progress", item);
     }
 
@@ -89,16 +97,35 @@
                 env.useBrowserCache = true;
                 env.useCustomCache = false;
 
+                const requestedDevice = parameters.device || "wasm";
                 generatorKey = key;
-                generatorPromise = pipeline(
-                    parameters.task || "text-generation",
-                    parameters.model,
-                    {
-                        device: parameters.device || "wasm",
-                        dtype: parameters.dtype || "auto",
-                        progress_callback: (x) => self.postMessage(x)
+                generatorPromise = (async () => {
+                    try {
+                        return await pipeline(
+                            parameters.task || "text-generation",
+                            parameters.model,
+                            {
+                                device: requestedDevice,
+                                dtype: parameters.dtype || "auto",
+                                progress_callback: (x) => self.postMessage(x)
+                            }
+                        );
+                    } catch (error) {
+                        if (String(requestedDevice).toLowerCase() !== "webgpu") throw error;
+                        self.postMessage({ status: "fallback", message: "WebGPU unavailable; falling back to WASM...", error: error instanceof Error ? error.message : String(error) });
+                        const wasmKey = JSON.stringify({ task: parameters.task || "text-generation", model: parameters.model, device: "wasm", dtype: parameters.dtype || "auto" });
+                        generatorKey = wasmKey;
+                        return await pipeline(
+                            parameters.task || "text-generation",
+                            parameters.model,
+                            {
+                                device: "wasm",
+                                dtype: parameters.dtype || "auto",
+                                progress_callback: (x) => self.postMessage(x)
+                            }
+                        );
                     }
-                );
+                })();
 
                 return generatorPromise;
             }
@@ -107,6 +134,17 @@
                 const input = event.data || {};
                 try {
                     const generator = await getGenerator(input);
+
+                    if (input.op === "load") {
+                        self.postMessage({
+                            status: "ready",
+                            model: input.model,
+                            device: input.device || "wasm",
+                            dtype: input.dtype || "auto"
+                        });
+                        return;
+                    }
+
                     const streamer = new TextStreamer(generator.tokenizer, {
                         skip_prompt: true,
                         skip_special_tokens: true,
@@ -181,7 +219,7 @@
         }
 
         if (data.status === "ready") {
-            setStatus({ ready: true, state: "ready", progress: 100, message: "ONNX model is ready." });
+            setStatus({ ready: true, state: "ready", progress: 100, model: data.model || provider.model, device: data.device || provider.status.device || "wasm", dtype: data.dtype || provider.status.dtype || "auto", message: "ONNX model is ready." });
             return;
         }
 
@@ -234,20 +272,11 @@
         createWorker();
 
         post({
+            op: "load",
             task: "text-generation",
             model,
             device,
-            dtype,
-            messages: [],
-            text: "",
-            parameters: {
-                max_new_tokens: Number(onnx.max_new_tokens ?? onnx.maxNewTokens ?? 1024),
-                temperature: Number(onnx.temperature ?? 0.2),
-                top_p: Number(onnx.top_p ?? 0.95),
-                top_k: Number(onnx.top_k ?? 30),
-                repetition_penalty: Number(onnx.repetition_penalty ?? 1.05),
-                do_sample: onnx.do_sample !== false
-            }
+            dtype
         });
 
         // Wait for the worker to either become ready or fail. The working HTML
@@ -289,10 +318,6 @@
         }
 
         const history = Array.isArray(messages) ? clone(messages) : [];
-        const systemRole = onnx.system_role || onnx.systemRole;
-        if (systemRole && !history.some(m => m && m.role === "system")) {
-            history.unshift({ role: "system", content: String(systemRole) });
-        }
 
         const request = {
             task: "text-generation",
