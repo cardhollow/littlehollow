@@ -3643,7 +3643,7 @@ const lh =
           }
 
           result =
-            api.playPKP(
+            await api.playPKP(
               value
             );
 
