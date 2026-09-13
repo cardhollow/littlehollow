@@ -5171,20 +5171,59 @@ select{
     
     window.PianoAPI={    
     
-        playPKP:function(value){    
-            if(    
-                typeof value!=="string" ||    
-                !value.trim()    
-            ){    
-                return false;    
-            }    
-    
-            playPKP(    
-                value.trim()    
-            );    
-    
-            return true;    
-        },    
+        playPKP:async function(value){
+
+    if(
+        typeof value!=="string" ||
+        !value.trim()
+    ){
+        return false;
+    }
+
+    while(
+        typeof buildPiano!=="function" ||
+        typeof playPKP!=="function"
+    ){
+        await new Promise(
+            resolve=>setTimeout(resolve,50)
+        );
+    }
+
+    initAudio();
+
+    if(
+        audioContext &&
+        audioContext.state==="suspended"
+    ){
+        try{
+            await audioContext.resume();
+        }catch(e){}
+    }
+
+    while(
+        !audioContext ||
+        audioContext.state!=="running"
+    ){
+        await new Promise(
+            resolve=>setTimeout(resolve,50)
+        );
+
+        if(
+            audioContext &&
+            audioContext.state==="suspended"
+        ){
+            try{
+                await audioContext.resume();
+            }catch(e){}
+        }
+    }
+
+    playPKP(
+        value.trim()
+    );
+
+    return true;
+},
     
         importPKP:function(value){    
             if(    
