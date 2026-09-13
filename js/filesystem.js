@@ -8,6 +8,9 @@
         "chxd:/system/readme.txt":
             "Welcome to Little Hollow.\nOpen Apps, File Manager, Notepad, Paint, Calculator, or Messenger.",
 
+        "chxd:/system/relax.happ":
+            "<script>location = ('https://cardhollow.github.io/nostalgicplain/')</script>",
+
         "chxd:/system/lullaby.pkp":
             `{"instrument":"bell","volume":0.7,"octave":4}<[d:250](250)[d:250](250)[g:750](750)[d:250](250)[d:250](250)[g:750](750)[d:250](250)[g:250](250)[k:500](500)[j:500](500)[h:500](500)[h:500](500)[g:750](750)[s:250](250)[d:250](250)[f:750](750)[s:250](250)[d:250](250)[f:750](750)[s:250](250)[f:250](250)[j:500](500)[h:500](500)[g:500](500)[j:500](500)[k:1000]>`
     };
