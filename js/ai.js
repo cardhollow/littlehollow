@@ -11,11 +11,18 @@
             model: "mistralai/ministral-3b-2512"
         },
         onnx: {
-            model: "onnx-community/Qwen2.5-0.5B-Instruct",
-            device: "webgpu",
-            dtype: "q4",
-            maxNewTokens: 256,
-            temperature: 0.7
+            model: "HuggingFaceTB/SmolLM2-360M-Instruct",
+            task: "text-generation",
+            system_role: "You are a helpful, concise, and accurate assistant.",
+            device: "wasm",
+            dtype: "auto",
+            max_new_tokens: 1024,
+            temperature: 0.2,
+            top_p: 0.95,
+            top_k: 30,
+            repetition_penalty: 1.05,
+            do_sample: true,
+            configVersion: 2
         },
         gguf: {
             model: "",
@@ -84,7 +91,29 @@
         try {
             const raw = localStorage.getItem(SETTINGS_KEY);
             if (!raw) return clone(DEFAULTS);
-            return merge(DEFAULTS, JSON.parse(raw));
+            const parsed = JSON.parse(raw);
+            const next = merge(DEFAULTS, parsed);
+
+            // Migrate the earlier Little Hollow ONNX defaults to the same
+            // known-working defaults as the supplied standalone implementation.
+            if (!parsed?.onnx || parsed.onnx.configVersion !== 2) {
+                next.onnx = Object.assign({}, clone(DEFAULTS.onnx), parsed?.onnx || {}, {
+                    configVersion: 2,
+                    device: "wasm",
+                    dtype: "auto",
+                    model: parsed?.onnx?.model || DEFAULTS.onnx.model,
+                    task: "text-generation",
+                    max_new_tokens: Number(parsed?.onnx?.max_new_tokens || DEFAULTS.onnx.max_new_tokens),
+                    temperature: Number(parsed?.onnx?.temperature ?? DEFAULTS.onnx.temperature),
+                    top_p: Number(parsed?.onnx?.top_p ?? DEFAULTS.onnx.top_p),
+                    top_k: Number(parsed?.onnx?.top_k ?? DEFAULTS.onnx.top_k),
+                    repetition_penalty: Number(parsed?.onnx?.repetition_penalty ?? DEFAULTS.onnx.repetition_penalty),
+                    do_sample: parsed?.onnx?.do_sample !== false
+                });
+                localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+            }
+
+            return next;
         } catch (error) {
             console.error("Little Hollow AI settings error:", error);
             return clone(DEFAULTS);
@@ -153,12 +182,9 @@
         const file = PROVIDER_FILES[providerName];
         if (!file) throw new Error(`Unsupported AI provider: ${providerName}`);
 
+        await loadScript(file);
         const registry = window.LittleHollowAIProviders || {};
-        if (!registry[providerName]) {
-            await loadScript(file);
-        }
-        const refreshedRegistry = window.LittleHollowAIProviders || {};
-        const provider = refreshedRegistry[providerName];
+        const provider = registry[providerName];
 
         if (!provider || typeof provider.chat !== "function") {
             throw new Error(`AI provider module did not register correctly: ${providerName}`);

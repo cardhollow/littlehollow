@@ -1,405 +1,398 @@
-/* Little Hollow — local Transformers.js/ONNX provider */
+/* js/aiOnnx.js - Little Hollow local Transformers.js / ONNX provider */
 (function () {
     "use strict";
 
+    const REGISTRY = window.LittleHollowAIProviders = window.LittleHollowAIProviders || {};
     const TRANSFORMERS_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/+esm";
-    const PROVIDER_ID = "onnx";
+    const STORAGE_KEY = "littlehollow.ai.settings";
 
-    const FALLBACK = {
+    const provider = {
+        id: "onnx",
+        worker: null,
+        workerUrl: null,
+        workerPromise: null,
+        ready: false,
+        loading: false,
         model: "HuggingFaceTB/SmolLM2-360M-Instruct",
-        task: "text-generation",
-        system_role: "You are a helpful, concise, and accurate assistant.",
-        device: "wasm",
-        dtype: "auto",
-        parameters: {
-            max_new_tokens: 1024,
-            temperature: 0.2,
-            top_p: 0.95,
-            top_k: 30,
-            repetition_penalty: 1.05,
-            do_sample: true
+        status: {
+            ready: false,
+            state: "not_loaded",
+            progress: 0,
+            message: "ONNX model is not loaded.",
+            model: "HuggingFaceTB/SmolLM2-360M-Instruct",
+            device: "wasm",
+            dtype: "auto"
         }
     };
-
-    const runtime = {
-        state: "not_loaded",
-        progress: 0,
-        message: "ONNX model is not loaded.",
-        model: null,
-        device: null,
-        dtype: null
-    };
-
-    let worker = null;
-    let workerUrl = null;
-    let workerReady = false;
-    let requestSerial = 0;
-    const pending = new Map();
 
     function clone(value) {
         try { return JSON.parse(JSON.stringify(value)); }
         catch (_) { return value; }
     }
 
-    function normalizeSettings(settings) {
-        const onnx = settings && settings.onnx ? settings.onnx : {};
-        const params = onnx.parameters || {};
-        return {
-            model: String(onnx.model || settings?.model || FALLBACK.model),
-            task: String(onnx.task || settings?.task || FALLBACK.task),
-            system_role: String(onnx.system_role || settings?.system_role || FALLBACK.system_role),
-            device: String(onnx.device || settings?.device || FALLBACK.device).toLowerCase(),
-            dtype: String(onnx.dtype || settings?.dtype || FALLBACK.dtype).toLowerCase(),
-            parameters: {
-                max_new_tokens: Math.max(1, Number(params.max_new_tokens ?? onnx.maxNewTokens ?? FALLBACK.parameters.max_new_tokens) || FALLBACK.parameters.max_new_tokens),
-                temperature: Math.max(0, Number(params.temperature ?? onnx.temperature ?? FALLBACK.parameters.temperature)),
-                top_p: Math.max(0, Math.min(1, Number(params.top_p ?? FALLBACK.parameters.top_p))),
-                top_k: Math.max(1, Number(params.top_k ?? FALLBACK.parameters.top_k) || FALLBACK.parameters.top_k),
-                repetition_penalty: Math.max(1, Number(params.repetition_penalty ?? FALLBACK.parameters.repetition_penalty) || FALLBACK.parameters.repetition_penalty),
-                do_sample: params.do_sample !== undefined ? !!params.do_sample : (onnx.doSample !== undefined ? !!onnx.doSample : FALLBACK.parameters.do_sample)
-            }
-        };
+    function nowMessage(text) {
+        return String(text || "");
+    }
+
+    function emit(type, detail) {
+        const payload = Object.assign({ type }, clone(detail || {}));
+        try { window.dispatchEvent(new CustomEvent("littlehollow:ai-onnx", { detail: payload })); } catch (_) {}
+        try { window.dispatchEvent(new CustomEvent("littlehollow:ai-onnx-" + String(type).toLowerCase(), { detail: payload })); } catch (_) {}
     }
 
     function setStatus(patch) {
-        Object.assign(runtime, patch || {});
-        window.dispatchEvent(new CustomEvent("littlehollow:onnx-status", {
-            detail: clone(getStatus())
-        }));
+        provider.status = Object.assign({}, provider.status, patch || {});
+        provider.ready = !!provider.status.ready;
+        provider.loading = ["starting", "loading", "downloading", "generating"].includes(provider.status.state);
+        emit("status", provider.status);
     }
 
-    function getStatus() {
-        return {
-            ready: runtime.state === "ready",
-            state: runtime.state,
-            progress: Number(runtime.progress) || 0,
-            message: runtime.message || "",
-            model: runtime.model,
-            device: runtime.device,
-            dtype: runtime.dtype
+    function updateFileProgress(data) {
+        const progress = Number(data && data.progress || 0);
+        const item = {
+            file: data && data.file || "",
+            progress: Number.isFinite(progress) ? progress : 0,
+            loaded: data && data.loaded,
+            total: data && data.total,
+            status: data && data.status || "progress"
         };
-    }
-
-    function revokeWorker() {
-        if (worker) {
-            try { worker.terminate(); } catch (_) {}
-            worker = null;
-        }
-        if (workerUrl) {
-            try { URL.revokeObjectURL(workerUrl); } catch (_) {}
-            workerUrl = null;
-        }
-        workerReady = false;
-        for (const entry of pending.values()) {
-            entry.reject(new Error("ONNX worker stopped."));
-        }
-        pending.clear();
+        emit("progress", item);
     }
 
     function createWorker() {
-        if (worker) return worker;
+        if (provider.worker) return provider.worker;
 
-        const source = `
-            import { env, pipeline, TextStreamer } from ${JSON.stringify(TRANSFORMERS_URL)};
-
-            env.allowRemoteModels = true;
-            env.allowLocalModels = false;
-            env.useBrowserCache = true;
-            env.useCustomCache = false;
+        const workerSource = `
+            import { env, pipeline, TextStreamer } from "${TRANSFORMERS_URL}";
 
             let generatorPromise = null;
-            let loadedKey = "";
+            let generatorKey = "";
 
-            const post = (data) => self.postMessage(data);
+            function fail(message) {
+                self.postMessage({ status: "error", output: String(message || "Unknown worker error") });
+            }
 
-            async function getGenerator(input) {
+            async function getGenerator(parameters) {
                 const key = JSON.stringify({
-                    task: input.task,
-                    model: input.model,
-                    device: input.device,
-                    dtype: input.dtype
+                    task: parameters.task,
+                    model: parameters.model,
+                    device: parameters.device,
+                    dtype: parameters.dtype
                 });
 
-                if (!generatorPromise || loadedKey !== key) {
-                    generatorPromise = null;
-                    loadedKey = key;
-                    generatorPromise = pipeline(
-                        input.task,
-                        input.model,
-                        {
-                            device: input.device,
-                            dtype: input.dtype,
-                            progress_callback: (x) => post({
-                                requestId: input.requestId,
-                                type: "progress",
-                                progress: x
-                            })
-                        }
-                    );
+                if (generatorPromise && generatorKey === key) {
+                    return generatorPromise;
                 }
+
+                env.allowRemoteModels = true;
+                env.allowLocalModels = false;
+                env.useBrowserCache = true;
+                env.useCustomCache = false;
+
+                generatorKey = key;
+                generatorPromise = pipeline(
+                    parameters.task || "text-generation",
+                    parameters.model,
+                    {
+                        device: parameters.device || "wasm",
+                        dtype: parameters.dtype || "auto",
+                        progress_callback: (x) => self.postMessage(x)
+                    }
+                );
 
                 return generatorPromise;
             }
 
             self.addEventListener("message", async (event) => {
                 const input = event.data || {};
-                const requestId = input.requestId;
-
                 try {
-                    if (input.type === "load") {
-                        await getGenerator(input);
-                        post({ requestId, type: "ready" });
-                        return;
-                    }
-
-                    if (input.type === "unload") {
-                        generatorPromise = null;
-                        loadedKey = "";
-                        post({ requestId, type: "unloaded" });
-                        return;
-                    }
-
-                    if (input.type !== "generate") return;
-
                     const generator = await getGenerator(input);
                     const streamer = new TextStreamer(generator.tokenizer, {
                         skip_prompt: true,
                         skip_special_tokens: true,
-                        callback_function: (text) => post({
-                            requestId,
-                            type: "token",
-                            text
-                        })
+                        callback_function: (text) => self.postMessage({ status: "update", output: text })
                     });
 
-                    const messages = Array.isArray(input.messages) && input.messages.length
+                    const message = Array.isArray(input.messages) && input.messages.length
                         ? input.messages
                         : (input.text || "");
 
-                    await generator(messages, {
+                    await generator(message, {
                         ...(input.parameters || {}),
                         return_full_text: false,
                         streamer
                     });
 
-                    post({ requestId, type: "complete" });
+                    self.postMessage({ status: "complete" });
                 } catch (error) {
-                    post({
-                        requestId,
-                        type: "error",
-                        message: error instanceof Error ? error.message : String(error),
-                        stack: error?.stack || ""
-                    });
+                    fail(error instanceof Error ? error.message : String(error));
                 }
             });
         `;
 
-        workerUrl = URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
-        worker = new Worker(workerUrl, { type: "module" });
-        worker.addEventListener("message", onWorkerMessage);
-        worker.addEventListener("error", (event) => {
-            setStatus({ state: "error", progress: 0, message: event?.message || "ONNX worker error." });
-        });
-        return worker;
+        provider.workerUrl = URL.createObjectURL(new Blob([workerSource], { type: "text/javascript" }));
+        provider.worker = new Worker(provider.workerUrl, { type: "module" });
+        provider.worker.addEventListener("message", onWorkerMessage);
+        provider.worker.addEventListener("error", onWorkerError);
+        return provider.worker;
     }
 
-    function post(type, input) {
-        const w = createWorker();
-        const requestId = `onnx_${++requestSerial}`;
-        return new Promise((resolve, reject) => {
-            pending.set(requestId, { resolve, reject });
-            w.postMessage({ ...(input || {}), type, requestId });
+    function destroyWorker() {
+        if (provider.worker) {
+            try { provider.worker.terminate(); } catch (_) {}
+            provider.worker = null;
+        }
+        if (provider.workerUrl) {
+            try { URL.revokeObjectURL(provider.workerUrl); } catch (_) {}
+            provider.workerUrl = null;
+        }
+        provider.workerPromise = null;
+        provider.ready = false;
+        provider.loading = false;
+    }
+
+    function onWorkerError(event) {
+        const message = event && (event.message || event.error && event.error.message) || "Unknown worker error";
+        setStatus({
+            ready: false,
+            state: "error",
+            progress: 0,
+            message: "ONNX worker error: " + message
         });
+        emit("error", { message });
     }
 
     function onWorkerMessage(event) {
         const data = event.data || {};
-        const requestId = data.requestId;
-        const entry = pending.get(requestId);
 
-        if (data.type === "progress") {
-            const p = data.progress || {};
-            const percentage = Number(p.progress ?? 0);
+        if (["initiate", "progress"].includes(data.status)) {
+            updateFileProgress(data);
             setStatus({
-                state: "downloading",
-                progress: Number.isFinite(percentage) ? percentage : 0,
-                message: p.file
-                    ? `Downloading ${p.file}${p.loaded != null && p.total != null ? ` — ${p.loaded} / ${p.total}` : ""}`
-                    : "Downloading ONNX model..."
+                state: "loading",
+                progress: Number(data.progress || 0),
+                message: "Downloading " + String(data.file || "model files") + "..."
             });
-            if (entry && typeof entry.onProgress === "function") entry.onProgress(p);
             return;
         }
 
-        if (!entry) return;
-
-        if (data.type === "token") {
-            if (typeof entry.onToken === "function") entry.onToken(String(data.text || ""));
+        if (data.status === "done") {
+            updateFileProgress(data);
             return;
         }
 
-        if (data.type === "ready") {
-            pending.delete(requestId);
-            workerReady = true;
-            entry.resolve(data);
+        if (data.status === "ready") {
+            setStatus({ ready: true, state: "ready", progress: 100, message: "ONNX model is ready." });
             return;
         }
 
-        if (data.type === "unloaded") {
-            pending.delete(requestId);
-            workerReady = false;
-            entry.resolve(data);
+        if (data.status === "update") {
+            emit("token", { token: String(data.output || "") });
             return;
         }
 
-        if (data.type === "complete") {
-            pending.delete(requestId);
-            entry.resolve(data);
+        if (data.status === "complete") {
+            setStatus({ ready: true, state: "ready", progress: 100, message: "ONNX inference complete." });
+            emit("complete", {});
             return;
         }
 
-        if (data.type === "error") {
-            pending.delete(requestId);
-            entry.reject(new Error(data.message || "ONNX model execution failed."));
+        if (data.status === "error") {
+            setStatus({ ready: false, state: "error", progress: 0, message: String(data.output || "Unknown model error") });
+            emit("error", { message: String(data.output || "Unknown model error") });
         }
     }
 
-    function extractToolCalls(text) {
-        const calls = [];
-        const source = String(text || "");
-        const tagged = /<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/gi;
-        let match;
-        while ((match = tagged.exec(source))) {
-            try {
-                const parsed = JSON.parse(match[1]);
-                if (parsed && typeof parsed.name === "string") {
-                    calls.push({ name: parsed.name, arguments: parsed.arguments || {} });
-                }
-            } catch (_) {}
-        }
-        return calls;
-    }
-
-    function stripToolCalls(text) {
-        return String(text || "")
-            .replace(/<tool_call>\s*[\s\S]*?\s*<\/tool_call>/gi, "")
-            .trim();
+    function post(payload) {
+        const worker = createWorker();
+        setStatus({ state: provider.ready ? "generating" : "loading", message: provider.ready ? "Model inferencing..." : "Starting ONNX runtime..." });
+        worker.postMessage(payload);
     }
 
     async function prepare(settings) {
-        const cfg = normalizeSettings(settings || {});
+        const cfg = settings || {};
+        const onnx = cfg.onnx || cfg;
+        let device = String(onnx.device || "wasm").toLowerCase();
+        const dtype = String(onnx.dtype || "auto").toLowerCase();
+        const model = String(onnx.model || "HuggingFaceTB/SmolLM2-360M-Instruct");
+
+        // The supplied working HTML defaults to WASM. Persisting an old WebGPU value
+        // from an earlier Little Hollow build must not silently make the new default fail.
+        if (!device || device === "auto") device = "wasm";
+
+        provider.model = model;
         setStatus({
+            ready: false,
             state: "starting",
             progress: 0,
-            message: `Starting ONNX runtime for ${cfg.model}...`,
-            model: cfg.model,
-            device: cfg.device,
-            dtype: cfg.dtype
+            message: "Starting ONNX runtime...",
+            model,
+            device,
+            dtype
         });
 
-        try {
-            await post("load", cfg);
-            setStatus({ state: "ready", progress: 100, message: "ONNX model is ready." });
-            return { status: getStatus() };
-        } catch (error) {
-            setStatus({ state: "error", progress: 0, message: error?.message || String(error) });
-            throw error;
-        }
-    }
+        if (provider.worker) destroyWorker();
+        createWorker();
 
-    async function unload() {
-        try {
-            if (worker) {
-                try { await post("unload", {}); } catch (_) {}
+        post({
+            task: "text-generation",
+            model,
+            device,
+            dtype,
+            messages: [],
+            text: "",
+            parameters: {
+                max_new_tokens: Number(onnx.max_new_tokens ?? onnx.maxNewTokens ?? 1024),
+                temperature: Number(onnx.temperature ?? 0.2),
+                top_p: Number(onnx.top_p ?? 0.95),
+                top_k: Number(onnx.top_k ?? 30),
+                repetition_penalty: Number(onnx.repetition_penalty ?? 1.05),
+                do_sample: onnx.do_sample !== false
             }
-        } finally {
-            revokeWorker();
-            setStatus({ state: "not_loaded", progress: 0, message: "ONNX runtime unloaded." });
-        }
+        });
+
+        // Wait for the worker to either become ready or fail. The working HTML
+        // considers model readiness separate from the first generated response.
+        await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                cleanup();
+                reject(new Error("Timed out while loading the ONNX model."));
+            }, 5 * 60 * 1000);
+
+            const cleanup = () => {
+                clearTimeout(timeout);
+                window.removeEventListener("littlehollow:ai-onnx-status", onStatus);
+                window.removeEventListener("littlehollow:ai-onnx-error", onError);
+            };
+            const onStatus = event => {
+                const state = event.detail || {};
+                if (state.state === "ready") { cleanup(); resolve(state); }
+                else if (state.state === "error") { cleanup(); reject(new Error(state.message || "ONNX model failed to load.")); }
+            };
+            const onError = event => {
+                cleanup();
+                reject(new Error(event.detail?.message || "ONNX model failed to load."));
+            };
+
+            window.addEventListener("littlehollow:ai-onnx-status", onStatus);
+            window.addEventListener("littlehollow:ai-onnx-error", onError);
+        });
+
+        return { ok: true, status: getStatus() };
     }
 
     async function chat({ messages, settings, executeTool, onToken }) {
-        const cfg = normalizeSettings(settings || {});
-        const maxToolRounds = Math.max(1, Math.min(32, Number(settings?.agent?.maxToolRounds || 8)));
-        const sourceMessages = Array.isArray(messages) ? clone(messages) : [{ role: "user", content: String(messages || "") }];
+        const cfg = settings || {};
+        const onnx = cfg.onnx || {};
 
-        if (!worker || !workerReady || runtime.model !== cfg.model || runtime.device !== cfg.device || runtime.dtype !== cfg.dtype) {
-            await prepare(settings);
+        if (!provider.ready) {
+            await prepare(cfg);
         }
 
-        let workingMessages = sourceMessages;
-        let finalText = "";
+        const history = Array.isArray(messages) ? clone(messages) : [];
+        const systemRole = onnx.system_role || onnx.systemRole;
+        if (systemRole && !history.some(m => m && m.role === "system")) {
+            history.unshift({ role: "system", content: String(systemRole) });
+        }
 
-        for (let round = 0; round < maxToolRounds; round++) {
-            let generated = "";
-            setStatus({ state: "generating", progress: 100, message: "ONNX model inferencing..." });
+        const request = {
+            task: "text-generation",
+            model: provider.model,
+            device: provider.status.device || "wasm",
+            dtype: provider.status.dtype || "auto",
+            messages: history,
+            parameters: {
+                max_new_tokens: Number(onnx.max_new_tokens ?? onnx.maxNewTokens ?? 1024),
+                temperature: Number(onnx.temperature ?? 0.2),
+                top_p: Number(onnx.top_p ?? 0.95),
+                top_k: Number(onnx.top_k ?? 30),
+                repetition_penalty: Number(onnx.repetition_penalty ?? 1.05),
+                do_sample: onnx.do_sample !== false
+            }
+        };
 
-            await new Promise((resolve, reject) => {
-                const w = createWorker();
-                const requestId = `onnx_${++requestSerial}`;
-                pending.set(requestId, {
-                    resolve,
-                    reject,
-                    onToken: (token) => {
-                        generated += token;
-                        if (typeof onToken === "function") return onToken(token);
-                    }
-                });
-                w.postMessage({
-                    type: "generate",
-                    requestId,
-                    ...cfg,
-                    messages: workingMessages
-                });
+        let output = "";
+        const toolCalls = [];
+        let resolveComplete;
+        let rejectComplete;
+        const completed = new Promise((resolve, reject) => { resolveComplete = resolve; rejectComplete = reject; });
+
+        const tokenHandler = event => {
+            const token = String(event.detail?.token || "");
+            if (!token) return;
+            output += token;
+            if (typeof onToken === "function") return onToken(token);
+        };
+        const doneHandler = () => resolveComplete();
+        const errorHandler = event => rejectComplete(new Error(event.detail?.message || "ONNX inference failed."));
+
+        window.addEventListener("littlehollow:ai-onnx-token", tokenHandler);
+        window.addEventListener("littlehollow:ai-onnx-complete", doneHandler);
+        window.addEventListener("littlehollow:ai-onnx-error", errorHandler);
+        try {
+            post(request);
+            await completed;
+        } finally {
+            window.removeEventListener("littlehollow:ai-onnx-token", tokenHandler);
+            window.removeEventListener("littlehollow:ai-onnx-complete", doneHandler);
+            window.removeEventListener("littlehollow:ai-onnx-error", errorHandler);
+        }
+
+        // Keep the same text-based tool-call convention used by the working HTML.
+        const match = output.match(/<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/i);
+        if (match) {
+            try {
+                const parsed = JSON.parse(match[1]);
+                if (parsed && parsed.name) {
+                    const args = parsed.arguments && typeof parsed.arguments === "string"
+                        ? JSON.parse(parsed.arguments)
+                        : (parsed.arguments || {});
+                    toolCalls.push({
+                        id: "onnx_" + Date.now(),
+                        type: "function",
+                        function: { name: String(parsed.name), arguments: JSON.stringify(args) }
+                    });
+                }
+            } catch (_) {}
+        }
+
+        if (toolCalls.length && typeof executeTool === "function") {
+            const call = toolCalls[0];
+            const result = await executeTool(call.function.name, JSON.parse(call.function.arguments || "{}"));
+            const continuation = clone(history);
+            continuation.push({ role: "assistant", content: output });
+            continuation.push({
+                role: "user",
+                content: `<tool_result name="${call.function.name}">${JSON.stringify(result)}</tool_result>\nUse this live tool result to answer the original user request.`
             });
-
-            const calls = extractToolCalls(generated);
-            if (!calls.length) {
-                finalText = stripToolCalls(generated);
-                setStatus({ state: "ready", progress: 100, message: "ONNX model is ready." });
-                return {
-                    message: { role: "assistant", content: finalText },
-                    provider: PROVIDER_ID,
-                    model: cfg.model,
-                    rounds: round + 1
-                };
-            }
-
-            workingMessages = workingMessages.concat([{ role: "assistant", content: generated }]);
-
-            for (const call of calls) {
-                const result = await executeTool(call.name, call.arguments || {});
-                workingMessages.push({
-                    role: "user",
-                    content: `<tool_result name="${call.name}">${JSON.stringify(result)}<\/tool_result>\nUse this live tool result to answer the original user request.`
-                });
-            }
+            return chat({ messages: continuation, settings, executeTool, onToken });
         }
 
-        setStatus({ state: "ready", progress: 100, message: "ONNX model is ready." });
         return {
-            message: { role: "assistant", content: finalText || "I reached the tool-call limit for this response." },
-            provider: PROVIDER_ID,
-            model: cfg.model,
-            rounds: maxToolRounds,
-            maxRoundsReached: true
+            message: { role: "assistant", content: output.replace(/<tool_call>[\s\S]*?<\/tool_call>/ig, "").trim() },
+            provider: "onnx",
+            model: provider.model,
+            toolCalls: [],
+            rounds: 0
         };
     }
 
+    function unload() {
+        destroyWorker();
+        setStatus({ ready: false, state: "not_loaded", progress: 0, message: "ONNX runtime unloaded." });
+    }
 
-    const provider = {
-        id: PROVIDER_ID,
+    function getStatus() {
+        return clone(provider.status);
+    }
+
+    REGISTRY.onnx = {
+        id: "onnx",
         prepare,
         chat,
         unload,
-        getStatus,
-        getSettings: () => clone(runtime)
+        getStatus
     };
 
-    window.LittleHollowAIProviders = window.LittleHollowAIProviders || {};
-    window.LittleHollowAIProviders[PROVIDER_ID] = provider;
-
-    window.LittleHollowONNX = provider;
-
-    window.addEventListener("beforeunload", revokeWorker);
+    // Compatibility aliases for older manager revisions.
+    window.LittleHollowONNX = REGISTRY.onnx;
 })();
