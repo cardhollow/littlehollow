@@ -3512,32 +3512,36 @@ const lh =
   }
 
   async function pianoInfo()
+{
+  const info =
+    await waitForIframeApp(
+      "Piano",
+      [
+        "app/piano.html",
+        "/piano.html",
+        "piano.html"
+      ]
+    );
+
+  if(
+    info &&
+    info.ok===false
+  )
   {
-    const info =
-      await waitForIframeApp(
-        "Piano",
-        [
-          "app/piano.html",
-          "/piano.html",
-          "piano.html"
-        ]
-      );
+    return {
+      ok:false,
+      summary:info.error
+    };
+  }
 
-    if (
-      info &&
-      info.ok === false
-    )
-    {
-      return {
-        ok:
-          false,
+  const start=
+    Date.now();
 
-        summary:
-          info.error
-      };
-    }
-
-    const api =
+  while(
+    Date.now()-start<5000
+  )
+  {
+    const api=
       window.PianoAPI ||
       (
         info &&
@@ -3545,27 +3549,29 @@ const lh =
         info.api.PianoAPI
       );
 
-    if (!api)
+    if(
+      api
+    )
     {
       return {
-        ok:
-          false,
-
-        summary:
-          "PianoAPI is not available."
+        ok:true,
+        info,
+        api
       };
     }
 
-    return {
-      ok:
-        true,
-
-      info,
-
-      api
-    };
+    await new Promise(
+      resolve=>setTimeout(resolve,50)
+    );
   }
 
+  return {
+    ok:false,
+    summary:
+      "PianoAPI is not available."
+  };
+}
+  
   async function pianoAction(
     args
   )
