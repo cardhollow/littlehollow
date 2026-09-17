@@ -80,6 +80,8 @@ button:active{background:#00ffff;color:#000}
     const SRC_DOC_DIR=
         "chxd:/local/Custom Installed Application/SrcDocs";
 
+    let pendingAPI;
+
     function setStatus(text){
         el.status.textContent=String(text||"");
     }
@@ -221,7 +223,8 @@ button:active{background:#00ffff;color:#000}
                     srcDoc:
                         sourceType==="srcDoc"
                             ?source
-                            :undefined
+                            :undefined,
+                    api:pendingAPI
                 });
 
                 if(!result||!result.ok){
@@ -273,14 +276,16 @@ button:active{background:#00ffff;color:#000}
                     pkg:p,
                     name:n,
                     srcDoc:path,
-                    appIcon:i||"📦"
+                    appIcon:i||"📦",
+                    ...(pendingAPI!==undefined ? {api:pendingAPI} : {})
                 };
             }else{
                 data[oldIndex>=0?oldIndex:data.length]={
                     pkg:p,
                     name:n,
                     src:source.trim(),
-                    appIcon:i||"📦"
+                    appIcon:i||"📦",
+                    ...(pendingAPI!==undefined ? {api:pendingAPI} : {})
                 };
             }
 
@@ -307,6 +312,7 @@ button:active{background:#00ffff;color:#000}
         el.pkg.value="";
         el.name.value="";
         el.icon.value="";
+        pendingAPI=undefined;
         el.sourceType.value="src";
         createSourceControl("src","");
         el.preview.removeAttribute("src");
@@ -320,7 +326,8 @@ button:active{background:#00ffff;color:#000}
             name:el.name.value.trim(),
             appIcon:el.icon.value.trim(),
             sourceType:el.sourceType.value,
-            source:getSource()
+            source:getSource(),
+            api:pendingAPI
         };
     }
 
@@ -335,6 +342,10 @@ button:active{background:#00ffff;color:#000}
             options.sourceType=== "srcDoc"
                 ?"srcDoc"
                 :"src";
+
+        if(Object.prototype.hasOwnProperty.call(options,"api")){
+            pendingAPI=options.api;
+        }
 
         el.sourceType.value=sourceType;
         createSourceControl(
