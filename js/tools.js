@@ -520,7 +520,7 @@
           },
           voice_id:
           {
-            type: ["string","number"]
+            type: "string"
           },
           additive:
           {
@@ -5030,12 +5030,25 @@ const lh =
           break;
 
         case "stop_voice":
-          result =
-            api.stopVoice(
-              args.voice_id
-            );
-          break;
-
+          {
+            const voiceId =
+              typeof args.voice_id === "string" &&
+              /^-?\d+(?:\.\d+)?$/.test(
+                args.voice_id
+              )
+                ? Number(
+                    args.voice_id
+                  )
+                : args.voice_id;
+          
+            result =
+              api.stopVoice(
+                voiceId
+              );
+          
+            break;
+          }
+                    
         case "stop_all_voices":
           result =
             api.stopAllVoices();
