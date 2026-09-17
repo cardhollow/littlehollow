@@ -254,11 +254,6 @@
 
         try {
             const provider = await getProvider(settings.provider);
-            if(window.Tools?.loadRegisteredAPIs){
-                await window.Tools.loadRegisteredAPIs();
-            }else if(window.Tools?.ready){
-                await window.Tools.ready;
-            }
             const tools = window.Tools && Array.isArray(window.Tools.definitions)
                 ? window.Tools.definitions
                 : [];
