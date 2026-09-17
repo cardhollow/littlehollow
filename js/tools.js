@@ -1,6 +1,6 @@
 (function()
 {
-  const definitions = [
+  const definitions = [ 
   {
     type: "function",
     function:
