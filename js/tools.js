@@ -116,6 +116,71 @@
     type: "function",
     function:
     {
+      name: "install_app",
+      description: "Install or update a Little Hollow application using Apps.installApp. Use sourceType 'src' with an HTTPS/HTTP URL, or sourceType 'srcDoc' with complete HTML source. Returns the installation result including the installed app record or an error.",
+      parameters:
+      {
+        type: "object",
+        properties:
+        {
+          pkg:
+          {
+            type: "string",
+            description: "Unique package identifier for the application."
+          },
+          name:
+          {
+            type: "string",
+            description: "Display name of the application."
+          },
+          appIcon:
+          {
+            type: "string",
+            description: "Application icon or emoji."
+          },
+          sourceType:
+          {
+            type: "string",
+            enum:
+            [
+              "src",
+              "srcDoc"
+            ]
+          },
+          src:
+          {
+            type: "string",
+            description: "HTTP or HTTPS URL for a src application."
+          },
+          srcDoc:
+          {
+            type: "string",
+            description: "Complete HTML source for a srcDoc application."
+          },
+          width:
+          {
+            type: "integer",
+            minimum: 1
+          },
+          height:
+          {
+            type: "integer",
+            minimum: 1
+          }
+        },
+        required:
+        [
+          "pkg",
+          "name",
+          "sourceType"
+        ]
+      }
+    }
+  },
+  {
+    type: "function",
+    function:
+    {
       name: "open_paint",
       description: "Open Paint with an optional generated painting. A painting is an array of strokes; each stroke can contain color, size and points as [{x,y}]. Coordinates use a 0..1 normalized canvas.",
       parameters:
@@ -4319,6 +4384,101 @@ const lh =
             args.name +
             "."
         };
+    }
+
+        if (
+      name ===
+      "install_app"
+    )
+    {
+      try
+      {
+        const result =
+          await Apps.installApp(
+          {
+            pkg:
+              args.pkg,
+
+            name:
+              args.name,
+
+            appIcon:
+              args.appIcon,
+
+            sourceType:
+              args.sourceType,
+
+            src:
+              args.src,
+
+            srcDoc:
+              args.srcDoc,
+
+            width:
+              args.width,
+
+            height:
+              args.height
+          });
+
+        if (
+          result &&
+          result.ok
+        )
+        {
+          return {
+            ok:
+              true,
+
+            summary:
+              "Successfully installed or updated " +
+              (
+                result.app &&
+                result.app.name
+                  ? result.app.name
+                  : args.name
+              ) +
+              " (" +
+              args.pkg +
+              ").",
+
+            app:
+              result.app
+          };
+        }
+
+        return {
+          ok:
+            false,
+
+          summary:
+            "Could not install " +
+            args.name +
+            ".",
+
+          error:
+            result &&
+            result.error
+              ? result.error
+              : "Unknown installation error."
+        };
+      }
+      catch(e)
+      {
+        return {
+          ok:
+            false,
+
+          summary:
+            "App installation failed: " +
+            (
+              e &&
+              e.message
+                ? e.message
+                : String(e)
+            )
+        };
+      }
     }
 
     if (
