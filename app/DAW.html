@@ -1,0 +1,2630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Full 128-Note Web MIDI Editor with Mesh Audio Engine</title>
+<style>
+  :root {
+    --bg-color: rgba(6, 15, 25, 0.65);
+    --panel-bg: rgba(10, 25, 40, 0.82);
+    --panel-border: rgba(0, 229, 255, 0.25);
+    --accent-color: #00e5ff;
+    --accent-glow: rgba(0, 229, 255, 0.5);
+    --selected-color: #ff007f;
+    --selected-glow: rgba(255, 0, 127, 0.6);
+    --text-color: #d8f8ff;
+    --grid-border: rgba(0, 229, 255, 0.12);
+    --black-key: rgba(8, 18, 30, 0.88);
+    --white-key: rgba(18, 42, 66, 0.75);
+    --playhead-color: #ffea00;
+    --time-header-height: 28px;
+    --piano-roll-width: 80px;
+  }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: transparent;
+    color: var(--text-color);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 10, 18, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  #start-btn {
+    padding: 16px 32px;
+    font-size: 1.2rem;
+    background: var(--accent-color);
+    border: 1px solid #70f3ff;
+    border-radius: 8px;
+    color: #03101c;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 0 20px var(--accent-glow);
+    transition: all 0.2s ease;
+  }
+  #start-btn:hover {
+    box-shadow: 0 0 30px rgba(0, 229, 255, 0.8);
+    transform: scale(1.02);
+  }
+  header {
+    background: var(--panel-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 8px 16px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    border-bottom: 1px solid var(--panel-border);
+    flex-wrap: wrap;
+    z-index: 100;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+  button, select, label.btn-label {
+    background: rgba(12, 35, 58, 0.75);
+    color: var(--text-color);
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.15s ease;
+  }
+  button:hover, label.btn-label:hover, select:hover {
+    background: rgba(0, 229, 255, 0.15);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 8px var(--accent-glow);
+  }
+  button:active, label.btn-label:active {
+    background: var(--accent-color);
+    color: #03101c;
+    box-shadow: 0 0 12px var(--accent-color);
+  }
+  #play-toggle-btn.playing {
+    background: var(--selected-color);
+    color: #fff;
+    border-color: #ff66b3;
+    box-shadow: 0 0 12px var(--selected-glow);
+  }
+  .divider {
+    width: 1px;
+    height: 20px;
+    background: rgba(0, 229, 255, 0.2);
+    margin: 0 4px;
+  }
+  #editor-container {
+    flex: 1;
+    overflow: auto;
+    position: relative;
+    background: var(--bg-color);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    -webkit-overflow-scrolling: touch;
+  }
+  #workspace-grid {
+    display: inline-grid;
+    grid-template-columns: var(--piano-roll-width) min-content;
+    grid-template-rows: var(--time-header-height) min-content;
+    position: relative;
+    min-width: 100%;
+  }
+  #corner-header {
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: var(--piano-roll-width);
+    height: var(--time-header-height);
+    background: var(--panel-bg);
+    border-right: 1px solid var(--panel-border);
+    border-bottom: 1px solid var(--panel-border);
+    z-index: 50;
+  }
+  #time-header-container {
+    position: sticky;
+    top: 0;
+    height: var(--time-header-height);
+    background: var(--panel-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--panel-border);
+    z-index: 30;
+    overflow: visible;
+    cursor: pointer;
+  }
+  #time-header {
+    position: relative;
+    height: 100%;
+    display: flex;
+  }
+  .time-tick {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-left: 1px solid rgba(0, 229, 255, 0.15);
+    font-size: 10px;
+    padding-left: 4px;
+    line-height: var(--time-header-height);
+    color: rgba(216, 248, 255, 0.5);
+    pointer-events: none;
+  }
+  .time-tick.bar-tick {
+    border-left: 1px solid rgba(0, 229, 255, 0.5);
+    color: var(--accent-color);
+    font-weight: bold;
+    text-shadow: 0 0 5px var(--accent-glow);
+  }
+  #add-bar-btn {
+    position: absolute;
+    top: 2px;
+    height: 24px;
+    padding: 0 10px;
+    font-size: 11px;
+    background: var(--accent-color);
+    color: #03101c;
+    font-weight: bold;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    z-index: 35;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px var(--accent-glow);
+  }
+  #add-bar-btn:hover {
+    background: #5effff;
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.8);
+  }
+  #piano-roll {
+    width: var(--piano-roll-width);
+    flex-shrink: 0;
+    background: var(--panel-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-right: 1px solid var(--panel-border);
+    position: sticky;
+    left: 0;
+    z-index: 40;
+  }
+  .key {
+    height: 20px;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.05);
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    padding-left: 6px;
+    box-sizing: border-box;
+    font-weight: 500;
+  }
+  .key.black {
+    background: var(--black-key);
+    color: rgba(0, 229, 255, 0.4);
+  }
+  .key.white {
+    background: var(--white-key);
+    color: var(--text-color);
+  }
+  #grid {
+    position: relative;
+    background-size: 40px 20px;
+    background-image:
+      linear-gradient(to right, var(--grid-border) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-border) 1px, transparent 1px);
+    touch-action: none;
+  }
+  .note {
+    position: absolute;
+    height: 18px;
+    background: var(--accent-color);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 3px;
+    box-shadow: 0 0 8px var(--accent-glow);
+    cursor: move;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    touch-action: none;
+  }
+  .note.selected {
+    background: var(--selected-color);
+    box-shadow: 0 0 12px var(--selected-glow);
+    border: 1px solid #fff;
+  }
+  .resize-handle {
+    width: 10px;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 0 2px 2px 0;
+    cursor: ew-resize;
+    touch-action: none;
+  }
+  #playhead {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--playhead-color);
+    box-shadow: 0 0 10px var(--playhead-color), 0 0 20px var(--playhead-color);
+    pointer-events: none;
+    z-index: 15;
+  }
+  #playhead-head {
+    position: absolute;
+    top: 0;
+    width: 10px;
+    height: 10px;
+    margin-left: -4px;
+    background: var(--playhead-color);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    pointer-events: none;
+    z-index: 32;
+    filter: drop-shadow(0 0 4px var(--playhead-color));
+  }
+  #selection-box {
+    position: absolute;
+    border: 1px dashed var(--accent-color);
+    background: rgba(0, 229, 255, 0.15);
+    box-shadow: inset 0 0 10px rgba(0, 229, 255, 0.2);
+    pointer-events: none;
+    z-index: 6;
+    display: none;
+  }
+  #context-menu {
+    position: fixed;
+    background: rgba(10, 25, 40, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 4px 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 10px var(--accent-glow);
+    display: none;
+    z-index: 2000;
+    min-width: 150px;
+  }
+  .menu-item {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    color: var(--text-color);
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: background 0.1s ease;
+  }
+  .menu-item:hover {
+    background: var(--accent-color);
+    color: #03101c;
+    font-weight: bold;
+  }
+  .menu-item .shortcut {
+    color: rgba(0, 229, 255, 0.6);
+    font-size: 0.75rem;
+    margin-left: 12px;
+  }
+  .menu-item:hover .shortcut {
+    color: #03101c;
+  }
+  .menu-divider {
+    height: 1px;
+    background: var(--panel-border);
+    margin: 4px 0;
+  }
+</style>
+</head>
+<body>
+  <div id="overlay">
+    <button id="start-btn">Tap to Start Engine & Enable Audio</button>
+  </div>
+  <header>
+    <button id="play-toggle-btn">▶ Play</button>
+    <div class="divider"></div>
+    <button id="undo-btn" title="Ctrl+Z">↩ Undo</button>
+    <button id="redo-btn" title="Ctrl+Y">↪ Redo</button>
+    <div class="divider"></div>
+    <button id="copy-btn" title="Ctrl+C">📋 Copy</button>
+    <button id="cut-btn" title="Ctrl+X">✂ Cut</button>
+    <button id="paste-btn" title="Ctrl+V">📌 Paste</button>
+    <button id="delete-btn" title="Delete">🗑 Delete</button>
+    <button id="clear-btn">Clear Grid</button>
+    <div class="divider"></div>
+    <button id="import-midi" title="Import MIDI File">📥 Import MIDI</button>
+    <button id="export-midi-btn" title="Export MIDI File">📤 Export MIDI</button>
+    <div class="divider"></div>
+    <label style="font-size: 0.85rem">Tone Submix Engine:
+      <select id="waveform">
+        <option value="triangle" selected>Warm Poly-Mesh (Triangle)</option>
+        <option value="sine">Pure Sine Mesh</option>
+        <option value="sawtooth">Rich Sawtooth Mesh</option>
+        <option value="square">8-Bit Square</option>
+      </select>
+    </label>
+  </header>
+  <div id="editor-container">
+    <div id="workspace-grid">
+      <div id="corner-header"></div>
+      <div id="time-header-container">
+        <div id="time-header">
+          <div id="playhead-head"></div>
+          <button id="add-bar-btn">+ ADD BAR</button>
+        </div>
+      </div>
+      <div id="piano-roll"></div>
+      <div id="grid">
+        <div id="playhead"></div>
+        <div id="selection-box"></div>
+      </div>
+    </div>
+  </div>
+  <div id="context-menu">
+    <div class="menu-item" id="cm-cut">Cut <span class="shortcut">Ctrl+X</span></div>
+    <div class="menu-item" id="cm-copy">Copy <span class="shortcut">Ctrl+C</span></div>
+    <div class="menu-item" id="cm-paste">Paste <span class="shortcut">Ctrl+V</span></div>
+    <div class="menu-item" id="cm-delete">Delete <span class="shortcut">Del</span></div>
+    <div class="menu-divider"></div>
+    <div class="menu-item" id="cm-selectall">Select All <span class="shortcut">Ctrl+A</span></div>
+    <div class="menu-item" id="cm-clear">Clear Grid</div>
+  </div>
+  <script>
+    const TOTAL_NOTES = 128;
+    const NOTE_HEIGHT = 20;
+    const STEP_WIDTH = 40;
+    const STEPS_PER_BAR = 16;
+    const STEP_DURATION_SEC = 0.15;
+    let totalSteps = 64;
+    let audioCtx = null;
+    let masterGain = null;
+    let masterCompressor = null;
+    let meshSubmixBus = null;
+    let activeVoices = new Map();
+    let isPlaying = false;
+    let currentStep = 0;
+    let timerId = null;
+    let notes = [];
+    let selectedNoteIds = new Set();
+    let clipboard = [];
+    let undoStack = [];
+    let redoStack = [];
+    let contextTargetCell = { step: 0, note: 60 };
+    let activeDrag = null;
+    let touchTimer = null;
+    const noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+    function showNotification(message) {
+      let notification = document.getElementById("lh-notification");
+    
+      if (!notification) {
+        notification = document.createElement("div");
+        notification.id = "lh-notification";
+        notification.style.cssText = "position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#101820;color:#00ffff;border:1px solid #00ffff;padding:12px 18px;border-radius:8px;font-family:monospace;font-size:14px;z-index:999999;box-shadow:0 0 15px rgba(0,255,255,.25);max-width:90%;text-align:center;";
+        document.body.appendChild(notification);
+      }
+    
+      notification.textContent = message;
+      notification.style.display = "block";
+    
+      clearTimeout(notification._timer);
+      notification._timer = setTimeout(() => {
+        notification.style.display = "none";
+      }, 3000);
+    }
+
+    function getNoteLabel(midiNum) {
+      const octave = Math.floor(midiNum / 12) - 1;
+      const name = noteNames[midiNum % 12];
+      return `${name}${octave}`;
+    }
+
+    function midiToFreq(midi) {
+      return 440 * Math.pow(2, (midi - 69) / 12);
+    }
+
+    const pianoRoll = document.getElementById('piano-roll');
+    const grid = document.getElementById('grid');
+    const timeHeader = document.getElementById('time-header');
+    const timeHeaderContainer = document.getElementById('time-header-container');
+    const addBarBtn = document.getElementById('add-bar-btn');
+    const playhead = document.getElementById('playhead');
+    const playheadHead = document.getElementById('playhead-head');
+    const selectionBox = document.getElementById('selection-box');
+    const container = document.getElementById('editor-container');
+    const contextMenu = document.getElementById('context-menu');
+    const playToggleBtn = document.getElementById('play-toggle-btn');
+    const waveformSelect = document.getElementById('waveform');
+    const MIDI_STATE_PATH = "chxd:/local/midi/state.json";
+    const MIDI_SAVE_DIR = "chxd:/indexdb/midi/save/";
+    const MIDI_PARENT = window.parent && window.parent !== window ? window.parent : window;
+
+    async function saveStateToLocalStorage() {
+      const stateData = { notes: notes, totalSteps: totalSteps, waveform: waveformSelect.value };
+      try {
+        if (!MIDI_PARENT.FS || typeof MIDI_PARENT.FS.write !== "function") return false;
+        const result = await MIDI_PARENT.FS.write(MIDI_STATE_PATH, JSON.stringify(stateData), true, false);
+        return !!(result && result.ok);
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function loadStateFromLocalStorage() {
+      try {
+        if (!MIDI_PARENT.FS || typeof MIDI_PARENT.FS.read !== "function") return false;
+        const result = await MIDI_PARENT.FS.read(MIDI_STATE_PATH);
+        if (!result || !result.ok || typeof result.content !== "string") return false;
+        const stateData = JSON.parse(result.content);
+        if (Array.isArray(stateData.notes)) notes = stateData.notes;
+        if (typeof stateData.totalSteps === "number") totalSteps = stateData.totalSteps;
+        if (typeof stateData.waveform === "string") waveformSelect.value = stateData.waveform;
+        updateGridDimensions();
+        renderNotes();
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function openLittleHollowMIDIPicker() {
+      try {
+        if (!MIDI_PARENT.Apps || typeof MIDI_PARENT.Apps.openApp !== "function") return false;
+        MIDI_PARENT.Apps.openApp("File Manager", {
+          selectMode: true,
+          path: MIDI_SAVE_DIR,
+          allowMultiple: false,
+          title: "IMPORT MIDI"
+        });
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function importMIDIFromLittleHollowPath(path) {
+      try {
+        if (!path) return false;
+        const normalized = String(path);
+        if (!/\.(mid|midi)$/i.test(normalized)) return false;
+        if (!MIDI_PARENT.FS || typeof MIDI_PARENT.FS.readBinary !== "function") return false;
+        const result = await MIDI_PARENT.FS.readBinary(normalized);
+        if (!result || !result.ok || !result.data) return false;
+        const buffer = await result.data.arrayBuffer();
+        const data = new Uint8Array(buffer);
+        if (data[0] !== 0x4D || data[1] !== 0x54 || data[2] !== 0x68 || data[3] !== 0x64) throw new Error("Invalid MIDI file header.");
+        const timeDivision = (data[12] << 8) | data[13];
+        const ticksPerQuarter = timeDivision & 0x7FFF;
+        const ticksPerStep = ticksPerQuarter / 4;
+        let offset = 14;
+        let importedNotes = [];
+        let activeNotesMap = {};
+        let maxTick = 0;
+
+        while (offset + 8 <= data.length) {
+          if (data[offset] === 0x4D && data[offset + 1] === 0x54 && data[offset + 2] === 0x72 && data[offset + 3] === 0x6B) {
+            const trackLength = (data[offset + 4] << 24) | (data[offset + 5] << 16) | (data[offset + 6] << 8) | data[offset + 7];
+            offset += 8;
+            const trackEnd = Math.min(data.length, offset + trackLength);
+            let absoluteTick = 0;
+            let runningStatus = 0;
+
+            while (offset < trackEnd) {
+              const vlq = readVLQ(data, offset);
+              absoluteTick += vlq.value;
+              maxTick = Math.max(maxTick, absoluteTick);
+              offset += vlq.bytesRead;
+              if (offset >= trackEnd) break;
+              let statusByte = data[offset];
+
+              if (statusByte & 0x80) {
+                runningStatus = statusByte;
+                offset++;
+              } else {
+                statusByte = runningStatus;
+              }
+
+              if (statusByte === 0xF0 || statusByte === 0xF7) {
+                const sysexVlq = readVLQ(data, offset);
+                offset += sysexVlq.bytesRead + sysexVlq.value;
+                continue;
+              }
+
+              if (statusByte === 0xFF) {
+                offset++;
+                if (offset >= trackEnd) break;
+                const metaVlq = readVLQ(data, offset);
+                offset += metaVlq.bytesRead + metaVlq.value;
+                continue;
+              }
+
+              const command = statusByte & 0xF0;
+
+              if (command === 0x90 || command === 0x80) {
+                if (offset + 2 > trackEnd) break;
+                const noteNumber = data[offset++];
+                const velocity = data[offset++];
+                const isNoteOn = command === 0x90 && velocity > 0;
+
+                if (isNoteOn) {
+                  if (!activeNotesMap[noteNumber]) activeNotesMap[noteNumber] = [];
+                  activeNotesMap[noteNumber].push(absoluteTick);
+                } else {
+                  if (activeNotesMap[noteNumber] && activeNotesMap[noteNumber].length > 0) {
+                    const startTick = activeNotesMap[noteNumber].shift();
+                    const startStep = Math.round(startTick / ticksPerStep);
+                    const durationSteps = Math.max(1, Math.round((absoluteTick - startTick) / ticksPerStep));
+                    importedNotes.push({
+                      id: Date.now() + Math.random(),
+                      note: noteNumber,
+                      step: startStep,
+                      duration: durationSteps
+                    });
+                  }
+                }
+                continue;
+              }
+
+              if (command === 0xA0 || command === 0xB0 || command === 0xE0) {
+                offset += 2;
+                continue;
+              }
+
+              if (command === 0xC0 || command === 0xD0) {
+                offset += 1;
+                continue;
+              }
+
+              if (statusByte === 0xF1 || statusByte === 0xF3) {
+                offset += 1;
+                continue;
+              }
+
+              if (statusByte === 0xF2) {
+                offset += 2;
+                continue;
+              }
+
+              break;
+            }
+            offset = trackEnd;
+          } else {
+            offset++;
+          }
+        }
+
+        for (const noteNumber of Object.keys(activeNotesMap)) {
+          const queue = activeNotesMap[noteNumber];
+          while (queue.length) {
+            const startTick = queue.shift();
+            importedNotes.push({
+              id: Date.now() + Math.random(),
+              note: Number(noteNumber),
+              step: Math.round(startTick / ticksPerStep),
+              duration: Math.max(1, Math.round((maxTick - startTick) / ticksPerStep))
+            });
+          }
+        }
+
+        if (importedNotes.length === 0) {
+          showNotification("No supported MIDI note events found in file.");
+          return false;
+        }
+
+        saveState();
+        notes = importedNotes;
+        selectedNoteIds.clear();
+
+        const maxStep = Math.max(...notes.map(n => n.step + n.duration));
+        if (maxStep > totalSteps) {
+          const barsNeeded = Math.ceil((maxStep - totalSteps) / STEPS_PER_BAR);
+          totalSteps += barsNeeded * STEPS_PER_BAR;
+        }
+
+        updateGridDimensions();
+        renderNotes();
+        await saveStateToLocalStorage();
+        showNotification(`Successfully imported ${notes.length} MIDI notes!`);
+        return true;
+      } catch (err) {
+        showNotification("Error parsing MIDI file: " + err.message);
+        return false;
+      }
+    }
+
+    window.addEventListener("message", event => {
+      const data = event.data;
+      if (!data || data.type !== "LH_FILE_SELECTED") return;
+      const path = data.path || (Array.isArray(data.paths) ? data.paths[0] : "");
+      if (!path) return;
+      importMIDIFromLittleHollowPath(path);
+    });
+
+    async function exportMIDIToLittleHollow() {
+      if (notes.length === 0) {
+        showNotification("No notes to export!");
+        return false;
+      }
+
+      try {
+        if (!MIDI_PARENT.FS || typeof MIDI_PARENT.FS.writeBinary !== "function") {
+          showNotification("Little Hollow filesystem is unavailable.");
+          return false;
+        }
+
+        const ticksPerQuarter = 480;
+        const ticksPerStep = ticksPerQuarter / 4;
+        let events = [];
+
+        notes.forEach(n => {
+          const startTick = Math.round(n.step * ticksPerStep);
+          const endTick = Math.round((n.step + n.duration) * ticksPerStep);
+          events.push({ tick: startTick, type: 0x90, note: n.note, velocity: 100 });
+          events.push({ tick: endTick, type: 0x80, note: n.note, velocity: 0 });
+        });
+
+        events.sort((a, b) => a.tick - b.tick || a.type - b.type);
+
+        let trackBytes = [];
+        let lastTick = 0;
+        const tempoEvents = [0x00, 0xFF, 0x51, 0x03, 0x07, 0xA1, 0x20];
+        trackBytes.push(...tempoEvents);
+
+        events.forEach(ev => {
+          const delta = ev.tick - lastTick;
+          lastTick = ev.tick;
+          trackBytes.push(...writeVLQ(delta));
+          trackBytes.push(ev.type, ev.note, ev.velocity);
+        });
+
+        trackBytes.push(0x00, 0xFF, 0x2F, 0x00);
+
+        const headerChunk = [
+          0x4D, 0x54, 0x68, 0x64,
+          0x00, 0x00, 0x00, 0x06,
+          0x00, 0x00,
+          0x00, 0x01,
+          (ticksPerQuarter >> 8) & 0xFF,
+          ticksPerQuarter & 0xFF
+        ];
+
+        const trackLength = trackBytes.length;
+        const trackChunkHeader = [
+          0x4D, 0x54, 0x72, 0x6B,
+          (trackLength >> 24) & 0xFF,
+          (trackLength >> 16) & 0xFF,
+          (trackLength >> 8) & 0xFF,
+          trackLength & 0xFF
+        ];
+
+        const midiData = new Uint8Array([
+          ...headerChunk,
+          ...trackChunkHeader,
+          ...trackBytes
+        ]);
+
+        await MIDI_PARENT.FS.mkdir(MIDI_SAVE_DIR, { overwrite: false });
+
+        const filename = `sequence_${Date.now()}.mid`;
+        const outputPath = MIDI_SAVE_DIR + filename;
+
+        const result = await MIDI_PARENT.FS.writeBinary(
+          outputPath,
+          midiData,
+          {
+            create: true,
+            overwrite: true
+          }
+        );
+
+        if (!result || !result.ok) {
+          throw new Error(result && result.error ? result.error : "Could not save MIDI file.");
+        }
+
+        return outputPath;
+      } catch (err) {
+        showNotification("Error exporting MIDI file: " + err.message);
+        return false;
+      }
+    }
+
+    document.getElementById('import-midi').addEventListener('click', () => {
+      openLittleHollowMIDIPicker();
+    });
+
+    document.getElementById('export-midi-btn').addEventListener('click', async () => {
+      const outputPath = await exportMIDIToLittleHollow();
+      if (outputPath) showNotification(`MIDI exported to ${outputPath}`);
+    });
+
+    function updateGridDimensions() {
+      const gridWidth = totalSteps * STEP_WIDTH;
+      grid.style.width = `${gridWidth}px`;
+      grid.style.height = `${TOTAL_NOTES * NOTE_HEIGHT}px`;
+      timeHeader.style.width = `${gridWidth + 100}px`;
+      timeHeader.querySelectorAll('.time-tick').forEach(t => t.remove());
+
+      for (let i = 0; i < totalSteps; i++) {
+        const isBar = i % STEPS_PER_BAR === 0;
+        const isQuarter = i % 4 === 0;
+
+        if (isQuarter) {
+          const tick = document.createElement('div');
+          tick.className = `time-tick ${isBar ? 'bar-tick' : ''}`;
+          tick.style.left = `${i * STEP_WIDTH}px`;
+          tick.style.width = `${STEP_WIDTH * 4}px`;
+          tick.textContent = isBar ? `Bar ${i/16 + 1}` : `${(i%16)/4 + 1}`;
+          timeHeader.appendChild(tick);
+        }
+      }
+
+      addBarBtn.style.left = `${gridWidth + 10}px`;
+    }
+
+    function addBars(count = 1) {
+      totalSteps += count * STEPS_PER_BAR;
+      updateGridDimensions();
+      saveStateToLocalStorage();
+    }
+
+    addBarBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      addBars(1);
+    });
+
+    for (let i = TOTAL_NOTES - 1; i >= 0; i--) {
+      const key = document.createElement('div');
+      const isSharp = [1, 3, 6, 8, 10].includes(i % 12);
+      key.className = `key ${isSharp ? 'black' : 'white'}`;
+      key.textContent = getNoteLabel(i);
+      pianoRoll.appendChild(key);
+    }
+
+    container.scrollTop = (127 - 60) * NOTE_HEIGHT - 200;
+
+    function initAudioEngine() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        meshSubmixBus = audioCtx.createGain();
+        meshSubmixBus.gain.setValueAtTime(0.35, audioCtx.currentTime);
+        masterCompressor = audioCtx.createDynamicsCompressor();
+        masterCompressor.threshold.setValueAtTime(-18, audioCtx.currentTime);
+        masterCompressor.knee.setValueAtTime(24, audioCtx.currentTime);
+        masterCompressor.ratio.setValueAtTime(12, audioCtx.currentTime);
+        masterCompressor.attack.setValueAtTime(0.003, audioCtx.currentTime);
+        masterCompressor.release.setValueAtTime(0.15, audioCtx.currentTime);
+        masterGain = audioCtx.createGain();
+        masterGain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+        meshSubmixBus.connect(masterCompressor);
+        masterCompressor.connect(masterGain);
+        masterGain.connect(audioCtx.destination);
+      }
+    }
+
+    document.getElementById('start-btn').addEventListener('click', () => {
+      initAudioEngine();
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      document.getElementById('overlay').style.display = 'none';
+    });
+
+    waveformSelect.addEventListener('change', () => {
+      saveStateToLocalStorage();
+    });
+
+    function playSynthNote(midiNum, durationInSec = 0.25, voiceId = null) {
+      initAudioEngine();
+      if (!audioCtx) return;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      if (voiceId && activeVoices.has(voiceId)) stopVoice(voiceId);
+
+      const osc = audioCtx.createOscillator();
+      const voiceGain = audioCtx.createGain();
+      const waveType = waveformSelect.value;
+      osc.type = waveType;
+      osc.frequency.setValueAtTime(midiToFreq(midiNum), audioCtx.currentTime);
+
+      const startTime = audioCtx.currentTime;
+      const attackTime = 0.008;
+      const releaseTime = 0.04;
+
+      voiceGain.gain.setValueAtTime(0.0001, startTime);
+      voiceGain.gain.exponentialRampToValueAtTime(0.3, startTime + attackTime);
+
+      const noteSustainEnd = startTime + Math.max(attackTime, durationInSec - releaseTime);
+      voiceGain.gain.setValueAtTime(0.3, noteSustainEnd);
+      voiceGain.gain.exponentialRampToValueAtTime(0.0001, noteSustainEnd + releaseTime);
+
+      osc.connect(voiceGain);
+      voiceGain.connect(meshSubmixBus);
+      osc.start(startTime);
+      osc.stop(noteSustainEnd + releaseTime + 0.01);
+
+      const voiceData = {
+        osc,
+        gain: voiceGain,
+        stopTime: noteSustainEnd + releaseTime + 0.01
+      };
+
+      if (voiceId) activeVoices.set(voiceId, voiceData);
+
+      setTimeout(() => {
+        if (voiceId && activeVoices.get(voiceId) === voiceData) {
+          activeVoices.delete(voiceId);
+        }
+      }, (durationInSec + 0.1) * 1000);
+    }
+
+    function stopVoice(voiceId) {
+      if (activeVoices.has(voiceId)) {
+        const voice = activeVoices.get(voiceId);
+        try {
+          const now = audioCtx.currentTime;
+          voice.gain.gain.cancelScheduledValues(now);
+          voice.gain.gain.setTargetAtTime(0.0001, now, 0.005);
+          voice.osc.stop(now + 0.02);
+        } catch(e) {}
+        activeVoices.delete(voiceId);
+      }
+    }
+
+    function stopAllVoices() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+
+      activeVoices.forEach(voice => {
+        try {
+          voice.gain.gain.cancelScheduledValues(now);
+          voice.gain.gain.setTargetAtTime(0.0001, now, 0.005);
+          voice.osc.stop(now + 0.02);
+        } catch(e) {}
+      });
+
+      activeVoices.clear();
+    }
+
+    function saveState() {
+      undoStack.push(JSON.stringify({ notes, totalSteps }));
+      redoStack = [];
+      saveStateToLocalStorage();
+    }
+
+    function undo() {
+      if (undoStack.length === 0) return;
+      redoStack.push(JSON.stringify({ notes, totalSteps }));
+      const state = JSON.parse(undoStack.pop());
+      notes = state.notes;
+      totalSteps = state.totalSteps;
+      selectedNoteIds.clear();
+      updateGridDimensions();
+      renderNotes();
+      saveStateToLocalStorage();
+    }
+
+    function redo() {
+      if (redoStack.length === 0) return;
+      undoStack.push(JSON.stringify({ notes, totalSteps }));
+      const state = JSON.parse(redoStack.pop());
+      notes = state.notes;
+      totalSteps = state.totalSteps;
+      selectedNoteIds.clear();
+      updateGridDimensions();
+      renderNotes();
+      saveStateToLocalStorage();
+    }
+
+    function copySelected() {
+      if (selectedNoteIds.size === 0) return;
+      const selectedNotes = notes.filter(n => selectedNoteIds.has(n.id));
+      const minStep = Math.min(...selectedNotes.map(n => n.step));
+      const maxNote = Math.max(...selectedNotes.map(n => n.note));
+      clipboard = selectedNotes.map(n => ({
+        stepOffset: n.step - minStep,
+        noteOffset: n.note - maxNote,
+        duration: n.duration
+      }));
+    }
+
+    function cutSelected() {
+      if (selectedNoteIds.size === 0) return;
+      saveState();
+      copySelected();
+      deleteSelected();
+    }
+
+    function pasteNotes(anchorStep = currentStep, anchorNote = 60) {
+      if (clipboard.length === 0) return;
+      saveState();
+      selectedNoteIds.clear();
+
+      const maxRequiredStep = anchorStep + Math.max(...clipboard.map(c => c.stepOffset + c.duration));
+
+      if (maxRequiredStep > totalSteps) {
+        const barsToAppend = Math.ceil((maxRequiredStep - totalSteps) / STEPS_PER_BAR);
+        addBars(barsToAppend);
+      }
+
+      clipboard.forEach(item => {
+        const targetStep = anchorStep + item.stepOffset;
+        const targetNote = anchorNote + item.noteOffset;
+
+        if (targetNote >= 0 && targetNote <= 127) {
+          const newNote = {
+            id: Date.now() + Math.random(),
+            note: targetNote,
+            step: targetStep,
+            duration: item.duration
+          };
+          notes.push(newNote);
+          selectedNoteIds.add(newNote.id);
+        }
+      });
+
+      renderNotes();
+      saveStateToLocalStorage();
+    }
+
+    function deleteSelected() {
+      if (selectedNoteIds.size === 0) return;
+      saveState();
+      notes = notes.filter(n => !selectedNoteIds.has(n.id));
+      selectedNoteIds.clear();
+      renderNotes();
+      saveStateToLocalStorage();
+    }
+
+    function selectAll() {
+      selectedNoteIds = new Set(notes.map(n => n.id));
+      renderNotes();
+    }
+
+    function updatePlayheadUI(step) {
+      currentStep = step;
+      const pos = currentStep * STEP_WIDTH;
+      playhead.style.transform = `translateX(${pos}px)`;
+      playheadHead.style.transform = `translateX(${pos}px)`;
+    }
+
+    timeHeaderContainer.addEventListener('pointerdown', e => {
+      if (e.target.id === 'add-bar-btn') return;
+      activeDrag = { type: 'scrub' };
+      timeHeaderContainer.setPointerCapture(e.pointerId);
+      scrubTime(e);
+    });
+
+    timeHeaderContainer.addEventListener('pointermove', e => {
+      if (activeDrag && activeDrag.type === 'scrub') scrubTime(e);
+    });
+
+    function scrubTime(e) {
+      const rect = timeHeader.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const step = Math.max(0, Math.min(totalSteps - 1, Math.floor(clickX / STEP_WIDTH)));
+      updatePlayheadUI(step);
+    }
+
+    function showContextMenu(x, y) {
+      contextMenu.style.display = 'block';
+      const menuWidth = contextMenu.offsetWidth;
+      const menuHeight = contextMenu.offsetHeight;
+      const posX = x + menuWidth > window.innerWidth ? x - menuWidth : x;
+      const posY = y + menuHeight > window.innerHeight ? y - menuHeight : y;
+      contextMenu.style.left = `${posX}px`;
+      contextMenu.style.top = `${posY}px`;
+    }
+
+    function hideContextMenu() {
+      contextMenu.style.display = 'none';
+    }
+
+    document.addEventListener('click', hideContextMenu);
+
+    grid.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      const rect = grid.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+      contextTargetCell = {
+        step: Math.floor(clickX / STEP_WIDTH),
+        note: 127 - Math.floor(clickY / NOTE_HEIGHT)
+      };
+      showContextMenu(e.clientX, e.clientY);
+    });
+
+    document.getElementById('cm-cut').onclick = () => {
+      cutSelected();
+      hideContextMenu();
+    };
+
+    document.getElementById('cm-copy').onclick = () => {
+      copySelected();
+      hideContextMenu();
+    };
+
+    document.getElementById('cm-paste').onclick = () => {
+      pasteNotes(contextTargetCell.step, contextTargetCell.note);
+      hideContextMenu();
+    };
+
+    document.getElementById('cm-delete').onclick = () => {
+      deleteSelected();
+      hideContextMenu();
+    };
+
+    document.getElementById('cm-selectall').onclick = () => {
+      selectAll();
+      hideContextMenu();
+    };
+
+    document.getElementById('cm-clear').onclick = () => {
+      if (notes.length === 0) return;
+      saveState();
+      notes = [];
+      selectedNoteIds.clear();
+      renderNotes();
+      saveStateToLocalStorage();
+      hideContextMenu();
+    };
+
+    grid.addEventListener('pointerdown', e => {
+      if (e.target.id === 'start-btn' || e.button === 2) return;
+      hideContextMenu();
+
+      const rect = grid.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+      const step = Math.floor(clickX / STEP_WIDTH);
+      const noteIndex = 127 - Math.floor(clickY / NOTE_HEIGHT);
+
+      contextTargetCell = { step, note: noteIndex };
+
+      const isMultiKey = e.shiftKey || e.ctrlKey || e.metaKey;
+
+      touchTimer = setTimeout(() => {
+        showContextMenu(e.clientX, e.clientY);
+      }, 500);
+
+      if (e.target.classList.contains('resize-handle')) {
+        clearTimeout(touchTimer);
+        saveState();
+
+        const noteId = Number(e.target.dataset.id);
+        const targetNote = notes.find(n => n.id === noteId);
+
+        if (targetNote) {
+          activeDrag = {
+            type: 'resize',
+            note: targetNote,
+            startX: e.clientX,
+            origDuration: targetNote.duration
+          };
+          e.target.setPointerCapture(e.pointerId);
+        }
+        return;
+      }
+
+      const hitNoteEl = e.target.closest('.note');
+
+      if (hitNoteEl) {
+        clearTimeout(touchTimer);
+        const noteId = Number(hitNoteEl.dataset.id);
+
+        if (isMultiKey) {
+          if (selectedNoteIds.has(noteId)) {
+            selectedNoteIds.delete(noteId);
+          } else {
+            selectedNoteIds.add(noteId);
+          }
+          renderNotes();
+        } else {
+          if (!selectedNoteIds.has(noteId)) {
+            selectedNoteIds.clear();
+            selectedNoteIds.add(noteId);
+            renderNotes();
+          }
+
+          saveState();
+
+          const selectedNotes = notes.filter(n => selectedNoteIds.has(n.id));
+
+          activeDrag = {
+            type: 'move',
+            startX: e.clientX,
+            startY: e.clientY,
+            initialStates: selectedNotes.map(n => ({
+              id: n.id,
+              step: n.step,
+              note: n.note
+            }))
+          };
+
+          hitNoteEl.setPointerCapture(e.pointerId);
+        }
+        return;
+      }
+
+      if (!isMultiKey) {
+        selectedNoteIds.clear();
+        renderNotes();
+      }
+
+      const existingIdx = notes.findIndex(n => n.step === step && n.note === noteIndex);
+
+      if (existingIdx > -1) {
+        clearTimeout(touchTimer);
+        saveState();
+        notes.splice(existingIdx, 1);
+        renderNotes();
+        saveStateToLocalStorage();
+      } else {
+        activeDrag = {
+          type: 'select-box',
+          startX: clickX,
+          startY: clickY,
+          startClientX: e.clientX,
+          startClientY: e.clientY
+        };
+      }
+    });
+
+    grid.addEventListener('pointermove', e => {
+      if (!activeDrag) return;
+      clearTimeout(touchTimer);
+
+      if (activeDrag.type === 'resize') {
+        const deltaX = e.clientX - activeDrag.startX;
+        const addedSteps = Math.round(deltaX / STEP_WIDTH);
+        const newDuration = Math.max(1, activeDrag.origDuration + addedSteps);
+
+        if (activeDrag.note.duration !== newDuration) {
+          activeDrag.note.duration = newDuration;
+          renderNotes();
+        }
+      } else if (activeDrag.type === 'move') {
+        const deltaSteps = Math.round((e.clientX - activeDrag.startX) / STEP_WIDTH);
+        const deltaNotes = -Math.round((e.clientY - activeDrag.startY) / NOTE_HEIGHT);
+
+        activeDrag.initialStates.forEach(item => {
+          const noteObj = notes.find(n => n.id === item.id);
+
+          if (noteObj) {
+            noteObj.step = Math.max(0, item.step + deltaSteps);
+            noteObj.note = Math.max(0, Math.min(127, item.note + deltaNotes));
+          }
+        });
+
+        renderNotes();
+      } else if (activeDrag.type === 'select-box') {
+        const rect = grid.getBoundingClientRect();
+        const currentX = e.clientX - rect.left;
+        const currentY = e.clientY - rect.top;
+
+        const x = Math.min(activeDrag.startX, currentX);
+        const y = Math.min(activeDrag.startY, currentY);
+        const width = Math.abs(currentX - activeDrag.startX);
+        const height = Math.abs(currentY - activeDrag.startY);
+
+        selectionBox.style.left = `${x}px`;
+        selectionBox.style.top = `${y}px`;
+        selectionBox.style.width = `${width}px`;
+        selectionBox.style.height = `${height}px`;
+        selectionBox.style.display = 'block';
+
+        notes.forEach(n => {
+          const nX = n.step * STEP_WIDTH;
+          const nY = (127 - n.note) * NOTE_HEIGHT;
+          const nW = n.duration * STEP_WIDTH;
+          const nH = NOTE_HEIGHT;
+          const intersects = !(nX > x + width || nX + nW < x || nY > y + height || nY + nH < y);
+
+          if (intersects) {
+            selectedNoteIds.add(n.id);
+          } else if (!e.shiftKey && !e.ctrlKey) {
+            selectedNoteIds.delete(n.id);
+          }
+        });
+
+        renderNotes();
+      }
+    });
+
+    grid.addEventListener('pointerup', e => {
+      clearTimeout(touchTimer);
+
+      if (activeDrag) {
+        if (activeDrag.type === 'resize' || activeDrag.type === 'move') {
+          saveStateToLocalStorage();
+        } else if (activeDrag.type === 'select-box') {
+          const dist = Math.hypot(
+            e.clientX - activeDrag.startClientX,
+            e.clientY - activeDrag.startClientY
+          );
+
+          if (dist < 5) {
+            const rect = grid.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+            const step = Math.floor(clickX / STEP_WIDTH);
+            const noteIndex = 127 - Math.floor(clickY / NOTE_HEIGHT);
+
+            saveState();
+
+            const newNote = {
+              id: Date.now(),
+              note: noteIndex,
+              step: step,
+              duration: 1
+            };
+
+            notes.push(newNote);
+            selectedNoteIds.clear();
+            selectedNoteIds.add(newNote.id);
+
+            playSynthNote(
+              noteIndex,
+              STEP_DURATION_SEC,
+              `preview-${newNote.id}`
+            );
+
+            renderNotes();
+            saveStateToLocalStorage();
+          }
+        }
+      }
+
+      activeDrag = null;
+      selectionBox.style.display = 'none';
+    });
+
+    grid.addEventListener('pointercancel', () => {
+      clearTimeout(touchTimer);
+      activeDrag = null;
+      selectionBox.style.display = 'none';
+    });
+
+    function renderNotes() {
+      grid.querySelectorAll('.note').forEach(n => n.remove());
+
+      notes.forEach(n => {
+        const noteEl = document.createElement('div');
+        const isSelected = selectedNoteIds.has(n.id);
+
+        noteEl.className = `note ${isSelected ? 'selected' : ''}`;
+        noteEl.dataset.id = n.id;
+        noteEl.style.left = `${n.step * STEP_WIDTH}px`;
+        noteEl.style.top = `${(127 - n.note) * NOTE_HEIGHT + 1}px`;
+        noteEl.style.width = `${n.duration * STEP_WIDTH - 2}px`;
+
+        const handle = document.createElement('div');
+        handle.className = 'resize-handle';
+        handle.dataset.id = n.id;
+        noteEl.appendChild(handle);
+        grid.appendChild(noteEl);
+      });
+    }
+
+    function writeVLQ(value) {
+      let buffer = [];
+      let num = value;
+      buffer.push(num & 0x7F);
+
+      while ((num >>= 7) > 0) {
+        buffer.unshift((num & 0x7F) | 0x80);
+      }
+
+      return buffer;
+    }
+
+    function readVLQ(data, offset) {
+      let value = 0;
+      let bytesRead = 0;
+      let byte;
+
+      do {
+        byte = data[offset + bytesRead];
+        value = (value << 7) | (byte & 0x7F);
+        bytesRead++;
+      } while (byte & 0x80);
+
+      return { value, bytesRead };
+    }
+
+    window.addEventListener('keydown', e => {
+      const isCmdOrCtrl = e.ctrlKey || e.metaKey;
+
+      if (isCmdOrCtrl && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+      } else if (isCmdOrCtrl && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        redo();
+      } else if (isCmdOrCtrl && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        copySelected();
+      } else if (isCmdOrCtrl && e.key.toLowerCase() === 'x') {
+        e.preventDefault();
+        cutSelected();
+      } else if (isCmdOrCtrl && e.key.toLowerCase() === 'v') {
+        e.preventDefault();
+        pasteNotes(contextTargetCell.step, contextTargetCell.note);
+      } else if (isCmdOrCtrl && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        selectAll();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        deleteSelected();
+      } else if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlayStop();
+      }
+    });
+
+    function stepSequencer() {
+      updatePlayheadUI(currentStep);
+
+      const currentPos = currentStep * STEP_WIDTH;
+      const containerLeft = container.scrollLeft;
+      const containerRight = containerLeft + container.clientWidth;
+
+      if (currentPos >= containerRight - 80 || currentPos < containerLeft) {
+        container.scrollLeft = currentPos - 80;
+      }
+
+      const startingNotes = notes.filter(n => n.step === currentStep);
+
+      startingNotes.forEach(n => {
+        const sustainedTime = n.duration * STEP_DURATION_SEC;
+        playSynthNote(n.note, sustainedTime, `note-${n.id}`);
+      });
+
+      currentStep = (currentStep + 1) % totalSteps;
+    }
+
+    function togglePlayStop() {
+      initAudioEngine();
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+
+      if (isPlaying) {
+        isPlaying = false;
+        clearInterval(timerId);
+        timerId = null;
+        stopAllVoices();
+        updatePlayheadUI(0);
+        playToggleBtn.textContent = '▶ Play';
+        playToggleBtn.classList.remove('playing');
+      } else {
+        isPlaying = true;
+        playToggleBtn.textContent = '■ Stop';
+        playToggleBtn.classList.add('playing');
+        stepSequencer();
+        timerId = setInterval(stepSequencer, STEP_DURATION_SEC * 1000);
+      }
+    }
+
+    playToggleBtn.addEventListener('click', togglePlayStop);
+    document.getElementById('undo-btn').addEventListener('click', undo);
+    document.getElementById('redo-btn').addEventListener('click', redo);
+    document.getElementById('copy-btn').addEventListener('click', copySelected);
+    document.getElementById('cut-btn').addEventListener('click', cutSelected);
+    document.getElementById('paste-btn').addEventListener('click', () => pasteNotes(contextTargetCell.step, contextTargetCell.note));
+    document.getElementById('delete-btn').addEventListener('click', deleteSelected);
+
+    document.getElementById('clear-btn').addEventListener('click', () => {
+      if (notes.length === 0) return;
+      saveState();
+      notes = [];
+      selectedNoteIds.clear();
+      renderNotes();
+      saveStateToLocalStorage();
+    });
+
+    (async () => {
+      await loadStateFromLocalStorage();
+      updateGridDimensions();
+      renderNotes();
+    })();
+  </script>
+  <script>
+    window.MIDIAPI = (() => {
+      const API_VERSION = "1.0.0";
+      const listeners = new Map();
+
+      function emit(type, detail = {}) {
+        const event = new CustomEvent(`midiapi:${type}`, {
+          detail: {
+            type,
+            timestamp: Date.now(),
+            ...detail
+          }
+        });
+
+        window.dispatchEvent(event);
+
+        const set = listeners.get(type);
+
+        if (set) {
+          for (const fn of set) {
+            try {
+              fn(event.detail);
+            } catch (e) {}
+          }
+        }
+
+        const all = listeners.get("*");
+
+        if (all) {
+          for (const fn of all) {
+            try {
+              fn(event.detail);
+            } catch (e) {}
+          }
+        }
+      }
+
+      function on(type, fn) {
+        if (typeof fn !== "function") return () => {};
+        if (!listeners.has(type)) listeners.set(type, new Set());
+        listeners.get(type).add(fn);
+        return () => off(type, fn);
+      }
+
+      function off(type, fn) {
+        const set = listeners.get(type);
+        if (!set) return;
+        set.delete(fn);
+        if (set.size === 0) listeners.delete(type);
+      }
+
+      function once(type, fn) {
+        const stop = on(type, data => {
+          stop();
+          fn(data);
+        });
+        return stop;
+      }
+
+      function getState() {
+        return {
+          notes: notes.map(n => ({ ...n })),
+          totalSteps,
+          currentStep,
+          isPlaying,
+          waveform: waveformSelect.value,
+          audio: {
+            initialized: !!audioCtx,
+            state: audioCtx ? audioCtx.state : "uninitialized",
+            currentTime: audioCtx ? audioCtx.currentTime : 0
+          },
+          selection: [...selectedNoteIds],
+          clipboard: clipboard.map(c => ({ ...c }))
+        };
+      }
+
+      function normalizeNote(input, index = 0) {
+        const note = Number(input?.note);
+        const step = Number(input?.step);
+        const duration = Number(input?.duration);
+
+        if (!Number.isFinite(note) || !Number.isFinite(step) || !Number.isFinite(duration)) {
+          throw new Error(`Invalid note at index ${index}`);
+        }
+
+        return {
+          id: input?.id ?? (Date.now() + Math.random()),
+          note: Math.max(0, Math.min(127, Math.round(note))),
+          step: Math.max(0, Math.round(step)),
+          duration: Math.max(1, Math.round(duration))
+        };
+      }
+
+      function ensureSteps(requiredStep) {
+        if (requiredStep <= totalSteps) return;
+
+        const barsNeeded = Math.ceil(
+          (requiredStep - totalSteps) / STEPS_PER_BAR
+        );
+
+        addBars(barsNeeded);
+      }
+
+      function setNotesData(list, options = {}) {
+        if (!Array.isArray(list)) {
+          throw new Error("notes must be an array");
+        }
+
+        if (options.history !== false) saveState();
+
+        notes = list.map((n, i) => normalizeNote(n, i));
+
+        const required = notes.length
+          ? Math.max(...notes.map(n => n.step + n.duration))
+          : 0;
+
+        if (required > totalSteps) {
+          ensureSteps(required);
+        }
+
+        selectedNoteIds.clear();
+        renderNotes();
+        saveStateToLocalStorage();
+
+        emit("notesChanged", {
+          reason: "set",
+          notes: notes.map(n => ({ ...n }))
+        });
+
+        return getNotes();
+      }
+
+      function getNotes() {
+        return notes.map(n => ({ ...n }));
+      }
+
+      function addNote(noteData, options = {}) {
+        const note = normalizeNote(noteData);
+
+        if (options.history !== false) saveState();
+
+        ensureSteps(note.step + note.duration);
+        notes.push(note);
+
+        if (options.select) selectedNoteIds.add(note.id);
+
+        renderNotes();
+        saveStateToLocalStorage();
+
+        if (options.preview) {
+          playSynthNote(
+            note.note,
+            Math.max(0.02, note.duration * STEP_DURATION_SEC),
+            `api-preview-${note.id}`
+          );
+        }
+
+        emit("noteAdded", { note: { ...note } });
+        emit("notesChanged", {
+          reason: "add",
+          notes: getNotes()
+        });
+
+        return { ...note };
+      }
+
+      function addNotes(list, options = {}) {
+        if (!Array.isArray(list)) {
+          throw new Error("notes must be an array");
+        }
+
+        if (options.history !== false) saveState();
+
+        const added = [];
+
+        for (let i = 0; i < list.length; i++) {
+          const note = normalizeNote(list[i], i);
+          ensureSteps(note.step + note.duration);
+          notes.push(note);
+          added.push({ ...note });
+        }
+
+        if (options.replaceSelection) {
+          selectedNoteIds.clear();
+          for (const n of added) selectedNoteIds.add(n.id);
+        }
+
+        renderNotes();
+        saveStateToLocalStorage();
+
+        emit("notesChanged", {
+          reason: "addMany",
+          added,
+          notes: getNotes()
+        });
+
+        return added;
+      }
+
+      function updateNote(noteId, patch, options = {}) {
+        const id = Number(noteId);
+        const target = notes.find(n => Number(n.id) === id);
+
+        if (!target) return null;
+        if (options.history !== false) saveState();
+
+        const old = { ...target };
+
+        if (patch.note !== undefined) {
+          target.note = Math.max(
+            0,
+            Math.min(127, Math.round(Number(patch.note)))
+          );
+        }
+
+        if (patch.step !== undefined) {
+          target.step = Math.max(0, Math.round(Number(patch.step)));
+        }
+
+        if (patch.duration !== undefined) {
+          target.duration = Math.max(1, Math.round(Number(patch.duration)));
+        }
+
+        ensureSteps(target.step + target.duration);
+        renderNotes();
+        saveStateToLocalStorage();
+
+        emit("noteUpdated", {
+          oldNote: old,
+          note: { ...target }
+        });
+
+        emit("notesChanged", {
+          reason: "update",
+          notes: getNotes()
+        });
+
+        return { ...target };
+      }
+
+      function removeNotesByIds(ids, options = {}) {
+        const idSet = new Set((ids || []).map(Number));
+        const removed = notes.filter(n => idSet.has(Number(n.id)));
+
+        if (!removed.length) return [];
+        if (options.history !== false) saveState();
+
+        notes = notes.filter(n => !idSet.has(Number(n.id)));
+
+        for (const n of removed) {
+          selectedNoteIds.delete(n.id);
+        }
+
+        renderNotes();
+        saveStateToLocalStorage();
+
+        emit("notesRemoved", {
+          removed: removed.map(n => ({ ...n }))
+        });
+
+        emit("notesChanged", {
+          reason: "remove",
+          notes: getNotes()
+        });
+
+        return removed.map(n => ({ ...n }));
+      }
+
+      function removeNote(noteId, options = {}) {
+        return removeNotesByIds([noteId], options)[0] || null;
+      }
+
+      function selectNotes(ids) {
+        selectedNoteIds = new Set(
+          (ids || [])
+            .map(Number)
+            .filter(id => notes.some(n => Number(n.id) === id))
+        );
+
+        renderNotes();
+
+        emit("selectionChanged", {
+          selection: [...selectedNoteIds]
+        });
+
+        return [...selectedNoteIds];
+      }
+
+      function selectNote(noteId, additive = false) {
+        const id = Number(noteId);
+
+        if (!notes.some(n => Number(n.id) === id)) return false;
+
+        if (!additive) selectedNoteIds.clear();
+
+        if (additive && selectedNoteIds.has(id)) {
+          selectedNoteIds.delete(id);
+        } else {
+          selectedNoteIds.add(id);
+        }
+
+        renderNotes();
+
+        emit("selectionChanged", {
+          selection: [...selectedNoteIds]
+        });
+
+        return true;
+      }
+
+      function deselectAll() {
+        selectedNoteIds.clear();
+        renderNotes();
+
+        emit("selectionChanged", {
+          selection: []
+        });
+      }
+
+      function clearGrid(options = {}) {
+        if (!notes.length) return false;
+        if (options.history !== false) saveState();
+
+        notes = [];
+        selectedNoteIds.clear();
+        renderNotes();
+        saveStateToLocalStorage();
+
+        emit("gridCleared", {});
+
+        emit("notesChanged", {
+          reason: "clear",
+          notes: []
+        });
+
+        return true;
+      }
+
+      function setTotalSteps(value, options = {}) {
+        const amount = Math.max(1, Math.round(Number(value)));
+
+        if (options.history !== false) saveState();
+
+        totalSteps = amount;
+        updateGridDimensions();
+        renderNotes();
+        saveStateToLocalStorage();
+
+        emit("gridChanged", {
+          totalSteps
+        });
+
+        return totalSteps;
+      }
+
+      function getGrid() {
+        return {
+          totalSteps,
+          totalNotes: TOTAL_NOTES,
+          noteHeight: NOTE_HEIGHT,
+          stepWidth: STEP_WIDTH,
+          stepsPerBar: STEPS_PER_BAR,
+          stepDurationSec: STEP_DURATION_SEC,
+          width: totalSteps * STEP_WIDTH,
+          height: TOTAL_NOTES * NOTE_HEIGHT
+        };
+      }
+
+      function addBarsAPI(count = 1) {
+        const amount = Math.max(1, Math.round(Number(count)));
+        addBars(amount);
+
+        emit("barsAdded", {
+          count: amount,
+          totalSteps
+        });
+
+        return totalSteps;
+      }
+
+      function setPlayhead(step, options = {}) {
+        let target = Number(step);
+
+        if (!Number.isFinite(target)) target = 0;
+
+        target = Math.max(
+          0,
+          Math.min(totalSteps - 1, Math.round(target))
+        );
+
+        updatePlayheadUI(target);
+
+        if (options.scrub) currentStep = target;
+
+        emit("playheadChanged", {
+          step: target
+        });
+
+        return target;
+      }
+
+      function getPlayhead() {
+        return currentStep;
+      }
+
+      function play() {
+        if (!isPlaying) togglePlayStop();
+        return isPlaying;
+      }
+
+      function stop() {
+        if (isPlaying) togglePlayStop();
+        return !isPlaying;
+      }
+
+      function toggle() {
+        togglePlayStop();
+        return isPlaying;
+      }
+
+      function restart() {
+        if (isPlaying) togglePlayStop();
+        updatePlayheadUI(0);
+        currentStep = 0;
+        togglePlayStop();
+        return isPlaying;
+      }
+
+      function playStep(step) {
+        const target = Math.max(
+          0,
+          Math.min(totalSteps - 1, Math.round(Number(step)))
+        );
+
+        updatePlayheadUI(target);
+
+        const startingNotes = notes.filter(n => n.step === target);
+
+        for (const n of startingNotes) {
+          playSynthNote(
+            n.note,
+            n.duration * STEP_DURATION_SEC,
+            `api-step-${n.id}`
+          );
+        }
+
+        emit("stepPlayed", {
+          step: target,
+          notes: startingNotes.map(n => ({ ...n }))
+        });
+
+        return startingNotes.map(n => ({ ...n }));
+      }
+
+      function previewNote(midi, duration = 0.25) {
+        const noteNumber = Math.max(
+          0,
+          Math.min(127, Math.round(Number(midi)))
+        );
+
+        const seconds = Math.max(
+          0.01,
+          Number(duration) || 0.25
+        );
+
+        initAudioEngine();
+
+        if (audioCtx?.state === "suspended") audioCtx.resume();
+
+        const id = `api-preview-${Date.now()}-${Math.random()}`;
+
+        playSynthNote(noteNumber, seconds, id);
+
+        emit("notePreview", {
+          note: noteNumber,
+          frequency: midiToFreq(noteNumber),
+          duration: seconds,
+          voiceId: id
+        });
+
+        return {
+          voiceId: id,
+          note: noteNumber,
+          frequency: midiToFreq(noteNumber),
+          duration: seconds
+        };
+      }
+
+      function stopVoiceAPI(voiceId) {
+        stopVoice(voiceId);
+
+        emit("voiceStopped", {
+          voiceId
+        });
+
+        return true;
+      }
+
+      function stopAllVoicesAPI() {
+        stopAllVoices();
+
+        emit("voicesStopped", {});
+
+        return true;
+      }
+
+      function initAudio() {
+        initAudioEngine();
+
+        if (audioCtx?.state === "suspended") {
+          return audioCtx.resume().then(() => {
+            emit("audioReady", {
+              state: audioCtx.state
+            });
+            return audioCtx.state;
+          });
+        }
+
+        emit("audioReady", {
+          state: audioCtx?.state || "unavailable"
+        });
+
+        return audioCtx?.state || "unavailable";
+      }
+
+      function setWaveform(value) {
+        const allowed = [
+          "triangle",
+          "sine",
+          "sawtooth",
+          "square"
+        ];
+
+        if (!allowed.includes(value)) {
+          throw new Error(`Unsupported waveform: ${value}`);
+        }
+
+        waveformSelect.value = value;
+        saveStateToLocalStorage();
+
+        emit("settingsChanged", {
+          waveform: value
+        });
+
+        return value;
+      }
+
+      function getSettings() {
+        return {
+          waveform: waveformSelect.value,
+          stepDurationSec: STEP_DURATION_SEC,
+          stepsPerBar: STEPS_PER_BAR
+        };
+      }
+
+      function setSettings(settings = {}) {
+        if (settings.waveform !== undefined) {
+          setWaveform(settings.waveform);
+        }
+
+        if (settings.totalSteps !== undefined) {
+          setTotalSteps(settings.totalSteps);
+        }
+
+        emit("settingsChanged", {
+          settings: getSettings()
+        });
+
+        return getSettings();
+      }
+
+      function copyAPI() {
+        copySelected();
+
+        emit("clipboardChanged", {
+          action: "copy",
+          clipboard: clipboard.map(c => ({ ...c }))
+        });
+
+        return clipboard.map(c => ({ ...c }));
+      }
+
+      function cutAPI() {
+        cutSelected();
+
+        emit("clipboardChanged", {
+          action: "cut",
+          clipboard: clipboard.map(c => ({ ...c }))
+        });
+
+        emit("notesChanged", {
+          reason: "cut",
+          notes: getNotes()
+        });
+
+        return clipboard.map(c => ({ ...c }));
+      }
+
+      function pasteAPI(step = currentStep, note = 60) {
+        pasteNotes(
+          Math.max(0, Math.round(Number(step))),
+          Math.max(0, Math.min(127, Math.round(Number(note))))
+        );
+
+        emit("clipboardChanged", {
+          action: "paste"
+        });
+
+        emit("notesChanged", {
+          reason: "paste",
+          notes: getNotes()
+        });
+
+        return getSelectedNotes();
+      }
+
+      function getSelectedNotes() {
+        return notes
+          .filter(n => selectedNoteIds.has(n.id))
+          .map(n => ({ ...n }));
+      }
+
+      function undoAPI() {
+        const before = getNotes();
+        undo();
+
+        emit("historyChanged", {
+          action: "undo",
+          before,
+          after: getNotes()
+        });
+
+        return getNotes();
+      }
+
+      function redoAPI() {
+        const before = getNotes();
+        redo();
+
+        emit("historyChanged", {
+          action: "redo",
+          before,
+          after: getNotes()
+        });
+
+        return getNotes();
+      }
+
+      function canUndo() {
+        return undoStack.length > 0;
+      }
+
+      function canRedo() {
+        return redoStack.length > 0;
+      }
+
+      function getClipboard() {
+        return clipboard.map(c => ({ ...c }));
+      }
+
+      function setClipboard(data) {
+        if (!Array.isArray(data)) {
+          throw new Error("clipboard must be an array");
+        }
+
+        clipboard = data.map(item => ({
+          stepOffset: Math.round(Number(item.stepOffset || 0)),
+          noteOffset: Math.round(Number(item.noteOffset || 0)),
+          duration: Math.max(1, Math.round(Number(item.duration || 1)))
+        }));
+
+        emit("clipboardChanged", {
+          action: "set",
+          clipboard: getClipboard()
+        });
+
+        return getClipboard();
+      }
+
+      function resetEditor(options = {}) {
+        if (options.history !== false) saveState();
+
+        stop();
+        stopAllVoicesAPI();
+
+        notes = [];
+        selectedNoteIds.clear();
+        clipboard = [];
+        currentStep = 0;
+
+        totalSteps = Number.isFinite(options.totalSteps)
+          ? Math.max(1, Math.round(options.totalSteps))
+          : 64;
+
+        if (options.waveform) {
+          waveformSelect.value = options.waveform;
+        } else {
+          waveformSelect.value = "triangle";
+        }
+
+        updateGridDimensions();
+        updatePlayheadUI(0);
+        renderNotes();
+        saveStateToLocalStorage();
+
+        emit("reset", getState());
+
+        return getState();
+      }
+
+      function serialize() {
+        return JSON.stringify({
+          version: API_VERSION,
+          type: "MIDI_EDITOR_STATE",
+          notes: getNotes(),
+          totalSteps,
+          waveform: waveformSelect.value
+        });
+      }
+
+      function deserialize(input, options = {}) {
+        let data = input;
+
+        if (typeof input === "string") {
+          data = JSON.parse(input);
+        }
+
+        if (!data || typeof data !== "object") {
+          throw new Error("Invalid editor state");
+        }
+
+        if (options.history !== false) saveState();
+
+        if (Array.isArray(data.notes)) {
+          notes = data.notes.map((n, i) => normalizeNote(n, i));
+        }
+
+        if (Number.isFinite(Number(data.totalSteps))) {
+          totalSteps = Math.max(1, Math.round(Number(data.totalSteps)));
+        }
+
+        if (data.waveform) {
+          setWaveform(data.waveform);
+        }
+
+        const required = notes.length
+          ? Math.max(...notes.map(n => n.step + n.duration))
+          : 0;
+
+        if (required > totalSteps) {
+          ensureSteps(required);
+        }
+
+        selectedNoteIds.clear();
+        updateGridDimensions();
+        renderNotes();
+        saveStateToLocalStorage();
+
+        emit("stateLoaded", {
+          state: getState()
+        });
+
+        return getState();
+      }
+
+      function exportMIDIAPI(options = {}) {
+        return exportMIDIToLittleHollow().then(path => {
+          if (options.download && path) return path;
+          return path;
+        });
+      }
+
+      function getNoteName(midi) {
+        const value = Math.max(
+          0,
+          Math.min(127, Math.round(Number(midi)))
+        );
+
+        return getNoteLabel(value);
+      }
+
+      function getFrequency(midi) {
+        const value = Math.max(
+          0,
+          Math.min(127, Math.round(Number(midi)))
+        );
+
+        return midiToFreq(value);
+      }
+
+      function findNotes(query = {}) {
+        return notes
+          .filter(n => {
+            if (query.note !== undefined && n.note !== Number(query.note)) return false;
+            if (query.step !== undefined && n.step !== Number(query.step)) return false;
+            if (query.minStep !== undefined && n.step < Number(query.minStep)) return false;
+            if (query.maxStep !== undefined && n.step > Number(query.maxStep)) return false;
+            if (query.maxNote !== undefined && n.note > Number(query.maxNote)) return false;
+            if (query.minNote !== undefined && n.note < Number(query.minNote)) return false;
+            return true;
+          })
+          .map(n => ({ ...n }));
+      }
+
+      function moveNotes(ids, deltaStep = 0, deltaNote = 0) {
+        const targetIds = new Set((ids || []).map(Number));
+        const selected = notes.filter(n => targetIds.has(Number(n.id)));
+
+        if (!selected.length) return [];
+
+        saveState();
+
+        for (const n of selected) {
+          n.step = Math.max(
+            0,
+            n.step + Math.round(Number(deltaStep))
+          );
+
+          n.note = Math.max(
+            0,
+            Math.min(
+              127,
+              n.note + Math.round(Number(deltaNote))
+            )
+          );
+        }
+
+        const required = Math.max(
+          ...selected.map(n => n.step + n.duration)
+        );
+
+        ensureSteps(required);
+        renderNotes();
+        saveStateToLocalStorage();
+
+        emit("notesMoved", {
+          notes: selected.map(n => ({ ...n }))
+        });
+
+        emit("notesChanged", {
+          reason: "move",
+          notes: getNotes()
+        });
+
+        return selected.map(n => ({ ...n }));
+      }
+
+      function resizeNotes(ids, duration) {
+        const targetIds = new Set((ids || []).map(Number));
+        const selected = notes.filter(n => targetIds.has(Number(n.id)));
+
+        if (!selected.length) return [];
+
+        saveState();
+
+        const d = Math.max(
+          1,
+          Math.round(Number(duration))
+        );
+
+        for (const n of selected) {
+          n.duration = d;
+        }
+
+        ensureSteps(
+          Math.max(
+            ...selected.map(n => n.step + n.duration)
+          )
+        );
+
+        renderNotes();
+        saveStateToLocalStorage();
+
+        emit("notesChanged", {
+          reason: "resize",
+          notes: getNotes()
+        });
+
+        return selected.map(n => ({ ...n }));
+      }
+
+      function getAudioInfo() {
+        return {
+          initialized: !!audioCtx,
+          state: audioCtx?.state || "uninitialized",
+          currentTime: audioCtx?.currentTime || 0,
+          activeVoices: activeVoices.size,
+          compressor: !!masterCompressor,
+          masterGain: !!masterGain,
+          meshSubmixBus: !!meshSubmixBus
+        };
+      }
+
+      function connect() {
+        initAudioEngine();
+
+        emit("connected", {
+          apiVersion: API_VERSION,
+          capabilities: Object.keys(api)
+        });
+
+        return {
+          connected: true,
+          version: API_VERSION,
+          capabilities: Object.keys(api)
+        };
+      }
+
+      const api = {
+        version: API_VERSION,
+        name: "Little Hollow MIDI Editor API",
+        type: "window.MIDIAPI",
+        connect,
+        on,
+        off,
+        once,
+        emit,
+        getState,
+        serialize,
+        deserialize,
+        resetEditor,
+        getNotes,
+        setNotes: setNotesData,
+        addNote,
+        addNotes,
+        updateNote,
+        removeNote,
+        removeNotes: removeNotesByIds,
+        findNotes,
+        moveNotes,
+        resizeNotes,
+        getSelectedNotes,
+        selectNote,
+        selectNotes,
+        selectAll: () => {
+          selectAll();
+
+          emit("selectionChanged", {
+            selection: [...selectedNoteIds]
+          });
+
+          return [...selectedNoteIds];
+        },
+        deselectAll,
+        clear: clearGrid,
+        clearGrid,
+        copy: copyAPI,
+        cut: cutAPI,
+        paste: pasteAPI,
+        getClipboard,
+        setClipboard,
+        undo: undoAPI,
+        redo: redoAPI,
+        canUndo,
+        canRedo,
+        initAudio,
+        getAudioInfo,
+        previewNote,
+        playNote: previewNote,
+        stopVoice: stopVoiceAPI,
+        stopAllVoices: stopAllVoicesAPI,
+        play,
+        stop,
+        toggle,
+        restart,
+        playStep,
+        setPlayhead,
+        getPlayhead,
+        getGrid,
+        setTotalSteps,
+        addBars: addBarsAPI,
+        getSettings,
+        setSettings,
+        setWaveform,
+        exportMIDI: exportMIDIAPI,
+        importMIDI: importMIDIFromLittleHollowPath,
+        openMIDIFilePicker: openLittleHollowMIDIPicker,
+        importMIDIFromPath: importMIDIFromLittleHollowPath,
+        exportMIDIToPath: exportMIDIToLittleHollow,
+
+        parseMIDI: async path => {
+          if (!MIDI_PARENT.FS || typeof MIDI_PARENT.FS.readBinary !== "function") {
+            throw new Error("Little Hollow filesystem is unavailable.");
+          }
+
+          const result = await MIDI_PARENT.FS.readBinary(path);
+
+          if (!result || !result.ok || !result.data) {
+            throw new Error(result?.error || "Could not read MIDI file.");
+          }
+
+          return result.data.arrayBuffer().then(buffer => {
+            const data = new Uint8Array(buffer);
+
+            if (
+              data[0] !== 0x4D ||
+              data[1] !== 0x54 ||
+              data[2] !== 0x68 ||
+              data[3] !== 0x64
+            ) {
+              throw new Error("Invalid MIDI file header.");
+            }
+
+            const timeDivision = (data[12] << 8) | data[13];
+            const ticksPerQuarter = timeDivision & 0x7FFF;
+            const ticksPerStep = ticksPerQuarter / 4;
+
+            let offset = 14;
+            let parsedNotes = [];
+            let active = {};
+
+            while (offset + 8 <= data.length) {
+              if (
+                data[offset] === 0x4D &&
+                data[offset + 1] === 0x54 &&
+                data[offset + 2] === 0x72 &&
+                data[offset + 3] === 0x6B
+              ) {
+                const trackLength =
+                  (data[offset + 4] << 24) |
+                  (data[offset + 5] << 16) |
+                  (data[offset + 6] << 8) |
+                  data[offset + 7];
+
+                offset += 8;
+
+                const trackEnd =
+                  Math.min(
+                    data.length,
+                    offset + trackLength
+                  );
+
+                let tick = 0;
+                let running = 0;
+
+                while (offset < trackEnd) {
+                  const vlq = readVLQ(data, offset);
+                  tick += vlq.value;
+                  offset += vlq.bytesRead;
+
+                  if (offset >= trackEnd) break;
+
+                  let status = data[offset];
+
+                  if (status & 0x80) {
+                    running = status;
+                    offset++;
+                  } else {
+                    status = running;
+                  }
+
+                  if (status === 0xF0 || status === 0xF7) {
+                    const v = readVLQ(data, offset);
+                    offset += v.bytesRead + v.value;
+                    continue;
+                  }
+
+                  if (status === 0xFF) {
+                    offset++;
+
+                    if (offset >= trackEnd) break;
+
+                    const v = readVLQ(data, offset);
+                    offset += v.bytesRead + v.value;
+                    continue;
+                  }
+
+                  const command = status & 0xF0;
+
+                  if (command === 0x90 || command === 0x80) {
+                    if (offset + 2 > trackEnd) break;
+
+                    const note = data[offset++];
+                    const velocity = data[offset++];
+                    const on = command === 0x90 && velocity > 0;
+
+                    if (on) {
+                      if (!active[note]) active[note] = [];
+                      active[note].push(tick);
+                    } else if (active[note] && active[note].length) {
+                      const start = active[note].shift();
+
+                      parsedNotes.push({
+                        note,
+                        step: Math.round(start / ticksPerStep),
+                        duration: Math.max(
+                          1,
+                          Math.round(
+                            (tick - start) /
+                            ticksPerStep
+                          )
+                        )
+                      });
+                    }
+
+                    continue;
+                  }
+
+                  if (
+                    command === 0xA0 ||
+                    command === 0xB0 ||
+                    command === 0xE0
+                  ) {
+                    offset += 2;
+                    continue;
+                  }
+
+                  if (command === 0xC0 || command === 0xD0) {
+                    offset += 1;
+                    continue;
+                  }
+
+                  break;
+                }
+
+                offset = trackEnd;
+              } else {
+                offset++;
+              }
+            }
+
+            return {
+              ticksPerQuarter,
+              ticksPerStep,
+              notes: parsedNotes
+            };
+          });
+        },
+
+        getNoteName,
+        getFrequency,
+        midiToFrequency: getFrequency,
+
+        constants: {
+          TOTAL_NOTES,
+          NOTE_HEIGHT,
+          STEP_WIDTH,
+          STEPS_PER_BAR,
+          STEP_DURATION_SEC
+        },
+
+        paths: {
+          state: MIDI_STATE_PATH,
+          midiSaveDirectory: MIDI_SAVE_DIR
+        },
+
+        capabilities: {
+          audio: true,
+          synth: true,
+          waveform: true,
+          playback: true,
+          notePreview: true,
+          voiceControl: true,
+          noteCRUD: true,
+          selection: true,
+          clipboard: true,
+          undoRedo: true,
+          grid: true,
+          midiImport: true,
+          midiExport: true,
+          midiParsing: true,
+          stateSerialization: true,
+          fileManagerPicker: true,
+          indexdbMidiStorage: true,
+          eventSystem: true
+        }
+      };
+
+      window.addEventListener("load", () => {
+        emit("ready", {
+          state: getState()
+        });
+      });
+
+      if (document.readyState !== "loading") {
+        queueMicrotask(() => {
+          emit("ready", {
+            state: getState()
+          });
+        });
+      }
+
+      return api;
+    })();
+
+    window.MIDIAPI.connect();
+  </script>
+</body>
+</html>
