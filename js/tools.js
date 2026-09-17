@@ -126,7 +126,7 @@
           pkg:
           {
             type: "string",
-            description: "Unique package identifier for the application."
+            description: "Unique package identifier for the application. Use for the html file name, same pkg name would replace/update the existing ones"
           },
           name:
           {
