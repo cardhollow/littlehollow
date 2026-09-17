@@ -367,29 +367,38 @@ function isURL(
 		/^file:/i.test(s)
 }
 
+function isBlobLike(
+	value
+){
+	return !!value&&(
+		Object.prototype.toString.call(value)==="[object Blob]"||
+		(
+			typeof value.arrayBuffer==="function"&&
+			typeof value.size==="number"
+		)
+	)
+}
+
+function isArrayBufferLike(
+	value
+){
+	return !!value&&(
+		Object.prototype.toString.call(value)==="[object ArrayBuffer]"||
+		(
+			typeof value.byteLength==="number"&&
+			typeof value.slice==="function"
+		)
+	)
+}
+
 function bytesFrom(
 	value
 ){
-	if(
-		value instanceof ArrayBuffer
-	){
-		return new Uint8Array(
-			value
-		)
+	if(isArrayBufferLike(value))return new Uint8Array(value);
+	if(typeof ArrayBuffer!=="undefined"&&ArrayBuffer.isView(value)){
+		return new Uint8Array(value.buffer,value.byteOffset||0,value.byteLength)
 	}
-
-	if(
-		value&&
-		typeof value==="object"&&
-		value.buffer instanceof ArrayBuffer
-	){
-		return new Uint8Array(
-			value.buffer,
-			value.byteOffset||0,
-			value.byteLength
-		)
-	}
-
+	if(Array.isArray(value))return Uint8Array.from(value,x=>Number(x)||0);
 	return null
 }
 
@@ -936,19 +945,14 @@ function stringToSource(
 }
 
 function blobToURL(
-	blob
+	blob,
+	path
 ){
-	if(!blob){
-		throw new Error(
-			"Empty Blob."
-		)
-	}
-
-	currentObjectURL=
-		URL.createObjectURL(
-			blob
-		);
-
+	if(!isBlobLike(blob))throw new Error("Empty Blob.");
+	const blobType=String(blob.type||"").trim();
+	const type=blobType||mimeFromExtension(path);
+	const finalBlob=blobType===type?blob:new Blob([blob],{type});
+	currentObjectURL=URL.createObjectURL(finalBlob);
 	return currentObjectURL
 }
 
@@ -993,157 +997,27 @@ async function resolveValue(
 	path,
 	depth
 ){
-	depth=
-		Number(depth)||0;
-
-	if(
-		depth>12
-	){
-		throw new Error(
-			"Media source resolution exceeded the limit."
-		)
-	}
-
-	if(
-		value==null
-	){
-		throw new Error(
-			"Filesystem returned no media data."
-		)
-	}
-
-	if(
-		typeof File!=="undefined"&&
-		value instanceof File
-	){
-		return blobToURL(
-			value
-		)
-	}
-
-	if(
-		value instanceof Blob
-	){
-		return blobToURL(
-			value
-		)
-	}
-
-	if(
-		value instanceof ArrayBuffer
-	){
-		return bytesToURL(
-			value,
-			path
-		)
-	}
-
-	const bytes=
-		bytesFrom(
-			value
-		);
-
-	if(bytes){
-		return bytesToURL(
-			bytes,
-			path
-		)
-	}
-
-	if(
-		value&&
-		typeof value==="object"&&
-		typeof value.getFile==="function"
-	){
-		const file=
-			await value.getFile();
-
-		return resolveValue(
-			file,
-			path,
-			depth+1
-		)
-	}
-
-	if(
-		typeof value==="string"
-	){
-		return stringToSource(
-			value,
-			path
-		)
-	}
-
-	if(
-		typeof value==="object"
-	){
-
-		const keys=[
-			"file",
-			"blob",
-			"content",
-			"data",
-			"bytes",
-			"arrayBuffer",
-			"buffer",
-			"handle",
-			"fileHandle",
-			"source",
-			"url",
-			"src",
-			"href"
-		];
-
-		for(
-			const key of keys
-		){
-
-			if(
-				!(key in value)
-			){
-				continue
-			}
-
+	depth=Number(depth)||0;
+	if(depth>12)throw new Error("Media source resolution exceeded the limit.");
+	if(value==null)throw new Error("Filesystem returned no media data.");
+	if(typeof File!=="undefined"&&value instanceof File)return blobToURL(value,path);
+	if(isBlobLike(value))return blobToURL(value,path);
+	if(isArrayBufferLike(value))return bytesToURL(value,path);
+	const bytes=bytesFrom(value);
+	if(bytes)return bytesToURL(bytes,path);
+	if(value&&typeof value==="object"&&typeof value.getFile==="function")return resolveValue(await value.getFile(),path,depth+1);
+	if(typeof value==="string")return stringToSource(value,path);
+	if(value&&typeof value==="object"){
+		const keys=["file","blob","content","data","bytes","arrayBuffer","buffer","handle","fileHandle","source","url","src","href"];
+		for(const key of keys){
+			if(!(key in value))continue;
 			let child;
-
-			try{
-				child=
-					value[key];
-
-				if(
-					typeof child==="function"
-				){
-					child=
-						await child.call(
-							value
-						)
-				}
-			}catch(_){
-				continue
-			}
-
-			if(
-				child==null
-			){
-				continue
-			}
-
-			try{
-				return await resolveValue(
-					child,
-					path,
-					depth+1
-				)
-			}catch(_){}
+			try{child=value[key];if(typeof child==="function")child=await child.call(value)}catch(_){continue}
+			if(child==null)continue;
+			try{return await resolveValue(child,path,depth+1)}catch(_){}
 		}
 	}
-
-	throw new Error(
-		"Unsupported media source type: "+
-		Object.prototype.toString.call(
-			value
-		)
-	)
+	throw new Error("Unsupported media source type: "+Object.prototype.toString.call(value))
 }
 
 async function getDeviceHandle(
@@ -1304,118 +1178,31 @@ async function readVirtualFile(
 	path,
 	depth
 ){
-	depth=
-		Number(depth)||0;
-
-	if(
-		depth>12
-	){
-		throw new Error(
-			"Filesystem path resolution exceeded the limit."
-		)
-	}
-
-	const fs=
-		getFS();
-
-	if(!fs){
-		throw new Error(
-			"Little Hollow filesystem bridge is unavailable."
-		)
-	}
-
-	let normalized=
-		String(path);
-
+	depth=Number(depth)||0;
+	if(depth>12)throw new Error("Filesystem path resolution exceeded the limit.");
+	const fs=getFS();
+	if(!fs)throw new Error("Little Hollow filesystem bridge is unavailable.");
+	let normalized=String(path);
+	try{if(typeof fs.normalize==="function")normalized=fs.normalize(normalized)}catch(_){}
 	try{
-		if(
-			typeof fs.normalize==="function"
-		){
-			normalized=
-				fs.normalize(
-					normalized
-				)
-		}
-	}catch(_){}
-
-	try{
-		const handle=
-			await getDeviceHandle(
-				normalized,
-				fs
-			);
-
-		if(
-			handle&&
-			typeof handle.getFile==="function"
-		){
-			const file=
-				await handle.getFile();
-
-			return blobToURL(
-				file
-			)
-		}
-	}catch(error){
-		console.warn(
-			"[Video Viewer] Direct FSA read failed:",
-			error
-		)
+		const handle=await getDeviceHandle(normalized,fs);
+		if(handle&&typeof handle.getFile==="function")return blobToURL(await handle.getFile(),normalized);
+	}catch(error){console.warn("[Video Player] Direct FSA read failed:",error)}
+	if(typeof fs.readBinary==="function"){
+		const result=await fs.readBinary(normalized);
+		if(result&&typeof result==="object"&&"ok" in result&&!result.ok)throw new Error(result.error||result.summary||"Could not read media.");
+		let content=result&&typeof result==="object"&&"data" in result?result.data:result;
+		if(content==null&&result&&typeof result==="object"&&"content" in result)content=result.content;
+		if(typeof content==="string"&&content!==normalized&&isVirtualPath(content.trim()))return readVirtualFile(content.trim(),depth+1);
+		return resolveValue(content,normalized,depth+1)
 	}
-
-	if(
-		typeof fs.read==="function"
-	){
-
-		const result=
-			await fs.read(
-				normalized
-			);
-
-		if(
-			result&&
-			typeof result==="object"&&
-			"ok" in result&&
-			!result.ok
-		){
-			throw new Error(
-				result.error||
-				result.summary||
-				"Could not read media."
-			)
-		}
-
-		let content=
-			result&&
-			typeof result==="object"&&
-			"content" in result
-				?result.content
-				:result;
-
-		if(
-			typeof content==="string"&&
-			content!==normalized&&
-			isVirtualPath(
-				content.trim()
-			)
-		){
-			return readVirtualFile(
-				content.trim(),
-				depth+1
-			)
-		}
-
-		return resolveValue(
-			content,
-			normalized,
-			depth+1
-		)
+	if(typeof fs.read==="function"){
+		const result=await fs.read(normalized);
+		if(result&&typeof result==="object"&&"ok" in result&&!result.ok)throw new Error(result.error||result.summary||"Could not read media.");
+		const content=result&&typeof result==="object"&&"content" in result?result.content:result;
+		return resolveValue(content,normalized,depth+1)
 	}
-
-	throw new Error(
-		"Could not read filesystem media:\n"+
-		normalized
-	)
+	throw new Error("Could not read filesystem media:\n"+normalized)
 }
 
 function resolveSource(
