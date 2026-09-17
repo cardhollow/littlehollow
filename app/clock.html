@@ -5,961 +5,1575 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Clock</title>
 <style>
-:root{--cyan:#00ffff;--cyan-dim:rgba(0,255,255,.4);--cyan-faint:rgba(0,255,255,.08);--panel:rgba(0,10,10,.65);--glow:0 0 15px rgba(0,255,255,.5);--text-glow:0 0 8px rgba(0,255,255,.8);--font:"Courier New",monospace}
+:root{
+	--cyan:#00ffff;
+	--cyan-dim:rgba(0,255,255,.4);
+	--cyan-faint:rgba(0,255,255,.08);
+	--panel:rgba(0,10,10,.65);
+	--glow:0 0 15px rgba(0,255,255,.5);
+	--text-glow:0 0 8px rgba(0,255,255,.8);
+	--font:"Courier New",monospace
+}
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;height:100%;overflow:hidden;background:transparent;color:var(--cyan);font-family:var(--font)}
+html,body{
+	width:100%;
+	height:100%;
+	overflow:hidden;
+	background:transparent;
+	color:var(--cyan);
+	font-family:var(--font)
+}
 body{display:flex;flex-direction:column}
 button,input{font:inherit}
-.app{width:100%;height:100%;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--cyan-dim);box-shadow:inset 0 0 30px var(--cyan-faint);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);position:relative}
+.app{
+	width:100%;
+	height:100%;
+	display:flex;
+	flex-direction:column;
+	background:var(--panel);
+	border:1px solid var(--cyan-dim);
+	box-shadow:inset 0 0 30px var(--cyan-faint);
+	backdrop-filter:blur(12px);
+	-webkit-backdrop-filter:blur(12px);
+	position:relative
+}
 .content{position:relative;flex:1;overflow:hidden}
-.view{position:absolute;inset:0;padding:16px;display:flex;flex-direction:column;opacity:0;pointer-events:none;transform:scale(.98) translateY(10px);transition:.2s;overflow:auto}
+.view{
+	position:absolute;
+	inset:0;
+	padding:16px;
+	display:flex;
+	flex-direction:column;
+	opacity:0;
+	pointer-events:none;
+	transform:scale(.98) translateY(10px);
+	transition:.2s;
+	overflow:auto
+}
 .view.active{opacity:1;pointer-events:auto;transform:none}
-.top-menu{position:absolute;top:8px;right:8px;z-index:50}
-.menu-button{width:38px;height:38px;display:flex;align-items:center;justify-content:center;border:1px solid var(--cyan-dim);border-radius:8px;background:rgba(0,20,20,.8);color:var(--cyan);font:700 22px var(--font);text-shadow:var(--text-glow);box-shadow:var(--glow)}
-.settings-panel{position:absolute;top:46px;right:0;width:300px;max-width:calc(100vw - 24px);padding:16px;border:1px solid var(--cyan);border-radius:10px;background:#001414;box-shadow:var(--glow);opacity:0;pointer-events:none;transform:translateY(-6px);transition:.18s}
-.settings-panel.open{opacity:1;pointer-events:auto;transform:none}
-.settings-title{font-size:14px;font-weight:bold;text-align:center;text-shadow:var(--text-glow);margin-bottom:14px}
-.settings-label{color:var(--cyan-dim);font-size:10px;margin-bottom:6px;text-transform:uppercase}
-.sound-box{min-height:38px;width:100%;padding:9px;border:1px dashed var(--cyan-dim);border-radius:6px;color:var(--cyan-dim);font-size:10px;word-break:break-all;margin-bottom:10px}
-.sound-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.nav{display:flex;justify-content:space-around;align-items:center;padding:10px 4px;background:rgba(0,20,20,.92);border-top:1px solid var(--cyan-dim)}
-.nav button{background:none;border:0;color:var(--cyan-dim);font:700 12px var(--font);text-transform:uppercase;padding:6px}
-.nav button.active{color:var(--cyan);text-shadow:var(--text-glow);border-bottom:2px solid var(--cyan)}
-.btn{background:rgba(0,255,255,.1);border:1px solid var(--cyan);color:var(--cyan);font:14px var(--font);text-transform:uppercase;padding:9px 14px;border-radius:6px;text-shadow:var(--text-glow);box-shadow:inset 0 0 10px var(--cyan-faint)}
+.nav{
+	display:flex;
+	justify-content:space-around;
+	align-items:center;
+	padding:10px 4px;
+	background:rgba(0,20,20,.92);
+	border-top:1px solid var(--cyan-dim)
+}
+.nav button{
+	background:none;
+	border:0;
+	color:var(--cyan-dim);
+	font:700 12px var(--font);
+	text-transform:uppercase;
+	padding:6px
+}
+.nav button.active{
+	color:var(--cyan);
+	text-shadow:var(--text-glow);
+	border-bottom:2px solid var(--cyan)
+}
+.btn{
+	background:rgba(0,255,255,.1);
+	border:1px solid var(--cyan);
+	color:var(--cyan);
+	font:14px var(--font);
+	text-transform:uppercase;
+	padding:9px 14px;
+	border-radius:6px;
+	text-shadow:var(--text-glow);
+	box-shadow:inset 0 0 10px var(--cyan-faint)
+}
 .btn:active{transform:scale(.96)}
 .btn:disabled{opacity:.35}
-.small-btn{width:100%}
-.field{width:100%;height:42px;padding:8px 10px;border:1px solid var(--cyan);border-radius:7px;background:rgba(0,0,0,.4);color:var(--cyan)}
+.field{
+	width:100%;
+	height:42px;
+	padding:8px 10px;
+	border:1px solid var(--cyan);
+	border-radius:7px;
+	background:rgba(0,0,0,.4);
+	color:var(--cyan)
+}
 .field::placeholder{color:var(--cyan-dim)}
-.controls{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px}
-.clock-view{align-items:center;justify-content:center;gap:16px;text-align:center}
-.digital h1{font-size:clamp(2rem,9vw,4rem);letter-spacing:2px;text-shadow:var(--text-glow)}
-.digital p{color:var(--cyan-dim);font-size:12px;letter-spacing:3px;margin-top:4px;text-transform:uppercase}
+.controls{
+	display:flex;
+	gap:10px;
+	justify-content:center;
+	flex-wrap:wrap;
+	margin-top:14px
+}
+.clock-view{
+	align-items:center;
+	justify-content:center;
+	gap:16px;
+	text-align:center
+}
+.digital h1{
+	font-size:clamp(2rem,9vw,4rem);
+	letter-spacing:2px;
+	text-shadow:var(--text-glow)
+}
+.digital p{
+	color:var(--cyan-dim);
+	font-size:12px;
+	letter-spacing:3px;
+	margin-top:4px;
+	text-transform:uppercase
+}
 .canvas-wrap{width:min(75vw,250px);aspect-ratio:1}
 canvas{width:100%;height:100%;filter:drop-shadow(var(--glow))}
-.alarm-list{display:flex;flex-direction:column;gap:10px;flex:1;overflow:auto}
-.alarm-card{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px;border:1px solid var(--cyan-faint);border-radius:10px;background:rgba(0,0,0,.35)}
+.alarm-list{
+	display:flex;
+	flex-direction:column;
+	gap:10px;
+	flex:1;
+	overflow:auto
+}
+.alarm-card{
+	display:flex;
+	justify-content:space-between;
+	align-items:center;
+	gap:12px;
+	padding:13px;
+	border:1px solid var(--cyan-faint);
+	border-radius:10px;
+	background:rgba(0,0,0,.35)
+}
 .alarm-card.off{opacity:.4}
 .alarm-main{min-width:0}
-.alarm-time{font-size:clamp(22px,7vw,30px);font-weight:bold;text-shadow:var(--text-glow)}
-.alarm-label{color:var(--cyan-dim);font-size:11px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50vw}
-.alarm-countdown{color:#ff00ff;font-size:10px;margin-top:3px}
+.alarm-time{
+	font-size:clamp(22px,7vw,30px);
+	font-weight:bold;
+	text-shadow:var(--text-glow)
+}
+.alarm-label{
+	color:var(--cyan-dim);
+	font-size:11px;
+	margin-top:3px;
+	white-space:nowrap;
+	overflow:hidden;
+	text-overflow:ellipsis;
+	max-width:50vw
+}
+.alarm-countdown{
+	color:#ff00ff;
+	font-size:10px;
+	margin-top:3px
+}
 .row{display:flex;align-items:center;gap:8px}
 .switch{position:relative;width:42px;height:23px;flex:none}
 .switch input{opacity:0;width:0;height:0}
-.slider{position:absolute;inset:0;border:1px solid var(--cyan-dim);border-radius:20px;background:rgba(255,255,255,.08)}
-.slider:before{content:"";position:absolute;width:15px;height:15px;left:3px;top:3px;border-radius:50%;background:var(--cyan-dim);transition:.2s}
-.switch input:checked+.slider{border-color:var(--cyan);box-shadow:var(--glow)}
-.switch input:checked+.slider:before{transform:translateX(19px);background:var(--cyan)}
-.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.82);opacity:0;pointer-events:none;transition:.2s;z-index:100}
+.slider{
+	position:absolute;
+	inset:0;
+	border:1px solid var(--cyan-dim);
+	border-radius:20px;
+	background:rgba(255,255,255,.08)
+}
+.slider:before{
+	content:"";
+	position:absolute;
+	width:15px;
+	height:15px;
+	left:3px;
+	top:3px;
+	border-radius:50%;
+	background:var(--cyan-dim);
+	transition:.2s
+}
+.switch input:checked+.slider{
+	border-color:var(--cyan);
+	box-shadow:var(--glow)
+}
+.switch input:checked+.slider:before{
+	transform:translateX(19px);
+	background:var(--cyan)
+}
+.modal{
+	position:fixed;
+	inset:0;
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	background:rgba(0,0,0,.82);
+	opacity:0;
+	pointer-events:none;
+	transition:.2s;
+	z-index:100
+}
 .modal.open{opacity:1;pointer-events:auto}
-.modal-card{width:90%;max-width:360px;display:flex;flex-direction:column;gap:14px;padding:22px;border:1px solid var(--cyan);border-radius:12px;background:#001414;box-shadow:0 0 30px rgba(0,255,255,.65);text-align:center}
+.modal-card{
+	width:90%;
+	max-width:360px;
+	display:flex;
+	flex-direction:column;
+	gap:14px;
+	padding:22px;
+	border:1px solid var(--cyan);
+	border-radius:12px;
+	background:#001414;
+	box-shadow:0 0 30px rgba(0,255,255,.65);
+	text-align:center
+}
 .modal-card h2{font-size:18px;text-shadow:var(--text-glow)}
 .modal-card p{color:var(--cyan-dim);font-size:11px}
 .modal-actions{display:flex;gap:10px;justify-content:center}
 .modal-actions .btn{flex:1}
-.timer-center,.stopwatch-center{align-items:center;justify-content:center}
-.timer-display{font-size:clamp(2.7rem,12vw,5rem);text-shadow:var(--text-glow);font-variant-numeric:tabular-nums}
-.timer-inputs{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:20px}
-.timer-inputs input{width:62px;height:58px;text-align:center;border:1px solid var(--cyan);border-radius:8px;background:rgba(0,0,0,.4);color:var(--cyan);font:24px var(--font)}
-.timer-inputs label{display:block;text-align:center;margin-top:4px;color:var(--cyan-dim);font-size:9px}
-.sw-display{font-size:clamp(2.5rem,10vw,4rem);text-shadow:var(--text-glow);font-variant-numeric:tabular-nums}
+.timer-center,.stopwatch-center{
+	align-items:center;
+	justify-content:center
+}
+.timer-display{
+	font-size:clamp(2.7rem,12vw,5rem);
+	text-shadow:var(--text-glow);
+	font-variant-numeric:tabular-nums
+}
+.timer-inputs{
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	gap:8px;
+	margin-bottom:20px
+}
+.timer-inputs input{
+	width:62px;
+	height:58px;
+	text-align:center;
+	border:1px solid var(--cyan);
+	border-radius:8px;
+	background:rgba(0,0,0,.4);
+	color:var(--cyan);
+	font:24px var(--font)
+}
+.timer-inputs label{
+	display:block;
+	text-align:center;
+	margin-top:4px;
+	color:var(--cyan-dim);
+	font-size:9px
+}
+.sw-display{
+	font-size:clamp(2.5rem,10vw,4rem);
+	text-shadow:var(--text-glow);
+	font-variant-numeric:tabular-nums
+}
 .sw-ms{font-size:.5em;opacity:.7}
-.laps{width:100%;flex:1;overflow:auto;margin-top:15px;border-top:1px dashed var(--cyan-dim)}
-.lap{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--cyan-faint);font-size:12px}
-.hidden-input{display:none}
-.status{min-height:14px;color:var(--cyan-dim);font-size:9px;text-align:center;margin-top:8px}
+.laps{
+	width:100%;
+	flex:1;
+	overflow:auto;
+	margin-top:15px;
+	border-top:1px dashed var(--cyan-dim)
+}
+.lap{
+	display:flex;
+	justify-content:space-between;
+	padding:8px 0;
+	border-bottom:1px solid var(--cyan-faint);
+	font-size:12px
+}
 </style>
 </head>
 <body>
 <div class="app">
-<div class="top-menu">
-<button class="menu-button" id="menuButton" onclick="toggleSettings()">⋮</button>
-<div id="settingsPanel" class="settings-panel">
-<div class="settings-title">CLOCK SETTINGS</div>
-<div class="settings-label">Alarm / Timer Sound</div>
-<div id="settingsSound" class="sound-box">Built-in Oscillator</div>
-<div class="sound-actions">
-<button class="btn small-btn" onclick="importAudio()">IMPORT AUDIO</button>
-<button class="btn small-btn" onclick="selectSound()">CHXD FILE</button>
+	<div class="content">
+		<section id="clockView" class="view clock-view active">
+			<div class="digital">
+				<h1 id="time">--:--:--</h1>
+				<p id="date">---</p>
+			</div>
+			<div class="canvas-wrap"><canvas id="face"></canvas></div>
+		</section>
+
+		<section id="alarmView" class="view">
+			<div class="alarm-list" id="alarmList"></div>
+			<div class="controls">
+				<button class="btn" onclick="openAlarmModal()">ADD ALARM</button>
+			</div>
+		</section>
+
+		<section id="timerView" class="view timer-center">
+			<div id="timerSetup">
+				<div class="timer-inputs">
+					<div>
+						<input id="th" type="number" min="0" max="99" value="00">
+						<label>HRS</label>
+					</div>
+					<div>:</div>
+					<div>
+						<input id="tm" type="number" min="0" max="59" value="05">
+						<label>MIN</label>
+					</div>
+					<div>:</div>
+					<div>
+						<input id="ts" type="number" min="0" max="59" value="00">
+						<label>SEC</label>
+					</div>
+				</div>
+			</div>
+
+			<div id="timerActive" style="display:none">
+				<div class="timer-display" id="timerDisplay">00:00:00</div>
+			</div>
+
+			<div class="controls">
+				<button class="btn" onclick="timerReset()">RESET</button>
+				<button class="btn" id="timerButton" onclick="timerToggle()">START</button>
+			</div>
+		</section>
+
+		<section id="stopwatchView" class="view stopwatch-center">
+			<div class="sw-display" id="swDisplay">
+				00:00:00<span class="sw-ms">.00</span>
+			</div>
+
+			<div class="controls">
+				<button class="btn" id="swSecondary" onclick="swSecondary()">LAP</button>
+				<button class="btn" id="swPrimary" onclick="swToggle()">START</button>
+			</div>
+
+			<div class="laps" id="laps"></div>
+		</section>
+	</div>
+
+	<nav class="nav">
+		<button id="navClock" class="active" onclick="showView('clock')">CLOCK</button>
+		<button id="navAlarm" onclick="showView('alarm')">ALARM</button>
+		<button id="navTimer" onclick="showView('timer')">TIMER</button>
+		<button id="navStopwatch" onclick="showView('stopwatch')">STOPWATCH</button>
+	</nav>
 </div>
-<button class="btn small-btn" style="margin-top:8px" onclick="testCurrentSound()">TEST SOUND</button>
-<button class="btn small-btn" style="margin-top:8px" onclick="clearSound()">USE OSCILLATOR</button>
-<div id="soundStatus" class="status"></div>
-</div>
-</div>
-<div class="content">
-<section id="clockView" class="view clock-view active">
-<div class="digital"><h1 id="time">--:--:--</h1><p id="date">---</p></div>
-<div class="canvas-wrap"><canvas id="face"></canvas></div>
-</section>
-<section id="alarmView" class="view">
-<div class="alarm-list" id="alarmList"></div>
-<div class="controls"><button class="btn" onclick="openAlarmModal()">ADD ALARM</button></div>
-</section>
-<section id="timerView" class="view timer-center">
-<div id="timerSetup">
-<div class="timer-inputs">
-<div><input id="th" type="number" min="0" max="99" value="00"><label>HRS</label></div><div>:</div>
-<div><input id="tm" type="number" min="0" max="59" value="05"><label>MIN</label></div><div>:</div>
-<div><input id="ts" type="number" min="0" max="59" value="00"><label>SEC</label></div>
-</div>
-</div>
-<div id="timerActive" style="display:none"><div class="timer-display" id="timerDisplay">00:00:00</div></div>
-<div class="controls"><button class="btn" onclick="timerReset()">RESET</button><button class="btn" id="timerButton" onclick="timerToggle()">START</button></div>
-</section>
-<section id="stopwatchView" class="view stopwatch-center">
-<div class="sw-display" id="swDisplay">00:00:00<span class="sw-ms">.00</span></div>
-<div class="controls"><button class="btn" id="swSecondary" onclick="swSecondary()">LAP</button><button class="btn" id="swPrimary" onclick="swToggle()">START</button></div>
-<div class="laps" id="laps"></div>
-</section>
-</div>
-<nav class="nav">
-<button id="navClock" class="active" onclick="showView('clock')">CLOCK</button>
-<button id="navAlarm" onclick="showView('alarm')">ALARM</button>
-<button id="navTimer" onclick="showView('timer')">TIMER</button>
-<button id="navStopwatch" onclick="showView('stopwatch')">STOPWATCH</button>
-</nav>
-</div>
+
 <div id="alarmModal" class="modal">
-<div class="modal-card"><h2 id="ringTitle">ALARM</h2><p id="ringMessage">Alarm is ringing</p><div class="modal-actions"><button class="btn" onclick="snoozeRing()">SNOOZE 5M</button><button class="btn" onclick="dismissRing()">DISMISS</button></div></div>
+	<div class="modal-card">
+		<h2 id="ringTitle">ALARM</h2>
+		<p id="ringMessage">Alarm is ringing</p>
+		<div class="modal-actions">
+			<button class="btn" onclick="snoozeRing()">SNOOZE 5M</button>
+			<button class="btn" onclick="dismissRing()">DISMISS</button>
+		</div>
+	</div>
 </div>
+
 <div id="alarmCreateModal" class="modal">
-<div class="modal-card"><h2>NEW ALARM</h2><input id="alarmTime" class="field" type="time"><input id="alarmLabel" class="field" type="text" value="Alarm" placeholder="Alarm Label"><div class="modal-actions"><button class="btn" onclick="closeAlarmModal()">CANCEL</button><button class="btn" onclick="saveAlarm()">SAVE</button></div></div>
+	<div class="modal-card">
+		<h2>NEW ALARM</h2>
+		<input id="alarmTime" class="field" type="time">
+		<input id="alarmLabel" class="field" type="text" value="Alarm" placeholder="Alarm Label">
+		<div class="modal-actions">
+			<button class="btn" onclick="closeAlarmModal()">CANCEL</button>
+			<button class="btn" onclick="saveAlarm()">SAVE</button>
+		</div>
+	</div>
 </div>
-<input id="audioImportInput" class="hidden-input" type="file" accept="audio/*,.mp3,.wav,.wave,.ogg,.oga,.opus,.webm,.weba,.flac,.m4a,.aac,.3gp,.amr,.pkp">
-<audio id="alarmAudio" preload="auto"></audio>
+
 <script>
-const STATE_KEY="chxd_clock_state_v5";
 const STATE_PATH="chxd:/local/Clock/state.json";
-const AUDIO_DIR="chxd:/local/Clock/Sounds/";
 const SNOOZE_MINUTES=5;
+
 const state={
-    alarms:[],
-    soundPath:"",
-    timer:{running:false,end:0,remaining:0},
-    stopwatch:{running:false,started:0,elapsed:0,laps:[]},
-    ring:{active:false,kind:"",id:0,snoozeUntil:0}
+	alarms:[],
+	timer:{running:false,end:0,remaining:0},
+	stopwatch:{running:false,started:0,elapsed:0,laps:[]},
+	ring:{active:false,kind:"",id:0,snoozeUntil:0}
 };
+
 let audioContext=null;
 let oscillatorNodes=[];
-let audioObjectUrl="";
-let currentAudioPath="";
-let audioTestTimer=0;
-let suppressAutoOpen=false;
+let ringOscillatorTimer=0;
+let ringSoundStarted=false;
 
-function parentWindow(){
-    try{return window.parent||window}catch(_){return window}
+function hostWindows(){
+	const list=[window];
+
+	try{
+		if(window.parent&&window.parent!==window){
+			list.push(window.parent);
+		}
+	}catch(_){}
+
+	try{
+		if(window.top&&window.top!==window&&!list.includes(window.top)){
+			list.push(window.top);
+		}
+	}catch(_){}
+
+	return list;
 }
 
 function getFS(){
-    const p=parentWindow();
-    try{return p.FS||window.FS||null}catch(_){return window.FS||null}
+	for(const w of hostWindows()){
+		try{
+			if(
+				w.FS&&
+				(
+					typeof w.FS.read==="function"||
+					typeof w.FS.write==="function"
+				)
+			){
+				return w.FS;
+			}
+		}catch(_){}
+	}
+	return null;
 }
 
 function postHost(message){
-    try{parentWindow().postMessage(message,"*")}catch(_){}
-    try{window.postMessage(message,"*")}catch(_){}
+	for(const w of hostWindows()){
+		try{
+			w.postMessage(message,"*");
+		}catch(_){}
+	}
 }
 
 function safeNumber(value,fallback=0){
-    const n=Number(value);
-    return Number.isFinite(n)?n:fallback;
+	const n=Number(value);
+	return Number.isFinite(n)?n:fallback;
 }
 
 function normalizeAlarm(value){
-    const alarm=value||{};
-    return{
-        id:safeNumber(alarm.id,Date.now()),
-        time:String(alarm.time||"00:00"),
-        label:String(alarm.label||"Alarm"),
-        active:alarm.active!==false,
-        lastFired:String(alarm.lastFired||"")
-    };
+	const alarm=value||{};
+	return{
+		id:safeNumber(alarm.id,Date.now()),
+		time:String(alarm.time||"00:00"),
+		label:String(alarm.label||"Alarm"),
+		active:alarm.active!==false,
+		lastFired:String(alarm.lastFired||"")
+	};
 }
 
 function normalizeState(value){
-    const data=value||{};
-    state.alarms=Array.isArray(data.alarms)?data.alarms.map(normalizeAlarm):[];
-    state.soundPath=typeof data.soundPath==="string"?data.soundPath:"";
-    const timer=data.timer||{};
-    state.timer={running:!!timer.running,end:safeNumber(timer.end),remaining:safeNumber(timer.remaining)};
-    const sw=data.stopwatch||{};
-    state.stopwatch={running:!!sw.running,started:safeNumber(sw.started),elapsed:safeNumber(sw.elapsed),laps:Array.isArray(sw.laps)?sw.laps.map(lap=>({id:safeNumber(lap&&lap.id,Date.now()),total:safeNumber(lap&&lap.total),diff:safeNumber(lap&&lap.diff)})):[]};
-    const ring=data.ring||{};
-    state.ring={active:!!ring.active,kind:String(ring.kind||""),id:safeNumber(ring.id),snoozeUntil:safeNumber(ring.snoozeUntil)};
+	const data=value||{};
+
+	state.alarms=Array.isArray(data.alarms)
+		?data.alarms.map(normalizeAlarm):[];
+
+	const timer=data.timer||{};
+	state.timer={
+		running:!!timer.running,
+		end:safeNumber(timer.end),
+		remaining:safeNumber(timer.remaining)
+	};
+
+	const sw=data.stopwatch||{};
+	state.stopwatch={
+		running:!!sw.running,
+		started:safeNumber(sw.started),
+		elapsed:safeNumber(sw.elapsed),
+		laps:Array.isArray(sw.laps)
+			?sw.laps.map(lap=>({
+				id:safeNumber(lap&&lap.id,Date.now()),
+				total:safeNumber(lap&&lap.total),
+				diff:safeNumber(lap&&lap.diff)
+			})): []
+	};
+
+	const ring=data.ring||{};
+	state.ring={
+		active:!!ring.active,
+		kind:String(ring.kind||""),
+		id:safeNumber(ring.id),
+		snoozeUntil:safeNumber(ring.snoozeUntil)
+	};
 }
 
-async function readFSState(){
-    const fs=getFS();
-    if(!fs||typeof fs.read!=="function")return null;
-    try{
-        const result=await fs.read(STATE_PATH);
-        if(result&&result.ok&&result.content){
-            return JSON.parse(String(result.content));
-        }
-    }catch(_){ }
-    return null;
+async function readStateFile(){
+	const fs=getFS();
+	if(!fs||typeof fs.read!=="function"){
+		return null;
+	}
+
+	try{
+		const result=await fs.read(STATE_PATH);
+
+		if(result&&typeof result==="object"&&result.ok===false){
+			return null;
+		}
+
+		const content=
+			result&&result.content!=null
+				?result.content
+				:result;
+
+		if(content!=null){
+			return JSON.parse(String(content));
+		}
+	}catch(_){}
+
+	return null;
 }
 
 async function loadState(){
-    let loaded=null;
-    try{
-        const raw=localStorage.getItem(STATE_KEY);
-        if(raw)loaded=JSON.parse(raw);
-    }catch(_){ }
-    if(!loaded)loaded=await readFSState();
-    if(loaded)normalizeState(loaded);else normalizeState({});
-    clearExpiredSnooze();
+	const loaded=await readStateFile();
+	normalizeState(loaded||{});
+	clearExpiredSnooze();
 }
 
 function publicState(){
-    return{
-        alarms:state.alarms.map(a=>({...a})),
-        soundPath:state.soundPath,
-        timer:{
-            running:state.timer.running,
-            end:state.timer.end,
-            remaining:state.timer.running?Math.max(0,state.timer.end-Date.now()):Math.max(0,state.timer.remaining)
-        },
-        stopwatch:{
-            running:state.stopwatch.running,
-            started:state.stopwatch.started,
-            elapsed:state.stopwatch.running?state.stopwatch.elapsed+Math.max(0,Date.now()-state.stopwatch.started):state.stopwatch.elapsed,
-            laps:state.stopwatch.laps.map(l=>({...l}))
-        },
-        ring:{...state.ring}
-    };
+	return{
+		alarms:state.alarms.map(a=>({...a})),
+		timer:{
+			running:state.timer.running,
+			end:state.timer.end,
+			remaining:state.timer.running
+				?Math.max(0,state.timer.end-Date.now())
+				:Math.max(0,state.timer.remaining)
+		},
+		stopwatch:{
+			running:state.stopwatch.running,
+			started:state.stopwatch.started,
+			elapsed:state.stopwatch.running
+				?state.stopwatch.elapsed+
+					Math.max(0,Date.now()-state.stopwatch.started)
+				:state.stopwatch.elapsed,
+			laps:state.stopwatch.laps.map(l=>({...l}))
+		},
+		ring:{...state.ring}
+	};
 }
 
 async function saveState(){
-    const data=publicState();
-    try{localStorage.setItem(STATE_KEY,JSON.stringify(data))}catch(_){ }
-    const fs=getFS();
-    if(fs&&typeof fs.write==="function"){
-        try{await fs.write(STATE_PATH,JSON.stringify(data),true)}catch(_){ }
-    }
-    postHost({type:"chxd-clock-state-changed"});
-}
+	const fs=getFS();
+	if(fs&&typeof fs.write==="function"){
+		try{
+			await fs.write(
+				STATE_PATH,
+				JSON.stringify(publicState()),
+				true
+			);
+		}catch(_){}
+	}
 
-function setStatus(text){
-    const el=document.getElementById("soundStatus");
-    if(el)el.textContent=text||"";
+	postHost({type:"chxd-clock-state-changed"});
 }
 
 function escapeHTML(value){
-    return String(value).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
-}
-
-function extension(path){
-    const clean=String(path||"").split("?")[0].split("#")[0];
-    const file=clean.split("/").pop()||"";
-    const dot=file.lastIndexOf(".");
-    return dot<0?"":file.slice(dot+1).toLowerCase();
-}
-
-function fileName(path){
-    return String(path||"").split("/").pop()||"";
-}
-
-function isPKP(path){return extension(path)==="pkp"}
-
-function isAudio(path){
-    return ["mp3","wav","wave","ogg","oga","opus","webm","weba","flac","m4a","aac","3gp","amr"].includes(extension(path));
-}
-
-function formatSoundName(path){
-    if(!path)return "Built-in Oscillator";
-    const name=fileName(path);
-    return name||path;
-}
-
-function primeAudio(){
-    const C=window.AudioContext||window.webkitAudioContext;
-    if(!C)return null;
-    if(!audioContext){
-        try{audioContext=new C()}catch(_){return null}
-    }
-    if(audioContext.state==="suspended")audioContext.resume().catch(()=>{});
-    return audioContext;
+	return String(value)
+		.replaceAll("&","&amp;")
+		.replaceAll("<","&lt;")
+		.replaceAll(">","&gt;")
+		.replaceAll('"',"&quot;")
+		.replaceAll("'","&#039;");
 }
 
 function stopOscillator(){
-    oscillatorNodes.forEach(node=>{try{node.stop()}catch(_){}try{node.disconnect()}catch(_){}});
-    oscillatorNodes=[];
+	oscillatorNodes.forEach(node=>{
+		try{node.stop()}catch(_){}
+		try{node.disconnect()}catch(_){}
+	});
+	oscillatorNodes=[];
+}
+
+function stopAlarmOscillator(){
+	if(ringOscillatorTimer){
+		clearInterval(ringOscillatorTimer);
+		ringOscillatorTimer=0;
+	}
+	stopOscillator();
+	ringSoundStarted=false;
 }
 
 function stopAudio(){
-    const audio=document.getElementById("alarmAudio");
-    try{audio.pause()}catch(_){ }
-    try{audio.currentTime=0}catch(_){ }
-    stopOscillator();
+	stopAlarmOscillator();
+}
+
+function primeAudio(){
+	const C=window.AudioContext||window.webkitAudioContext;
+	if(!C){
+		return null;
+	}
+
+	if(!audioContext){
+		try{
+			audioContext=new C();
+		}catch(_){
+			return null;
+		}
+	}
+
+	if(audioContext.state==="suspended"){
+		audioContext.resume().catch(()=>{});
+	}
+
+	return audioContext;
 }
 
 function oscillatorTone(ctx,output,frequency,start,duration){
-    const osc=ctx.createOscillator();
-    const gain=ctx.createGain();
-    osc.type="sine";
-    osc.frequency.setValueAtTime(frequency,start);
-    gain.gain.setValueAtTime(.0001,start);
-    gain.gain.exponentialRampToValueAtTime(.35,start+.02);
-    gain.gain.exponentialRampToValueAtTime(.0001,start+duration);
-    osc.connect(gain);
-    gain.connect(output);
-    osc.start(start);
-    osc.stop(start+duration+.02);
-    oscillatorNodes.push(osc);
+	const osc=ctx.createOscillator();
+	const gain=ctx.createGain();
+
+	osc.type="sine";
+	osc.frequency.setValueAtTime(frequency,start);
+
+	gain.gain.setValueAtTime(.0001,start);
+	gain.gain.exponentialRampToValueAtTime(.32,start+.025);
+	gain.gain.exponentialRampToValueAtTime(.0001,start+duration);
+
+	osc.connect(gain);
+	gain.connect(output);
+	osc.start(start);
+	osc.stop(start+duration+.03);
+
+	oscillatorNodes.push(osc);
+}
+
+function playOscillatorPhrase(){
+	const ctx=primeAudio();
+	if(!ctx){
+		return false;
+	}
+
+	const output=ctx.createGain();
+	output.gain.value=.95;
+	output.connect(ctx.destination);
+
+	const start=ctx.currentTime;
+	const notes=[
+		[880,0],
+		[988,.28],
+		[880,.56],
+		[660,.84],
+		[880,1.12],
+		[988,1.40],
+		[880,1.68],
+		[660,1.96]
+	];
+
+	notes.forEach(([frequency,offset])=>{
+		oscillatorTone(
+			ctx,
+			output,
+			frequency,
+			start+offset,
+			.22
+		);
+	});
+
+	return true;
 }
 
 function playOscillator(){
-    const ctx=primeAudio();
-    if(!ctx)return false;
-    stopAudio();
-    const output=ctx.createGain();
-    output.gain.value=.95;
-    output.connect(ctx.destination);
-    const start=ctx.currentTime;
-    const notes=[[880,0],[988,.28],[880,.56],[660,.84],[880,1.12],[988,1.4],[880,1.68],[660,1.96]];
-    notes.forEach(([frequency,offset])=>oscillatorTone(ctx,output,frequency,start+offset,.23));
-    return true;
+	stopOscillator();
+	return playOscillatorPhrase();
 }
 
-async function loadAudioBuffer(path){
-    if(!path||!isAudio(path))return null;
-    const fs=getFS();
-    if(!fs||typeof fs.readBinary!=="function")return null;
-    let result;
-    try{result=await fs.readBinary(path)}catch(_){return null}
-    if(!result||!result.ok||!result.data)return null;
-    let raw=result.data;
-    try{
-        if(raw instanceof Blob)raw=await raw.arrayBuffer();
-        if(ArrayBuffer.isView(raw))raw=raw.buffer.slice(raw.byteOffset,raw.byteOffset+raw.byteLength);
-        if(!(raw instanceof ArrayBuffer))return null;
-        const ctx=primeAudio();
-        if(!ctx)return null;
-        return await ctx.decodeAudioData(raw.slice(0));
-    }catch(_){return null}
-}
+function startAlarmOscillator(){
+	if(ringSoundStarted){
+		return;
+	}
 
-async function playCustomAudio(path,loop=true){
-    const audio=document.getElementById("alarmAudio");
-    if(!path||!isAudio(path))return false;
-    const fs=getFS();
-    if(!fs||typeof fs.readBinary!=="function")return false;
-    let result;
-    try{result=await fs.readBinary(path)}catch(_){return false}
-    if(!result||!result.ok||!result.data)return false;
-    try{
-        let raw=result.data;
-        if(raw instanceof Blob){
-            if(audioObjectUrl)URL.revokeObjectURL(audioObjectUrl);
-            audioObjectUrl=URL.createObjectURL(raw);
-        }else{
-            if(ArrayBuffer.isView(raw))raw=raw.buffer.slice(raw.byteOffset,raw.byteOffset+raw.byteLength);
-            if(!(raw instanceof ArrayBuffer))return false;
-            if(audioObjectUrl)URL.revokeObjectURL(audioObjectUrl);
-            const type=audioMime(extension(path));
-            audioObjectUrl=URL.createObjectURL(new Blob([raw],{type}));
-        }
-        currentAudioPath=path;
-        audio.src=audioObjectUrl;
-        audio.loop=loop;
-        audio.volume=1;
-        audio.load();
-        await audio.play();
-        return true;
-    }catch(_){
-        return false;
-    }
-}
+	stopAlarmOscillator();
+	ringSoundStarted=true;
+	playOscillatorPhrase();
 
-function audioMime(ext){
-    const map={mp3:"audio/mpeg",wav:"audio/wav",wave:"audio/wav",ogg:"audio/ogg",oga:"audio/ogg",opus:"audio/opus",webm:"audio/webm",weba:"audio/webm",flac:"audio/flac",m4a:"audio/mp4",aac:"audio/aac",amr:"audio/amr","3gp":"audio/3gpp"};
-    return map[ext]||"application/octet-stream";
-}
+	ringOscillatorTimer=setInterval(()=>{
+		if(!state.ring.active){
+			stopAlarmOscillator();
+			return;
+		}
 
-async function playSelectedSound(){
-    stopAudio();
-    if(state.soundPath&&isPKP(state.soundPath))return await playPKP(state.soundPath);
-    if(state.soundPath&&isAudio(state.soundPath)){
-        const ok=await playCustomAudio(state.soundPath,true);
-        if(ok)return true;
-    }
-    return playOscillator();
-}
-
-async function playSelectedSoundOnce(){
-    stopAudio();
-    if(state.soundPath&&isAudio(state.soundPath)){
-        const ok=await playCustomAudio(state.soundPath,false);
-        if(ok)return true;
-    }
-    return playOscillator();
-}
-
-async function playPKP(path){
-    const fs=getFS();
-    if(!fs||typeof fs.read!=="function")return false;
-    let result;
-    try{result=await fs.read(path)}catch(_){return false}
-    if(!result||!result.ok)return false;
-    const value=String(result.content||"").trim();
-    if(!value)return false;
-    try{
-        const apps=parentWindow().Apps;
-        if(!apps||typeof apps.openApp!=="function")return false;
-        const opened=await apps.openApp("piano",{allowMultiple:false});
-        const pianoWin=opened&&opened.window?opened.window:null;
-        const targets=[];
-        if(pianoWin)targets.push(pianoWin);
-        try{
-            if(parentWindow().frames){
-                for(const frame of Array.from(parentWindow().frames))targets.push(frame);
-            }
-        }catch(_){ }
-        const message={type:"LH_PIANO_PKP_PLAY",pkp:value,path};
-        targets.forEach(target=>{try{target.postMessage(message,"*")}catch(_){}});
-        try{parentWindow().postMessage(message,"*")}catch(_){ }
-        return true;
-    }catch(_){return false}
-}
-
-async function setSoundPath(path){
-    path=String(path||"").trim();
-    if(path){
-        if(!isAudio(path)&&!isPKP(path)){
-            setStatus("Unsupported sound file");
-            return false;
-        }
-        const fs=getFS();
-        if(!fs||typeof fs.stat!=="function"){
-            setStatus("Filesystem unavailable");
-            return false;
-        }
-        try{
-            const result=await fs.stat(path);
-            if(!result||!result.ok||result.kind!=="file"){
-                setStatus("Sound file not found");
-                return false;
-            }
-        }catch(_){
-            setStatus("Sound file not found");
-            return false;
-        }
-    }
-    state.soundPath=path;
-    currentAudioPath="";
-    stopAudio();
-    await saveState();
-    renderAll();
-    setStatus(path?"Sound selected":"Using oscillator");
-    return true;
-}
-
-async function importAudio(){
-    const input=document.getElementById("audioImportInput");
-    input.value="";
-    input.onchange=async()=>{
-        const file=input.files&&input.files[0];
-        if(!file)return;
-        const name=file.name||"alarm-audio";
-        const ext=extension(name);
-        if(!isAudio(name)&&ext!=="pkp"){
-            setStatus("Choose an audio file or PKP");
-            return;
-        }
-        const fs=getFS();
-        if(!fs||typeof fs.write!=="function"){
-            setStatus("Little Hollow filesystem unavailable");
-            return;
-        }
-        const safeName=name.replace(/[^a-zA-Z0-9._-]+/g,"_");
-        const path=AUDIO_DIR+Date.now()+"_"+safeName;
-        try{
-            const buffer=await file.arrayBuffer();
-            const result=await fs.write(path,new Uint8Array(buffer),true,true);
-            if(!result||result.ok===false){
-                setStatus("Import failed");
-                return;
-            }
-            await setSoundPath(path);
-            await testCurrentSound();
-        }catch(_){
-            setStatus("Import failed");
-        }
-    };
-    input.click();
-}
-
-async function selectSound(){
-    try{
-        const apps=parentWindow().Apps;
-        if(!apps||typeof apps.openApp!=="function")throw new Error("File Manager unavailable");
-        await apps.openApp("File Manager",{selectMode:true,allowMultiple:false,title:"SELECT CLOCK SOUND"});
-        setStatus("Select an audio or PKP file");
-    }catch(_){
-        importAudio();
-    }
-}
-
-function handleSelectedPath(path){
-    if(typeof path!=="string"||!path)return;
-    setSoundPath(path).catch(()=>{});
-}
-
-async function testCurrentSound(){
-    clearTimeout(audioTestTimer);
-    stopAudio();
-    const ok=await playSelectedSoundOnce();
-    setStatus(ok?(state.soundPath?"Testing "+formatSoundName(state.soundPath):"Testing oscillator"):"Could not play selected sound");
-    audioTestTimer=setTimeout(()=>{
-        stopAudio();
-        setStatus("");
-    },6000);
-}
-
-async function clearSound(){
-    await setSoundPath("");
-}
-
-function toggleSettings(){document.getElementById("settingsPanel").classList.toggle("open")}
-window.toggleSettings=toggleSettings;
-
-document.addEventListener("click",event=>{
-    const panel=document.getElementById("settingsPanel");
-    const menu=document.querySelector(".top-menu");
-    if(panel.classList.contains("open")&&!menu.contains(event.target))panel.classList.remove("open");
-});
-
-document.addEventListener("pointerdown",()=>{primeAudio()},true);
-document.addEventListener("touchstart",()=>{primeAudio()},true);
-document.addEventListener("keydown",()=>{primeAudio()},true);
-
-function showView(name){
-    document.querySelectorAll(".view").forEach(el=>el.classList.remove("active"));
-    document.querySelectorAll(".nav button").forEach(el=>el.classList.remove("active"));
-    document.getElementById(name+"View").classList.add("active");
-    document.getElementById("nav"+name.charAt(0).toUpperCase()+name.slice(1)).classList.add("active");
-    if(name==="clock")resizeCanvas();
-}
-window.showView=showView;
-
-function nowHHMM(){
-    const d=new Date();
-    return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
-}
-
-function openAlarmModal(){
-    document.getElementById("alarmTime").value=nowHHMM();
-    document.getElementById("alarmLabel").value="Alarm";
-    document.getElementById("alarmCreateModal").classList.add("open");
-}
-window.openAlarmModal=openAlarmModal;
-function closeAlarmModal(){document.getElementById("alarmCreateModal").classList.remove("open")}
-window.closeAlarmModal=closeAlarmModal;
-
-async function saveAlarm(){
-    const time=document.getElementById("alarmTime").value;
-    const label=document.getElementById("alarmLabel").value.trim()||"Alarm";
-    if(!time)return;
-    const [h,m]=time.split(":").map(Number);
-    if(!Number.isInteger(h)||h<0||h>23||!Number.isInteger(m)||m<0||m>59)return;
-    state.alarms.push({id:Date.now()+Math.random(),time,label,active:true,lastFired:""});
-    await saveState();
-    closeAlarmModal();
-    renderAll();
-}
-window.saveAlarm=saveAlarm;
-
-async function toggleAlarm(index){
-    const alarm=state.alarms[index];
-    if(!alarm)return;
-    alarm.active=!alarm.active;
-    if(alarm.active)alarm.lastFired="";
-    await saveState();
-    renderAll();
-}
-window.toggleAlarm=toggleAlarm;
-
-async function deleteAlarm(index){
-    const alarm=state.alarms[index];
-    if(!alarm)return;
-    if(state.ring.kind==="alarm"&&state.ring.id===alarm.id)stopRingState();
-    state.alarms.splice(index,1);
-    await saveState();
-    renderAll();
-}
-window.deleteAlarm=deleteAlarm;
-
-function nextAlarmDate(time){
-    const parts=String(time).split(":").map(Number);
-    const now=new Date();
-    const target=new Date(now);
-    target.setHours(Number(parts[0])||0,Number(parts[1])||0,0,0);
-    if(target<=now)target.setDate(target.getDate()+1);
-    return target;
-}
-
-function remainingText(ms){
-    let seconds=Math.max(0,Math.floor(ms/1000));
-    const days=Math.floor(seconds/86400);
-    seconds%=86400;
-    const hours=Math.floor(seconds/3600);
-    seconds%=3600;
-    const minutes=Math.floor(seconds/60);
-    const secs=seconds%60;
-    const parts=[];
-    if(days)parts.push(days+"d");
-    if(hours||days)parts.push(hours+"h");
-    if(minutes||hours||days)parts.push(minutes+"m");
-    parts.push(secs+"s");
-    return "Alarm in "+parts.join(" ");
-}
-
-function renderAlarms(){
-    const list=document.getElementById("alarmList");
-    if(!state.alarms.length){
-        list.innerHTML='<div style="text-align:center;color:var(--cyan-dim);padding:30px">NO ALARMS</div>';
-        return;
-    }
-    const now=Date.now();
-    list.innerHTML=state.alarms.map((alarm,index)=>{
-        const target=nextAlarmDate(alarm.time);
-        return '<div class="alarm-card '+(alarm.active?"":"off")+'">'+
-            '<div class="alarm-main"><div class="alarm-time">'+escapeHTML(alarm.time)+'</div>'+
-            '<div class="alarm-label">'+escapeHTML(alarm.label)+'</div>'+
-            '<div class="alarm-countdown" id="alarmCount'+alarm.id+'">'+(alarm.active?remainingText(target.getTime()-now):"Alarm Off")+'</div></div>'+
-            '<div class="row"><button class="btn" style="padding:5px 7px;font-size:9px" onclick="deleteAlarm('+index+')">X</button>'+
-            '<label class="switch"><input type="checkbox" '+(alarm.active?"checked":"")+' onchange="toggleAlarm('+index+')"><span class="slider"></span></label></div></div>';
-    }).join("");
-}
-
-function updateAlarmCountdowns(){
-    const now=Date.now();
-    for(const alarm of state.alarms){
-        const el=document.getElementById("alarmCount"+alarm.id);
-        if(!el)continue;
-        const target=nextAlarmDate(alarm.time);
-        el.textContent=alarm.active?remainingText(target.getTime()-now):"Alarm Off";
-    }
-}
-
-async function timerStart(){
-    const h=Math.max(0,Number(document.getElementById("th").value)||0);
-    const m=Math.max(0,Number(document.getElementById("tm").value)||0);
-    const s=Math.max(0,Number(document.getElementById("ts").value)||0);
-    const duration=h*3600000+m*60000+s*1000;
-    if(duration<=0)return;
-    state.timer={running:true,end:Date.now()+duration,remaining:duration};
-    state.ring={active:false,kind:"",id:0,snoozeUntil:0};
-    stopAudio();
-    await saveState();
-    renderTimer();
-}
-
-async function timerToggle(){
-    if(state.timer.running){
-        state.timer.remaining=Math.max(0,state.timer.end-Date.now());
-        state.timer.running=false;
-        state.timer.end=0;
-    }else if(state.timer.remaining>0){
-        state.timer.end=Date.now()+state.timer.remaining;
-        state.timer.running=true;
-    }else{
-        await timerStart();
-        return;
-    }
-    await saveState();
-    renderTimer();
-}
-window.timerToggle=timerToggle;
-
-async function timerReset(){
-    state.timer={running:false,end:0,remaining:0};
-    if(state.ring.kind==="timer")stopRingState();
-    await saveState();
-    renderTimer();
-}
-window.timerReset=timerReset;
-
-function renderTimer(){
-    const setup=document.getElementById("timerSetup");
-    const active=document.getElementById("timerActive");
-    const button=document.getElementById("timerButton");
-    const remaining=state.timer.running?Math.max(0,state.timer.end-Date.now()):Math.max(0,state.timer.remaining);
-    const shown=state.timer.running||remaining>0;
-    setup.style.display=shown?"none":"block";
-    active.style.display=shown?"block":"none";
-    button.textContent=state.timer.running?"PAUSE":(remaining>0?"RESUME":"START");
-    let seconds=Math.ceil(remaining/1000);
-    const h=Math.floor(seconds/3600);seconds%=3600;
-    const m=Math.floor(seconds/60);const s=seconds%60;
-    document.getElementById("timerDisplay").textContent=String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
-}
-
-async function swToggle(){
-    if(state.stopwatch.running){
-        state.stopwatch.elapsed+=Math.max(0,Date.now()-state.stopwatch.started);
-        state.stopwatch.running=false;
-        state.stopwatch.started=0;
-    }else{
-        state.stopwatch.running=true;
-        state.stopwatch.started=Date.now();
-    }
-    await saveState();
-    renderStopwatch();
-}
-window.swToggle=swToggle;
-
-async function swSecondary(){
-    if(state.stopwatch.running){
-        const total=state.stopwatch.elapsed+Math.max(0,Date.now()-state.stopwatch.started);
-        const previous=state.stopwatch.laps.length?Number(state.stopwatch.laps[state.stopwatch.laps.length-1].total)||0:0;
-        state.stopwatch.laps.push({id:Date.now(),total,diff:total-previous});
-        await saveState();
-    }else{
-        state.stopwatch={running:false,started:0,elapsed:0,laps:[]};
-        await saveState();
-    }
-    renderStopwatch();
-}
-window.swSecondary=swSecondary;
-
-function formatLap(ms){
-    const value=Math.max(0,Number(ms)||0);
-    const cs=Math.floor(value%1000/10);
-    const s=Math.floor(value/1000%60);
-    const m=Math.floor(value/60000%60);
-    return String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")+"."+String(cs).padStart(2,"0");
-}
-
-function renderStopwatch(){
-    let total=state.stopwatch.elapsed;
-    if(state.stopwatch.running)total+=Math.max(0,Date.now()-state.stopwatch.started);
-    const cs=Math.floor(total%1000/10);
-    const s=Math.floor(total/1000%60);
-    const m=Math.floor(total/60000%60);
-    const h=Math.floor(total/3600000);
-    let text=h?String(h).padStart(2,"0")+":" : "";
-    text+=String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
-    document.getElementById("swDisplay").innerHTML=text+'<span class="sw-ms">.'+String(cs).padStart(2,"0")+'</span>';
-    document.getElementById("swPrimary").textContent=state.stopwatch.running?"PAUSE":(total>0?"RESUME":"START");
-    document.getElementById("swSecondary").textContent=state.stopwatch.running?"LAP":"RESET";
-    document.getElementById("laps").innerHTML=state.stopwatch.laps.map((lap,index)=>'<div class="lap"><span>Lap '+(index+1)+'</span><span>+'+formatLap(lap.diff)+'</span><span>'+formatLap(lap.total)+'</span></div>').join("");
-}
-
-function clearExpiredSnooze(){
-    if(state.ring.snoozeUntil>0&&state.ring.snoozeUntil>Date.now())return;
-    if(state.ring.snoozeUntil>0){state.ring.snoozeUntil=0}
-}
-
-function todayKey(date=new Date()){
-    return [date.getFullYear(),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-");
+		stopOscillator();
+		playOscillatorPhrase();
+	},2200);
 }
 
 function stopRingState(){
-    stopAudio();
-    state.ring.active=false;
-    state.ring.kind="";
-    state.ring.id=0;
-    state.ring.snoozeUntil=0;
-    document.getElementById("alarmModal").classList.remove("open");
+	stopAlarmOscillator();
+
+	state.ring.active=false;
+	state.ring.kind="";
+	state.ring.id=0;
+	state.ring.snoozeUntil=0;
+
+	document.getElementById("alarmModal").classList.remove("open");
+}
+
+function nowHHMM(){
+	const d=new Date();
+
+	return String(d.getHours()).padStart(2,"0")+
+		":"+
+		String(d.getMinutes()).padStart(2,"0");
+}
+
+function openAlarmModal(){
+	document.getElementById("alarmTime").value=nowHHMM();
+	document.getElementById("alarmLabel").value="Alarm";
+	document.getElementById("alarmCreateModal").classList.add("open");
+}
+
+window.openAlarmModal=openAlarmModal;
+
+function closeAlarmModal(){
+	document.getElementById("alarmCreateModal").classList.remove("open");
+}
+
+window.closeAlarmModal=closeAlarmModal;
+
+async function saveAlarm(){
+	const time=document.getElementById("alarmTime").value;
+	const label=
+		document.getElementById("alarmLabel").value.trim()||
+		"Alarm";
+
+	if(!time){
+		return;
+	}
+
+	const [h,m]=time.split(":").map(Number);
+
+	if(
+		!Number.isInteger(h)||
+		h<0||
+		h>23||
+		!Number.isInteger(m)||
+		m<0||
+		m>59
+	){
+		return;
+	}
+
+	state.alarms.push({
+		id:Date.now()+Math.random(),
+		time,
+		label,
+		active:true,
+		lastFired:""
+	});
+
+	await saveState();
+	closeAlarmModal();
+	renderAll();
+}
+
+window.saveAlarm=saveAlarm;
+
+async function toggleAlarm(index){
+	const alarm=state.alarms[index];
+	if(!alarm){
+		return;
+	}
+
+	alarm.active=!alarm.active;
+
+	if(alarm.active){
+		alarm.lastFired="";
+	}
+
+	await saveState();
+	renderAll();
+}
+
+window.toggleAlarm=toggleAlarm;
+
+async function deleteAlarm(index){
+	const alarm=state.alarms[index];
+	if(!alarm){
+		return;
+	}
+
+	if(
+		state.ring.kind==="alarm"&&
+		state.ring.id===alarm.id
+	){
+		stopRingState();
+	}
+
+	state.alarms.splice(index,1);
+	await saveState();
+	renderAll();
+}
+
+window.deleteAlarm=deleteAlarm;
+
+function nextAlarmDate(time){
+	const parts=String(time).split(":").map(Number);
+	const now=new Date();
+	const target=new Date(now);
+
+	target.setHours(
+		Number(parts[0])||0,
+		Number(parts[1])||0,
+		0,
+		0
+	);
+
+	if(target<=now){
+		target.setDate(target.getDate()+1);
+	}
+
+	return target;
+}
+
+function remainingText(ms){
+	let seconds=Math.max(0,Math.floor(ms/1000));
+	const days=Math.floor(seconds/86400);
+
+	seconds%=86400;
+
+	const hours=Math.floor(seconds/3600);
+	seconds%=3600;
+
+	const minutes=Math.floor(seconds/60);
+	const secs=seconds%60;
+
+	const parts=[];
+
+	if(days){
+		parts.push(days+"d");
+	}
+
+	if(hours||days){
+		parts.push(hours+"h");
+	}
+
+	if(minutes||hours||days){
+		parts.push(minutes+"m");
+	}
+
+	parts.push(secs+"s");
+
+	return "Alarm in "+parts.join(" ");
+}
+
+function renderAlarms(){
+	const list=document.getElementById("alarmList");
+
+	if(!state.alarms.length){
+		list.innerHTML=
+			'<div style="text-align:center;color:var(--cyan-dim);padding:30px">NO ALARMS</div>';
+		return;
+	}
+
+	const now=Date.now();
+
+	list.innerHTML=state.alarms.map((alarm,index)=>{
+		const target=nextAlarmDate(alarm.time);
+
+		return(
+			'<div class="alarm-card '+
+			(alarm.active?"":"off")+
+			'">'+
+			'<div class="alarm-main">'+
+			'<div class="alarm-time">'+
+			escapeHTML(alarm.time)+
+			'</div>'+
+			'<div class="alarm-label">'+
+			escapeHTML(alarm.label)+
+			'</div>'+
+			'<div class="alarm-countdown" id="alarmCount'+
+			alarm.id+
+			'">'+
+			(
+				alarm.active
+					?remainingText(target.getTime()-now)
+					:"Alarm Off"
+			)+
+			'</div>'+
+			'</div>'+
+			'<div class="row">'+
+			'<button class="btn" '+
+			'style="padding:5px 7px;font-size:9px" '+
+			'onclick="deleteAlarm('+index+')">X</button>'+
+			'<label class="switch">'+
+			'<input type="checkbox" '+
+			(alarm.active?"checked":"")+
+			' onchange="toggleAlarm('+index+')">'+
+			'<span class="slider"></span>'+
+			'</label>'+
+			'</div>'+
+			'</div>'
+		);
+	}).join("");
+}
+
+function updateAlarmCountdowns(){
+	const now=Date.now();
+
+	for(const alarm of state.alarms){
+		const el=document.getElementById("alarmCount"+alarm.id);
+		if(!el){
+			continue;
+		}
+
+		const target=nextAlarmDate(alarm.time);
+
+		el.textContent=alarm.active
+			?remainingText(target.getTime()-now)
+			:"Alarm Off";
+	}
+}
+
+async function timerStart(){
+	const h=Math.max(
+		0,
+		Number(document.getElementById("th").value)||0
+	);
+
+	const m=Math.max(
+		0,
+		Number(document.getElementById("tm").value)||0
+	);
+
+	const s=Math.max(
+		0,
+		Number(document.getElementById("ts").value)||0
+	);
+
+	const duration=
+		h*3600000+
+		m*60000+
+		s*1000;
+
+	if(duration<=0){
+		return;
+	}
+
+	state.timer={
+		running:true,
+		end:Date.now()+duration,
+		remaining:duration
+	};
+
+	state.ring={
+		active:false,
+		kind:"",
+		id:0,
+		snoozeUntil:0
+	};
+
+	stopAudio();
+
+	await saveState();
+	renderTimer();
+}
+
+async function timerToggle(){
+	if(state.timer.running){
+		state.timer.remaining=Math.max(
+			0,
+			state.timer.end-Date.now()
+		);
+
+		state.timer.running=false;
+		state.timer.end=0;
+	}else if(state.timer.remaining>0){
+		state.timer.end=Date.now()+state.timer.remaining;
+		state.timer.running=true;
+	}else{
+		await timerStart();
+		return;
+	}
+
+	await saveState();
+	renderTimer();
+}
+
+window.timerToggle=timerToggle;
+
+async function timerReset(){
+	state.timer={
+		running:false,
+		end:0,
+		remaining:0
+	};
+
+	if(state.ring.kind==="timer"){
+		stopRingState();
+	}
+
+	await saveState();
+	renderTimer();
+}
+
+window.timerReset=timerReset;
+
+function renderTimer(){
+	const setup=document.getElementById("timerSetup");
+	const active=document.getElementById("timerActive");
+	const button=document.getElementById("timerButton");
+
+	const remaining=state.timer.running
+		?Math.max(0,state.timer.end-Date.now())
+		:Math.max(0,state.timer.remaining);
+
+	const shown=state.timer.running||remaining>0;
+
+	setup.style.display=shown?"none":"block";
+	active.style.display=shown?"block":"none";
+
+	button.textContent=state.timer.running
+		?"PAUSE"
+		:(remaining>0?"RESUME":"START");
+
+	let seconds=Math.ceil(remaining/1000);
+	const h=Math.floor(seconds/3600);
+
+	seconds%=3600;
+
+	const m=Math.floor(seconds/60);
+	const s=seconds%60;
+
+	document.getElementById("timerDisplay").textContent=
+		String(h).padStart(2,"0")+
+		":"+
+		String(m).padStart(2,"0")+
+		":"+
+		String(s).padStart(2,"0");
+}
+
+async function swToggle(){
+	if(state.stopwatch.running){
+		state.stopwatch.elapsed+=Math.max(
+			0,
+			Date.now()-state.stopwatch.started
+		);
+
+		state.stopwatch.running=false;
+		state.stopwatch.started=0;
+	}else{
+		state.stopwatch.running=true;
+		state.stopwatch.started=Date.now();
+	}
+
+	await saveState();
+	renderStopwatch();
+}
+
+window.swToggle=swToggle;
+
+async function swSecondary(){
+	if(state.stopwatch.running){
+		const total=
+			state.stopwatch.elapsed+
+			Math.max(
+				0,
+				Date.now()-state.stopwatch.started
+			);
+
+		const previous=state.stopwatch.laps.length
+			?Number(
+				state.stopwatch.laps[
+					state.stopwatch.laps.length-1
+				].total
+			)||0
+			:0;
+
+		state.stopwatch.laps.push({
+			id:Date.now(),
+			total,
+			diff:total-previous
+		});
+
+		await saveState();
+	}else{
+		state.stopwatch={
+			running:false,
+			started:0,
+			elapsed:0,
+			laps:[]
+		};
+
+		await saveState();
+	}
+
+	renderStopwatch();
+}
+
+window.swSecondary=swSecondary;
+
+function formatLap(ms){
+	const value=Math.max(0,Number(ms)||0);
+
+	const cs=Math.floor(value%1000/10);
+	const s=Math.floor(value/1000%60);
+	const m=Math.floor(value/60000%60);
+
+	return String(m).padStart(2,"0")+
+		":"+
+		String(s).padStart(2,"0")+
+		"."+
+		String(cs).padStart(2,"0");
+}
+
+function renderStopwatch(){
+	let total=state.stopwatch.elapsed;
+
+	if(state.stopwatch.running){
+		total+=Math.max(
+			0,
+			Date.now()-state.stopwatch.started
+		);
+	}
+
+	const cs=Math.floor(total%1000/10);
+	const s=Math.floor(total/1000%60);
+	const m=Math.floor(total/60000%60);
+	const h=Math.floor(total/3600000);
+
+	let text=h
+		?String(h).padStart(2,"0")+":"
+		:"";
+
+	text+=String(m).padStart(2,"0")+
+		":"+
+		String(s).padStart(2,"0");
+
+	document.getElementById("swDisplay").innerHTML=
+		text+
+		'<span class="sw-ms">.'+
+		String(cs).padStart(2,"0")+
+		"</span>";
+
+	document.getElementById("swPrimary").textContent=
+		state.stopwatch.running
+			?"PAUSE"
+			:(total>0?"RESUME":"START");
+
+	document.getElementById("swSecondary").textContent=
+		state.stopwatch.running?"LAP":"RESET";
+
+	document.getElementById("laps").innerHTML=
+		state.stopwatch.laps.map((lap,index)=>{
+			return(
+				'<div class="lap">'+
+				"<span>Lap "+(index+1)+"</span>"+
+				"<span>+"+formatLap(lap.diff)+"</span>"+
+				"<span>"+formatLap(lap.total)+"</span>"+
+				"</div>"
+			);
+		}).join("");
+}
+
+function clearExpiredSnooze(){
+	if(
+		state.ring.snoozeUntil>0&&
+		state.ring.snoozeUntil>Date.now()
+	){
+		return;
+	}
+
+	if(state.ring.snoozeUntil>0){
+		state.ring.snoozeUntil=0;
+	}
+}
+
+function todayKey(date=new Date()){
+	return[
+		date.getFullYear(),
+		String(date.getMonth()+1).padStart(2,"0"),
+		String(date.getDate()).padStart(2,"0")
+	].join("-");
 }
 
 async function triggerAlarm(alarm){
-    const today=todayKey();
-    if(!alarm||alarm.active===false||alarm.lastFired===today)return false;
-    alarm.lastFired=today;
-    state.ring={active:true,kind:"alarm",id:alarm.id,snoozeUntil:0};
-    await saveState();
-    document.getElementById("ringTitle").textContent="ALARM";
-    document.getElementById("ringMessage").textContent=alarm.label||"Alarm is ringing";
-    document.getElementById("alarmModal").classList.add("open");
-    await playSelectedSound();
-    return true;
+	const today=todayKey();
+
+	if(
+		!alarm||
+		alarm.active===false||
+		alarm.lastFired===today
+	){
+		return false;
+	}
+
+	alarm.lastFired=today;
+
+	state.ring={
+		active:true,
+		kind:"alarm",
+		id:alarm.id,
+		snoozeUntil:0
+	};
+
+	await saveState();
+
+	document.getElementById("ringTitle").textContent="ALARM";
+	document.getElementById("ringMessage").textContent=
+		alarm.label||"Alarm is ringing";
+
+	document.getElementById("alarmModal").classList.add("open");
+
+	primeAudio();
+	startAlarmOscillator();
+
+	return true;
 }
 
 async function triggerTimer(){
-    if(!state.timer.running)return false;
-    state.timer.running=false;
-    state.timer.end=0;
-    state.timer.remaining=0;
-    state.ring={active:true,kind:"timer",id:0,snoozeUntil:0};
-    await saveState();
-    document.getElementById("ringTitle").textContent="TIMER COMPLETE";
-    document.getElementById("ringMessage").textContent="Timer Complete";
-    document.getElementById("alarmModal").classList.add("open");
-    await playSelectedSound();
-    renderTimer();
-    return true;
+	if(!state.timer.running){
+		return false;
+	}
+
+	state.timer.running=false;
+	state.timer.end=0;
+	state.timer.remaining=0;
+
+	state.ring={
+		active:true,
+		kind:"timer",
+		id:0,
+		snoozeUntil:0
+	};
+
+	await saveState();
+
+	document.getElementById("ringTitle").textContent="TIMER COMPLETE";
+	document.getElementById("ringMessage").textContent="Timer Complete";
+	document.getElementById("alarmModal").classList.add("open");
+
+	primeAudio();
+	startAlarmOscillator();
+	renderTimer();
+
+	return true;
 }
 
 async function checkDue(){
-    if(suppressAutoOpen)return;
-    clearExpiredSnooze();
-    if(state.ring.snoozeUntil>0&&state.ring.snoozeUntil<=Date.now()){
-        state.ring.snoozeUntil=0;
-        state.ring.active=true;
-        await saveState();
-        document.getElementById("ringTitle").textContent=state.ring.kind==="timer"?"TIMER COMPLETE":"ALARM";
-        document.getElementById("ringMessage").textContent=state.ring.kind==="timer"?"Timer Complete":"Alarm is ringing";
-        document.getElementById("alarmModal").classList.add("open");
-        await playSelectedSound();
-        return;
-    }
+	clearExpiredSnooze();
 
-    if(state.ring.active){
-        document.getElementById("ringTitle").textContent=state.ring.kind==="timer"?"TIMER COMPLETE":"ALARM";
-        document.getElementById("ringMessage").textContent=state.ring.kind==="timer"?"Timer Complete":(state.alarms.find(a=>a.id===state.ring.id)?.label||"Alarm is ringing");
-        document.getElementById("alarmModal").classList.add("open");
-        if(!document.getElementById("alarmAudio").src&&oscillatorNodes.length===0)await playSelectedSound();
-        return;
-    }
+	if(
+		state.ring.snoozeUntil>0&&
+		state.ring.snoozeUntil<=Date.now()
+	){
+		state.ring.snoozeUntil=0;
+		state.ring.active=true;
 
-    const now=new Date();
-    const current=String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
-    const alarm=state.alarms.find(a=>a.active!==false&&a.time===current&&a.lastFired!==todayKey());
-    if(alarm){
-        await triggerAlarm(alarm);
-        return;
-    }
+		await saveState();
 
-    if(state.timer.running&&state.timer.end<=Date.now()){
-        await triggerTimer();
-    }
+		document.getElementById("ringTitle").textContent=
+			state.ring.kind==="timer"
+				?"TIMER COMPLETE"
+				:"ALARM";
+
+		document.getElementById("ringMessage").textContent=
+			state.ring.kind==="timer"
+				?"Timer Complete"
+				:"Alarm is ringing";
+
+		document.getElementById("alarmModal").classList.add("open");
+
+		primeAudio();
+		startAlarmOscillator();
+		return;
+	}
+
+	if(state.ring.active){
+		document.getElementById("ringTitle").textContent=
+			state.ring.kind==="timer"
+				?"TIMER COMPLETE"
+				:"ALARM";
+
+		document.getElementById("ringMessage").textContent=
+			state.ring.kind==="timer"
+				?"Timer Complete"
+				:(
+					state.alarms.find(
+						a=>a.id===state.ring.id
+					)?.label||
+					"Alarm is ringing"
+				);
+
+		document.getElementById("alarmModal").classList.add("open");
+
+		if(!ringSoundStarted){
+			primeAudio();
+			startAlarmOscillator();
+		}
+
+		return;
+	}
+
+	const now=new Date();
+	const current=
+		String(now.getHours()).padStart(2,"0")+
+		":"+
+		String(now.getMinutes()).padStart(2,"0");
+
+	const alarm=state.alarms.find(a=>
+		a.active!==false&&
+		a.time===current&&
+		a.lastFired!==todayKey()
+	);
+
+	if(alarm){
+		await triggerAlarm(alarm);
+		return;
+	}
+
+	if(
+		state.timer.running&&
+		state.timer.end<=Date.now()
+	){
+		await triggerTimer();
+	}
 }
 
 async function snoozeRing(){
-    stopAudio();
-    state.ring.snoozeUntil=Date.now()+SNOOZE_MINUTES*60000;
-    state.ring.active=false;
-    document.getElementById("alarmModal").classList.remove("open");
-    await saveState();
+	stopAlarmOscillator();
+
+	state.ring.snoozeUntil=
+		Date.now()+
+		SNOOZE_MINUTES*60000;
+
+	state.ring.active=false;
+
+	document.getElementById("alarmModal").classList.remove("open");
+
+	await saveState();
 }
+
 window.snoozeRing=snoozeRing;
 
 async function dismissRing(){
-    stopRingState();
-    await saveState();
+	stopRingState();
+	await saveState();
 }
+
 window.dismissRing=dismissRing;
 
 function renderAll(){
-    renderAlarms();
-    renderTimer();
-    renderStopwatch();
-    document.getElementById("settingsSound").textContent=formatSoundName(state.soundPath);
+	renderAlarms();
+	renderTimer();
+	renderStopwatch();
 }
 
-window.addEventListener("message",event=>{
-    const data=event.data;
-    if(!data||typeof data!=="object")return;
-    if(data.type==="LH_FILE_SELECTED"){
-        const path=data.path||(Array.isArray(data.paths)?data.paths[0]:"");
-        handleSelectedPath(path);
-        return;
-    }
-    if(data.type==="chxd-clock-open"){
-        loadState().then(()=>{renderAll();checkDue()});
-    }
-});
+function showView(name){
+	document.querySelectorAll(".view").forEach(
+		el=>el.classList.remove("active")
+	);
 
-try{
-    parentWindow().addEventListener("message",event=>{
-        const data=event.data;
-        if(!data||typeof data!=="object")return;
-        if(data.type==="LH_FILE_SELECTED"){
-            const path=data.path||(Array.isArray(data.paths)?data.paths[0]:"");
-            handleSelectedPath(path);
-        }
-    });
-}catch(_){ }
+	document.querySelectorAll(".nav button").forEach(
+		el=>el.classList.remove("active")
+	);
+
+	document.getElementById(name+"View").classList.add("active");
+
+	document.getElementById(
+		"nav"+
+		name.charAt(0).toUpperCase()+
+		name.slice(1)
+	).classList.add("active");
+
+	if(name==="clock"){
+		resizeCanvas();
+	}
+}
+
+window.showView=showView;
 
 const canvas=document.getElementById("face");
 const ctx=canvas.getContext("2d");
+
 let size=240;
 let cx=120;
 let cy=120;
 let radius=110;
 
 function resizeCanvas(){
-    const rect=canvas.parentElement.getBoundingClientRect();
-    if(rect.width<=0||rect.height<=0)return;
-    size=Math.min(rect.width,rect.height);
-    const dpr=window.devicePixelRatio||1;
-    canvas.width=Math.floor(size*dpr);
-    canvas.height=Math.floor(size*dpr);
-    canvas.style.width=size+"px";
-    canvas.style.height=size+"px";
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    cx=size/2;
-    cy=size/2;
-    radius=Math.max(10,size/2-10);
+	const rect=
+		canvas.parentElement.getBoundingClientRect();
+
+	if(rect.width<=0||rect.height<=0){
+		return;
+	}
+
+	size=Math.min(rect.width,rect.height);
+
+	const dpr=window.devicePixelRatio||1;
+
+	canvas.width=Math.floor(size*dpr);
+	canvas.height=Math.floor(size*dpr);
+	canvas.style.width=size+"px";
+	canvas.style.height=size+"px";
+
+	ctx.setTransform(dpr,0,0,dpr,0,0);
+
+	cx=size/2;
+	cy=size/2;
+	radius=Math.max(10,size/2-10);
 }
 
 function hand(angle,length,width,alpha){
-    ctx.strokeStyle=alpha;
-    ctx.lineWidth=width;
-    ctx.lineCap="round";
-    ctx.shadowBlur=8;
-    ctx.shadowColor=alpha;
-    ctx.beginPath();
-    ctx.moveTo(cx-Math.sin(angle)*12,cy+Math.cos(angle)*12);
-    ctx.lineTo(cx+Math.sin(angle)*length,cy-Math.cos(angle)*length);
-    ctx.stroke();
-    ctx.shadowBlur=0;
+	ctx.strokeStyle=alpha;
+	ctx.lineWidth=width;
+	ctx.lineCap="round";
+	ctx.shadowBlur=8;
+	ctx.shadowColor=alpha;
+
+	ctx.beginPath();
+
+	ctx.moveTo(
+		cx-Math.sin(angle)*12,
+		cy+Math.cos(angle)*12
+	);
+
+	ctx.lineTo(
+		cx+Math.sin(angle)*length,
+		cy-Math.cos(angle)*length
+	);
+
+	ctx.stroke();
+	ctx.shadowBlur=0;
 }
 
 function drawClock(){
-    const now=new Date();
-    const h=now.getHours();
-    const m=now.getMinutes();
-    const s=now.getSeconds();
-    const ms=now.getMilliseconds();
-    document.getElementById("time").textContent=String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
-    document.getElementById("date").textContent=now.toLocaleDateString("en-US",{weekday:"short",year:"numeric",month:"short",day:"2-digit"});
-    ctx.clearRect(0,0,size,size);
-    ctx.strokeStyle="rgba(0,255,255,.3)";
-    ctx.lineWidth=2;
-    ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.stroke();
-    for(let i=0;i<60;i++){
-        const angle=i/60*Math.PI*2;
-        const isHour=i%5===0;
-        const inner=isHour?radius-12:radius-6;
-        ctx.strokeStyle=isHour?"#00ffff":"rgba(0,255,255,.4)";
-        ctx.lineWidth=isHour?2.5:1;
-        ctx.beginPath();
-        ctx.moveTo(cx+Math.sin(angle)*inner,cy-Math.cos(angle)*inner);
-        ctx.lineTo(cx+Math.sin(angle)*radius,cy-Math.cos(angle)*radius);
-        ctx.stroke();
-    }
-    const smoothSeconds=s+ms/1000;
-    const smoothMinutes=m+smoothSeconds/60;
-    const smoothHours=h%12+smoothMinutes/60;
-    hand(smoothHours/12*Math.PI*2,radius*.5,5,"rgba(255,255,255,.9)");
-    hand(smoothMinutes/60*Math.PI*2,radius*.75,3.5,"rgba(255,255,255,.9)");
-    hand(smoothSeconds/60*Math.PI*2,radius*.85,1.5,"#00ffff");
-    ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fillStyle="#000";ctx.fill();ctx.strokeStyle="#00ffff";ctx.lineWidth=1.5;ctx.stroke();
-    requestAnimationFrame(drawClock);
+	const now=new Date();
+
+	const h=now.getHours();
+	const m=now.getMinutes();
+	const s=now.getSeconds();
+	const ms=now.getMilliseconds();
+
+	document.getElementById("time").textContent=
+		String(h).padStart(2,"0")+
+		":"+
+		String(m).padStart(2,"0")+
+		":"+
+		String(s).padStart(2,"0");
+
+	document.getElementById("date").textContent=
+		now.toLocaleDateString(
+			"en-US",
+			{
+				weekday:"short",
+				year:"numeric",
+				month:"short",
+				day:"2-digit"
+			}
+		);
+
+	ctx.clearRect(0,0,size,size);
+
+	ctx.strokeStyle="rgba(0,255,255,.3)";
+	ctx.lineWidth=2;
+
+	ctx.beginPath();
+	ctx.arc(cx,cy,radius,0,Math.PI*2);
+	ctx.stroke();
+
+	for(let i=0;i<60;i++){
+		const angle=i/60*Math.PI*2;
+		const isHour=i%5===0;
+		const inner=isHour?radius-12:radius-6;
+
+		ctx.strokeStyle=
+			isHour
+				?"#00ffff"
+				:"rgba(0,255,255,.4)";
+
+		ctx.lineWidth=isHour?2.5:1;
+
+		ctx.beginPath();
+
+		ctx.moveTo(
+			cx+Math.sin(angle)*inner,
+			cy-Math.cos(angle)*inner
+		);
+
+		ctx.lineTo(
+			cx+Math.sin(angle)*radius,
+			cy-Math.cos(angle)*radius
+		);
+
+		ctx.stroke();
+	}
+
+	const smoothSeconds=s+ms/1000;
+	const smoothMinutes=m+smoothSeconds/60;
+	const smoothHours=h%12+smoothMinutes/60;
+
+	hand(
+		smoothHours/12*Math.PI*2,
+		radius*.5,
+		5,
+		"rgba(255,255,255,.9)"
+	);
+
+	hand(
+		smoothMinutes/60*Math.PI*2,
+		radius*.75,
+		3.5,
+		"rgba(255,255,255,.9)"
+	);
+
+	hand(
+		smoothSeconds/60*Math.PI*2,
+		radius*.85,
+		1.5,
+		"#00ffff"
+	);
+
+	ctx.beginPath();
+	ctx.arc(cx,cy,5,0,Math.PI*2);
+
+	ctx.fillStyle="#000";
+	ctx.fill();
+
+	ctx.strokeStyle="#00ffff";
+	ctx.lineWidth=1.5;
+	ctx.stroke();
+
+	requestAnimationFrame(drawClock);
 }
 
 setInterval(async()=>{
-    updateAlarmCountdowns();
-    renderTimer();
-    if(state.stopwatch.running)renderStopwatch();
-    await checkDue();
+	updateAlarmCountdowns();
+	renderTimer();
+
+	if(state.stopwatch.running){
+		renderStopwatch();
+	}
+
+	await checkDue();
 },250);
 
 window.addEventListener("resize",resizeCanvas);
 
+document.addEventListener(
+	"pointerdown",
+	()=>primeAudio(),
+	true
+);
+
+document.addEventListener(
+	"touchstart",
+	()=>primeAudio(),
+	true
+);
+
+document.addEventListener(
+	"keydown",
+	()=>primeAudio(),
+	true
+);
+
+window.addEventListener("message",event=>{
+	const data=event.data;
+
+	if(!data||typeof data!=="object"){
+		return;
+	}
+
+	if(data.type==="chxd-clock-open"){
+		loadState().then(()=>{
+			renderAll();
+			checkDue();
+		});
+	}
+});
+
 (async function init(){
-    resizeCanvas();
-    drawClock();
-    await loadState();
-    renderAll();
-    await checkDue();
-    postHost({type:"chxd-clock-ready"});
+	resizeCanvas();
+	drawClock();
+
+	await loadState();
+	renderAll();
+	await checkDue();
+
+	postHost({
+		type:"chxd-clock-ready"
+	});
 })();
 </script>
 </body>
