@@ -136,7 +136,7 @@
           appIcon:
           {
             type: "string",
-            description: "Application icon or emoji."
+            description: "Application icon: emoji, <svg>, or url."
           },
           sourceType:
           {
