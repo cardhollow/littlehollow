@@ -19,6 +19,8 @@ button:active{background:#00ffff;color:#000}
 .preview iframe{width:100%;height:100%;border:0;background:#fff}
 #status{margin-top:10px;font-size:11px;white-space:pre-wrap}
 .section{font-size:10px;opacity:.55;margin:4px 0 5px}
+#apiSection{display:none;margin-top:10px}
+#apiFunctions,#apiDescription{height:210px}
 </style>
 </head>
 <body>
@@ -45,6 +47,15 @@ button:active{background:#00ffff;color:#000}
 <div class="row">
     <button id="load">PREVIEW</button>
     <button id="clear">CLEAR</button>
+    <button id="addAPI">ADD API</button>
+</div>
+
+<div id="apiSection">
+    <div class="section">FUNCTIONS</div>
+    <textarea id="apiFunctions" spellcheck="false"></textarea>
+
+    <div class="section">DESCRIPTION</div>
+    <textarea id="apiDescription" spellcheck="false"></textarea>
 </div>
 
 <div class="preview">
@@ -68,41 +79,95 @@ button:active{background:#00ffff;color:#000}
         "sourceInput",
         "load",
         "clear",
+        "addAPI",
+        "apiSection",
+        "apiFunctions",
+        "apiDescription",
         "preview",
         "install",
         "status"
     ];
 
     const el={};
+
     for(const id of ids)
         el[id]=document.getElementById(id);
 
-    const SRC_DOC_DIR=
-        "chxd:/local/Custom Installed Application/SrcDocs";
+    const CUSTOM_APP_DIR=
+        "chxd:/local/Custom Installed Application";
 
-    let pendingAPI;
+    const SRC_DOC_DIR=
+        CUSTOM_APP_DIR+"/SrcDocs";
+
+    const API_DIR=
+        CUSTOM_APP_DIR+"/API";
+
+    const API_FUNCTIONS_DIR=
+        API_DIR+"/Functions";
+
+    const API_DESCRIPTION_DIR=
+        API_DIR+"/Description";
+
+    const API_FUNCTIONS_TEMPLATE=
+`registerAPI(description, async function(args){
+    return {
+        ok:true,
+        summary:"Example API executed.",
+        args:args||{}
+    };
+});`;
+
+    const API_DESCRIPTION_TEMPLATE=
+`{
+    "type":"function",
+    "function":{
+        "name":"example_api",
+        "description":"Example API function for this application.",
+        "parameters":{
+            "type":"object",
+            "properties":{},
+            "additionalProperties":true
+        }
+    }
+}`;
+
+    let apiEnabled=false;
+    let apiDirty=false;
 
     function setStatus(text){
         el.status.textContent=String(text||"");
     }
 
+    function safeFileName(value){
+        const s=String(value||"")
+            .trim()
+            .replace(/[^a-zA-Z0-9._-]+/g,"_");
+
+        return s||"app";
+    }
+
     function createSourceControl(type,value){
         const old=el.sourceInput;
+
         if(old)
             old.remove();
 
         if(type==="srcDoc"){
             const textarea=document.createElement("textarea");
+
             textarea.id="sourceInput";
             textarea.placeholder="Paste the complete HTML source here...";
             textarea.value=value||"";
+
             el.sourceContainer.appendChild(textarea);
             el.sourceInput=textarea;
         }else{
             const input=document.createElement("input");
+
             input.id="sourceInput";
             input.placeholder="URL (https://...)";
             input.value=value||"";
+
             el.sourceContainer.appendChild(input);
             el.sourceInput=input;
         }
@@ -127,16 +192,43 @@ button:active{background:#00ffff;color:#000}
 
         try{
             const r=await parent.FS.read(
-                "chxd:/local/Custom Installed Application/CIA.json"
+                CUSTOM_APP_DIR+"/CIA.json"
             );
 
             if(!r||!r.ok||!r.content)
                 return [];
 
             const data=JSON.parse(r.content);
-            return Array.isArray(data)?data:[];
+
+            return Array.isArray(data)
+                ?data
+                :[];
         }catch(e){
             return [];
+        }
+    }
+
+    async function readFile(path){
+        if(
+            !parent.FS||
+            typeof parent.FS.read!=="function"
+        )
+            return null;
+
+        try{
+            const result=await parent.FS.read(path);
+
+            if(
+                !result||
+                !result.ok
+            )
+                return null;
+
+            return result.content==null
+                ?""
+                :String(result.content);
+        }catch(e){
+            return null;
         }
     }
 
@@ -146,39 +238,346 @@ button:active{background:#00ffff;color:#000}
         if(!source){
             el.preview.removeAttribute("src");
             el.preview.removeAttribute("srcdoc");
+
             setStatus(
                 sourceIsSrcDoc()
                     ?"Enter HTML source first."
                     :"Enter a URL first."
             );
+
             return;
         }
 
         if(sourceIsSrcDoc()){
             el.preview.removeAttribute("src");
+
             el.preview.srcdoc=source;
+
             setStatus("srcDoc preview loaded.");
         }else{
             el.preview.removeAttribute("srcdoc");
+
             el.preview.src=source;
+
             setStatus("src preview loaded.");
         }
     }
 
+    function showAPI(){
+        apiEnabled=true;
+        el.apiSection.style.display="block";
+
+        if(!apiDirty){
+            el.apiFunctions.value=
+                API_FUNCTIONS_TEMPLATE;
+
+            el.apiDescription.value=
+                API_DESCRIPTION_TEMPLATE;
+        }
+
+        el.addAPI.textContent="REMOVE API";
+    }
+
+    function hideAPI(){
+        apiEnabled=false;
+        el.apiSection.style.display="none";
+        el.addAPI.textContent="ADD API";
+    }
+
+    function toggleAPI(){
+        if(apiEnabled)
+            hideAPI();
+        else
+            showAPI();
+    }
+
+    function markAPIDirty(){
+        apiDirty=true;
+    }
+
+    function getAPIConfig(){
+        if(!apiEnabled)
+            return null;
+
+        const pkg=
+            el.pkg.value.trim();
+
+        if(!pkg)
+            return {
+                ok:false,
+                error:"Package Name is required before adding an API."
+            };
+
+        const functions=
+            String(
+                el.apiFunctions.value||""
+            );
+
+        const descriptionText=
+            String(
+                el.apiDescription.value||""
+            ).trim();
+
+        if(!functions.trim())
+            return {
+                ok:false,
+                error:"Functions code is required."
+            };
+
+        if(!descriptionText)
+            return {
+                ok:false,
+                error:"Description JSON is required."
+            };
+
+        let description;
+
+        try{
+            description=
+                JSON.parse(
+                    descriptionText
+                );
+        }catch(e){
+            return {
+                ok:false,
+                error:
+                    "Description must contain valid JSON."
+            };
+        }
+
+        if(
+            !description||
+            typeof description!=="object"
+        ){
+            return {
+                ok:false,
+                error:
+                    "Description must be a JSON object."
+            };
+        }
+
+        let toolDescription=description;
+
+        if(
+            description.function&&
+            typeof description.function==="object"
+        ){
+            toolDescription=description;
+        }else if(
+            description.name
+        ){
+            toolDescription={
+                type:"function",
+                function:description
+            };
+        }else{
+            return {
+                ok:false,
+                error:
+                    "Description must contain a function definition."
+            };
+        }
+
+        const functionName=
+            toolDescription.function&&
+            String(
+                toolDescription.function.name||""
+            ).trim();
+
+        if(!functionName){
+            return {
+                ok:false,
+                error:
+                    "Description must define a function name."
+            };
+        }
+
+        const base=API_DIR;
+
+        const functionFile=
+            safeFileName(pkg)+".js";
+
+        const descriptionFile=
+            safeFileName(pkg)+".json";
+
+        return {
+            ok:true,
+            api:{
+                path:base,
+                func:functionFile,
+                desc:descriptionFile
+            },
+            functions,
+            description
+        };
+    }
+
+    async function saveAPI(apiConfig){
+        if(!apiConfig||!apiConfig.ok)
+            return apiConfig;
+
+        if(
+            !parent.FS||
+            typeof parent.FS.write!=="function"
+        ){
+            return {
+                ok:false,
+                error:
+                    "Filesystem is unavailable."
+            };
+        }
+
+        try{
+            const functionsPath=
+                apiConfig.api.path+
+                "/Functions/"+
+                apiConfig.api.func;
+
+            const descriptionPath=
+                apiConfig.api.path+
+                "/Description/"+
+                apiConfig.api.desc;
+
+            const functionResult=
+                await parent.FS.write(
+                    functionsPath,
+                    apiConfig.functions,
+                    true
+                );
+
+            if(
+                !functionResult||
+                !functionResult.ok
+            ){
+                return {
+                    ok:false,
+                    error:
+                        "Could not save API Functions: "+
+                        (
+                            functionResult&&
+                            functionResult.error||
+                            functionsPath
+                        )
+                };
+            }
+
+            const descriptionResult=
+                await parent.FS.write(
+                    descriptionPath,
+                    JSON.stringify(
+                        apiConfig.description,
+                        null,
+                        4
+                    ),
+                    true
+                );
+
+            if(
+                !descriptionResult||
+                !descriptionResult.ok
+            ){
+                return {
+                    ok:false,
+                    error:
+                        "Could not save API Description: "+
+                        (
+                            descriptionResult&&
+                            descriptionResult.error||
+                            descriptionPath
+                        )
+                };
+            }
+
+            return {
+                ok:true,
+                functionsPath,
+                descriptionPath
+            };
+        }catch(e){
+            return {
+                ok:false,
+                error:
+                    e&&e.message||
+                    String(e)
+            };
+        }
+    }
+
+    async function removeAPIFiles(api){
+        if(
+            !api||
+            typeof api!=="object"||
+            !parent.FS
+        )
+            return;
+
+        if(
+            typeof parent.FS.remove!=="function"
+        )
+            return;
+
+        const base=
+            String(
+                api.path||
+                ""
+            ).trim().replace(/\/$/,"");
+
+        const func=
+            String(
+                api.func||
+                ""
+            ).trim();
+
+        const desc=
+            String(
+                api.desc||
+                ""
+            ).trim();
+
+        if(base&&func){
+            try{
+                await parent.FS.remove(
+                    base+"/Functions/"+func
+                );
+            }catch(_){}
+        }
+
+        if(base&&desc){
+            try{
+                await parent.FS.remove(
+                    base+"/Description/"+desc
+                );
+            }catch(_){}
+        }
+    }
+
     async function install(){
-        const p=el.pkg.value.trim();
-        const n=el.name.value.trim();
-        const i=el.icon.value.trim();
-        const sourceType=el.sourceType.value;
-        const source=getSource();
+        const p=
+            el.pkg.value.trim();
+
+        const n=
+            el.name.value.trim();
+
+        const i=
+            el.icon.value.trim();
+
+        const sourceType=
+            el.sourceType.value;
+
+        const source=
+            getSource();
 
         if(!p){
-            setStatus("Package Name is required.");
+            setStatus(
+                "Package Name is required."
+            );
             return;
         }
 
         if(!n){
-            setStatus("App Name is required.");
+            setStatus(
+                "App Name is required."
+            );
             return;
         }
 
@@ -193,117 +592,304 @@ button:active{background:#00ffff;color:#000}
 
         if(
             sourceType==="src"&&
-            !/^https?:\/\//i.test(source.trim())
+            !/^https?:\/\//i.test(
+                source.trim()
+            )
         ){
-            setStatus("URL must start with http:// or https://.");
+            setStatus(
+                "URL must start with http:// or https://."
+            );
             return;
+        }
+
+        let apiConfig=null;
+
+        if(apiEnabled){
+            apiConfig=
+                getAPIConfig();
+
+            if(!apiConfig.ok){
+                setStatus(
+                    "API error: "+
+                    apiConfig.error
+                );
+                return;
+            }
         }
 
         setStatus("Installing...");
 
         try{
-            /*
-             * Apps.installApp is the same persistence path used by
-             * the rest of Little Hollow. This keeps the UI and the
-             * AI/tool layer using exactly the same application data.
-             */
+            const existingCIA=
+                await readCIA();
+
+            const existingIndex=
+                existingCIA.findIndex(
+                    x=>
+                        x&&
+                        String(
+                            x.pkg||""
+                        ).trim()===p
+                );
+
+            const oldApp=
+                existingIndex>=0
+                    ?existingCIA[existingIndex]
+                    :null;
+
             if(
                 parent.Apps&&
                 typeof parent.Apps.installApp==="function"
             ){
-                const result=await parent.Apps.installApp({
-                    pkg:p,
-                    name:n,
-                    appIcon:i,
-                    sourceType,
-                    src:
-                        sourceType==="src"
-                            ?source.trim()
-                            :undefined,
-                    srcDoc:
-                        sourceType==="srcDoc"
-                            ?source
-                            :undefined,
-                    api:pendingAPI
-                });
+                const result=
+                    await parent.Apps.installApp({
+                        pkg:p,
+                        name:n,
+                        appIcon:i,
+                        sourceType,
+                        src:
+                            sourceType==="src"
+                                ?source.trim()
+                                :undefined,
+                        srcDoc:
+                            sourceType==="srcDoc"
+                                ?source
+                                :undefined,
+                        api:
+                            apiEnabled
+                                ?apiConfig.api
+                                :null
+                    });
 
-                if(!result||!result.ok){
+                if(
+                    !result||
+                    !result.ok
+                ){
                     setStatus(
                         "Install failed: "+
-                        (result&&result.error||"Unknown error")
+                        (
+                            result&&
+                            result.error||
+                            "Unknown error"
+                        )
                     );
                     return;
                 }
 
-                setStatus(
-                    sourceType==="srcDoc"
-                        ?"Successfully Installed / Updated srcDoc app.\nSaved source: "+
-                            result.app.srcDoc
-                        :"Successfully Installed / Updated src app."
-                );
+                if(apiEnabled){
+                    const apiResult=
+                        await saveAPI(
+                            apiConfig
+                        );
+
+                    if(!apiResult.ok){
+                        setStatus(
+                            "App installed, but API save failed: "+
+                            apiResult.error
+                        );
+                        return;
+                    }
+
+                    if(
+                        oldApp&&
+                        oldApp.api&&
+                        (
+                            JSON.stringify(
+                                oldApp.api
+                            )!==
+                            JSON.stringify(
+                                apiConfig.api
+                            )
+                        )
+                    ){
+                        await removeAPIFiles(
+                            oldApp.api
+                        );
+                    }
+
+                    setStatus(
+                        (
+                            sourceType==="srcDoc"
+                                ?"Successfully Installed / Updated srcDoc app."
+                                :"Successfully Installed / Updated src app."
+                        )+
+                        "\nAPI installed."+
+                        "\nFunctions: "+
+                        apiResult.functionsPath+
+                        "\nDescription: "+
+                        apiResult.descriptionPath
+                    );
+                }else{
+                    if(
+                        oldApp&&
+                        oldApp.api
+                    ){
+                        await removeAPIFiles(
+                            oldApp.api
+                        );
+                    }
+
+                    setStatus(
+                        sourceType==="srcDoc"
+                            ?"Successfully Installed / Updated srcDoc app."
+                            :"Successfully Installed / Updated src app."
+                    );
+                }
 
                 try{
                     parent.postMessage({
                         type:"LH_INSTALLED_APP",
                         app:result.app
                     },"*");
-                }catch(_){ }
+                }catch(_){}
 
                 return;
             }
 
-            /* Fallback for unusual loading situations. */
-            const data=await readCIA();
-            const oldIndex=data.findIndex(x=>x&&x.pkg===p);
+            const data=
+                await readCIA();
+
+            const oldIndex=
+                data.findIndex(
+                    x=>
+                        x&&
+                        x.pkg===p
+                );
 
             if(sourceType==="srcDoc"){
                 const path=
-                    SRC_DOC_DIR+"/"+
-                    p.replace(/[^a-zA-Z0-9._-]+/g,"_")+".html";
+                    SRC_DOC_DIR+
+                    "/"+
+                    safeFileName(p)+
+                    ".html";
 
-                const wr=await parent.FS.write(
-                    path,
-                    source,
-                    true
-                );
+                const wr=
+                    await parent.FS.write(
+                        path,
+                        source,
+                        true
+                    );
 
-                if(!wr||!wr.ok){
-                    setStatus("Install failed: "+(wr&&wr.error||"Could not save source."));
+                if(
+                    !wr||
+                    !wr.ok
+                ){
+                    setStatus(
+                        "Install failed: "+
+                        (
+                            wr&&
+                            wr.error||
+                            "Could not save source."
+                        )
+                    );
                     return;
                 }
 
-                data[oldIndex>=0?oldIndex:data.length]={
+                const entry={
                     pkg:p,
                     name:n,
                     srcDoc:path,
                     appIcon:i||"📦",
-                    ...(pendingAPI!==undefined ? {api:pendingAPI} : {})
+                    api:
+                        apiEnabled
+                            ?apiConfig.api
+                            :null
                 };
+
+                data[
+                    oldIndex>=0
+                        ?oldIndex
+                        :data.length
+                ]=entry;
             }else{
-                data[oldIndex>=0?oldIndex:data.length]={
+                const entry={
                     pkg:p,
                     name:n,
                     src:source.trim(),
                     appIcon:i||"📦",
-                    ...(pendingAPI!==undefined ? {api:pendingAPI} : {})
+                    api:
+                        apiEnabled
+                            ?apiConfig.api
+                            :null
                 };
+
+                data[
+                    oldIndex>=0
+                        ?oldIndex
+                        :data.length
+                ]=entry;
             }
 
-            const result=await parent.FS.write(
-                "chxd:/local/Custom Installed Application/CIA.json",
-                JSON.stringify(data,null,4),
-                true
-            );
+            if(apiEnabled){
+                const apiResult=
+                    await saveAPI(
+                        apiConfig
+                    );
 
-            setStatus(
-                result&&result.ok
-                    ?"Successfully Installed / Updated."
-                    :"Install failed: "+(result&&result.error||"Could not write CIA.json")
-            );
+                if(!apiResult.ok){
+                    setStatus(
+                        "Install failed: "+
+                        apiResult.error
+                    );
+                    return;
+                }
+
+                if(
+                    oldIndex>=0&&
+                    data[oldIndex]&&
+                    data[oldIndex].api&&
+                    JSON.stringify(
+                        data[oldIndex].api
+                    )!==
+                    JSON.stringify(
+                        apiConfig.api
+                    )
+                ){
+                    await removeAPIFiles(
+                        data[oldIndex].api
+                    );
+                }
+            }
+
+            const result=
+                await parent.FS.write(
+                    CUSTOM_APP_DIR+
+                    "/CIA.json",
+                    JSON.stringify(
+                        data,
+                        null,
+                        4
+                    ),
+                    true
+                );
+
+            if(
+                result&&
+                result.ok
+            ){
+                setStatus(
+                    apiEnabled
+                        ?"Successfully Installed / Updated.\nAPI installed."
+                        :"Successfully Installed / Updated."
+                );
+            }else{
+                setStatus(
+                    "Install failed: "+
+                    (
+                        result&&
+                        result.error||
+                        "Could not write CIA.json"
+                    )
+                );
+            }
         }catch(e){
             setStatus(
                 "Install failed: "+
-                (e&&e.message||String(e))
+                (
+                    e&&
+                    e.message||
+                    String(e)
+                )
             );
         }
     }
@@ -312,42 +898,179 @@ button:active{background:#00ffff;color:#000}
         el.pkg.value="";
         el.name.value="";
         el.icon.value="";
-        pendingAPI=undefined;
+
+        apiEnabled=false;
+        apiDirty=false;
+
+        el.apiSection.style.display="none";
+        el.addAPI.textContent="ADD API";
+
+        el.apiFunctions.value=
+            API_FUNCTIONS_TEMPLATE;
+
+        el.apiDescription.value=
+            API_DESCRIPTION_TEMPLATE;
+
         el.sourceType.value="src";
-        createSourceControl("src","");
+
+        createSourceControl(
+            "src",
+            ""
+        );
+
         el.preview.removeAttribute("src");
         el.preview.removeAttribute("srcdoc");
+
         setStatus("");
     }
 
     function getState(){
         return {
-            pkg:el.pkg.value.trim(),
-            name:el.name.value.trim(),
-            appIcon:el.icon.value.trim(),
-            sourceType:el.sourceType.value,
-            source:getSource(),
-            api:pendingAPI
+            pkg:
+                el.pkg.value.trim(),
+
+            name:
+                el.name.value.trim(),
+
+            appIcon:
+                el.icon.value.trim(),
+
+            sourceType:
+                el.sourceType.value,
+
+            source:
+                getSource(),
+
+            api:
+                apiEnabled
+                    ?getAPIConfig()
+                    :null,
+
+            functions:
+                apiEnabled
+                    ?el.apiFunctions.value
+                    :"",
+
+            description:
+                apiEnabled
+                    ?el.apiDescription.value
+                    :""
         };
     }
 
     async function apiInstall(options){
-        options=options||{};
+        options=
+            options||{};
 
-        if(options.pkg!=null)el.pkg.value=String(options.pkg);
-        if(options.name!=null)el.name.value=String(options.name);
-        if(options.appIcon!=null)el.icon.value=String(options.appIcon);
+        if(options.pkg!=null)
+            el.pkg.value=
+                String(options.pkg);
+
+        if(options.name!=null)
+            el.name.value=
+                String(options.name);
+
+        if(options.appIcon!=null)
+            el.icon.value=
+                String(options.appIcon);
 
         const sourceType=
-            options.sourceType=== "srcDoc"
+            options.sourceType==="srcDoc"
                 ?"srcDoc"
                 :"src";
 
-        if(Object.prototype.hasOwnProperty.call(options,"api")){
-            pendingAPI=options.api;
+        if(
+            Object.prototype.hasOwnProperty.call(
+                options,
+                "api"
+            )
+        ){
+            const suppliedAPI=
+                options.api;
+
+            if(
+                suppliedAPI&&
+                typeof suppliedAPI==="object"
+            ){
+                apiEnabled=true;
+
+                if(
+                    options.functions!=null
+                ){
+                    el.apiFunctions.value=
+                        String(
+                            options.functions
+                        );
+                }
+
+                if(
+                    options.description!=null
+                ){
+                    el.apiDescription.value=
+                        typeof options.description==="string"
+                            ?options.description
+                            :JSON.stringify(
+                                options.description,
+                                null,
+                                4
+                            );
+                }
+
+                if(
+                    options.functions==null
+                ){
+                    const loadedFunction=
+                        await readFile(
+                            String(
+                                suppliedAPI.path||
+                                API_DIR
+                            ).replace(/\/$/,"")+
+                            "/Functions/"+
+                            String(
+                                suppliedAPI.func||
+                                ""
+                            )
+                        );
+
+                    if(
+                        loadedFunction!=null
+                    ){
+                        el.apiFunctions.value=
+                            loadedFunction;
+                    }
+                }
+
+                if(
+                    options.description==null
+                ){
+                    const loadedDescription=
+                        await readFile(
+                            String(
+                                suppliedAPI.path||
+                                API_DIR
+                            ).replace(/\/$/,"")+
+                            "/Description/"+
+                            String(
+                                suppliedAPI.desc||
+                                ""
+                            )
+                        );
+
+                    if(
+                        loadedDescription!=null
+                    ){
+                        el.apiDescription.value=
+                            loadedDescription;
+                    }
+                }
+            }else{
+                apiEnabled=false;
+            }
         }
 
-        el.sourceType.value=sourceType;
+        el.sourceType.value=
+            sourceType;
+
         createSourceControl(
             sourceType,
             sourceType==="srcDoc"
@@ -355,43 +1078,123 @@ button:active{background:#00ffff;color:#000}
                 :options.src
         );
 
+        if(apiEnabled){
+            el.apiSection.style.display="block";
+            el.addAPI.textContent="REMOVE API";
+        }
+
         return await install();
     }
 
     const AppInstallerAPI={
         getState,
-        list:async()=>await readCIA(),
-        preview:previewSource,
-        install:apiInstall,
-        uninstall:async pkg=>{
-            if(
-                parent.Apps&&
-                typeof parent.Apps.uninstallApp==="function"
-            )
-                return await parent.Apps.uninstallApp(pkg);
 
-            return {
-                ok:false,
-                error:"Apps.uninstallApp is unavailable."
-            };
-        },
-        sourceFolder:SRC_DOC_DIR,
-        ciaPath:"chxd:/local/Custom Installed Application/CIA.json"
+        list:
+            async()=>await readCIA(),
+
+        preview:
+            previewSource,
+
+        install:
+            apiInstall,
+
+        uninstall:
+            async pkg=>{
+                if(
+                    parent.Apps&&
+                    typeof parent.Apps.uninstallApp==="function"
+                ){
+                    return await parent.Apps.uninstallApp(
+                        pkg
+                    );
+                }
+
+                return {
+                    ok:false,
+                    error:
+                        "Apps.uninstallApp is unavailable."
+                };
+            },
+
+        sourceFolder:
+            SRC_DOC_DIR,
+
+        ciaPath:
+            CUSTOM_APP_DIR+"/CIA.json",
+
+        apiFolder:
+            API_DIR,
+
+        apiFunctionsFolder:
+            API_FUNCTIONS_DIR,
+
+        apiDescriptionFolder:
+            API_DESCRIPTION_DIR
     };
 
-    window.AppInstallerAPI=AppInstallerAPI;
+    window.AppInstallerAPI=
+        AppInstallerAPI;
 
-    el.sourceType.addEventListener("change",()=>{
-        const previous=getSource();
-        createSourceControl(el.sourceType.value,previous);
-        previewSource();
-    });
+    el.sourceType.addEventListener(
+        "change",
+        ()=>{
+            const previous=
+                getSource();
 
-    el.load.onclick=previewSource;
-    el.install.onclick=install;
-    el.clear.onclick=clearForm;
+            createSourceControl(
+                el.sourceType.value,
+                previous
+            );
 
-    createSourceControl("src","");
+            previewSource();
+        }
+    );
+
+    el.apiFunctions.addEventListener(
+        "input",
+        markAPIDirty
+    );
+
+    el.apiDescription.addEventListener(
+        "input",
+        markAPIDirty
+    );
+
+    el.pkg.addEventListener(
+        "input",
+        ()=>{
+            if(!apiDirty){
+                el.apiFunctions.value=
+                    API_FUNCTIONS_TEMPLATE;
+
+                el.apiDescription.value=
+                    API_DESCRIPTION_TEMPLATE;
+            }
+        }
+    );
+
+    el.load.onclick=
+        previewSource;
+
+    el.install.onclick=
+        install;
+
+    el.clear.onclick=
+        clearForm;
+
+    el.addAPI.onclick=
+        toggleAPI;
+
+    el.apiFunctions.value=
+        API_FUNCTIONS_TEMPLATE;
+
+    el.apiDescription.value=
+        API_DESCRIPTION_TEMPLATE;
+
+    createSourceControl(
+        "src",
+        ""
+    );
 })();
 </script>
 </body>
