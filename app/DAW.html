@@ -497,16 +497,63 @@
       }
     }
 
+    function dataURIToUint8Array(uri) {
+  const value = String(uri || "");
+
+  if (!/^data:/i.test(value)) {
+    throw new Error("Invalid data URI.");
+  }
+
+  const commaIndex = value.indexOf(",");
+
+  if (commaIndex === -1) {
+    throw new Error("Invalid data URI.");
+  }
+
+  const metadata = value.slice(5, commaIndex);
+  const body = value.slice(commaIndex + 1);
+
+  if (/;base64/i.test(metadata)) {
+    const binary = atob(body.replace(/\s/g, ""));
+    const bytes = new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+
+    return bytes;
+  }
+
+  const decoded = decodeURIComponent(body);
+  const bytes = new Uint8Array(decoded.length);
+
+  for (let i = 0; i < decoded.length; i++) {
+    bytes[i] = decoded.charCodeAt(i) & 0xFF;
+  }
+
+  return bytes;
+}
+
     async function importMIDIFromLittleHollowPath(path) {
       try {
         if (!path) return false;
+
         const normalized = String(path);
-        if (!/\.(mid|midi)$/i.test(normalized)) return false;
-        if (!MIDI_PARENT.FS || typeof MIDI_PARENT.FS.readBinary !== "function") return false;
-        const result = await MIDI_PARENT.FS.readBinary(normalized);
-        if (!result || !result.ok || !result.data) return false;
-        const buffer = await result.data.arrayBuffer();
-        const data = new Uint8Array(buffer);
+        let data;
+
+        if (/^data:/i.test(normalized)) {
+          data = dataURIToUint8Array(normalized);
+        } else {
+          if (!/\.(mid|midi)$/i.test(normalized)) return false;
+          if (!MIDI_PARENT.FS || typeof MIDI_PARENT.FS.readBinary !== "function") return false;
+
+          const result = await MIDI_PARENT.FS.readBinary(normalized);
+
+          if (!result || !result.ok || !result.data) return false;
+
+          const buffer = await result.data.arrayBuffer();
+          data = new Uint8Array(buffer);
+        }
         if (data[0] !== 0x4D || data[1] !== 0x54 || data[2] !== 0x68 || data[3] !== 0x64) throw new Error("Invalid MIDI file header.");
         const timeDivision = (data[12] << 8) | data[13];
         const ticksPerQuarter = timeDivision & 0x7FFF;
