@@ -342,30 +342,6 @@
         return "src";
     }
 
-    function normalizeAPI(api){
-        if(api===null){
-            return null;
-        }
-
-        if(api===undefined){
-            return undefined;
-        }
-
-        if(!api || typeof api!=="object" || Array.isArray(api)){
-            return null;
-        }
-
-        if(!Object.keys(api).length){
-            return {};
-        }
-
-        return {
-            path:String(api.path||CUSTOM_APP_DIR).trim(),
-            func:String(api.func||"").trim(),
-            desc:String(api.desc||"").trim()
-        };
-    }
-
     function isValidInstalledApp(app){
         if(
             !app ||
@@ -699,11 +675,6 @@
                         app.height
                     )||500,
 
-                api:
-                    app.api===undefined
-                        ?undefined
-                        :normalizeAPI(app.api),
-
                 aliases:[pkg]
             });
         }
@@ -841,6 +812,238 @@
             );
 
         return URL.createObjectURL(blob);
+    }
+
+    function normalizeInternalAPI(api){
+        if(
+            !api ||
+            typeof api!=="object" ||
+            typeof api.execute!=="function"
+        ){
+            return null;
+        }
+
+        const name=
+            String(
+                api.name||""
+            ).trim();
+
+        if(!name)
+            return null;
+
+        let parameters={
+            type:"object",
+            properties:{}
+        };
+
+        if(
+            api.parameters &&
+            typeof api.parameters==="object"
+        ){
+            try{
+                parameters=JSON.parse(
+                    JSON.stringify(api.parameters)
+                );
+            }catch(_){}
+        }
+
+        return {
+            name,
+            description:
+                String(
+                    api.description||
+                    ""
+                ),
+            parameters
+        };
+    }
+
+    async function discoverInternalAPI(
+        sourcePath
+    ){
+        if(
+            !window.FS ||
+            typeof FS.read!=="function"
+        ){
+            return null;
+        }
+
+        let result;
+
+        try{
+            result=await FS.read(sourcePath);
+        }catch(_){
+            return null;
+        }
+
+        if(
+            !result ||
+            !result.ok ||
+            result.content==null
+        ){
+            return null;
+        }
+
+        const blobURL=
+            createSrcDocBlobURL(
+                result.content
+            );
+
+        const iframe=
+            document.createElement("iframe");
+
+        iframe.style.display="none";
+        iframe.src=blobURL;
+        (document.body||document.documentElement).appendChild(iframe);
+
+        let api=null;
+
+        try{
+            await new Promise(resolve=>{
+                let done=false;
+                const finish=()=>{
+                    if(done)
+                        return;
+                    done=true;
+                    resolve();
+                };
+
+                iframe.addEventListener(
+                    "load",
+                    ()=>finish(),
+                    {once:true}
+                );
+
+                setTimeout(
+                    finish,
+                    3000
+                );
+            });
+
+            for(let i=0;i<30;i++){
+                try{
+                    const candidate=
+                        iframe.contentWindow &&
+                        iframe.contentWindow.LittleHollowAPI;
+
+                    api=
+                        normalizeInternalAPI(
+                            candidate
+                        );
+
+                    if(api)
+                        break;
+                }catch(_){}
+
+                await new Promise(
+                    resolve=>setTimeout(resolve,50)
+                );
+            }
+        }finally{
+            iframe.remove();
+            try{
+                URL.revokeObjectURL(blobURL);
+            }catch(_){}
+        }
+
+        return api;
+    }
+
+    async function getInstalledInternalAPIs(){
+        const apps=
+            await getInstalledApps();
+
+        const result=[];
+
+        for(const app of Array.isArray(apps)?apps:[]){
+            if(
+                appSourceType(app)!=="srcDoc" ||
+                !app.srcDoc
+            ){
+                continue;
+            }
+
+            const api=
+                await discoverInternalAPI(
+                    String(app.srcDoc)
+                );
+
+            if(!api)
+                continue;
+
+            result.push({
+                app,
+                api
+            });
+        }
+
+        return result;
+    }
+
+    async function getInternalAPIForApp(
+        pkg
+    ){
+        const result=
+            await openApp(
+                pkg,
+                {
+                    allowMultiple:false
+                }
+            );
+
+        if(
+            !result ||
+            !result.ok ||
+            !result.win
+        ){
+            return {
+                ok:false,
+                error:
+                    "Could not open application: "+
+                    pkg
+            };
+        }
+
+        const win=result.win;
+        const start=Date.now();
+
+        while(
+            Date.now()-start<5000
+        ){
+            try{
+                const iframe=
+                    win.el &&
+                    win.el.querySelector("iframe");
+
+                const api=
+                    iframe &&
+                    iframe.contentWindow &&
+                    iframe.contentWindow.LittleHollowAPI;
+
+                if(
+                    api &&
+                    typeof api.execute==="function"
+                ){
+                    return {
+                        ok:true,
+                        win,
+                        api
+                    };
+                }
+            }catch(_){}
+
+            await new Promise(
+                resolve=>setTimeout(resolve,50)
+            );
+        }
+
+        return {
+            ok:false,
+        error:
+                "Application API did not load: "+
+                pkg,
+            win
+        };
     }
 
     async function openSourceDoc(
@@ -1167,15 +1370,6 @@
                     )===pkg
             );
 
-        const api=
-            options.api!==undefined
-                ?normalizeAPI(options.api)
-                :index>=0
-                    ?(data[index] && data[index].api!==undefined
-                        ?normalizeAPI(data[index].api)
-                        :undefined)
-                    :undefined;
-
 
         /*
          * --------------------------------------------------------
@@ -1222,11 +1416,6 @@
                 name:title,
                 src,
                 appIcon:icon,
-
-                api:
-                    api===undefined
-                        ?null
-                        :api,
 
                 w:
                     Number(
@@ -1366,11 +1555,6 @@
             srcDoc:sourcePath,
 
             appIcon:icon,
-
-            api:
-                api===undefined
-                    ?null
-                    :api,
 
             w:
                 Number(
@@ -2343,6 +2527,10 @@
         getInstalledApps,
 
         getInstalledAppsSync,
+
+        getInstalledInternalAPIs,
+
+        getInternalAPIForApp,
 
         /*
          * All registered apps

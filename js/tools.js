@@ -117,7 +117,7 @@
     function:
     {
       name: "install_app",
-      description: "Install a new Little Hollow application or update an existing application by package. Use sourceType 'src' with an HTTP/HTTPS URL or sourceType 'srcDoc' with complete HTML. An optional API can be supplied with path, func, desc, functions, and description. The API JavaScript is saved under API/Functions and its JSON description under API/Description. API tool names must be unique; an existing built-in or custom tool name is rejected instead of being replaced.",
+      description: "Install or update a Little Hollow application using Apps.installApp. Use sourceType 'src' with an HTTPS/HTTP URL, or sourceType 'srcDoc' with complete HTML source. Returns the installation result including the installed app record or an error.",
       parameters:
       {
         type: "object",
@@ -126,7 +126,7 @@
           pkg:
           {
             type: "string",
-            description: "Unique package identifier for the application. The same package updates the existing application record."
+            description: "Unique package identifier for the application. Use for the html file name, same pkg name would replace/update the existing ones"
           },
           name:
           {
@@ -136,7 +136,7 @@
           appIcon:
           {
             type: "string",
-            description: "Application icon: emoji, <svg>, or URL."
+            description: "Application icon: emoji, <svg>, or url."
           },
           sourceType:
           {
@@ -166,38 +166,6 @@
           {
             type: "integer",
             minimum: 1
-          },
-          api:
-          {
-            type: "object",
-            properties:
-            {
-              path:
-              {
-                type: "string",
-                description: "API root path. Normally chxd:/local/Custom Installed Application."
-              },
-              func:
-              {
-                type: "string",
-                description: "API JavaScript filename. Defaults to <pkg>-api.js."
-              },
-              desc:
-              {
-                type: "string",
-                description: "API JSON filename. Defaults to <pkg>-api.json."
-              },
-              functions:
-              {
-                type: "string",
-                description: "JavaScript implementation containing registerAPI(description, async function(args){...})."
-              },
-              description:
-              {
-                type: "object",
-                description: "JSON tool definition for the API."
-              }
-            }
           }
         },
         required:
@@ -1149,13 +1117,9 @@
 
   const builtinDefinitions = definitions.slice();
   const registeredAPIs = new Map();
-  let apiLoadPromise = null;
 
   function normalizeAPIToolDescription(description){
-    if(
-      !description ||
-      typeof description!=="object"
-    )
+    if(!description || typeof description!=="object")
     {
       return null;
     }
@@ -1167,163 +1131,73 @@
     )
     {
       return {
-        type: "function",
-        function: description.function
+        type:"function",
+        function:description.function
       };
     }
 
-    if(
-      description.function &&
-      typeof description.function === "object"
-    )
+    if(description.name)
     {
       return {
-        type: "function",
-        function: description.function
-      };
-    }
-
-    if(
-      description.name
-    )
-    {
-      return {
-        type: "function",
-        function: description
+        type:"function",
+        function:{
+          name:String(description.name),
+          description:String(description.description||""),
+          parameters:
+            description.parameters &&
+            typeof description.parameters==="object"
+              ?description.parameters
+              :{
+                  type:"object",
+                  properties:{}
+                }
+        }
       };
     }
 
     return null;
   }
 
-  function getToolName(description){
-    const tool=
-      normalizeAPIToolDescription(
-        description
-      );
-
-    if(
-      !tool ||
-      !tool.function
-    )
-    {
-      return "";
-    }
-
-    return String(
-      tool.function.name||
-      ""
-    ).trim();
-  }
-
   function rebuildRegisteredDefinitions(){
     definitions.length=0;
+    definitions.push(...builtinDefinitions);
 
-    definitions.push(
-      ...builtinDefinitions
-    );
-
-    for(
-      const api of
-        registeredAPIs.values()
-    )
+    for(const api of registeredAPIs.values())
     {
-      definitions.push(
-        api.description
-      );
+      definitions.push(api.description);
     }
   }
 
-  function isToolNameTaken(name){
-    name=
-      String(
-        name||
-        ""
-      ).trim();
-
-    if(!name)
-    {
-      return false;
-    }
-
-    if(
-      builtinDefinitions.some(
-        definition=>
-          definition &&
-          definition.function &&
-          definition.function.name===
-          name
-      )
-    )
-    {
-      return true;
-    }
-
-    return registeredAPIs.has(
-      name
-    );
-  }
-
-  function registerAPI(
-    description,
-    fn
-  ){
-    const tool=
-      normalizeAPIToolDescription(
-        description
-      );
+  function registerAPI(description, fn){
+    const tool=normalizeAPIToolDescription(description);
 
     if(
       !tool ||
       !tool.function ||
-      !String(
-        tool.function.name||
-        ""
-      ).trim() ||
+      !String(tool.function.name||"").trim() ||
       typeof fn!=="function"
     )
     {
       return {
         ok:false,
-        error:
-          "Invalid API registration."
+        error:"Invalid API registration."
       };
     }
 
-    const name=
-      String(
-        tool.function.name
-      ).trim();
+    const name=String(tool.function.name).trim();
 
     if(
       builtinDefinitions.some(
         definition=>
           definition &&
           definition.function &&
-          definition.function.name===
-          name
+          definition.function.name===name
       )
     )
     {
       return {
         ok:false,
-        error:
-          "Tool already exists: "+
-          name
-      };
-    }
-
-    if(
-      registeredAPIs.has(
-        name
-      )
-    )
-    {
-      return {
-        ok:false,
-        error:
-          "Tool already exists: "+
-          name
+        error:"API function name is already registered: "+name
       };
     }
 
@@ -1349,544 +1223,116 @@
   }
 
   async function loadRegisteredAPIs(){
+    clearRegisteredAPIs();
+
     if(
-      apiLoadPromise
+      !window.Apps ||
+      typeof Apps.getInstalledInternalAPIs!=="function"
     )
     {
-      return await apiLoadPromise;
+      return {ok:true,count:0};
     }
 
-    apiLoadPromise=
-      (async()=>{
-        clearRegisteredAPIs();
+    let apps=[];
 
-        if(
-          !window.Apps ||
-          typeof Apps.getInstalledApps!=="function" ||
-          !window.FS ||
-          typeof FS.read!=="function"
-        )
-        {
-          return {
-            ok:true,
-            count:0
-          };
-        }
+    try{
+      apps=await Apps.getInstalledInternalAPIs();
+    }catch(e){
+      console.warn(
+        "[Tools] Could not discover installed HTML APIs:",
+        e
+      );
+      return {ok:false,count:0};
+    }
 
-        const apps=
-          await Apps.getInstalledApps();
+    let count=0;
 
-        let count=0;
-
-        for(
-          const app of
-            Array.isArray(apps)
-              ?apps
-              :[]
-        )
-        {
-          const api=
-            app &&
-            app.api;
-
-          if(
-            !api ||
-            typeof api!=="object" ||
-            !Object.keys(api).length
-          )
-          {
-            continue;
-          }
-
-          const base=
-            String(
-              api.path||
-              ""
-            )
-            .trim()
-            .replace(
-              /\/$/,
-              ""
-            );
-
-          const func=
-            String(
-              api.func||
-              ""
-            ).trim();
-
-          const desc=
-            String(
-              api.desc||
-              ""
-            ).trim();
-
-          if(
-            !base ||
-            !func ||
-            !desc
-          )
-          {
-            continue;
-          }
-
-          const functionPath=
-            base+
-            "/API/Functions/"+
-            func;
-
-          const descriptionPath=
-            base+
-            "/API/Description/"+
-            desc;
-
-          try
-          {
-            const descriptionResult=
-              await FS.read(
-                descriptionPath
-              );
-
-            if(
-              !descriptionResult ||
-              !descriptionResult.ok ||
-              !descriptionResult.content
-            )
-            {
-              continue;
-            }
-
-            const description=
-              JSON.parse(
-                descriptionResult.content
-              );
-
-            const functionResult=
-              await FS.read(
-                functionPath
-              );
-
-            if(
-              !functionResult ||
-              !functionResult.ok ||
-              functionResult.content==null
-            )
-            {
-              continue;
-            }
-
-            const advertisedName=
-              getToolName(
-                description
-              );
-
-            if(
-              !advertisedName
-            )
-            {
-              continue;
-            }
-
-            if(
-              isToolNameTaken(
-                advertisedName
-              )
-            )
-            {
-              console.warn(
-                "[Tools] API tool already exists:",
-                advertisedName,
-                app && app.pkg
-              );
-
-              continue;
-            }
-
-            let registered=false;
-
-            const result=
-              await Promise.resolve(
-                new Function(
-                  "registerAPI",
-                  "description",
-                  String(
-                    functionResult.content
-                  )
-                )(
-                  (
-                    toolDescription,
-                    fn
-                  )=>{
-                    const registration=
-                      registerAPI(
-                        toolDescription,
-                        fn
-                      );
-
-                    if(
-                      registration &&
-                      registration.ok
-                    )
-                    {
-                      registered=true;
-                    }
-
-                    return registration;
-                  },
-                  description
-                )
-              );
-
-            if(
-              result &&
-              result.ok===false
-            )
-            {
-              continue;
-            }
-
-            if(
-              registered
-            )
-            {
-              count++;
-            }
-          }
-          catch(e)
-          {
-            console.warn(
-              "[Tools] Could not load registered API:",
-              app && app.pkg,
-              e
-            );
-          }
-        }
-
-        return {
-          ok:true,
-          count
-        };
-      })();
-
-    try
+    for(const item of Array.isArray(apps)?apps:[])
     {
-      return await apiLoadPromise;
-    }
-    finally
-    {
-      apiLoadPromise=null;
-    }
-  }
+      const app=item && item.app;
+      const api=item && item.api;
 
-  function safeAPIFileName(value){
-    const s=
-      String(
-        value||
-        ""
+      if(
+        !app ||
+        !api ||
+        !api.name
       )
-      .trim()
-      .replace(
-        /[^a-zA-Z0-9._-]+/g,
-        "_"
-      );
-
-    return s||
-      "app";
-  }
-
-  function getInstallAPI(args){
-    const raw=
-      args &&
-      args.api;
-
-    if(
-      raw==null
-    )
-    {
-      return {
-        ok:true,
-        api:null,
-        functions:null,
-        description:null
-      };
-    }
-
-    if(
-      !raw ||
-      typeof raw!=="object" ||
-      Array.isArray(raw)
-    )
-    {
-      return {
-        ok:false,
-        error:
-          "api must be an object."
-      };
-    }
-
-    const hasFunctions=
-      Object.prototype.hasOwnProperty.call(
-        raw,
-        "functions"
-      );
-
-    const hasDescription=
-      Object.prototype.hasOwnProperty.call(
-        raw,
-        "description"
-      );
-
-    if(
-      hasFunctions!==hasDescription
-    )
-    {
-      return {
-        ok:false,
-        error:
-          "API functions and API description must be supplied together."
-      };
-    }
-
-    let description=
-      raw.description;
-
-    if(
-      typeof description===
-      "string"
-    )
-    {
-      try
       {
-        description=
-          JSON.parse(
-            description
-          );
+        continue;
       }
-      catch(e)
-      {
-        return {
-          ok:false,
-          error:
-            "API description must contain valid JSON."
-        };
-      }
-    }
 
-    if(
-      !hasFunctions &&
-      !hasDescription
-    )
-    {
-      const base=
-        String(
-          raw.path||
-          "chxd:/local/Custom Installed Application"
-        )
-        .trim()
-        .replace(
-          /\/$/,
-          ""
+      const description={
+        type:"function",
+        function:{
+          name:String(api.name),
+          description:String(api.description||""),
+          parameters:
+            api.parameters &&
+            typeof api.parameters==="object"
+              ?api.parameters
+              :{
+                  type:"object",
+                  properties:{}
+                }
+        }
+      };
+
+      const pkg=String(app.pkg||"").trim();
+
+      if(!pkg)
+        continue;
+
+      const registration=
+        registerAPI(
+          description,
+          async args=>{
+            const opened=
+              await Apps.getInternalAPIForApp(pkg);
+
+            if(
+              !opened ||
+              !opened.ok ||
+              !opened.api ||
+              typeof opened.api.execute!=="function"
+            )
+            {
+              return {
+                ok:false,
+                summary:
+                  opened && opened.error
+                    ?opened.error
+                    :"Could not access application API."
+              };
+            }
+
+            return await opened.api.execute(
+              args||{}
+            );
+          }
         );
 
-      return {
-        ok:true,
-
-        api:
-        {
-          path:
-            base,
-
-          func:
-            String(
-              raw.func||
-              ""
-            ).trim(),
-
-          desc:
-            String(
-              raw.desc||
-              ""
-            ).trim()
-        },
-
-        functions:null,
-        description:null
-      };
-    }
-
-    const tool=
-      normalizeAPIToolDescription(
-        description
-      );
-
-    if(
-      !tool ||
-      !tool.function ||
-      !String(
-        tool.function.name||
-        ""
-      ).trim()
-    )
-    {
-      return {
-        ok:false,
-        error:
-          "API description must define a function name."
-      };
-    }
-
-    const packageName=
-      safeAPIFileName(
-        args &&
-        args.pkg
-      );
-
-    const base=
-      String(
-        raw.path||
-        "chxd:/local/Custom Installed Application"
+      if(
+        registration &&
+        registration.ok
       )
-      .trim()
-      .replace(
-        /\/$/,
-        ""
-      );
-
-    const func=
-      String(
-        raw.func||
-        packageName+
-        "-api.js"
-      )
-      .trim();
-
-    const desc=
-      String(
-        raw.desc||
-        packageName+
-        "-api.json"
-      )
-      .trim();
-
-    const functions=
-      String(
-        raw.functions||
-        ""
-      );
-
-    if(
-      !functions.trim()
-    )
-    {
-      return {
-        ok:false,
-        error:
-          "API functions code is empty."
-      };
-    }
-
-    return {
-      ok:true,
-
-      api:
       {
-        path:
-          base,
+        count++;
+      }
+    }
 
-        func,
-
-        desc
-      },
-
-      functions,
-
-      description
-    };
+    return {ok:true,count};
   }
 
-  async function saveInstallAPI(
-    apiData
-  ){
-    if(
-      !apiData ||
-      apiData.functions===null ||
-      apiData.description===null
-    )
-    {
-      return {
-        ok:true
-      };
-    }
+  window.registerAPI=registerAPI;
 
-    const functionPath=
-      apiData.api.path+
-      "/API/Functions/"+
-      apiData.api.func;
-
-    const descriptionPath=
-      apiData.api.path+
-      "/API/Description/"+
-      apiData.api.desc;
-
-    const functionResult=
-      await FS.write(
-        functionPath,
-        apiData.functions,
-        true
-      );
-
-    if(
-      !functionResult ||
-      !functionResult.ok
-    )
-    {
-      return {
-        ok:false,
-        error:
-          "Could not save API Functions: "+
-          (
-            functionResult &&
-            functionResult.error||
-            functionPath
-          )
-      };
-    }
-
-    const descriptionResult=
-      await FS.write(
-        descriptionPath,
-        JSON.stringify(
-          apiData.description,
-          null,
-          4
-        ),
-        true
-      );
-
-    if(
-      !descriptionResult ||
-      !descriptionResult.ok
-    )
-    {
-      return {
-        ok:false,
-        error:
-          "Could not save API Description: "+
-          (
-            descriptionResult &&
-            descriptionResult.error||
-            descriptionPath
-          )
-      };
-    }
-
-    return {
-      ok:true,
-
-      functionPath,
-
-      descriptionPath
-    };
+  if(typeof window.addEventListener==="function")
+  {
+    window.addEventListener(
+      "lh:apps-changed",
+      ()=>{
+        loadRegisteredAPIs().catch(()=>{});
+      }
+    );
   }
 
   function formatValue(value)
@@ -2652,7 +2098,8 @@
         r.readAsDataURL(
           blob
         );
-      });
+      }
+    );
   }
 
   async function zipFiles(
@@ -4350,90 +3797,90 @@ const lh =
   }
 
   async function pianoInfo()
+{
+  const start =
+    Date.now();
+
+  while(
+    Date.now()-start<15000
+  )
   {
-    const start =
-      Date.now();
-
-    while(
-      Date.now()-start<15000
-    )
-    {
-      let info =
-        findIframeWindowByPath(
-          [
-            "app/piano.html",
-            "/piano.html",
-            "piano.html"
-          ]
-        );
-
-      if(!info)
-      {
-        try
-        {
-          const opened =
-            await Apps.openApp(
-              "Piano",
-              {
-                allowMultiple:false
-              }
-            );
-
-          if(
-            opened &&
-            opened.ok
-          )
-          {
-            info =
-              findIframeWindowByPath(
-                [
-                  "app/piano.html",
-                  "/piano.html",
-                  "piano.html"
-                ]
-              );
-          }
-        }
-        catch(e){}
-      }
-
-      if(
-        info &&
-        info.api
-      )
-      {
-        try
-        {
-          if(
-            info.api.PianoAPI
-          )
-          {
-            return {
-              ok:true,
-              info,
-              api:
-                info.api.PianoAPI
-            };
-          }
-        }
-        catch(e){}
-      }
-
-      await new Promise(
-        resolve=>setTimeout(
-          resolve,
-          50
-        )
+    let info =
+      findIframeWindowByPath(
+        [
+          "app/piano.html",
+          "/piano.html",
+          "piano.html"
+        ]
       );
+
+    if(!info)
+    {
+      try
+      {
+        const opened =
+          await Apps.openApp(
+            "Piano",
+            {
+              allowMultiple:false
+            }
+          );
+
+        if(
+          opened &&
+          opened.ok
+        )
+        {
+          info =
+            findIframeWindowByPath(
+              [
+                "app/piano.html",
+                "/piano.html",
+                "piano.html"
+              ]
+            );
+        }
+      }
+      catch(e){}
     }
 
-    return {
-      ok:false,
-      summary:
-        "PianoAPI is not available after waiting for Piano to load."
-    };
+    if(
+      info &&
+      info.api
+    )
+    {
+      try
+      {
+        if(
+          info.api.PianoAPI
+        )
+        {
+          return {
+            ok:true,
+            info,
+            api:
+              info.api.PianoAPI
+          };
+        }
+      }
+      catch(e){}
+    }
+
+    await new Promise(
+      resolve=>setTimeout(
+        resolve,
+        50
+      )
+    );
   }
 
+  return {
+    ok:false,
+    summary:
+      "PianoAPI is not available after waiting for Piano to load."
+  };
+}
+  
   async function pianoAction(
     args
   )
@@ -5086,20 +4533,13 @@ const lh =
       args ||
       {};
 
-    const registeredAPI=
-      registeredAPIs.get(
-        name
-      );
+    const registeredAPI=registeredAPIs.get(name);
 
-    if(
-      registeredAPI
-    )
+    if(registeredAPI)
     {
       try
       {
-        return await registeredAPI.execute(
-          args
-        );
+        return await registeredAPI.execute(args);
       }
       catch(e)
       {
@@ -5107,11 +4547,7 @@ const lh =
           ok:false,
           summary:
             "Registered API error: "+
-            (
-              e &&
-              e.message ||
-              String(e)
-            )
+            (e && e.message || String(e))
         };
       }
     }
@@ -5189,69 +4625,13 @@ const lh =
         };
     }
 
-    if(
+        if (
       name ===
       "install_app"
     )
     {
       try
       {
-        const apiData=
-          getInstallAPI(
-            args
-          );
-
-        if(
-          !apiData.ok
-        )
-        {
-          return {
-            ok:false,
-            summary:
-              apiData.error
-          };
-        }
-
-        if(
-          apiData.description
-        )
-        {
-          await loadRegisteredAPIs();
-
-          const toolName=
-            getToolName(
-              apiData.description
-            );
-
-          if(
-            !toolName
-          )
-          {
-            return {
-              ok:false,
-              summary:
-                "API description does not define a function name."
-            };
-          }
-
-          if(
-            isToolNameTaken(
-              toolName
-            )
-          )
-          {
-            return {
-              ok:false,
-              summary:
-                "Tool already exists: "+
-                toolName,
-
-              error:
-                "A built-in or registered custom tool already uses this name."
-            };
-          }
-        }
-
         const result =
           await Apps.installApp(
           {
@@ -5277,93 +4657,51 @@ const lh =
               args.width,
 
             height:
-              args.height,
-
-            api:
-              apiData.api
-                ?apiData.api
-                :args.api
+              args.height
           });
 
         if (
-          !result ||
-          !result.ok
+          result &&
+          result.ok
         )
         {
+          await loadRegisteredAPIs();
+
           return {
             ok:
-              false,
+              true,
 
             summary:
-              "Could not install " +
-              args.name +
-              ".",
-
-            error:
-              result &&
-              result.error
-                ? result.error
-                : "Unknown installation error."
-          };
-        }
-
-        const savedAPI=
-          await saveInstallAPI(
-            apiData
-          );
-
-        if(
-          !savedAPI.ok
-        )
-        {
-          return {
-            ok:false,
-
-            summary:
-              "Application installed, but API installation failed.",
-
-            error:
-              savedAPI.error,
+              "Successfully installed or updated " +
+              (
+                result.app &&
+                result.app.name
+                  ? result.app.name
+                  : args.name
+              ) +
+              " (" +
+              args.pkg +
+              ").",
 
             app:
               result.app
           };
         }
 
-        if(
-          apiData.description
-        )
-        {
-          await loadRegisteredAPIs();
-        }
-
         return {
           ok:
-            true,
+            false,
 
           summary:
-            "Successfully installed or updated " +
-            (
-              result.app &&
-              result.app.name
-                ? result.app.name
-                : args.name
-            ) +
-            " (" +
-            args.pkg +
-            ")" +
-            (
-              apiData.description
-                ?" with API."
-                : "."
-            ),
+            "Could not install " +
+            args.name +
+            ".",
 
-          app:
-            result.app,
-
-          api:
-            apiData.api ||
-            null
+          error:
+            result &&
+            result.error
+              ? result.error
+              : "Unknown installation error."
         };
       }
       catch(e)
@@ -6213,23 +5551,23 @@ const lh =
     {
       const result =
         Apps.openOneCompiler(
-          {
-            language:
-              args.language,
+        {
+          language:
+            args.language,
 
-            code:
-              args.code ||
-              "",
+          code:
+            args.code ||
+            "",
 
-            name:
-              args.name,
+          name:
+            args.name,
 
-            files:
-              args.files,
+          files:
+            args.files,
 
-            run:
-              !!args.run
-          });
+          run:
+            !!args.run
+        });
 
       return result &&
         result.ok
@@ -6453,25 +5791,25 @@ const lh =
         listWMWindows()
           .map(
             w =>
-              ({
-                id:
-                  w.id,
+            ({
+              id:
+                w.id,
 
-                title:
-                  w.title,
+              title:
+                w.title,
 
-                standaloneKey:
-                  w.standaloneKey,
+              standaloneKey:
+                w.standaloneKey,
 
-                minimized:
-                  !!w.minimized,
+              minimized:
+                !!w.minimized,
 
-                maximized:
-                  !!w.maximized,
+              maximized:
+                !!w.maximized,
 
-                closed:
-                  !!w.closed
-              })
+              closed:
+                !!w.closed
+            })
           );
 
       return {
@@ -6483,8 +5821,7 @@ const lh =
           windows.length +
           " open window(s).",
 
-        windows:
-          windows
+        windows
       };
     }
 
@@ -6738,23 +6075,15 @@ const lh =
 
   const registeredAPIsReady=
     loadRegisteredAPIs().catch(
-      ()=>({
-        ok:false,
-        count:0
-      })
+      ()=>({ok:false,count:0})
     );
 
   window.Tools =
   {
     definitions,
-
     execute,
-
     registerAPI,
-
     loadRegisteredAPIs,
-
-    ready:
-      registeredAPIsReady
+    ready:registeredAPIsReady
   };
 })();
