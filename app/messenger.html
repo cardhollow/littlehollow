@@ -152,9 +152,7 @@ body{
     accent-color:#00FFFF;
 }
 
-/* FILE REFERENCES */
-
-.file-reference{
+.reference-button{
     display:inline-flex;
     align-items:center;
     gap:5px;
@@ -172,17 +170,27 @@ body{
     user-select:none;
 }
 
-.file-reference:hover{
+.reference-button:hover{
     background:rgba(0,255,255,.18);
 }
 
-.file-reference:active{
+.reference-button:active{
     background:#00FFFF;
     color:#000;
 }
 
 .file-reference::before{
     content:"📄";
+    font-size:.9em;
+}
+
+.download-reference::before{
+    content:"⬇";
+    font-size:.9em;
+}
+
+.app-reference::before{
+    content:"▣";
     font-size:.9em;
 }
 
@@ -315,45 +323,85 @@ const parentWindow =
         ? window.parent
         : window;
 
-
-/*
-    FILE REFERENCE SYNTAX
-
-    [file:music/song.mid]
-
-    [file:chxd:/local/chicken_adobo_recipe.txt]
-
-    Clicking it opens the existing Little Hollow
-    File Manager through parent.Apps.openApp().
-*/
-
-
-/*
-    IMPORTANT:
-
-    The original code had a corrupted opening
-    bracket character in this regex.
-
-    Correct syntax:
-
-    [
-      file:
-      path
-    ]
-
-    The path may contain:
-    / 
-    :
-    .
-    -
-    _
-    spaces
-    etc.
-*/
-
 const FILE_REFERENCE_REGEX =
     /\[file:([^\]]+)\]/g;
 
+const DOWNLOAD_REFERENCE_REGEX =
+    /\[download:([^\]]+)\]/g;
+
+const APP_REFERENCE_REGEX =
+    /\[app:([^\]]+)\]/g;
+
+function getReferencePathName(path){
+    const cleanPath =
+        String(path ?? "").trim();
+
+    if(!cleanPath){
+        return "download";
+    }
+
+    const withoutQuery =
+        cleanPath
+            .split("?")[0]
+            .split("#")[0];
+
+    const parts =
+        withoutQuery.split("/");
+
+    const last =
+        parts[parts.length - 1];
+
+    return last || "download";
+}
+
+function getMimeType(path){
+    const name =
+        getReferencePathName(path)
+            .toLowerCase();
+
+    const extension =
+        name.includes(".")
+            ? name.slice(name.lastIndexOf("."))
+            : "";
+
+    const types = {
+        ".txt":"text/plain",
+        ".md":"text/markdown",
+        ".html":"text/html",
+        ".htm":"text/html",
+        ".css":"text/css",
+        ".js":"text/javascript",
+        ".json":"application/json",
+        ".xml":"application/xml",
+        ".csv":"text/csv",
+        ".svg":"image/svg+xml",
+        ".png":"image/png",
+        ".jpg":"image/jpeg",
+        ".jpeg":"image/jpeg",
+        ".gif":"image/gif",
+        ".webp":"image/webp",
+        ".bmp":"image/bmp",
+        ".wav":"audio/wav",
+        ".mp3":"audio/mpeg",
+        ".ogg":"audio/ogg",
+        ".m4a":"audio/mp4",
+        ".aac":"audio/aac",
+        ".flac":"audio/flac",
+        ".mp4":"video/mp4",
+        ".webm":"video/webm",
+        ".mov":"video/quicktime",
+        ".pdf":"application/pdf",
+        ".zip":"application/zip",
+        ".mid":"audio/midi",
+        ".midi":"audio/midi",
+        ".pkp":"text/plain"
+    };
+
+    return (
+        types[extension] ||
+        "application/octet-stream"
+    );
+}
 
 async function openFileReference(path){
 
@@ -375,8 +423,8 @@ async function openFileReference(path){
                 await parentWindow.Apps.openApp(
                     "filemanager",
                     {
-                        path: cleanPath,
-                        allowMultiple: true
+                        path:cleanPath,
+                        allowMultiple:true
                     }
                 );
 
@@ -389,6 +437,16 @@ async function openFileReference(path){
                     "File Manager error:",
                     result.error ||
                     result.summary
+                );
+
+                addRow(
+                    "Could not open File Manager: " +
+                    (
+                        result.error ||
+                        result.summary ||
+                        "Unknown error."
+                    ),
+                    "sys"
                 );
 
             }
@@ -415,6 +473,270 @@ async function openFileReference(path){
     }
 }
 
+async function openAppReference(name){
+
+    const cleanName =
+        String(name ?? "").trim();
+
+    if(!cleanName){
+        return;
+    }
+
+    try{
+
+        if(
+            parentWindow.Apps &&
+            typeof parentWindow.Apps.openApp === "function"
+        ){
+
+            const result =
+                await parentWindow.Apps.openApp(
+                    cleanName,
+                    {
+                        allowMultiple:false
+                    }
+                );
+
+            if(
+                result &&
+                result.ok === false
+            ){
+
+                console.error(
+                    "Application error:",
+                    result.error ||
+                    result.summary
+                );
+
+                addRow(
+                    "Could not open application: " +
+                    (
+                        result.error ||
+                        result.summary ||
+                        cleanName
+                    ),
+                    "sys"
+                );
+
+            }
+
+            return;
+        }
+
+        throw new Error(
+            "Little Hollow Apps API is unavailable."
+        );
+
+    }catch(err){
+
+        console.error(
+            "Could not open application:",
+            err
+        );
+
+        addRow(
+            "Could not open application: " +
+            (err?.message || err),
+            "sys"
+        );
+    }
+}
+
+function triggerBrowserDownload(
+    url,
+    filename
+){
+
+    const anchor =
+        document.createElement("a");
+
+    anchor.href =
+        url;
+
+    anchor.download =
+        filename ||
+        "download";
+
+    anchor.target =
+        "_blank";
+
+    anchor.rel =
+        "noopener noreferrer";
+
+    document.body.appendChild(
+        anchor
+    );
+
+    anchor.click();
+
+    anchor.remove();
+}
+
+async function downloadReference(path){
+
+    const cleanPath =
+        String(path ?? "").trim();
+
+    if(!cleanPath){
+        return;
+    }
+
+    try{
+
+        if(
+            /^https?:\/\//i.test(
+                cleanPath
+            )
+        ){
+
+            triggerBrowserDownload(
+                cleanPath,
+                getReferencePathName(
+                    cleanPath
+                )
+            );
+
+            return;
+        }
+
+        if(
+            !parentWindow.FS ||
+            typeof parentWindow.FS.read !== "function"
+        ){
+            throw new Error(
+                "Little Hollow filesystem API is unavailable."
+            );
+        }
+
+        const result =
+            await parentWindow.FS.read(
+                cleanPath
+            );
+
+        if(
+            !result ||
+            result.ok === false
+        ){
+            throw new Error(
+                result?.error ||
+                "Could not read file."
+            );
+        }
+
+        const filename =
+            getReferencePathName(
+                cleanPath
+            );
+
+        let blob = null;
+
+        if(
+            result.blob instanceof Blob
+        ){
+
+            blob =
+                result.blob;
+
+        }else if(
+            result.arrayBuffer instanceof ArrayBuffer
+        ){
+
+            blob =
+                new Blob(
+                    [result.arrayBuffer],
+                    {
+                        type:
+                            result.mimeType ||
+                            result.type ||
+                            getMimeType(cleanPath)
+                    }
+                );
+
+        }else if(
+            result.bytes instanceof Uint8Array
+        ){
+
+            blob =
+                new Blob(
+                    [result.bytes],
+                    {
+                        type:
+                            result.mimeType ||
+                            result.type ||
+                            getMimeType(cleanPath)
+                    }
+                );
+
+        }else if(
+            result.content != null
+        ){
+
+            blob =
+                new Blob(
+                    [
+                        String(
+                            result.content
+                        )
+                    ],
+                    {
+                        type:
+                            result.mimeType ||
+                            result.type ||
+                            getMimeType(cleanPath)
+                    }
+                );
+
+        }else{
+
+            throw new Error(
+                "Filesystem returned no downloadable content."
+            );
+
+        }
+
+        const objectURL =
+            URL.createObjectURL(
+                blob
+            );
+
+        try{
+
+            triggerBrowserDownload(
+                objectURL,
+                filename
+            );
+
+        }finally{
+
+            setTimeout(
+                ()=>{
+                    try{
+                        URL.revokeObjectURL(
+                            objectURL
+                        );
+                    }catch(_){}
+                },
+                1000
+            );
+
+        }
+
+    }catch(err){
+
+        console.error(
+            "Could not download:",
+            err
+        );
+
+        addRow(
+            "Could not download " +
+            cleanPath +
+            ": " +
+            (err?.message || err),
+            "sys"
+        );
+    }
+}
 
 function createFileReference(path){
 
@@ -424,7 +746,7 @@ function createFileReference(path){
     button.type = "button";
 
     button.className =
-        "file-reference";
+        "reference-button file-reference";
 
     button.textContent =
         path;
@@ -450,8 +772,77 @@ function createFileReference(path){
     return button;
 }
 
+function createDownloadReference(path){
 
-function parseFileReferences(element){
+    const button =
+        document.createElement("button");
+
+    button.type = "button";
+
+    button.className =
+        "reference-button download-reference";
+
+    button.textContent =
+        path;
+
+    button.dataset.downloadPath =
+        path;
+
+    button.title =
+        "Download: " +
+        path;
+
+    button.addEventListener(
+        "click",
+        event => {
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            downloadReference(path);
+        }
+    );
+
+    return button;
+}
+
+function createAppReference(name){
+
+    const button =
+        document.createElement("button");
+
+    button.type = "button";
+
+    button.className =
+        "reference-button app-reference";
+
+    button.textContent =
+        name;
+
+    button.dataset.appName =
+        name;
+
+    button.title =
+        "Open application: " +
+        name;
+
+    button.addEventListener(
+        "click",
+        event => {
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            openAppReference(name);
+        }
+    );
+
+    return button;
+}
+
+function replaceReferencesInElement(
+    element
+){
 
     if(!element){
         return;
@@ -478,29 +869,29 @@ function parseFileReferences(element){
             continue;
         }
 
-        /*
-            Do not transform references inside
-            Markdown code blocks.
-        */
-
         if(
             parent.closest("pre") ||
             parent.closest("code") ||
-            parent.closest(".file-reference")
+            parent.closest("a") ||
+            parent.closest(".reference-button")
         ){
             continue;
         }
 
+        const text =
+            current.nodeValue || "";
+
         if(
-            /\[file:[^\]]+\]/.test(
-                current.nodeValue || ""
-            )
+            /\[(?:file|download|app):[^\]]+\]/
+                .test(text)
         ){
 
-            nodes.push(current);
+            nodes.push(
+                current
+            );
+
         }
     }
-
 
     for(
         const node of nodes
@@ -510,66 +901,148 @@ function parseFileReferences(element){
             node.nodeValue || "";
 
         FILE_REFERENCE_REGEX.lastIndex = 0;
+        DOWNLOAD_REFERENCE_REGEX.lastIndex = 0;
+        APP_REFERENCE_REGEX.lastIndex = 0;
+
+        const matches = [];
 
         let match;
-        let lastIndex = 0;
-
-        const fragment =
-            document.createDocumentFragment();
-
 
         while(
             (match =
                 FILE_REFERENCE_REGEX.exec(text))
         ){
 
-            const fullMatch =
-                match[0];
-
-            const filePath =
-                String(
+            matches.push({
+                index:match.index,
+                length:match[0].length,
+                type:"file",
+                value:String(
                     match[1] || ""
-                ).trim();
+                ).trim()
+            });
+        }
 
+        while(
+            (match =
+                DOWNLOAD_REFERENCE_REGEX.exec(text))
+        ){
+
+            matches.push({
+                index:match.index,
+                length:match[0].length,
+                type:"download",
+                value:String(
+                    match[1] || ""
+                ).trim()
+            });
+        }
+
+        while(
+            (match =
+                APP_REFERENCE_REGEX.exec(text))
+        ){
+
+            matches.push({
+                index:match.index,
+                length:match[0].length,
+                type:"app",
+                value:String(
+                    match[1] || ""
+                ).trim()
+            });
+        }
+
+        matches.sort(
+            (a,b)=>
+                a.index - b.index
+        );
+
+        if(!matches.length){
+            continue;
+        }
+
+        const fragment =
+            document.createDocumentFragment();
+
+        let lastIndex = 0;
+
+        for(
+            const item of matches
+        ){
 
             if(
-                match.index > lastIndex
+                item.index < lastIndex
+            ){
+                continue;
+            }
+
+            if(
+                item.index > lastIndex
             ){
 
                 fragment.appendChild(
                     document.createTextNode(
                         text.slice(
                             lastIndex,
-                            match.index
+                            item.index
                         )
                     )
                 );
             }
 
+            if(item.value){
 
-            if(filePath){
+                if(
+                    item.type === "file"
+                ){
 
-                fragment.appendChild(
-                    createFileReference(
-                        filePath
-                    )
-                );
+                    fragment.appendChild(
+                        createFileReference(
+                            item.value
+                        )
+                    );
+
+                }else if(
+                    item.type === "download"
+                ){
+
+                    fragment.appendChild(
+                        createDownloadReference(
+                            item.value
+                        )
+                    );
+
+                }else if(
+                    item.type === "app"
+                ){
+
+                    fragment.appendChild(
+                        createAppReference(
+                            item.value
+                        )
+                    );
+
+                }
 
             }else{
 
                 fragment.appendChild(
                     document.createTextNode(
-                        fullMatch
+                        text.slice(
+                            item.index,
+                            item.index +
+                            item.length
+                        )
                     )
                 );
+
             }
 
-
             lastIndex =
-                match.index +
-                fullMatch.length;
+                item.index +
+                item.length;
         }
-
 
         if(
             lastIndex < text.length
@@ -577,22 +1050,26 @@ function parseFileReferences(element){
 
             fragment.appendChild(
                 document.createTextNode(
-                    text.slice(lastIndex)
+                    text.slice(
+                        lastIndex
+                    )
                 )
             );
         }
 
-
-        if(lastIndex > 0){
-
-            node.parentNode.replaceChild(
-                fragment,
-                node
-            );
-        }
+        node.parentNode.replaceChild(
+            fragment,
+            node
+        );
     }
 }
 
+function parseFileReferences(element){
+
+    replaceReferencesInElement(
+        element
+    );
+}
 
 function setStatus(
     text,
@@ -607,7 +1084,6 @@ function setStatus(
         !!isDebug
     );
 }
-
 
 function addRow(
     text,
@@ -631,7 +1107,6 @@ function addRow(
     return row;
 }
 
-
 function renderMarkdown(
     element,
     text
@@ -639,7 +1114,6 @@ function renderMarkdown(
 
     const source =
         String(text ?? "");
-
 
     if(
         !mark ||
@@ -656,7 +1130,6 @@ function renderMarkdown(
         return;
     }
 
-
     try{
 
         element.innerHTML =
@@ -667,7 +1140,6 @@ function renderMarkdown(
                     breaks: true
                 }
             );
-
 
         parseFileReferences(
             element
@@ -689,7 +1161,6 @@ function renderMarkdown(
     }
 }
 
-
 function addMarkdownRow(
     text,
     cls = "ai"
@@ -707,12 +1178,10 @@ function addMarkdownRow(
     content.className =
         "message-markdown";
 
-
     renderMarkdown(
         content,
         text
     );
-
 
     row.appendChild(
         content
@@ -727,7 +1196,6 @@ function addMarkdownRow(
 
     return row;
 }
-
 
 function updatePending(
     text
@@ -754,7 +1222,6 @@ function updatePending(
         log.scrollHeight;
 }
 
-
 function normalizeVisibleMessage(
     result
 ){
@@ -763,14 +1230,12 @@ function normalizeVisibleMessage(
         return "";
     }
 
-
     if(
         typeof result === "string"
     ){
 
         return result;
     }
-
 
     if(
         typeof result.visibleMessage ===
@@ -780,7 +1245,6 @@ function normalizeVisibleMessage(
         return result.visibleMessage;
     }
 
-
     if(
         typeof result.message ===
         "string"
@@ -788,7 +1252,6 @@ function normalizeVisibleMessage(
 
         return result.message;
     }
-
 
     if(
         typeof result.text ===
@@ -798,7 +1261,6 @@ function normalizeVisibleMessage(
         return result.text;
     }
 
-
     if(
         typeof result.content ===
         "string"
@@ -806,7 +1268,6 @@ function normalizeVisibleMessage(
 
         return result.content;
     }
-
 
     if(
         Array.isArray(result.parts)
@@ -822,7 +1283,6 @@ function normalizeVisibleMessage(
                     return part;
                 }
 
-
                 if(
                     typeof part?.text ===
                     "string"
@@ -836,10 +1296,8 @@ function normalizeVisibleMessage(
         ).join("");
     }
 
-
     return "";
 }
-
 
 function normalizeLog(
     result
@@ -848,7 +1306,6 @@ function normalizeLog(
     if(!result){
         return [];
     }
-
 
     if(
         Array.isArray(result.log)
@@ -859,10 +1316,8 @@ function normalizeLog(
         );
     }
 
-
     return [];
 }
-
 
 function handleAIStream(
     event
@@ -876,10 +1331,8 @@ function handleAIStream(
         return;
     }
 
-
     const detail =
         event?.detail || {};
-
 
     if(
         typeof detail.token !==
@@ -889,16 +1342,13 @@ function handleAIStream(
         return;
     }
 
-
     streamText +=
         detail.token;
-
 
     updatePending(
         streamText
     );
 }
-
 
 try{
 
@@ -909,7 +1359,6 @@ try{
 
 }catch(_){}
 
-
 async function sha256(
     value
 ){
@@ -919,13 +1368,11 @@ async function sha256(
             value
         );
 
-
     const digest =
         await crypto.subtle.digest(
             "SHA-256",
             data
         );
-
 
     return Array.from(
         new Uint8Array(digest)
@@ -938,7 +1385,6 @@ async function sha256(
     )
     .join("");
 }
-
 
 async function matchesHash(
     value,
@@ -959,7 +1405,6 @@ async function matchesHash(
     }
 }
 
-
 async function sendResponseToLittleHollowAPI(
     text,
     meta = {}
@@ -968,14 +1413,12 @@ async function sendResponseToLittleHollowAPI(
     const ai =
         parentWindow?.LittleHollowAI;
 
-
     if(!ai){
 
         throw new Error(
             "LittleHollowAI response API is unavailable"
         );
     }
-
 
     const methods = [
         "handleResponse",
@@ -984,7 +1427,6 @@ async function sendResponseToLittleHollowAPI(
         "ingestResponse",
         "receive"
     ];
-
 
     for(
         const method of methods
@@ -997,7 +1439,6 @@ async function sendResponseToLittleHollowAPI(
 
             continue;
         }
-
 
         return await ai[method](
             text,
@@ -1020,12 +1461,10 @@ async function sendResponseToLittleHollowAPI(
         );
     }
 
-
     throw new Error(
         "LittleHollowAI has no response-processing API"
     );
 }
-
 
 async function processDebugMessage(
     text
@@ -1036,7 +1475,6 @@ async function processDebugMessage(
             text,
             "ai debug"
         );
-
 
     try{
 
@@ -1051,12 +1489,10 @@ async function processDebugMessage(
                 }
             );
 
-
         const visible =
             normalizeVisibleMessage(
                 result
             );
-
 
         if(
             visible &&
@@ -1071,10 +1507,10 @@ async function processDebugMessage(
             );
         }
 
-
         const logs =
-            normalizeLog(result);
-
+            normalizeLog(
+                result
+            );
 
         if(logs.length){
 
@@ -1083,7 +1519,6 @@ async function processDebugMessage(
                 "sys"
             );
         }
-
 
     }catch(err){
 
@@ -1095,14 +1530,12 @@ async function processDebugMessage(
     }
 }
 
-
 async function sendToAI(
     text
 ){
 
     const ai =
         parentWindow?.LittleHollowAI;
-
 
     if(
         !ai ||
@@ -1114,18 +1547,15 @@ async function sendToAI(
         );
     }
 
-
     return await ai.send(
         text
     );
 }
 
-
 async function send(){
 
     const text =
         input.value.trim();
-
 
     if(
         !text ||
@@ -1134,7 +1564,6 @@ async function send(){
 
         return;
     }
-
 
     if(
         await matchesHash(
@@ -1147,30 +1576,25 @@ async function send(){
 
         debugMode = true;
 
-
         addRow(
             text,
             "user"
         );
-
 
         addRow(
             "DEBUG MODE ON — AI sending blocked.",
             "sys"
         );
 
-
         setStatus(
             "DEBUG MODE — AI SEND BLOCKED",
             true
         );
 
-
         input.focus();
 
         return;
     }
-
 
     if(
         await matchesHash(
@@ -1181,54 +1605,44 @@ async function send(){
 
         input.value = "";
 
-
         addRow(
             text,
             "user"
         );
 
-
         debugMode = false;
-
 
         addRow(
             "DEBUG MODE OFF — normal AI sending restored.",
             "sys"
         );
 
-
         setStatus(
             "ONLINE",
             false
         );
-
 
         input.focus();
 
         return;
     }
 
-
     if(debugMode){
 
         input.value = "";
-
 
         addRow(
             text,
             "user"
         );
 
-
         busy = true;
         sendBtn.disabled = true;
-
 
         setStatus(
             "DEBUG MODE — processing simulated AI response",
             true
         );
-
 
         try{
 
@@ -1242,12 +1656,10 @@ async function send(){
 
             sendBtn.disabled = false;
 
-
             setStatus(
                 "DEBUG MODE — AI SEND BLOCKED",
                 true
             );
-
 
             input.focus();
         }
@@ -1255,15 +1667,12 @@ async function send(){
         return;
     }
 
-
     input.value = "";
-
 
     addRow(
         text,
         "user"
     );
-
 
     busy = true;
 
@@ -1271,46 +1680,36 @@ async function send(){
 
     sendBtn.disabled = true;
 
-
     const pending =
         document.createElement("div");
-
 
     pending.className =
         "msg-row ai";
 
-
     const content =
         document.createElement("div");
-
 
     content.className =
         "message-markdown";
 
-
     content.textContent =
         "...";
-
 
     pending.appendChild(
         content
     );
 
-
     log.appendChild(
         pending
     );
 
-
     activePending =
         pending;
-
 
     setStatus(
         "AI THINKING...",
         false
     );
-
 
     try{
 
@@ -1319,12 +1718,10 @@ async function send(){
                 text
             );
 
-
         const visible =
             normalizeVisibleMessage(
                 result
             );
-
 
         if(visible){
 
@@ -1345,12 +1742,10 @@ async function send(){
             );
         }
 
-
         const logs =
             normalizeLog(
                 result
             );
-
 
         if(logs.length){
 
@@ -1359,7 +1754,6 @@ async function send(){
                 "sys"
             );
         }
-
 
     }catch(err){
 
@@ -1374,9 +1768,7 @@ async function send(){
 
         busy = false;
 
-
         sendBtn.disabled = false;
-
 
         setStatus(
             debugMode
@@ -1385,17 +1777,14 @@ async function send(){
             debugMode
         );
 
-
         input.focus();
     }
 }
-
 
 sendBtn.addEventListener(
     "click",
     send
 );
-
 
 input.addEventListener(
     "keydown",
@@ -1410,12 +1799,10 @@ input.addEventListener(
     }
 );
 
-
 addRow(
     "Little Hollow is online. Say hello!",
     "sys"
 );
-
 
 if(
     !mark ||
@@ -1428,12 +1815,10 @@ if(
     );
 }
 
-
 setStatus(
     "ONLINE",
     false
 );
-
 
 input.focus();
 
