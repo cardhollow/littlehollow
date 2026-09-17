@@ -6680,6 +6680,16 @@ const lh =
       };
     }
 
+    if(
+      name ===
+      "daw_action"
+    )
+    {
+      return await dawAction(
+        args
+      );
+    }
+
     return {
       ok:
         false,
