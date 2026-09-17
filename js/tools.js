@@ -411,6 +411,209 @@
       }
     }
   },
+    {
+    type: "function",
+    function:
+    {
+      name: "daw_action",
+      description: "Control the built-in Little Hollow DAW through its exposed MIDIAPI. Supports MIDI note editing, selection, playback, audio preview, grid control, waveform/settings, clipboard, undo/redo, editor state serialization, and MIDI import/export.",
+      parameters:
+      {
+        type: "object",
+        properties:
+        {
+          action:
+          {
+            type: "string",
+            enum:
+            [
+              "connect",
+              "get_state",
+              "serialize",
+              "deserialize",
+              "reset_editor",
+              "get_notes",
+              "set_notes",
+              "add_note",
+              "add_notes",
+              "update_note",
+              "remove_note",
+              "remove_notes",
+              "find_notes",
+              "move_notes",
+              "resize_notes",
+              "get_selected_notes",
+              "select_note",
+              "select_notes",
+              "select_all",
+              "deselect_all",
+              "clear",
+              "clear_grid",
+              "get_grid",
+              "set_total_steps",
+              "add_bars",
+              "set_playhead",
+              "get_playhead",
+              "play",
+              "stop",
+              "toggle",
+              "restart",
+              "play_step",
+              "preview_note",
+              "play_note",
+              "stop_voice",
+              "stop_all_voices",
+              "init_audio",
+              "get_audio_info",
+              "set_waveform",
+              "get_settings",
+              "set_settings",
+              "copy",
+              "cut",
+              "paste",
+              "get_clipboard",
+              "set_clipboard",
+              "undo",
+              "redo",
+              "can_undo",
+              "can_redo",
+              "get_note_name",
+              "get_frequency",
+              "open_midi_file_picker",
+              "import_midi",
+              "import_midi_from_path",
+              "export_midi",
+              "export_midi_to_path",
+              "parse_midi"
+            ]
+          },
+          note:
+          {
+            type: "integer",
+            minimum: 0,
+            maximum: 127
+          },
+          midi:
+          {
+            type: "integer",
+            minimum: 0,
+            maximum: 127
+          },
+          step:
+          {
+            type: "integer",
+            minimum: 0
+          },
+          duration:
+          {
+            type: "integer",
+            minimum: 1
+          },
+          seconds:
+          {
+            type: "number",
+            minimum: 0.01
+          },
+          note_id:
+          {
+            type: "number"
+          },
+          voice_id:
+          {
+            type: ["string","number"]
+          },
+          additive:
+          {
+            type: "boolean"
+          },
+          scrub:
+          {
+            type: "boolean"
+          },
+          delta_step:
+          {
+            type: "integer"
+          },
+          delta_note:
+          {
+            type: "integer"
+          },
+          count:
+          {
+            type: "integer",
+            minimum: 1
+          },
+          value:
+          {},
+          notes:
+          {
+            type: "array",
+            items:
+            {
+              type: "object"
+            }
+          },
+          ids:
+          {
+            type: "array",
+            items:
+            {
+              type: "number"
+            }
+          },
+          note_data:
+          {
+            type: "object"
+          },
+          patch:
+          {
+            type: "object"
+          },
+          query:
+          {
+            type: "object"
+          },
+          options:
+          {
+            type: "object"
+          },
+          settings:
+          {
+            type: "object"
+          },
+          clipboard:
+          {
+            type: "array",
+            items:
+            {
+              type: "object"
+            }
+          },
+          data:
+          {},
+          path:
+          {
+            type: "string"
+          },
+          waveform:
+          {
+            type: "string",
+            enum:
+            [
+              "triangle",
+              "sine",
+              "sawtooth",
+              "square"
+            ]
+          }
+        },
+        required:
+        [
+          "action"
+        ]
+      }
+    }
+  },
   {
     type: "function",
     function:
@@ -4522,6 +4725,532 @@ const lh =
       summary:
         "Opened Piano."
     };
+  }
+
+    async function dawAction(
+    args
+  )
+  {
+    args =
+      args ||
+      {};
+
+    const action =
+      String(
+        args.action ||
+        ""
+      )
+      .toLowerCase()
+      .trim();
+
+    if(!action)
+    {
+      return {
+        ok:false,
+        summary:
+          "DAW action is required."
+      };
+    }
+
+    try
+    {
+      const info =
+        await waitForGlobalAPI(
+          "MIDIAPI",
+          "DAW",
+          [
+            "app/DAW.html",
+            "/DAW.html",
+            "DAW.html"
+          ],
+          5000
+        );
+
+      const api =
+        info.api;
+
+      if(!api)
+      {
+        return {
+          ok:false,
+          summary:
+            "MIDIAPI is not available."
+        };
+      }
+
+      let result;
+
+      switch(action)
+      {
+        case "connect":
+          result =
+            api.connect();
+          break;
+
+        case "get_state":
+          result =
+            api.getState();
+          break;
+
+        case "serialize":
+          result =
+            api.serialize();
+          break;
+
+        case "deserialize":
+          result =
+            api.deserialize(
+              args.data,
+              args.options || {}
+            );
+          break;
+
+        case "reset_editor":
+          result =
+            api.resetEditor(
+              args.options || {}
+            );
+          break;
+
+        case "get_notes":
+          result =
+            api.getNotes();
+          break;
+
+        case "set_notes":
+          result =
+            api.setNotes(
+              args.notes || [],
+              args.options || {}
+            );
+          break;
+
+        case "add_note":
+          result =
+            api.addNote(
+              args.note_data || {},
+              args.options || {}
+            );
+          break;
+
+        case "add_notes":
+          result =
+            api.addNotes(
+              args.notes || [],
+              args.options || {}
+            );
+          break;
+
+        case "update_note":
+          result =
+            api.updateNote(
+              args.note_id,
+              args.patch || {},
+              args.options || {}
+            );
+          break;
+
+        case "remove_note":
+          result =
+            api.removeNote(
+              args.note_id,
+              args.options || {}
+            );
+          break;
+
+        case "remove_notes":
+          result =
+            api.removeNotes(
+              args.ids || [],
+              args.options || {}
+            );
+          break;
+
+        case "find_notes":
+          result =
+            api.findNotes(
+              args.query || {}
+            );
+          break;
+
+        case "move_notes":
+          result =
+            api.moveNotes(
+              args.ids || [],
+              Number(
+                args.delta_step
+              ) || 0,
+              Number(
+                args.delta_note
+              ) || 0
+            );
+          break;
+
+        case "resize_notes":
+          result =
+            api.resizeNotes(
+              args.ids || [],
+              Number(
+                args.duration
+              )
+            );
+          break;
+
+        case "get_selected_notes":
+          result =
+            api.getSelectedNotes();
+          break;
+
+        case "select_note":
+          result =
+            api.selectNote(
+              args.note_id,
+              !!args.additive
+            );
+          break;
+
+        case "select_notes":
+          result =
+            api.selectNotes(
+              args.ids || []
+            );
+          break;
+
+        case "select_all":
+          result =
+            api.selectAll();
+          break;
+
+        case "deselect_all":
+          result =
+            api.deselectAll();
+          break;
+
+        case "clear":
+        case "clear_grid":
+          result =
+            api.clearGrid(
+              args.options || {}
+            );
+          break;
+
+        case "get_grid":
+          result =
+            api.getGrid();
+          break;
+
+        case "set_total_steps":
+          result =
+            api.setTotalSteps(
+              args.value,
+              args.options || {}
+            );
+          break;
+
+        case "add_bars":
+          result =
+            api.addBars(
+              Number(
+                args.count
+              ) || 1
+            );
+          break;
+
+        case "set_playhead":
+        {
+          const options =
+            Object.assign(
+              {},
+              args.options || {},
+              {
+                scrub:
+                  args.scrub !== undefined
+                    ? !!args.scrub
+                    : !!(
+                        args.options &&
+                        args.options.scrub
+                      )
+              }
+            );
+
+          result =
+            api.setPlayhead(
+              args.step,
+              options
+            );
+
+          break;
+        }
+
+        case "get_playhead":
+          result =
+            api.getPlayhead();
+          break;
+
+        case "play":
+          result =
+            api.play();
+          break;
+
+        case "stop":
+          result =
+            api.stop();
+          break;
+
+        case "toggle":
+          result =
+            api.toggle();
+          break;
+
+        case "restart":
+          result =
+            api.restart();
+          break;
+
+        case "play_step":
+          result =
+            api.playStep(
+              args.step
+            );
+          break;
+
+        case "preview_note":
+        case "play_note":
+          result =
+            api.previewNote(
+              args.midi != null
+                ? args.midi
+                : args.note,
+              args.seconds == null
+                ? .25
+                : Number(
+                    args.seconds
+                  )
+            );
+          break;
+
+        case "stop_voice":
+          result =
+            api.stopVoice(
+              args.voice_id
+            );
+          break;
+
+        case "stop_all_voices":
+          result =
+            api.stopAllVoices();
+          break;
+
+        case "init_audio":
+          result =
+            api.initAudio();
+          break;
+
+        case "get_audio_info":
+          result =
+            api.getAudioInfo();
+          break;
+
+        case "set_waveform":
+          result =
+            api.setWaveform(
+              String(
+                args.waveform != null
+                  ? args.waveform
+                  : args.value != null
+                    ? args.value
+                    : ""
+              )
+              .toLowerCase()
+              .trim()
+            );
+          break;
+
+        case "get_settings":
+          result =
+            api.getSettings();
+          break;
+
+        case "set_settings":
+          result =
+            api.setSettings(
+              args.settings || {}
+            );
+          break;
+
+        case "copy":
+          result =
+            api.copy();
+          break;
+
+        case "cut":
+          result =
+            api.cut();
+          break;
+
+        case "paste":
+          result =
+            api.paste(
+              args.step,
+              args.note
+            );
+          break;
+
+        case "get_clipboard":
+          result =
+            api.getClipboard();
+          break;
+
+        case "set_clipboard":
+          result =
+            api.setClipboard(
+              args.clipboard || []
+            );
+          break;
+
+        case "undo":
+          result =
+            api.undo();
+          break;
+
+        case "redo":
+          result =
+            api.redo();
+          break;
+
+        case "can_undo":
+          result =
+            api.canUndo();
+          break;
+
+        case "can_redo":
+          result =
+            api.canRedo();
+          break;
+
+        case "get_note_name":
+          result =
+            api.getNoteName(
+              args.midi != null
+                ? args.midi
+                : args.note
+            );
+          break;
+
+        case "get_frequency":
+          result =
+            api.getFrequency(
+              args.midi != null
+                ? args.midi
+                : args.note
+            );
+          break;
+
+        case "open_midi_file_picker":
+          result =
+            api.openMIDIFilePicker();
+          break;
+
+        case "import_midi":
+        case "import_midi_from_path":
+          if(!args.path)
+          {
+            return {
+              ok:false,
+              summary:
+                "MIDI path is required."
+            };
+          }
+
+          result =
+            action ===
+              "import_midi_from_path"
+              ? api.importMIDIFromPath(
+                  args.path
+                )
+              : api.importMIDI(
+                  args.path
+                );
+
+          break;
+
+        case "export_midi":
+          result =
+            api.exportMIDI(
+              args.options || {}
+            );
+          break;
+
+        case "export_midi_to_path":
+          result =
+            api.exportMIDIToPath(
+              args.options || {}
+            );
+          break;
+
+        case "parse_midi":
+          if(!args.path)
+          {
+            return {
+              ok:false,
+              summary:
+                "MIDI path is required."
+            };
+          }
+
+          result =
+            api.parseMIDI(
+              args.path
+            );
+          break;
+
+        default:
+          return {
+            ok:false,
+            summary:
+              "Unknown DAW action: " +
+              action
+          };
+      }
+
+      if(
+        result &&
+        typeof result.then ===
+        "function"
+      )
+      {
+        result =
+          await result;
+      }
+
+      return {
+        ok:
+          result === false
+            ? false
+            : true,
+
+        summary:
+          "DAW action " +
+          action +
+          " completed.",
+
+        result
+      };
+    }
+    catch(e)
+    {
+      return {
+        ok:false,
+        summary:
+          "DAW action failed: " +
+          (
+            e &&
+            e.message
+              ? e.message
+              : String(e)
+          )
+      };
+    }
   }
 
   async function executeRaw(
