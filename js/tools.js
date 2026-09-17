@@ -166,6 +166,25 @@
           {
             type: "integer",
             minimum: 1
+          },
+          api:
+          {
+            type: "object",
+            properties:
+            {
+              path:
+              {
+                type: "string"
+              },
+              func:
+              {
+                type: "string"
+              },
+              desc:
+              {
+                type: "string"
+              }
+            }
           }
         },
         required:
@@ -1114,6 +1133,232 @@
       }
     }
   }];
+
+  const builtinDefinitions = definitions.slice();
+  const registeredAPIs = new Map();
+
+  function normalizeAPIToolDescription(description){
+    if(!description || typeof description!=="object")
+    {
+      return null;
+    }
+
+    if(
+      description.type === "function" &&
+      description.function &&
+      typeof description.function === "object"
+    )
+    {
+      return {
+        type: "function",
+        function: description.function
+      };
+    }
+
+    if(
+      description.function &&
+      typeof description.function === "object"
+    )
+    {
+      return {
+        type: "function",
+        function: description.function
+      };
+    }
+
+    if(description.name)
+    {
+      return {
+        type: "function",
+        function: description
+      };
+    }
+
+    return null;
+  }
+
+  function rebuildRegisteredDefinitions(){
+    definitions.length=0;
+    definitions.push(...builtinDefinitions);
+
+    for(const api of registeredAPIs.values())
+    {
+      definitions.push(api.description);
+    }
+  }
+
+  function registerAPI(description, fn){
+    const tool=normalizeAPIToolDescription(description);
+
+    if(
+      !tool ||
+      !tool.function ||
+      !String(tool.function.name||"").trim() ||
+      typeof fn!=="function"
+    )
+    {
+      return {
+        ok:false,
+        error:"Invalid API registration."
+      };
+    }
+
+    const name=String(tool.function.name).trim();
+
+    if(
+      builtinDefinitions.some(
+        definition=>
+          definition &&
+          definition.function &&
+          definition.function.name===name
+      )
+    )
+    {
+      return {
+        ok:false,
+        error:"API function name is already registered: "+name
+      };
+    }
+
+    registeredAPIs.set(
+      name,
+      {
+        description:tool,
+        execute:fn
+      }
+    );
+
+    rebuildRegisteredDefinitions();
+
+    return {
+      ok:true,
+      name
+    };
+  }
+
+  function clearRegisteredAPIs(){
+    registeredAPIs.clear();
+    rebuildRegisteredDefinitions();
+  }
+
+  async function loadRegisteredAPIs(){
+    clearRegisteredAPIs();
+
+    if(
+      !window.Apps ||
+      typeof Apps.getInstalledApps!=="function" ||
+      !window.FS ||
+      typeof FS.read!=="function"
+    )
+    {
+      return {ok:true,count:0};
+    }
+
+    const apps=await Apps.getInstalledApps();
+    let count=0;
+
+    for(const app of Array.isArray(apps)?apps:[])
+    {
+      const api=app && app.api;
+
+      if(
+        !api ||
+        typeof api!=="object" ||
+        !Object.keys(api).length
+      )
+      {
+        continue;
+      }
+
+      const base=String(api.path||"").trim().replace(/\/$/,"");
+      const func=String(api.func||"").trim();
+      const desc=String(api.desc||"").trim();
+
+      if(!base || !func || !desc)
+      {
+        continue;
+      }
+
+      const functionPath=base+"/API/Functions/"+func;
+      const descriptionPath=base+"/API/Description/"+desc;
+
+      try
+      {
+        const descriptionResult=await FS.read(descriptionPath);
+        if(
+          !descriptionResult ||
+          !descriptionResult.ok ||
+          !descriptionResult.content
+        )
+        {
+          continue;
+        }
+
+        const description=JSON.parse(descriptionResult.content);
+        const functionResult=await FS.read(functionPath);
+
+        if(
+          !functionResult ||
+          !functionResult.ok ||
+          functionResult.content==null
+        )
+        {
+          continue;
+        }
+
+        let registered=false;
+        const result=await Promise.resolve(
+          new Function(
+            "registerAPI",
+            "description",
+            String(functionResult.content)
+          )(
+            (toolDescription, fn)=>{
+              const registration=registerAPI(toolDescription, fn);
+              if(registration && registration.ok)
+              {
+                registered=true;
+              }
+              return registration;
+            },
+            description
+          )
+        );
+
+        if(result && result.ok===false)
+        {
+          continue;
+        }
+
+        if(registered)
+        {
+          count++;
+        }
+      }
+      catch(e)
+      {
+        console.warn(
+          "[Tools] Could not load registered API:",
+          app && app.pkg,
+          e
+        );
+      }
+    }
+
+    return {ok:true,count};
+  }
+
+  window.registerAPI=registerAPI;
+
+  if(typeof window.addEventListener==="function")
+  {
+    window.addEventListener(
+      "lh:apps-changed",
+      ()=>{
+        loadRegisteredAPIs().catch(()=>{});
+      }
+    );
+  }
 
   function formatValue(value)
   {
@@ -4313,6 +4558,25 @@ const lh =
       args ||
       {};
 
+    const registeredAPI=registeredAPIs.get(name);
+
+    if(registeredAPI)
+    {
+      try
+      {
+        return await registeredAPI.execute(args);
+      }
+      catch(e)
+      {
+        return {
+          ok:false,
+          summary:
+            "Registered API error: "+
+            (e && e.message || String(e))
+        };
+      }
+    }
+
     if (
       name ===
       "open_application"
@@ -4418,7 +4682,10 @@ const lh =
               args.width,
 
             height:
-              args.height
+              args.height,
+
+            api:
+              args.api
           });
 
         if (
@@ -5832,9 +6099,16 @@ const lh =
     }
   }
 
+  const registeredAPIsReady=loadRegisteredAPIs().catch(
+    ()=>({ok:false,count:0})
+  );
+
   window.Tools =
   {
     definitions,
-    execute
+    execute,
+    registerAPI,
+    loadRegisteredAPIs,
+    ready:registeredAPIsReady
   };
 })();

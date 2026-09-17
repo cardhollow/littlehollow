@@ -342,6 +342,30 @@
         return "src";
     }
 
+    function normalizeAPI(api){
+        if(api===null){
+            return null;
+        }
+
+        if(api===undefined){
+            return undefined;
+        }
+
+        if(!api || typeof api!=="object" || Array.isArray(api)){
+            return null;
+        }
+
+        if(!Object.keys(api).length){
+            return {};
+        }
+
+        return {
+            path:String(api.path||CUSTOM_APP_DIR).trim(),
+            func:String(api.func||"").trim(),
+            desc:String(api.desc||"").trim()
+        };
+    }
+
     function isValidInstalledApp(app){
         if(
             !app ||
@@ -674,6 +698,11 @@
                         app.h||
                         app.height
                     )||500,
+
+                api:
+                    app.api===undefined
+                        ?undefined
+                        :normalizeAPI(app.api),
 
                 aliases:[pkg]
             });
@@ -1138,6 +1167,15 @@
                     )===pkg
             );
 
+        const api=
+            options.api!==undefined
+                ?normalizeAPI(options.api)
+                :index>=0
+                    ?(data[index] && data[index].api!==undefined
+                        ?normalizeAPI(data[index].api)
+                        :undefined)
+                    :undefined;
+
 
         /*
          * --------------------------------------------------------
@@ -1184,6 +1222,11 @@
                 name:title,
                 src,
                 appIcon:icon,
+
+                api:
+                    api===undefined
+                        ?null
+                        :api,
 
                 w:
                     Number(
@@ -1323,6 +1366,11 @@
             srcDoc:sourcePath,
 
             appIcon:icon,
+
+            api:
+                api===undefined
+                    ?null
+                    :api,
 
             w:
                 Number(
