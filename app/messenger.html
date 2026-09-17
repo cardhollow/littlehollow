@@ -134,8 +134,10 @@ body{
 }
 
 .message-markdown img{
+    display:block;
     max-width:100%;
     height:auto;
+    cursor:pointer;
 }
 
 .message-markdown a{
@@ -332,7 +334,10 @@ const DOWNLOAD_REFERENCE_REGEX =
 const APP_REFERENCE_REGEX =
     /\[app:([^\]]+)\]/g;
 
+let activeImageObjectURLs = [];
+
 function getReferencePathName(path){
+
     const cleanPath =
         String(path ?? "").trim();
 
@@ -355,6 +360,7 @@ function getReferencePathName(path){
 }
 
 function getMimeType(path){
+
     const name =
         getReferencePathName(path)
             .toLowerCase();
@@ -375,12 +381,20 @@ function getMimeType(path){
         ".xml":"application/xml",
         ".csv":"text/csv",
         ".svg":"image/svg+xml",
+        ".svgz":"image/svg+xml",
         ".png":"image/png",
         ".jpg":"image/jpeg",
         ".jpeg":"image/jpeg",
+        ".jpe":"image/jpeg",
         ".gif":"image/gif",
         ".webp":"image/webp",
         ".bmp":"image/bmp",
+        ".ico":"image/x-icon",
+        ".avif":"image/avif",
+        ".tif":"image/tiff",
+        ".tiff":"image/tiff",
+        ".heic":"image/heic",
+        ".heif":"image/heif",
         ".wav":"audio/wav",
         ".mp3":"audio/mpeg",
         ".ogg":"audio/ogg",
@@ -403,10 +417,1030 @@ function getMimeType(path){
     );
 }
 
-async function openFileReference(path){
+function isVirtualPath(value){
+
+    const s =
+        String(value || "");
+
+    return (
+        /^chxd:\//i.test(s) ||
+        /^local:\//i.test(s) ||
+        /^session:\//i.test(s) ||
+        /^indexdb:\//i.test(s) ||
+        /^puter:\//i.test(s)
+    );
+}
+
+function isURL(value){
+
+    const s =
+        String(value || "");
+
+    return (
+        /^https?:\/\//i.test(s) ||
+        /^blob:/i.test(s) ||
+        /^data:/i.test(s) ||
+        /^file:/i.test(s)
+    );
+}
+
+function bytesFrom(value){
+
+    if(
+        value instanceof ArrayBuffer
+    ){
+
+        return new Uint8Array(
+            value
+        );
+    }
+
+    if(
+        value &&
+        typeof value === "object" &&
+        value.buffer instanceof ArrayBuffer
+    ){
+
+        return new Uint8Array(
+            value.buffer,
+            value.byteOffset || 0,
+            value.byteLength
+        );
+    }
+
+    return null;
+}
+
+function extension(path){
+
+    const clean =
+        String(path || "")
+            .split("?")[0]
+            .split("#")[0];
+
+    const dot =
+        clean.lastIndexOf(".");
+
+    if(dot < 0){
+        return "";
+    }
+
+    return clean
+        .slice(dot + 1)
+        .toLowerCase();
+}
+
+function detectMime(
+    bytes,
+    path
+){
+
+    if(
+        !bytes ||
+        bytes.length < 2
+    ){
+
+        return getMimeType(
+            path
+        );
+    }
+
+    if(
+        bytes.length >= 8 &&
+        bytes[0] === 137 &&
+        bytes[1] === 80 &&
+        bytes[2] === 78 &&
+        bytes[3] === 71 &&
+        bytes[4] === 13 &&
+        bytes[5] === 10 &&
+        bytes[6] === 26 &&
+        bytes[7] === 10
+    ){
+
+        return "image/png";
+    }
+
+    if(
+        bytes.length >= 3 &&
+        bytes[0] === 255 &&
+        bytes[1] === 216 &&
+        bytes[2] === 255
+    ){
+
+        return "image/jpeg";
+    }
+
+    if(
+        bytes.length >= 6 &&
+        bytes[0] === 71 &&
+        bytes[1] === 73 &&
+        bytes[2] === 70
+    ){
+
+        return "image/gif";
+    }
+
+    if(
+        bytes.length >= 12 &&
+        bytes[0] === 82 &&
+        bytes[1] === 73 &&
+        bytes[2] === 70 &&
+        bytes[3] === 70 &&
+        bytes[8] === 87 &&
+        bytes[9] === 69 &&
+        bytes[10] === 66 &&
+        bytes[11] === 80
+    ){
+
+        return "image/webp";
+    }
+
+    if(
+        bytes.length >= 2 &&
+        bytes[0] === 66 &&
+        bytes[1] === 77
+    ){
+
+        return "image/bmp";
+    }
+
+    if(
+        bytes.length >= 4 &&
+        bytes[0] === 0x00 &&
+        bytes[1] === 0x00 &&
+        bytes[2] === 0x01 &&
+        bytes[3] === 0x00
+    ){
+
+        return "image/x-icon";
+    }
+
+    return getMimeType(
+        path
+    );
+}
+
+function binaryStringToBytes(
+    value
+){
+
+    const s =
+        String(value);
+
+    const bytes =
+        new Uint8Array(
+            s.length
+        );
+
+    for(
+        let i = 0;
+        i < s.length;
+        i++
+    ){
+
+        bytes[i] =
+            s.charCodeAt(i) & 255;
+    }
+
+    return bytes;
+}
+
+function looksLikeBinaryString(
+    value
+){
+
+    if(
+        typeof value !==
+        "string"
+    ){
+
+        return false;
+    }
+
+    const s =
+        value;
+
+    if(!s.length){
+        return false;
+    }
+
+    let binaryCount = 0;
+
+    const sampleLength =
+        Math.min(
+            s.length,
+            4096
+        );
+
+    for(
+        let i = 0;
+        i < sampleLength;
+        i++
+    ){
+
+        const code =
+            s.charCodeAt(i);
+
+        if(
+            code === 0 ||
+            code === 1 ||
+            code === 2 ||
+            code === 3 ||
+            code === 4 ||
+            code === 5 ||
+            code === 6 ||
+            code === 7 ||
+            code === 8 ||
+            code === 14 ||
+            code === 15 ||
+            (code >= 16 && code <= 31) ||
+            code === 127
+        ){
+
+            binaryCount++;
+        }
+    }
+
+    return (
+        binaryCount > 0 ||
+        (
+            s.length >= 4 &&
+            s.charCodeAt(0) === 0xFF &&
+            s.charCodeAt(1) === 0xD8
+        )
+    );
+}
+
+function rememberObjectURL(
+    url
+){
+
+    if(url){
+        activeImageObjectURLs.push(
+            url
+        );
+    }
+
+    return url;
+}
+
+function binaryStringToURL(
+    value,
+    path
+){
+
+    const bytes =
+        binaryStringToBytes(
+            value
+        );
+
+    const mime =
+        detectMime(
+            bytes,
+            path
+        );
+
+    const blob =
+        new Blob(
+            [bytes],
+            {
+                type:mime
+            }
+        );
+
+    return rememberObjectURL(
+        URL.createObjectURL(
+            blob
+        )
+    );
+}
+
+function base64ToURL(
+    value,
+    path
+){
+
+    const clean =
+        String(value || "")
+            .trim()
+            .replace(
+                /\s/g,
+                ""
+            );
+
+    let mime =
+        getMimeType(
+            path
+        );
+
+    if(
+        clean.startsWith(
+            "iVBORw0KGgo"
+        )
+    ){
+
+        mime =
+            "image/png";
+
+    }else if(
+        clean.startsWith(
+            "/9j/"
+        )
+    ){
+
+        mime =
+            "image/jpeg";
+
+    }else if(
+        clean.startsWith(
+            "R0lGODlh"
+        ) ||
+        clean.startsWith(
+            "R0lGODdh"
+        )
+    ){
+
+        mime =
+            "image/gif";
+
+    }else if(
+        clean.startsWith(
+            "UklGR"
+        )
+    ){
+
+        mime =
+            "image/webp";
+
+    }else if(
+        clean.startsWith(
+            "Qk"
+        )
+    ){
+
+        mime =
+            "image/bmp";
+    }
+
+    const binary =
+        atob(clean);
+
+    const bytes =
+        new Uint8Array(
+            binary.length
+        );
+
+    for(
+        let i = 0;
+        i < binary.length;
+        i++
+    ){
+
+        bytes[i] =
+            binary.charCodeAt(i);
+    }
+
+    const blob =
+        new Blob(
+            [bytes],
+            {
+                type:mime
+            }
+        );
+
+    return rememberObjectURL(
+        URL.createObjectURL(
+            blob
+        )
+    );
+}
+
+function isProbablyBase64(
+    value
+){
+
+    if(
+        typeof value !==
+        "string"
+    ){
+
+        return false;
+    }
+
+    const s =
+        value
+            .trim()
+            .replace(
+                /\s/g,
+                ""
+            );
+
+    if(
+        s.length < 32
+    ){
+
+        return false;
+    }
+
+    return /^[A-Za-z0-9+/]+={0,2}$/.test(
+        s
+    );
+}
+
+function blobToURL(
+    blob
+){
+
+    if(!blob){
+
+        throw new Error(
+            "Empty image Blob."
+        );
+    }
+
+    return rememberObjectURL(
+        URL.createObjectURL(
+            blob
+        )
+    );
+}
+
+async function resolveImageValue(
+    value,
+    path,
+    depth = 0
+){
+
+    if(
+        depth > 12
+    ){
+
+        throw new Error(
+            "Image source resolution exceeded the limit."
+        );
+    }
+
+    if(
+        value == null
+    ){
+
+        throw new Error(
+            "Filesystem returned no image data."
+        );
+    }
+
+    if(
+        typeof File !==
+        "undefined" &&
+        value instanceof File
+    ){
+
+        return blobToURL(
+            value
+        );
+    }
+
+    if(
+        value instanceof Blob
+    ){
+
+        return blobToURL(
+            value
+        );
+    }
+
+    if(
+        value instanceof ArrayBuffer
+    ){
+
+        const bytes =
+            new Uint8Array(
+                value
+            );
+
+        return blobToURL(
+            new Blob(
+                [bytes],
+                {
+                    type:
+                        detectMime(
+                            bytes,
+                            path
+                        )
+                }
+            )
+        );
+    }
+
+    const bytes =
+        bytesFrom(
+            value
+        );
+
+    if(bytes){
+
+        return blobToURL(
+            new Blob(
+                [bytes],
+                {
+                    type:
+                        detectMime(
+                            bytes,
+                            path
+                        )
+                }
+            )
+        );
+    }
+
+    if(
+        value &&
+        typeof value === "object" &&
+        typeof value.getFile === "function"
+    ){
+
+        const file =
+            await value.getFile();
+
+        return resolveImageValue(
+            file,
+            path,
+            depth + 1
+        );
+    }
+
+    if(
+        typeof value ===
+        "string"
+    ){
+
+        const s =
+            value.trim();
+
+        if(
+            /^data:/i.test(s) ||
+            /^https?:\/\//i.test(s) ||
+            /^blob:/i.test(s) ||
+            /^file:/i.test(s)
+        ){
+
+            return s;
+        }
+
+        if(
+            isVirtualPath(s)
+        ){
+
+            return readVirtualImage(
+                s,
+                depth + 1
+            );
+        }
+
+        if(
+            /^<svg[\s>]/i.test(s) ||
+            /^<\?xml/i.test(s)
+        ){
+
+            return blobToURL(
+                new Blob(
+                    [s],
+                    {
+                        type:"image/svg+xml"
+                    }
+                )
+            );
+        }
+
+        if(
+            looksLikeBinaryString(
+                s
+            )
+        ){
+
+            return binaryStringToURL(
+                s,
+                path
+            );
+        }
+
+        if(
+            isProbablyBase64(
+                s
+            )
+        ){
+
+            return base64ToURL(
+                s,
+                path
+            );
+        }
+
+        throw new Error(
+            "Unsupported string image source."
+        );
+    }
+
+    if(
+        typeof value ===
+        "object"
+    ){
+
+        const keys = [
+            "file",
+            "blob",
+            "content",
+            "data",
+            "bytes",
+            "arrayBuffer",
+            "buffer",
+            "handle",
+            "fileHandle",
+            "source",
+            "url",
+            "src",
+            "href"
+        ];
+
+        for(
+            const key of keys
+        ){
+
+            if(
+                !(key in value)
+            ){
+
+                continue;
+            }
+
+            let child;
+
+            try{
+
+                child =
+                    value[key];
+
+                if(
+                    typeof child ===
+                    "function"
+                ){
+
+                    child =
+                        await child.call(
+                            value
+                        );
+                }
+
+            }catch(_){
+
+                continue;
+            }
+
+            if(
+                child == null
+            ){
+
+                continue;
+            }
+
+            try{
+
+                return await resolveImageValue(
+                    child,
+                    path,
+                    depth + 1
+                );
+
+            }catch(_){}
+        }
+    }
+
+    throw new Error(
+        "Unsupported image source type: " +
+        Object.prototype.toString.call(
+            value
+        )
+    );
+}
+
+async function readVirtualImage(
+    path,
+    depth = 0
+){
+
+    if(
+        depth > 12
+    ){
+
+        throw new Error(
+            "Filesystem path resolution exceeded the limit."
+        );
+    }
+
+    const fs =
+        parentWindow &&
+        parentWindow.FS
+            ? parentWindow.FS
+            : null;
+
+    if(!fs){
+
+        throw new Error(
+            "Little Hollow filesystem bridge is unavailable."
+        );
+    }
+
+    let normalized =
+        String(path);
+
+    try{
+
+        if(
+            typeof fs.normalize ===
+            "function"
+        ){
+
+            normalized =
+                fs.normalize(
+                    normalized
+                );
+        }
+
+    }catch(_){}
+
+    if(
+        typeof fs.read !==
+        "function"
+    ){
+
+        throw new Error(
+            "Could not read filesystem image:\n" +
+            normalized
+        );
+    }
+
+    const result =
+        await fs.read(
+            normalized
+        );
+
+    if(
+        result &&
+        typeof result === "object" &&
+        "ok" in result &&
+        !result.ok
+    ){
+
+        throw new Error(
+            result.error ||
+            result.summary ||
+            "Could not read image."
+        );
+    }
+
+    let content =
+        result &&
+        typeof result === "object" &&
+        "content" in result
+            ? result.content
+            : result;
+
+    if(
+        typeof content ===
+        "string" &&
+        content !== normalized &&
+        isVirtualPath(
+            content.trim()
+        )
+    ){
+
+        return readVirtualImage(
+            content.trim(),
+            depth + 1
+        );
+    }
+
+    return resolveImageValue(
+        content,
+        normalized,
+        depth + 1
+    );
+}
+
+async function resolveMarkdownImage(
+    img
+){
+
+    if(!img){
+        return;
+    }
+
+    const source =
+        String(
+            img.getAttribute("src") ||
+            ""
+        ).trim();
+
+    if(!source){
+        return;
+    }
+
+    if(
+        !isVirtualPath(
+            source
+        )
+    ){
+
+        return;
+    }
+
+    try{
+
+        const resolved =
+            await readVirtualImage(
+                source,
+                0
+            );
+
+        if(
+            resolved
+        ){
+
+            img.dataset.virtualImagePath =
+                source;
+
+            img.src =
+                resolved;
+        }
+
+    }catch(err){
+
+        img.alt =
+            (
+                img.alt ||
+                "Image"
+            ) +
+            " — failed to load";
+
+        console.error(
+            "[Messenger] Virtual image load failed:",
+            source,
+            err
+        );
+    }
+}
+
+async function resolveMarkdownImages(
+    element
+){
+
+    if(!element){
+        return;
+    }
+
+    const images =
+        Array.from(
+            element.querySelectorAll(
+                "img"
+            )
+        );
+
+    if(!images.length){
+        return;
+    }
+
+    await Promise.all(
+        images.map(
+            resolveMarkdownImage
+        )
+    );
+}
+
+function createFileReference(
+    path
+){
+
+    const button =
+        document.createElement("button");
+
+    button.type =
+        "button";
+
+    button.className =
+        "reference-button file-reference";
+
+    button.textContent =
+        path;
+
+    button.dataset.filePath =
+        path;
+
+    button.title =
+        "Open in File Manager: " +
+        path;
+
+    button.addEventListener(
+        "click",
+        event => {
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            openFileReference(
+                path
+            );
+        }
+    );
+
+    return button;
+}
+
+function createDownloadReference(
+    path
+){
+
+    const button =
+        document.createElement("button");
+
+    button.type =
+        "button";
+
+    button.className =
+        "reference-button download-reference";
+
+    button.textContent =
+        path;
+
+    button.dataset.downloadPath =
+        path;
+
+    button.title =
+        "Download: " +
+        path;
+
+    button.addEventListener(
+        "click",
+        event => {
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            downloadReference(
+                path
+            );
+        }
+    );
+
+    return button;
+}
+
+function createAppReference(
+    name
+){
+
+    const button =
+        document.createElement("button");
+
+    button.type =
+        "button";
+
+    button.className =
+        "reference-button app-reference";
+
+    button.textContent =
+        name;
+
+    button.dataset.appName =
+        name;
+
+    button.title =
+        "Open application: " +
+        name;
+
+    button.addEventListener(
+        "click",
+        event => {
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            openAppReference(
+                name
+            );
+        }
+    );
+
+    return button;
+}
+
+async function openFileReference(
+    path
+){
 
     const cleanPath =
-        String(path ?? "").trim();
+        String(
+            path ?? ""
+        ).trim();
 
     if(!cleanPath){
         return;
@@ -416,15 +1450,19 @@ async function openFileReference(path){
 
         if(
             parentWindow.Apps &&
-            typeof parentWindow.Apps.openApp === "function"
+            typeof parentWindow.Apps.openApp ===
+            "function"
         ){
 
             const result =
                 await parentWindow.Apps.openApp(
                     "filemanager",
                     {
-                        path:cleanPath,
-                        allowMultiple:true
+                        path:
+                            cleanPath,
+
+                        allowMultiple:
+                            true
                     }
                 );
 
@@ -448,7 +1486,6 @@ async function openFileReference(path){
                     ),
                     "sys"
                 );
-
             }
 
             return;
@@ -473,10 +1510,14 @@ async function openFileReference(path){
     }
 }
 
-async function openAppReference(name){
+async function openAppReference(
+    name
+){
 
     const cleanName =
-        String(name ?? "").trim();
+        String(
+            name ?? ""
+        ).trim();
 
     if(!cleanName){
         return;
@@ -486,14 +1527,16 @@ async function openAppReference(name){
 
         if(
             parentWindow.Apps &&
-            typeof parentWindow.Apps.openApp === "function"
+            typeof parentWindow.Apps.openApp ===
+            "function"
         ){
 
             const result =
                 await parentWindow.Apps.openApp(
                     cleanName,
                     {
-                        allowMultiple:false
+                        allowMultiple:
+                            false
                     }
                 );
 
@@ -517,7 +1560,6 @@ async function openAppReference(name){
                     ),
                     "sys"
                 );
-
             }
 
             return;
@@ -572,10 +1614,14 @@ function triggerBrowserDownload(
     anchor.remove();
 }
 
-async function downloadReference(path){
+async function downloadReference(
+    path
+){
 
     const cleanPath =
-        String(path ?? "").trim();
+        String(
+            path ?? ""
+        ).trim();
 
     if(!cleanPath){
         return;
@@ -601,8 +1647,10 @@ async function downloadReference(path){
 
         if(
             !parentWindow.FS ||
-            typeof parentWindow.FS.read !== "function"
+            typeof parentWindow.FS.read !==
+            "function"
         ){
+
             throw new Error(
                 "Little Hollow filesystem API is unavailable."
             );
@@ -617,6 +1665,7 @@ async function downloadReference(path){
             !result ||
             result.ok === false
         ){
+
             throw new Error(
                 result?.error ||
                 "Could not read file."
@@ -638,7 +1687,8 @@ async function downloadReference(path){
                 result.blob;
 
         }else if(
-            result.arrayBuffer instanceof ArrayBuffer
+            result.arrayBuffer instanceof
+            ArrayBuffer
         ){
 
             blob =
@@ -648,12 +1698,15 @@ async function downloadReference(path){
                         type:
                             result.mimeType ||
                             result.type ||
-                            getMimeType(cleanPath)
+                            getMimeType(
+                                cleanPath
+                            )
                     }
                 );
 
         }else if(
-            result.bytes instanceof Uint8Array
+            result.bytes instanceof
+            Uint8Array
         ){
 
             blob =
@@ -663,7 +1716,9 @@ async function downloadReference(path){
                         type:
                             result.mimeType ||
                             result.type ||
-                            getMimeType(cleanPath)
+                            getMimeType(
+                                cleanPath
+                            )
                     }
                 );
 
@@ -682,7 +1737,9 @@ async function downloadReference(path){
                         type:
                             result.mimeType ||
                             result.type ||
-                            getMimeType(cleanPath)
+                            getMimeType(
+                                cleanPath
+                            )
                     }
                 );
 
@@ -691,7 +1748,6 @@ async function downloadReference(path){
             throw new Error(
                 "Filesystem returned no downloadable content."
             );
-
         }
 
         const objectURL =
@@ -711,14 +1767,15 @@ async function downloadReference(path){
             setTimeout(
                 ()=>{
                     try{
+
                         URL.revokeObjectURL(
                             objectURL
                         );
+
                     }catch(_){}
                 },
                 1000
             );
-
         }
 
     }catch(err){
@@ -736,108 +1793,6 @@ async function downloadReference(path){
             "sys"
         );
     }
-}
-
-function createFileReference(path){
-
-    const button =
-        document.createElement("button");
-
-    button.type = "button";
-
-    button.className =
-        "reference-button file-reference";
-
-    button.textContent =
-        path;
-
-    button.dataset.filePath =
-        path;
-
-    button.title =
-        "Open in File Manager: " +
-        path;
-
-    button.addEventListener(
-        "click",
-        event => {
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            openFileReference(path);
-        }
-    );
-
-    return button;
-}
-
-function createDownloadReference(path){
-
-    const button =
-        document.createElement("button");
-
-    button.type = "button";
-
-    button.className =
-        "reference-button download-reference";
-
-    button.textContent =
-        path;
-
-    button.dataset.downloadPath =
-        path;
-
-    button.title =
-        "Download: " +
-        path;
-
-    button.addEventListener(
-        "click",
-        event => {
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            downloadReference(path);
-        }
-    );
-
-    return button;
-}
-
-function createAppReference(name){
-
-    const button =
-        document.createElement("button");
-
-    button.type = "button";
-
-    button.className =
-        "reference-button app-reference";
-
-    button.textContent =
-        name;
-
-    button.dataset.appName =
-        name;
-
-    button.title =
-        "Open application: " +
-        name;
-
-    button.addEventListener(
-        "click",
-        event => {
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            openAppReference(name);
-        }
-    );
-
-    return button;
 }
 
 function replaceReferencesInElement(
@@ -875,6 +1830,7 @@ function replaceReferencesInElement(
             parent.closest("a") ||
             parent.closest(".reference-button")
         ){
+
             continue;
         }
 
@@ -889,7 +1845,6 @@ function replaceReferencesInElement(
             nodes.push(
                 current
             );
-
         }
     }
 
@@ -900,9 +1855,14 @@ function replaceReferencesInElement(
         const text =
             node.nodeValue || "";
 
-        FILE_REFERENCE_REGEX.lastIndex = 0;
-        DOWNLOAD_REFERENCE_REGEX.lastIndex = 0;
-        APP_REFERENCE_REGEX.lastIndex = 0;
+        FILE_REFERENCE_REGEX.lastIndex =
+            0;
+
+        DOWNLOAD_REFERENCE_REGEX.lastIndex =
+            0;
+
+        APP_REFERENCE_REGEX.lastIndex =
+            0;
 
         const matches = [];
 
@@ -910,75 +1870,110 @@ function replaceReferencesInElement(
 
         while(
             (match =
-                FILE_REFERENCE_REGEX.exec(text))
+                FILE_REFERENCE_REGEX.exec(
+                    text
+                ))
         ){
 
             matches.push({
-                index:match.index,
-                length:match[0].length,
-                type:"file",
-                value:String(
-                    match[1] || ""
-                ).trim()
+                index:
+                    match.index,
+
+                length:
+                    match[0].length,
+
+                type:
+                    "file",
+
+                value:
+                    String(
+                        match[1] || ""
+                    ).trim()
             });
         }
 
         while(
             (match =
-                DOWNLOAD_REFERENCE_REGEX.exec(text))
+                DOWNLOAD_REFERENCE_REGEX.exec(
+                    text
+                ))
         ){
 
             matches.push({
-                index:match.index,
-                length:match[0].length,
-                type:"download",
-                value:String(
-                    match[1] || ""
-                ).trim()
+                index:
+                    match.index,
+
+                length:
+                    match[0].length,
+
+                type:
+                    "download",
+
+                value:
+                    String(
+                        match[1] || ""
+                    ).trim()
             });
         }
 
         while(
             (match =
-                APP_REFERENCE_REGEX.exec(text))
+                APP_REFERENCE_REGEX.exec(
+                    text
+                ))
         ){
 
             matches.push({
-                index:match.index,
-                length:match[0].length,
-                type:"app",
-                value:String(
-                    match[1] || ""
-                ).trim()
+                index:
+                    match.index,
+
+                length:
+                    match[0].length,
+
+                type:
+                    "app",
+
+                value:
+                    String(
+                        match[1] || ""
+                    ).trim()
             });
         }
 
         matches.sort(
             (a,b)=>
-                a.index - b.index
+                a.index -
+                b.index
         );
 
-        if(!matches.length){
+        if(
+            !matches.length
+        ){
+
             continue;
         }
 
         const fragment =
             document.createDocumentFragment();
 
-        let lastIndex = 0;
+        let lastIndex =
+            0;
 
         for(
             const item of matches
         ){
 
             if(
-                item.index < lastIndex
+                item.index <
+                lastIndex
             ){
+
                 continue;
             }
 
             if(
-                item.index > lastIndex
+                item.index >
+                lastIndex
             ){
 
                 fragment.appendChild(
@@ -994,7 +1989,8 @@ function replaceReferencesInElement(
             if(item.value){
 
                 if(
-                    item.type === "file"
+                    item.type ===
+                    "file"
                 ){
 
                     fragment.appendChild(
@@ -1004,7 +2000,8 @@ function replaceReferencesInElement(
                     );
 
                 }else if(
-                    item.type === "download"
+                    item.type ===
+                    "download"
                 ){
 
                     fragment.appendChild(
@@ -1014,7 +2011,8 @@ function replaceReferencesInElement(
                     );
 
                 }else if(
-                    item.type === "app"
+                    item.type ===
+                    "app"
                 ){
 
                     fragment.appendChild(
@@ -1022,7 +2020,6 @@ function replaceReferencesInElement(
                             item.value
                         )
                     );
-
                 }
 
             }else{
@@ -1036,7 +2033,6 @@ function replaceReferencesInElement(
                         )
                     )
                 );
-
             }
 
             lastIndex =
@@ -1045,7 +2041,8 @@ function replaceReferencesInElement(
         }
 
         if(
-            lastIndex < text.length
+            lastIndex <
+            text.length
         ){
 
             fragment.appendChild(
@@ -1064,66 +2061,26 @@ function replaceReferencesInElement(
     }
 }
 
-function parseFileReferences(element){
-
-    replaceReferencesInElement(
-        element
-    );
-}
-
-function setStatus(
-    text,
-    isDebug = false
-){
-
-    status.textContent =
-        text || "";
-
-    status.classList.toggle(
-        "debug",
-        !!isDebug
-    );
-}
-
-function addRow(
-    text,
-    cls
-){
-
-    const row =
-        document.createElement("div");
-
-    row.className =
-        "msg-row " + cls;
-
-    row.textContent =
-        String(text ?? "");
-
-    log.appendChild(row);
-
-    log.scrollTop =
-        log.scrollHeight;
-
-    return row;
-}
-
-function renderMarkdown(
+async function renderMarkdown(
     element,
     text
 ){
 
     const source =
-        String(text ?? "");
+        String(
+            text ?? ""
+        );
 
     if(
         !mark ||
-        typeof mark.parse !== "function"
+        typeof mark.parse !==
+        "function"
     ){
 
         element.textContent =
             source;
 
-        parseFileReferences(
+        replaceReferencesInElement(
             element
         );
 
@@ -1136,12 +2093,16 @@ function renderMarkdown(
             mark.parse(
                 source,
                 {
-                    gfm: true,
-                    breaks: true
+                    gfm:true,
+                    breaks:true
                 }
             );
 
-        parseFileReferences(
+        replaceReferencesInElement(
+            element
+        );
+
+        await resolveMarkdownImages(
             element
         );
 
@@ -1150,7 +2111,7 @@ function renderMarkdown(
         element.textContent =
             source;
 
-        parseFileReferences(
+        replaceReferencesInElement(
             element
         );
 
@@ -1159,6 +2120,33 @@ function renderMarkdown(
             err
         );
     }
+}
+
+function addRow(
+    text,
+    cls
+){
+
+    const row =
+        document.createElement("div");
+
+    row.className =
+        "msg-row " +
+        cls;
+
+    row.textContent =
+        String(
+            text ?? ""
+        );
+
+    log.appendChild(
+        row
+    );
+
+    log.scrollTop =
+        log.scrollHeight;
+
+    return row;
 }
 
 function addMarkdownRow(
@@ -1170,7 +2158,8 @@ function addMarkdownRow(
         document.createElement("div");
 
     row.className =
-        "msg-row " + cls;
+        "msg-row " +
+        cls;
 
     const content =
         document.createElement("div");
@@ -1231,7 +2220,8 @@ function normalizeVisibleMessage(
     }
 
     if(
-        typeof result === "string"
+        typeof result ===
+        "string"
     ){
 
         return result;
@@ -1270,14 +2260,17 @@ function normalizeVisibleMessage(
     }
 
     if(
-        Array.isArray(result.parts)
+        Array.isArray(
+            result.parts
+        )
     ){
 
         return result.parts.map(
             part => {
 
                 if(
-                    typeof part === "string"
+                    typeof part ===
+                    "string"
                 ){
 
                     return part;
@@ -1308,11 +2301,14 @@ function normalizeLog(
     }
 
     if(
-        Array.isArray(result.log)
+        Array.isArray(
+            result.log
+        )
     ){
 
         return result.log.map(
-            x => String(x)
+            x =>
+                String(x)
         );
     }
 
@@ -1332,7 +2328,8 @@ function handleAIStream(
     }
 
     const detail =
-        event?.detail || {};
+        event?.detail ||
+        {};
 
     if(
         typeof detail.token !==
@@ -1375,13 +2372,18 @@ async function sha256(
         );
 
     return Array.from(
-        new Uint8Array(digest)
+        new Uint8Array(
+            digest
+        )
     )
     .map(
         value =>
             value
                 .toString(16)
-                .padStart(2,"0")
+                .padStart(
+                    2,
+                    "0"
+                )
     )
     .join("");
 }
@@ -1499,7 +2501,7 @@ async function processDebugMessage(
             visible !== text
         ){
 
-            renderMarkdown(
+            await renderMarkdown(
                 row.querySelector(
                     ".message-markdown"
                 ),
@@ -1512,10 +2514,14 @@ async function processDebugMessage(
                 result
             );
 
-        if(logs.length){
+        if(
+            logs.length
+        ){
 
             addRow(
-                logs.join(" | "),
+                logs.join(
+                    " | "
+                ),
                 "sys"
             );
         }
@@ -1524,7 +2530,10 @@ async function processDebugMessage(
 
         addRow(
             "Debug response API error: " +
-            (err?.message || err),
+            (
+                err?.message ||
+                err
+            ),
             "sys"
         );
     }
@@ -1539,7 +2548,8 @@ async function sendToAI(
 
     if(
         !ai ||
-        typeof ai.send !== "function"
+        typeof ai.send !==
+        "function"
     ){
 
         throw new Error(
@@ -1572,9 +2582,11 @@ async function send(){
         )
     ){
 
-        input.value = "";
+        input.value =
+            "";
 
-        debugMode = true;
+        debugMode =
+            true;
 
         addRow(
             text,
@@ -1603,14 +2615,16 @@ async function send(){
         )
     ){
 
-        input.value = "";
+        input.value =
+            "";
 
         addRow(
             text,
             "user"
         );
 
-        debugMode = false;
+        debugMode =
+            false;
 
         addRow(
             "DEBUG MODE OFF — normal AI sending restored.",
@@ -1629,15 +2643,19 @@ async function send(){
 
     if(debugMode){
 
-        input.value = "";
+        input.value =
+            "";
 
         addRow(
             text,
             "user"
         );
 
-        busy = true;
-        sendBtn.disabled = true;
+        busy =
+            true;
+
+        sendBtn.disabled =
+            true;
 
         setStatus(
             "DEBUG MODE — processing simulated AI response",
@@ -1652,9 +2670,11 @@ async function send(){
 
         }finally{
 
-            busy = false;
+            busy =
+                false;
 
-            sendBtn.disabled = false;
+            sendBtn.disabled =
+                false;
 
             setStatus(
                 "DEBUG MODE — AI SEND BLOCKED",
@@ -1667,27 +2687,35 @@ async function send(){
         return;
     }
 
-    input.value = "";
+    input.value =
+        "";
 
     addRow(
         text,
         "user"
     );
 
-    busy = true;
+    busy =
+        true;
 
-    streamText = "";
+    streamText =
+        "";
 
-    sendBtn.disabled = true;
+    sendBtn.disabled =
+        true;
 
     const pending =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
     pending.className =
         "msg-row ai";
 
     const content =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
     content.className =
         "message-markdown";
@@ -1725,19 +2753,22 @@ async function send(){
 
         if(visible){
 
-            updatePending(
+            await renderMarkdown(
+                content,
                 visible
             );
 
         }else if(streamText){
 
-            updatePending(
+            await renderMarkdown(
+                content,
                 streamText
             );
 
         }else{
 
-            updatePending(
+            await renderMarkdown(
+                content,
                 "[Little Hollow returned an empty response]"
             );
         }
@@ -1747,28 +2778,39 @@ async function send(){
                 result
             );
 
-        if(logs.length){
+        if(
+            logs.length
+        ){
 
             addRow(
-                logs.join(" | "),
+                logs.join(
+                    " | "
+                ),
                 "sys"
             );
         }
 
     }catch(err){
 
-        updatePending(
+        await renderMarkdown(
+            content,
             "Error talking to Little Hollow: " +
-            (err?.message || err)
+            (
+                err?.message ||
+                err
+            )
         );
 
     }finally{
 
-        activePending = null;
+        activePending =
+            null;
 
-        busy = false;
+        busy =
+            false;
 
-        sendBtn.disabled = false;
+        sendBtn.disabled =
+            false;
 
         setStatus(
             debugMode
@@ -1790,12 +2832,37 @@ input.addEventListener(
     "keydown",
     event => {
 
-        if(event.key === "Enter"){
+        if(
+            event.key ===
+            "Enter"
+        ){
 
             event.preventDefault();
 
             send();
         }
+    }
+);
+
+window.addEventListener(
+    "beforeunload",
+    ()=>{
+        for(
+            const url of
+            activeImageObjectURLs
+        ){
+
+            try{
+
+                URL.revokeObjectURL(
+                    url
+                );
+
+            }catch(_){}
+        }
+
+        activeImageObjectURLs =
+            [];
     }
 );
 
@@ -1806,7 +2873,8 @@ addRow(
 
 if(
     !mark ||
-    typeof mark.parse !== "function"
+    typeof mark.parse !==
+    "function"
 ){
 
     addRow(
