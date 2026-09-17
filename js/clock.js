@@ -1,144 +1,246 @@
 (function(){
-    "use strict";
+	"use strict";
 
-    if(window.__CHXD_CLOCK_WAKE_SERVICE__){
-        return;
-    }
+	if(window.__CHXD_CLOCK_WAKE_SERVICE__){
+		return;
+	}
 
-    const STATE_KEY="chxd_clock_state_v5";
-    const APP_NAME="Clock";
-    const service={
-        lastWakeKey:"",
-        opening:false,
-        timer:0
-    };
+	const STATE_PATH="chxd:/local/Clock/state.json";
+	const APP_NAME="Clock";
 
-    window.__CHXD_CLOCK_WAKE_SERVICE__=service;
+	const service={
+		lastWakeKey:"",
+		opening:false,
+		timer:0
+	};
 
-    function readState(){
-        try{
-            const raw=localStorage.getItem(STATE_KEY);
-            if(!raw){
-                return null;
-            }
-            const value=JSON.parse(raw);
-            return value&&typeof value==="object"?value:null;
-        }catch(_){
-            return null;
-        }
-    }
+	window.__CHXD_CLOCK_WAKE_SERVICE__=service;
 
-    function now(){
-        return new Date();
-    }
+	function hostWindows(){
+		const list=[window];
 
-    function dateKey(date){
-        return [
-            date.getFullYear(),
-            String(date.getMonth()+1).padStart(2,"0"),
-            String(date.getDate()).padStart(2,"0")
-        ].join("-");
-    }
+		try{
+			if(window.parent&&window.parent!==window){
+				list.push(window.parent);
+			}
+		}catch(_){}
 
-    function wakeKey(kind,value){
-        return kind+":"+String(value);
-    }
+		try{
+			if(window.top&&window.top!==window&&!list.includes(window.top)){
+				list.push(window.top);
+			}
+		}catch(_){}
 
-    function openClock(key){
-        if(service.opening&&service.lastWakeKey===key){
-            return;
-        }
+		return list;
+	}
 
-        if(service.lastWakeKey===key){
-            return;
-        }
+	function getFS(){
+		for(const w of hostWindows()){
+			try{
+				if(
+					w.FS&&
+					typeof w.FS.read==="function"
+				){
+					return w.FS;
+				}
+			}catch(_){}
+		}
 
-        service.lastWakeKey=key;
-        service.opening=true;
+		return null;
+	}
 
-        try{
-            if(window.Apps&&typeof window.Apps.openApp==="function"){
-                const result=window.Apps.openApp(APP_NAME,{allowMultiple:false});
-                if(result&&typeof result.catch==="function"){
-                    result.catch(()=>{});
-                }
-            }
-        }catch(_){
-        }
+	async function readState(){
+		const fs=getFS();
 
-        try{
-            window.dispatchEvent(new CustomEvent("chxd-clock-open"));
-        }catch(_){
-        }
+		if(!fs){
+			return null;
+		}
 
-        setTimeout(()=>{
-            service.opening=false;
-        },1000);
-    }
+		try{
+			const result=await fs.read(STATE_PATH);
 
-    function check(){
-        const state=readState();
-        if(!state){
-            return;
-        }
+			if(
+				result&&
+				typeof result==="object"&&
+				result.ok===false
+			){
+				return null;
+			}
 
-        const current=now();
-        const currentHHMM=
-            String(current.getHours()).padStart(2,"0")+
-            ":"+
-            String(current.getMinutes()).padStart(2,"0");
-        const today=dateKey(current);
+			const content=
+				result&&
+				result.content!=null
+					?result.content
+					:result;
 
-        if(Array.isArray(state.alarms)){
-            for(const alarm of state.alarms){
-                if(!alarm||alarm.active===false){
-                    continue;
-                }
+			if(content==null){
+				return null;
+			}
 
-                if(String(alarm.lastFired||"")===today){
-                    continue;
-                }
+			const value=JSON.parse(String(content));
 
-                if(String(alarm.time||"")===currentHHMM){
-                    openClock(wakeKey("alarm",String(alarm.id)+":"+today));
-                    return;
-                }
-            }
-        }
+			return value&&typeof value==="object"
+				?value
+				:null;
+		}catch(_){
+			return null;
+		}
+	}
 
-        const timer=state.timer||{};
-        if(timer.running&&Number(timer.end)>0&&Number(timer.end)<=Date.now()){
-            openClock(wakeKey("timer",Number(timer.end)));
-            return;
-        }
+	function now(){
+		return new Date();
+	}
 
-        const ring=state.ring||{};
-        if(ring.active){
-            openClock(wakeKey("ring",String(ring.kind||"")+":"+String(ring.id||0)));
-            return;
-        }
+	function dateKey(date){
+		return[
+			date.getFullYear(),
+			String(date.getMonth()+1).padStart(2,"0"),
+			String(date.getDate()).padStart(2,"0")
+		].join("-");
+	}
 
-        if(Number(ring.snoozeUntil)>0&&Number(ring.snoozeUntil)<=Date.now()){
-            openClock(wakeKey("snooze",Number(ring.snoozeUntil)));
-        }
-    }
+	function wakeKey(kind,value){
+		return kind+":"+String(value);
+	}
 
-    window.addEventListener("storage",event=>{
-        if(event.key===STATE_KEY){
-            check();
-        }
-    });
+	function openClock(key){
+		if(service.opening||service.lastWakeKey===key){
+			return;
+		}
 
-    window.addEventListener("message",event=>{
-        const data=event.data;
-        if(!data||typeof data!=="object"){
-            return;
-        }
-        if(data.type==="chxd-clock-state-changed"||data.type==="chxd-clock-ready"){
-            check();
-        }
-    });
+		service.lastWakeKey=key;
+		service.opening=true;
 
-    check();
-    service.timer=setInterval(check,250);
+		try{
+			if(
+				window.Apps&&
+				typeof window.Apps.openApp==="function"
+			){
+				const result=
+					window.Apps.openApp(
+						APP_NAME,
+						{allowMultiple:false}
+					);
+
+				if(
+					result&&
+					typeof result.catch==="function"
+				){
+					result.catch(()=>{});
+				}
+			}
+		}catch(_){}
+
+		setTimeout(()=>{
+			service.opening=false;
+		},1000);
+	}
+
+	async function check(){
+		const state=await readState();
+
+		if(!state){
+			return;
+		}
+
+		const current=now();
+		const currentHHMM=
+			String(current.getHours()).padStart(2,"0")+
+			":"+
+			String(current.getMinutes()).padStart(2,"0");
+
+		const today=dateKey(current);
+
+		if(Array.isArray(state.alarms)){
+			for(const alarm of state.alarms){
+				if(!alarm||alarm.active===false){
+					continue;
+				}
+
+				if(String(alarm.lastFired||"")===today){
+					continue;
+				}
+
+				if(String(alarm.time||"")===currentHHMM){
+					openClock(
+						wakeKey(
+							"alarm",
+							String(alarm.id)+":"+today
+						)
+					);
+					return;
+				}
+			}
+		}
+
+		const timer=state.timer||{};
+
+		if(
+			timer.running&&
+			Number(timer.end)>0&&
+			Number(timer.end)<=Date.now()
+		){
+			openClock(
+				wakeKey(
+					"timer",
+					Number(timer.end)
+				)
+			);
+			return;
+		}
+
+		const ring=state.ring||{};
+
+		if(ring.active){
+			openClock(
+				wakeKey(
+					"ring",
+					String(ring.kind||"")+
+					":"+
+					String(ring.id||0)
+				)
+			);
+			return;
+		}
+
+		if(
+			Number(ring.snoozeUntil)>0&&
+			Number(ring.snoozeUntil)<=Date.now()
+		){
+			openClock(
+				wakeKey(
+					"snooze",
+					Number(ring.snoozeUntil)
+				)
+			);
+		}
+	}
+
+	window.addEventListener(
+		"message",
+		event=>{
+			const data=event.data;
+
+			if(
+				!data||
+				typeof data!=="object"
+			){
+				return;
+			}
+
+			if(
+				data.type==="chxd-clock-state-changed"||
+				data.type==="chxd-clock-ready"
+			){
+				check();
+			}
+		}
+	);
+
+	check();
+
+	service.timer=setInterval(
+		check,
+		250
+	);
 })();
