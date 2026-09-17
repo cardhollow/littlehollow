@@ -98,6 +98,13 @@
             w:980,
             h:620
         },
+        
+        daw:{
+            title:"DAW",
+            src:"app/DAW.html",
+            w:980,
+            h:620
+        },
 
         tictactoe:{
             title:"TIC TAC TOE",
