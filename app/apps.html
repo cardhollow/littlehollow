@@ -50,10 +50,15 @@ body{
     overflow:hidden;
 }
 
-.tile .icon img{
+.tile .icon img,
+.tile .icon svg{
     width:100%;
     height:100%;
     object-fit:contain;
+}
+
+.tile .icon svg{
+    display:block;
 }
 
 .tile .label{
@@ -86,16 +91,10 @@ body{
 (function(){
     "use strict";
 
-    const CIA_PATH=
-        "chxd:/local/Custom Installed Application/CIA.json";
+    const CIA_PATH="chxd:/local/Custom Installed Application/CIA.json";
 
-    const grid=
-        document.getElementById("grid");
+    const grid=document.getElementById("grid");
 
-    /*
-     * Built-in applications.
-     * These remain independent from CIA.json.
-     */
     const BUILTIN_APPS=[
         {name:"File Manager",icon:"🗂"},
         {name:"AppInstaller",label:"App Installer",icon:"📦"},
@@ -108,23 +107,19 @@ body{
         {name:"TerminalJS",icon:"👨🏽‍💻"},
         {name:"Recorder",icon:"🎙️"},
         {name:"Camera",icon:"📷"},
-        
         {name:"DAW",icon:"🎛️"},
         {name:"Piano",icon:"🎹"},
         {name:"tictactoe",label:"Tic Tac Toe",icon:"⭕"},
         {name:"snake",label:"Snake",icon:"🐍"},
-
         {name:"2048",label:"2048",icon:"🔢"},
         {name:"minesweeper",label:"Minesweeper",icon:"💣"},
         {name:"sudoku",label:"Sudoku",icon:"🔢"},
         {name:"SOS",icon:"🆘"},
         {name:"tetris",label:"Tetris",icon:"🧱"},
         {name:"wordle",label:"Wordle",icon:"🔤"},
-
         {name:"doom",label:"Doom",icon:"☢️"},
         {name:"Pacman",label:"Pac-man",icon:"⍩⃝"},
         {name:"GBA",label:"GBA",icon:"⍩⃝"},
-
         {name:"GameFinder",icon:"🎮"},
         {name:"Browser",label:"Browser",icon:"🌐"},
         {name:"Map",label:"Maps",icon:"🗺️"},
@@ -142,22 +137,36 @@ body{
 
         const value=String(icon||"📦").trim();
 
-        /*
-         * Supports:
-         *   emoji / text icons
-         *   normal image URLs
-         *   data URLs
-         *   chxd: paths
-         */
+        if(/^<svg[\s>]/i.test(value)){
+            try{
+                const parser=new DOMParser();
+                const doc=parser.parseFromString(value,"image/svg+xml");
+                const svg=doc.documentElement;
+
+                if(
+                    svg &&
+                    svg.tagName &&
+                    svg.tagName.toLowerCase()==="svg"
+                ){
+                    box.appendChild(
+                        document.importNode(svg,true)
+                    );
+                    return box;
+                }
+            }catch(e){}
+        }
+
         if(
             /^https?:\/\//i.test(value) ||
             /^data:image\//i.test(value) ||
-            /^chxd:/i.test(value)
+            /^chxd:/i.test(value) ||
+            /^blob:/i.test(value)
         ){
             const img=document.createElement("img");
             img.src=value;
             img.alt="";
             img.onerror=()=>{
+                box.innerHTML="";
                 box.textContent="📦";
             };
             box.appendChild(img);
@@ -173,20 +182,16 @@ body{
         label,
         icon
     ){
-        const tile=
-            document.createElement("div");
+        const tile=document.createElement("div");
 
         tile.className="tile";
 
-        const iconEl=
-            createIcon(icon);
+        const iconEl=createIcon(icon);
 
-        const labelEl=
-            document.createElement("div");
+        const labelEl=document.createElement("div");
 
         labelEl.className="label";
-        labelEl.textContent=
-            String(label||key||"Application");
+        labelEl.textContent=String(label||key||"Application");
 
         tile.appendChild(iconEl);
         tile.appendChild(labelEl);
@@ -197,8 +202,7 @@ body{
                     parent.Apps &&
                     typeof parent.Apps.openApp==="function"
                 ){
-                    const result=
-                        await parent.Apps.openApp(key);
+                    const result=await parent.Apps.openApp(key);
 
                     if(
                         result &&
@@ -248,8 +252,7 @@ body{
                 return [];
             }
 
-            const result=
-                await parent.FS.read(CIA_PATH);
+            const result=await parent.FS.read(CIA_PATH);
 
             if(
                 !result ||
@@ -259,12 +262,11 @@ body{
                 return [];
             }
 
-            const parsed=
-                JSON.parse(result.content);
+            const parsed=JSON.parse(result.content);
 
             return Array.isArray(parsed)
-                ?parsed
-                :[];
+                ? parsed
+                : [];
         }catch(e){
             console.warn(
                 "[Apps] Could not read CIA.json:",
@@ -320,15 +322,9 @@ body{
     }
 
     async function renderInstalledApps(){
-        const installed=
-            await readInstalledApps();
+        const installed=await readInstalledApps();
 
         for(const app of installed){
-            /*
-             * IMPORTANT:
-             * srcDoc apps are valid installed apps too.
-             * Do not check only app.src.
-             */
             if(!validInstalledApp(app)){
                 continue;
             }
@@ -348,21 +344,15 @@ body{
         await renderInstalledApps();
 
         if(!grid.children.length){
-            const empty=
-                document.createElement("div");
+            const empty=document.createElement("div");
 
             empty.className="empty";
-            empty.textContent=
-                "No applications available.";
+            empty.textContent="No applications available.";
 
             grid.appendChild(empty);
         }
     }
 
-    /*
-     * AppInstaller sends this after install/update/uninstall.
-     * Rebuild the app grid automatically.
-     */
     window.addEventListener(
         "message",
         e=>{
@@ -384,14 +374,8 @@ body{
         }
     );
 
-    /*
-     * Initial render.
-     */
     render();
 
-    /*
-     * Expose a tiny API for the shell/tools if needed.
-     */
     window.AppsPageAPI={
         refresh:render,
         readInstalledApps
