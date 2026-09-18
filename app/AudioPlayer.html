@@ -13,6 +13,8 @@ body{overflow:hidden}
 .bar input{flex:1;min-width:0;background:#001010;border:1px solid #00FFFF;color:#00FFFF;padding:6px 8px;outline:none;font:11px monospace}
 .bar button,.controls button{border:1px solid #00FFFF;background:transparent;color:#00FFFF;padding:6px 10px;cursor:pointer;font:11px monospace}
 .bar button:active,.controls button:active{background:#00FFFF;color:#000}
+.bar button:disabled{opacity:.35;cursor:not-allowed}
+.bar button.toggle{background:transparent}
 .stage{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;padding:8px;gap:8px}
 .visual{flex:1;min-height:0;position:relative;border:1px solid #064A4C;background:#000;overflow:hidden}
 #canvas{display:block;width:100%;height:100%}
@@ -32,6 +34,10 @@ body{overflow:hidden}
 	<div class="bar">
 		<input id="url" type="text" placeholder="Audio URL or chxd:/ path..." autocomplete="off" spellcheck="false">
 		<button id="loadBtn">LOAD</button>
+		<button id="prevBtn" disabled>‹ PREV</button>
+		<button id="nextBtn" disabled>NEXT ›</button>
+		<button id="loopBtn" class="toggle">LOOP: OFF</button>
+		<button id="shuffleBtn" class="toggle">SHUFFLE: OFF</button>
 	</div>
 	<div class="stage">
 		<div class="visual">
@@ -65,6 +71,10 @@ const stopBtn=document.getElementById("stop");
 const timeEl=document.getElementById("time");
 const volume=document.getElementById("volume");
 const urlInput=document.getElementById("url");
+const prevBtn=document.getElementById("prevBtn");
+const nextBtn=document.getElementById("nextBtn");
+const loopBtn=document.getElementById("loopBtn");
+const shuffleBtn=document.getElementById("shuffleBtn");
 
 let audioContext=null;
 let gainNode=null;
@@ -79,6 +89,10 @@ let loadToken=0;
 
 let loading=false;
 let loadingStart=0;
+let playlist=[];
+let currentIndex=-1;
+let loopEnabled=false;
+let shuffleEnabled=false;
 
 const params=new URLSearchParams(location.search);
 const initialPath=params.get("src");
@@ -382,6 +396,116 @@ async function resolveValue(value,path,depth){
 	throw new Error("Unsupported audio source type: "+Object.prototype.toString.call(value))
 }
 
+async function normalizePath(path){
+	const fs=getFS();
+	let value=String(path||"");
+	try{if(fs&&typeof fs.normalize==="function")value=fs.normalize(value)}catch(_){}
+	return value
+}
+
+function ensureSlash(path){
+	const value=String(path||"");
+	return value.endsWith("/")?value:value+"/"
+}
+
+function parentPath(path){
+	const value=String(path||"").replace(/\\+$/g,"");
+	const slash=value.lastIndexOf("/");
+	return slash<0?"":value.slice(0,slash+1)
+}
+
+async function statPath(path){
+	const fs=getFS();
+	if(!fs||typeof fs.stat!=="function")return null;
+	try{return await fs.stat(path)}catch(_){return null}
+}
+
+function isAudioPath(path){
+	return mimeFromExtension(path).startsWith("audio/")
+}
+
+function updateNavigation(){
+	const hasMultiple=playlist.length>1;
+	prevBtn.disabled=!hasMultiple;
+	nextBtn.disabled=!hasMultiple;
+	loopBtn.textContent="LOOP: "+(loopEnabled?"ON":"OFF");
+	shuffleBtn.textContent="SHUFFLE: "+(shuffleEnabled?"ON":"OFF");
+	const name=playlist.length&&currentIndex>=0?playlist[currentIndex].split("/").pop():"";
+	if(name&&decodedBuffer){
+		info.textContent=name+" | "+decodedBuffer.numberOfChannels+"ch | "+decodedBuffer.sampleRate+" Hz | "+formatTime(decodedBuffer.duration)
+	}
+}
+
+async function prepareAudioPlaylist(src){
+	playlist=[];
+	currentIndex=-1;
+	updateNavigation();
+	if(!isVirtualPath(src)){
+		playlist=[String(src)];
+		currentIndex=0;
+		updateNavigation();
+		return String(src)
+	}
+	const fs=getFS();
+	if(!fs||typeof fs.listDir!=="function")throw new Error("Little Hollow directory listing is unavailable.");
+	const normalized=normalizePath(src);
+	const stat=await statPath(normalized);
+	const directory=stat&&stat.ok&&stat.kind==="directory";
+	const dir=directory?ensureSlash(normalized):parentPath(normalized);
+	if(!dir)throw new Error("Could not determine the audio directory.");
+	const children=await fs.listDir(dir);
+	playlist=children
+		.map(String)
+		.filter(x=>!x.endsWith("/")&&isAudioPath(x))
+		.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:"base"}));
+	if(!directory&&!playlist.some(x=>normalizePath(x)===normalized))playlist.push(normalized);
+	if(!playlist.length)throw new Error("No audio files were found in this directory.");
+	currentIndex=playlist.findIndex(x=>normalizePath(x)===normalized);
+	if(directory||currentIndex<0)currentIndex=0;
+	updateNavigation();
+	return playlist[currentIndex]
+}
+
+function randomAudioIndex(){
+	if(playlist.length<2)return currentIndex;
+	let next=currentIndex;
+	while(next===currentIndex)next=Math.floor(Math.random()*playlist.length);
+	return next
+}
+
+async function navigateAudio(index){
+	if(playlist.length<2)return;
+	if(index<0)index=playlist.length-1;
+	if(index>=playlist.length)index=0;
+	currentIndex=index;
+	updateNavigation();
+	urlInput.value=playlist[index];
+	await loadAudio(playlist[index],true)
+}
+
+async function advanceAudio(){
+	if(loopEnabled){
+		pausedAt=0;
+		playing=false;
+		sourceNode=null;
+		try{await play()}catch(_){}
+		return
+	}
+	if(playlist.length<2){
+		setStatus("Finished.");
+		return
+	}
+	if(shuffleEnabled){
+		await navigateAudio(randomAudioIndex());
+		return
+	}
+	if(currentIndex<playlist.length-1){
+		await navigateAudio(currentIndex+1);
+		return
+	}
+	setStatus("Finished.")
+}
+
 async function getDeviceHandle(path,fs){
 	if(!fs||typeof fs.getDeviceMounts!=="function")return null;
 
@@ -593,9 +717,8 @@ function createSource(){
 			pausedAt=decodedBuffer.duration;
 			playing=false;
 			sourceNode=null;
-
 			updateButtons();
-			setStatus("Finished.")
+			advanceAudio().catch(error=>setStatus("Next audio error: "+errText(error)))
 		}
 	};
 
@@ -1022,7 +1145,7 @@ function draw(){
 	rafId=requestAnimationFrame(draw)
 }
 
-async function loadAudio(src){
+async function loadAudio(src,autoplay=true){
 	const token=++loadToken;
 
 	stop();
@@ -1094,8 +1217,8 @@ async function loadAudio(src){
 		updateButtons();
 
 		setStatus("Ready.");
-
-		await play()
+		updateNavigation();
+		if(autoplay)await play()
 
 	}catch(error){
 		if(token!==loadToken)return;
@@ -1180,11 +1303,14 @@ volume.oninput=()=>{
 	}
 };
 
-document.getElementById("loadBtn").onclick=()=>{
+document.getElementById("loadBtn").onclick=async()=>{
 	const src=urlInput.value.trim();
-
-	if(src){
-		loadAudio(src)
+	if(!src)return;
+	try{
+		await prepareAudioPlaylist(src);
+		await navigateAudio(currentIndex<0?0:currentIndex)
+	}catch(error){
+		setStatus("Error: "+errText(error))
 	}
 };
 
@@ -1193,10 +1319,29 @@ urlInput.onkeydown=e=>{
 		const src=urlInput.value.trim();
 
 		if(src){
-			loadAudio(src)
+			prepareAudioPlaylist(src)
+				.then(()=>navigateAudio(currentIndex<0?0:currentIndex))
+				.catch(error=>setStatus("Error: "+errText(error)))
 		}
 	}
 };
+
+prevBtn.onclick=()=>navigateAudio(currentIndex-1);
+nextBtn.onclick=()=>navigateAudio(currentIndex+1);
+loopBtn.onclick=()=>{
+	loopEnabled=!loopEnabled;
+	updateNavigation()
+};
+shuffleBtn.onclick=()=>{
+	shuffleEnabled=!shuffleEnabled;
+	updateNavigation()
+};
+
+window.addEventListener("keydown",e=>{
+	if(e.target===urlInput)return;
+	if(e.key==="ArrowLeft")navigateAudio(currentIndex-1);
+	else if(e.key==="ArrowRight")navigateAudio(currentIndex+1)
+});
 
 window.addEventListener(
 	"resize",
@@ -1227,7 +1372,9 @@ draw();
 
 if(initialPath){
 	urlInput.value=initialPath;
-	loadAudio(initialPath)
+	prepareAudioPlaylist(initialPath)
+		.then(()=>navigateAudio(currentIndex<0?0:currentIndex))
+		.catch(error=>setStatus("Error: "+errText(error)))
 }
 </script>
 </body>

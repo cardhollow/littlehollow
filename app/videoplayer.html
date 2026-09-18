@@ -61,9 +61,57 @@ body{
 	display:flex;
 	align-items:center;
 	justify-content:center;
-	overflow:auto;
+	overflow:hidden;
 	position:relative;
 	padding:8px
+}
+.mediaHost{
+	width:100%;
+	height:100%;
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	overflow:auto
+}
+.nav{
+	position:absolute;
+	left:10px;
+	right:10px;
+	top:10px;
+	display:flex;
+	gap:6px;
+	align-items:center;
+	justify-content:space-between;
+	pointer-events:none
+}
+.navGroup{
+	display:flex;
+	gap:6px;
+	pointer-events:auto
+}
+.nav button,.bar button.toggle{
+	border:1px solid #00FFFF;
+	background:rgba(0,0,0,.78);
+	color:#00FFFF;
+	padding:6px 9px;
+	cursor:pointer;
+	font:11px monospace
+}
+.nav button:active,.bar button.toggle:active{
+	background:#00FFFF;
+	color:#000
+}
+.nav button:disabled{
+	opacity:.35;
+	cursor:not-allowed
+}
+.counter{
+	border:1px solid #064a4c;
+	background:rgba(0,0,0,.78);
+	padding:7px 10px;
+	font-size:10px;
+	pointer-events:none;
+	white-space:nowrap
 }
 .stage video{
 	display:block;
@@ -115,7 +163,20 @@ body{
 		<input id="url" type="text" placeholder="Video/audio URL or chxd:/ path..." autocomplete="off" spellcheck="false">
 		<button id="loadBtn">LOAD</button>
 	</div><div class="stage" id="stage">
-	<div class="empty">No video loaded.</div>
+	<div class="mediaHost" id="mediaHost">
+		<div class="empty">No video loaded.</div>
+	</div>
+	<div class="nav">
+		<div class="navGroup">
+			<button id="prevBtn" disabled>‹ PREV</button>
+			<button id="nextBtn" disabled>NEXT ›</button>
+		</div>
+		<div class="counter" id="counter">0 / 0</div>
+		<div class="navGroup">
+			<button class="toggle" id="loopBtn">LOOP: OFF</button>
+			<button class="toggle" id="shuffleBtn">SHUFFLE: OFF</button>
+		</div>
+	</div>
 </div>
 
 </div><script>
@@ -124,14 +185,38 @@ body{
 const stage=
 	document.getElementById("stage");
 
+const mediaHost=
+	document.getElementById("mediaHost");
+
 const urlInput=
 	document.getElementById("url");
+
+const prevBtn=
+	document.getElementById("prevBtn");
+
+const nextBtn=
+	document.getElementById("nextBtn");
+
+const loopBtn=
+	document.getElementById("loopBtn");
+
+const shuffleBtn=
+	document.getElementById("shuffleBtn");
+
+const counter=
+	document.getElementById("counter");
 
 let currentObjectURL=
 	null;
 
 let currentMedia=
 	null;
+
+let playlist=[];
+let currentIndex=-1;
+let loopEnabled=false;
+let shuffleEnabled=false;
+let loadToken=0;
 
 const params=
 	new URLSearchParams(
@@ -206,7 +291,7 @@ function cleanup(){
 function loading(){
 	cleanup();
 
-	stage.innerHTML=
+	mediaHost.innerHTML=
 		'<div class="empty">Loading video...</div>'
 }
 
@@ -215,7 +300,7 @@ function showError(
 ){
 	cleanup();
 
-	stage.innerHTML=
+	mediaHost.innerHTML=
 		"";
 
 	const box=
@@ -1205,6 +1290,120 @@ async function readVirtualFile(
 	throw new Error("Could not read filesystem media:\n"+normalized)
 }
 
+function normalizePath(path){
+	const fs=getFS();
+	let value=String(path||"");
+	try{if(fs&&typeof fs.normalize==="function")value=fs.normalize(value)}catch(_){}
+	return value
+}
+
+function ensureSlash(path){
+	const value=String(path||"");
+	return value.endsWith("/")?value:value+"/"
+}
+
+function parentPath(path){
+	const value=String(path||"").replace(/\\+$/g,"");
+	const slash=value.lastIndexOf("/");
+	return slash<0?"":value.slice(0,slash+1)
+}
+
+async function statPath(path){
+	const fs=getFS();
+	if(!fs||typeof fs.stat!=="function")return null;
+	try{return await fs.stat(path)}catch(_){return null}
+}
+
+function mediaCategory(path){
+	return mimeFromExtension(path).startsWith("audio/")?"audio":"video"
+}
+
+function updateNavigation(){
+	const hasMultiple=playlist.length>1;
+	prevBtn.disabled=!hasMultiple;
+	nextBtn.disabled=!hasMultiple;
+	counter.textContent=playlist.length&&currentIndex>=0
+		?(currentIndex+1)+" / "+playlist.length
+		:"0 / 0";
+	loopBtn.textContent="LOOP: "+(loopEnabled?"ON":"OFF");
+	shuffleBtn.textContent="SHUFFLE: "+(shuffleEnabled?"ON":"OFF")
+}
+
+async function prepareMediaPlaylist(src){
+	playlist=[];
+	currentIndex=-1;
+	updateNavigation();
+	if(!isVirtualPath(src)){
+		playlist=[String(src)];
+		currentIndex=0;
+		updateNavigation();
+		return String(src)
+	}
+	const fs=getFS();
+	if(!fs||typeof fs.listDir!=="function")throw new Error("Little Hollow directory listing is unavailable.");
+	const normalized=normalizePath(src);
+	const stat=await statPath(normalized);
+	const directory=stat&&stat.ok&&stat.kind==="directory";
+	const dir=directory?ensureSlash(normalized):parentPath(normalized);
+	if(!dir)throw new Error("Could not determine the media directory.");
+	const targetCategory=directory?null:mediaCategory(normalized);
+	const children=await fs.listDir(dir);
+	playlist=children
+		.map(String)
+		.filter(x=>!x.endsWith("/")&&(!targetCategory||mediaCategory(x)===targetCategory))
+		.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:"base"}));
+	if(!directory&&!playlist.some(x=>normalizePath(x)===normalized))playlist.push(normalized);
+	if(directory&&playlist.length){
+		const firstCategory=mediaCategory(playlist[0]);
+		playlist=playlist.filter(x=>mediaCategory(x)===firstCategory)
+	}
+	if(!playlist.length)throw new Error("No matching media files were found in this directory.");
+	currentIndex=playlist.findIndex(x=>normalizePath(x)===normalized);
+	if(directory||currentIndex<0)currentIndex=0;
+	updateNavigation();
+	return playlist[currentIndex]
+}
+
+async function moveTo(index,autoplay){
+	if(!playlist.length)return;
+	if(index<0)index=playlist.length-1;
+	if(index>=playlist.length)index=0;
+	currentIndex=index;
+	updateNavigation();
+	const path=playlist[index];
+	urlInput.value=path;
+	await loadMediaPath(path,autoplay===true)
+}
+
+function randomIndex(){
+	if(playlist.length<2)return currentIndex;
+	let next=currentIndex;
+	while(next===currentIndex){
+		next=Math.floor(Math.random()*playlist.length)
+	}
+	return next
+}
+
+async function advanceAfterEnded(){
+	if(loopEnabled){
+		try{
+			if(currentMedia){currentMedia.currentTime=0;await currentMedia.play()}
+		}catch(_){}
+		return
+	}
+	if(playlist.length<2){
+		updateNavigation();
+		return
+	}
+	if(shuffleEnabled){
+		await moveTo(randomIndex(),true);
+		return
+	}
+	if(currentIndex<playlist.length-1){
+		await moveTo(currentIndex+1,true);
+	}
+}
+
 function resolveSource(
 	src
 ){
@@ -1326,10 +1525,10 @@ function displayMedia(
 
 			media.onloadedmetadata=
 				()=>{
-					stage.innerHTML=
+					mediaHost.innerHTML=
 						"";
 
-					stage.appendChild(
+					mediaHost.appendChild(
 						media
 					);
 
@@ -1357,6 +1556,11 @@ function displayMedia(
 					)
 				};
 
+			media.onended=
+				()=>{
+					advanceAfterEnded().catch(error=>console.error("[Video Player] Next media failed:",error))
+				};
+
 			media.onabort=
 				()=>{
 					reject(
@@ -1379,55 +1583,40 @@ function displayMedia(
 async function show(
 	src
 ){
-	src=
-		String(
-			src||""
-		).trim();
-
+	src=String(src||"").trim();
 	if(!src){
-		showError(
-			"No media path specified."
-		);
-
+		showError("No media path specified.");
 		return
 	}
-
-	loading();
-
+	const token=++loadToken;
 	try{
-		const source=
-			await resolveSource(
-				src
-			);
-
-		console.log(
-			"[Video Viewer] Resolved media:",
-			src,
-			source
-		);
-
-		await displayMedia(
-			source
-		);
-
+		await prepareMediaPlaylist(src);
+		if(token!==loadToken)return;
+		await moveTo(currentIndex<0?0:currentIndex,false);
 	}catch(err){
-
-		console.error(
-			"[Video Viewer] Media loading failed:",
-			err
-		);
-
-		showError(
-			"Failed to load media.\n\n"+
-			(
-				err&&err.message
-					?err.message
-					:String(err)
-			)
-		)
+		if(token!==loadToken)return;
+		console.error("[Video Viewer] Media loading failed:",err);
+		showError("Failed to load media.\n\n"+(err&&err.message?err.message:String(err)));
+		updateNavigation()
 	}
 }
 
+async function loadMediaPath(src,autoplay){
+	const token=++loadToken;
+	loading();
+	try{
+		const source=await resolveSource(src);
+		if(token!==loadToken)return;
+		await displayMedia(source);
+		if(autoplay&&currentMedia&&currentMedia.tagName.toLowerCase()==="audio"){
+			try{await currentMedia.play()}catch(_){}
+		}
+	}catch(err){
+		if(token!==loadToken)return;
+		console.error("[Video Viewer] Media loading failed:",err);
+		showError("Failed to load media.\n\n"+(err&&err.message?err.message:String(err)));
+	}
+}
 document
 	.getElementById("loadBtn")
 	.onclick=()=>{
@@ -1458,6 +1647,22 @@ urlInput.onkeydown=
 			)
 		}
 	};
+
+prevBtn.onclick=()=>moveTo(currentIndex-1,true);
+nextBtn.onclick=()=>moveTo(currentIndex+1,true);
+loopBtn.onclick=()=>{
+	loopEnabled=!loopEnabled;
+	updateNavigation()
+};
+shuffleBtn.onclick=()=>{
+	shuffleEnabled=!shuffleEnabled;
+	updateNavigation()
+};
+
+window.addEventListener("keydown",e=>{
+	if(e.key==="ArrowLeft")moveTo(currentIndex-1,true);
+	else if(e.key==="ArrowRight")moveTo(currentIndex+1,true)
+});
 
 window.addEventListener(
 	"beforeunload",

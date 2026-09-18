@@ -62,9 +62,58 @@ body{
 	display:flex;
 	align-items:center;
 	justify-content:center;
-	overflow:auto;
+	overflow:hidden;
 	position:relative;
-	padding:8px
+	padding:8px;
+	touch-action:pan-y
+}
+.mediaHost{
+	width:100%;
+	height:100%;
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	overflow:auto
+}
+.nav{
+	position:absolute;
+	left:10px;
+	right:10px;
+	top:10px;
+	display:flex;
+	align-items:center;
+	justify-content:space-between;
+	pointer-events:none
+}
+.nav button{
+	pointer-events:auto;
+	min-width:42px;
+	height:34px;
+	border:1px solid #00FFFF;
+	background:rgba(0,0,0,.72);
+	color:#00FFFF;
+	font:16px monospace;
+	cursor:pointer
+}
+.nav button:active{
+	background:#00FFFF;
+	color:#000
+}
+.nav button:disabled{
+	opacity:.25;
+	cursor:not-allowed
+}
+.counter{
+	position:absolute;
+	left:50%;
+	top:10px;
+	transform:translateX(-50%);
+	border:1px solid #064A4C;
+	background:rgba(0,0,0,.75);
+	padding:7px 10px;
+	font-size:10px;
+	pointer-events:none;
+	white-space:nowrap
 }
 .stage img{
 	display:block;
@@ -103,7 +152,14 @@ body{
 	</div>
 
 	<div class="stage" id="stage">
-		<div class="empty">No image loaded.</div>
+		<div class="mediaHost" id="mediaHost">
+			<div class="empty">No image loaded.</div>
+		</div>
+		<div class="nav">
+			<button id="prevBtn" disabled aria-label="Previous image">‹</button>
+			<div class="counter" id="counter">0 / 0</div>
+			<button id="nextBtn" disabled aria-label="Next image">›</button>
+		</div>
 	</div>
 </div>
 
@@ -111,9 +167,16 @@ body{
 "use strict";
 
 const stage=document.getElementById("stage");
+const mediaHost=document.getElementById("mediaHost");
 const urlInput=document.getElementById("url");
+const prevBtn=document.getElementById("prevBtn");
+const nextBtn=document.getElementById("nextBtn");
+const counter=document.getElementById("counter");
 
 let currentObjectURL=null;
+let playlist=[];
+let currentIndex=-1;
+let loadToken=0;
 
 const params=new URLSearchParams(location.search);
 const initialPath=params.get("src");
@@ -149,17 +212,95 @@ function cleanup(){
 
 function loading(){
 	cleanup();
-	stage.innerHTML='<div class="empty">Loading image...</div>'
+	mediaHost.innerHTML='<div class="empty">Loading image...</div>'
 }
 
 function showError(message){
 	cleanup();
-	stage.innerHTML="";
+	mediaHost.innerHTML="";
 
 	const box=document.createElement("div");
 	box.className="error";
 	box.textContent=String(message||"Failed to load image.");
-	stage.appendChild(box)
+	mediaHost.appendChild(box)
+}
+
+function updateNavigation(){
+	const hasMultiple=playlist.length>1;
+	prevBtn.disabled=!hasMultiple;
+	nextBtn.disabled=!hasMultiple;
+	counter.textContent=playlist.length&&currentIndex>=0
+		?(currentIndex+1)+" / "+playlist.length
+		:"0 / 0";
+}
+
+function normalizePath(path){
+	const fs=getFS();
+	let value=String(path||"");
+	try{
+		if(fs&&typeof fs.normalize==="function")value=fs.normalize(value)
+	}catch(_){}
+	return value
+}
+
+function ensureSlash(path){
+	const value=String(path||"");
+	return value.endsWith("/")?value:value+"/"
+}
+
+function parentPath(path){
+	const value=String(path||"").replace(/\\+$/g,"");
+	const slash=value.lastIndexOf("/");
+	if(slash<0)return "";
+	return value.slice(0,slash+1)
+}
+
+async function statPath(path){
+	const fs=getFS();
+	if(!fs||typeof fs.stat!=="function")return null;
+	try{return await fs.stat(path)}catch(_){return null}
+}
+
+function isImagePath(path){
+	return mimeFromExtension(path).startsWith("image/")
+}
+
+async function prepareImagePlaylist(src){
+	playlist=[];
+	currentIndex=-1;
+	updateNavigation();
+
+	if(!isVirtualPath(src)){
+		playlist=[String(src)];
+		currentIndex=0;
+		updateNavigation();
+		return String(src)
+	}
+
+	const fs=getFS();
+	if(!fs||typeof fs.listDir!=="function")throw new Error("Little Hollow directory listing is unavailable.");
+
+	const normalized=normalizePath(src);
+	const stat=await statPath(normalized);
+	const directory=stat&&stat.ok&&stat.kind==="directory";
+	const dir=directory?ensureSlash(normalized):parentPath(normalized);
+
+	if(!dir)throw new Error("Could not determine the image directory.");
+
+	const children=await fs.listDir(dir);
+	playlist=children
+		.map(String)
+		.filter(x=>!x.endsWith("/")&&isImagePath(x))
+		.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:"base"}));
+
+	if(!directory&&!playlist.some(x=>normalizePath(x)===normalized))playlist.push(normalized);
+
+	if(!playlist.length)throw new Error("No images were found in this directory.");
+
+	currentIndex=playlist.findIndex(x=>normalizePath(x)===normalized);
+	if(directory||currentIndex<0)currentIndex=0;
+	updateNavigation();
+	return playlist[currentIndex]
 }
 
 function extension(path){
@@ -921,26 +1062,16 @@ function resolveSource(src){
 function displayImage(source){
 	return new Promise(
 		(resolve,reject)=>{
-
-			const img=
-				document.createElement("img");
-
+			const img=document.createElement("img");
 			img.draggable=false;
-
 			img.onload=()=>{
-				stage.innerHTML="";
-				stage.appendChild(img);
+				mediaHost.innerHTML="";
+				mediaHost.appendChild(img);
 				resolve(img)
 			};
-
 			img.onerror=()=>{
-				reject(
-					new Error(
-						"Browser could not decode this image."
-					)
-				)
+				reject(new Error("Browser could not decode this image."))
 			};
-
 			img.src=source
 		}
 	)
@@ -948,46 +1079,71 @@ function displayImage(source){
 
 async function show(src){
 	src=String(src||"").trim();
-
 	if(!src){
-		showError(
-			"No image path specified."
-		);
+		showError("No image path specified.");
 		return
 	}
-
-	loading();
-
+	const token=++loadToken;
 	try{
-		const source=
-			await resolveSource(src);
-
-		console.log(
-			"[Image Viewer] Resolved image:",
-			src,
-			source
-		);
-
-		await displayImage(source)
-
+		const first=await prepareImagePlaylist(src);
+		if(token!==loadToken)return;
+		await loadImageAt(currentIndex<0?0:currentIndex,first,token)
 	}catch(err){
-
-		console.error(
-			"[Image Viewer] Image loading failed:",
-			err
-		);
-
-		showError(
-			"Failed to load image.\n\n"+
-			(
-				err&&err.message
-					?err.message
-					:String(err)
-			)
-		)
+		if(token!==loadToken)return;
+		console.error("[Image Viewer] Image loading failed:",err);
+		showError("Failed to load image.\n\n"+(err&&err.message?err.message:String(err)));
+		updateNavigation()
 	}
 }
 
+async function loadImageAt(index,pathOverride,token){
+	if(!playlist.length)return;
+	if(index<0)index=playlist.length-1;
+	if(index>=playlist.length)index=0;
+	currentIndex=index;
+	updateNavigation();
+	const path=pathOverride||playlist[index];
+	urlInput.value=path;
+	loading();
+	try{
+		const source=await resolveSource(path);
+		if(token!==loadToken)return;
+		await displayImage(source);
+	}catch(err){
+		if(token!==loadToken)return;
+		showError("Failed to load image.\n\n"+(err&&err.message?err.message:String(err)));
+	}
+}
+
+async function move(delta){
+	if(playlist.length<2)return;
+	await loadImageAt(currentIndex+delta,null,++loadToken)
+}
+
+prevBtn.onclick=()=>move(-1);
+nextBtn.onclick=()=>move(1);
+
+let swipeStartX=0;
+let swipeStartY=0;
+
+stage.addEventListener("touchstart",e=>{
+	if(!e.touches||e.touches.length!==1)return;
+	swipeStartX=e.touches[0].clientX;
+	swipeStartY=e.touches[0].clientY
+},{passive:true});
+
+stage.addEventListener("touchend",e=>{
+	if(!e.changedTouches||e.changedTouches.length!==1)return;
+	const dx=e.changedTouches[0].clientX-swipeStartX;
+	const dy=e.changedTouches[0].clientY-swipeStartY;
+	if(Math.abs(dx)<50||Math.abs(dx)<=Math.abs(dy))return;
+	move(dx<0?1:-1)
+},{passive:true});
+
+window.addEventListener("keydown",e=>{
+	if(e.key==="ArrowLeft")move(-1);
+	else if(e.key==="ArrowRight")move(1)
+});
 document
 	.getElementById("loadBtn")
 	.onclick=()=>{
